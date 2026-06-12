@@ -137,11 +137,8 @@
     }
 
     .p-avatar {
-      width: 22px; height: 22px;
-      border-radius: 50%;
+      width: 20px; height: 28px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.68rem; font-weight: 800;
-      color: #fff;
       flex-shrink: 0;
     }
 
@@ -257,11 +254,9 @@
       user-select: none;
     }
     .share-chip-label .chip-av {
-      width: 18px; height: 18px;
-      border-radius: 50%;
+      width: 16px; height: 22px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.62rem; font-weight: 800;
-      color: #fff; flex-shrink: 0;
+      flex-shrink: 0;
     }
     .share-cb:checked + .share-chip-label {
       border-color: var(--primary);
@@ -338,9 +333,9 @@
       color: var(--accent);
     }
     .paid-badge .tiny-av {
-      width: 14px; height: 14px; border-radius: 50%;
+      width: 14px; height: 20px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.55rem; font-weight: 800; color: #fff;
+      flex-shrink: 0;
     }
 
     .expense-right { text-align: right; flex-shrink: 0; }
@@ -432,10 +427,9 @@
     }
 
     .bal-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      margin: 0 auto 8px;
+      width: 44px; height: 62px;
+      margin: 0 auto 4px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; font-weight: 800; color: #fff;
     }
 
     .bal-name { font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
@@ -469,9 +463,9 @@
       gap: 6px; font-weight: 700; font-size: 0.9rem;
     }
     .txn-av {
-      width: 30px; height: 30px; border-radius: 50%;
+      width: 28px; height: 39px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.78rem; font-weight: 800; color: #fff; flex-shrink: 0;
+      flex-shrink: 0;
     }
 
     .txn-mid {
@@ -538,6 +532,12 @@
     @keyframes popIn {
       from { opacity: 0; transform: scale(0.8); }
       to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ───── Import row ───── */
+    .import-row {
+      display: flex; gap: 8px; justify-content: center;
+      margin-bottom: 24px; flex-wrap: wrap;
     }
 
     /* ───── Responsive ───── */
@@ -609,6 +609,8 @@
     }
     .btn-share:hover { background: #d3ede6; }
     .btn-share:active { transform: scale(0.96); }
+    .btn-new-trip { background: transparent; color: var(--muted); border-color: var(--border); }
+    .btn-new-trip:hover { background: var(--bg); color: var(--text); }
   </style>
 </head>
 <body>
@@ -638,6 +640,7 @@
     </div>
     <div class="header-actions">
       <span id="save-status"></span>
+      <button class="btn-share btn-new-trip" onclick="newTrip()" data-i18n="btn_new_trip">✚ ทริปใหม่</button>
       <button class="btn-share" onclick="shareTrip()" data-i18n="btn_share">🔗 แชร์ลิงก์</button>
     </div>
   </header>
@@ -656,6 +659,12 @@
         <button class="btn btn-green" onclick="addParticipant()" data-i18n="btn_add_p">+ เพิ่ม</button>
       </div>
     </div>
+  </div>
+
+  <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+  <div class="import-row">
+    <button class="btn btn-ghost" onclick="downloadTemplate()" data-i18n="btn_template">📋 Template</button>
+    <button class="btn btn-ghost" onclick="triggerImport()" data-i18n="btn_import">📥 Import Excel</button>
   </div>
 
   <!-- Add expense -->
@@ -701,7 +710,10 @@
   <div class="section" id="list-section" style="display:none">
     <div class="section-header">
       <div class="section-title" data-i18n="section_expenses">รายการค่าใช้จ่าย</div>
-      <button class="btn btn-ghost" onclick="confirmClearExpenses()" data-i18n="btn_clear">ล้างทั้งหมด</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" onclick="exportExcel()" data-i18n="btn_export">📤 Export</button>
+        <button class="btn btn-ghost" onclick="confirmClearExpenses()" data-i18n="btn_clear">ล้างทั้งหมด</button>
+      </div>
     </div>
     <div class="card">
       <div id="expense-list"></div>
@@ -722,6 +734,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="/lang.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -737,30 +750,58 @@
   });
   const db = firebase.firestore();
 
-  // ── Trip ID from URL ───────────────────────────────────────────────────────
+  // ── Trip ID from URL (with last-visited fallback) ─────────────────────────
   const _params = new URLSearchParams(window.location.search);
   let tripId = _params.get('id');
   if (!tripId) {
-    tripId = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+    const lastId = localStorage.getItem('last_trip_id');
+    tripId = lastId || (Math.random().toString(36).slice(2, 9) + Date.now().toString(36));
     history.replaceState(null, '', '?id=' + tripId);
   }
+  localStorage.setItem('last_trip_id', tripId);
   const tripRef = db.collection('trips').doc(tripId);
 
-  const PALETTE = ['#2A6049','#E06B3A','#6B4FA8','#1F7A9E','#B94E88','#6A7F2A','#9E4E2A','#2A7A6B'];
+  function newTrip() {
+    const id = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+    window.open('?id=' + id, '_blank');
+  }
 
-  function colorOf(name) {
+  // ── RPG Character system ───────────────────────────────────────────────────
+  const CHAR_KEYS = ['knight','wizard','fairy','dragon','slime','witch','goblin','elf'];
+
+  function charOf(name) {
     let h = 0;
-    for (const c of name) h = h * 31 + c.charCodeAt(0);
-    return PALETTE[Math.abs(h) % PALETTE.length];
+    for (const c of (name || '?')) h = h * 31 + c.charCodeAt(0);
+    return CHAR_KEYS[Math.abs(h) % CHAR_KEYS.length];
   }
 
-  function initial(name) { return (name || '?').charAt(0).toUpperCase(); }
-
-  function avatar(name, size = 22, fs = '0.68rem') {
-    return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${colorOf(name)};
-      display:flex;align-items:center;justify-content:center;
-      font-size:${fs};font-weight:800;color:#fff;flex-shrink:0">${initial(name)}</div>`;
+  function charSvg(name, w, h) {
+    return CHARS[charOf(name || '?')].replace('viewBox="0 0 60 84"',
+      `viewBox="0 0 60 84" width="${w}" height="${h}"`);
   }
+
+  function avatar(name, size = 22) {
+    const h = Math.round(size * 84 / 60);
+    return `<span style="width:${size}px;height:${h}px;display:inline-flex;flex-shrink:0">${charSvg(name, size, h)}</span>`;
+  }
+
+  const CHARS = {
+    knight: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="12" y="44" width="36" height="30" rx="8" fill="#8fa8c8"/><path d="M22,46 L30,56 L38,46" fill="#7393b7"/><ellipse cx="13" cy="51" rx="5" ry="7" fill="#8fa8c8"/><ellipse cx="47" cy="51" rx="5" ry="7" fill="#8fa8c8"/><circle cx="30" cy="26" r="18" fill="#8fa8c8"/><rect x="27" y="8" width="6" height="10" rx="2" fill="#9eb8d0"/><path d="M24,8 Q30,0 36,8 L34,14 Q30,11 26,14 Z" fill="#e74c3c"/><rect x="16" y="22" width="28" height="8" rx="2" fill="#1c2833"/><circle cx="24" cy="26" r="3" fill="#5dade2"/><circle cx="36" cy="26" r="3" fill="#5dade2"/><circle cx="25.5" cy="24.8" r="1" fill="white"/><circle cx="37.5" cy="24.8" r="1" fill="white"/><path d="M16,26 L44,26" stroke="#0d1b2a" stroke-width="0.5"/><path d="M16,34 Q22,39 30,39 Q38,39 44,34" stroke="#7393b7" stroke-width="2" fill="none"/></svg>`,
+
+    wizard: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><path d="M9,44 Q10,74 30,74 Q50,74 51,44 Z" fill="#2e4a7f"/><circle cx="22" cy="55" r="2" fill="#f1c40f" opacity="0.8"/><circle cx="38" cy="60" r="1.5" fill="#f1c40f" opacity="0.8"/><circle cx="18" cy="65" r="1" fill="#f1c40f" opacity="0.6"/><circle cx="42" cy="52" r="1" fill="#f1c40f" opacity="0.6"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M18,38 Q22,52 30,54 Q38,52 42,38 Q37,44 30,46 Q23,44 18,38 Z" fill="#ecf0f1"/><ellipse cx="30" cy="16" rx="20" ry="5" fill="#2e4a7f"/><path d="M30,2 L18,16 Q24,13 30,13 Q36,13 42,16 Z" fill="#2e4a7f"/><circle cx="27" cy="10" r="1.5" fill="#f1c40f" opacity="0.9"/><circle cx="32" cy="6" r="1" fill="#f1c40f" opacity="0.9"/><circle cx="23" cy="15" r="1" fill="#f1c40f" opacity="0.7"/><ellipse cx="30" cy="20" rx="17" ry="3.5" fill="#2e4a7f" opacity="0.2"/><path d="M19,22 Q23,19 27,21" stroke="#bdc3c7" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M33,21 Q37,19 41,22" stroke="#bdc3c7" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="3" fill="#2c3e50"/><circle cx="36" cy="27" r="3" fill="#2c3e50"/><circle cx="25.5" cy="25.8" r="1" fill="white"/><circle cx="37.5" cy="25.8" r="1" fill="white"/><path d="M25,35 Q30,38 35,35" stroke="#8e6a50" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    fairy: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="10" ry="2" fill="rgba(0,0,0,0.1)"/><circle cx="7" cy="38" r="2" fill="#f1c40f" opacity="0.8"/><circle cx="53" cy="32" r="1.5" fill="#f1c40f" opacity="0.7"/><circle cx="5" cy="56" r="1.5" fill="#f1c40f" opacity="0.6"/><circle cx="55" cy="56" r="2" fill="#f1c40f" opacity="0.7"/><circle cx="9" cy="20" r="1" fill="#f1c40f" opacity="0.5"/><circle cx="51" cy="18" r="1" fill="#f1c40f" opacity="0.5"/><path d="M17,44 Q3,30 10,18 Q18,16 20,30 Q20,38 17,44" fill="#aed6f1" opacity="0.75"/><path d="M43,44 Q57,30 50,18 Q42,16 40,30 Q40,38 43,44" fill="#aed6f1" opacity="0.75"/><path d="M17,50 Q6,58 10,64 Q14,62 18,52" fill="#d6eaf8" opacity="0.65"/><path d="M43,50 Q54,58 50,64 Q46,62 42,52" fill="#d6eaf8" opacity="0.65"/><path d="M17,44 Q10,32 14,22" stroke="#85c1e9" stroke-width="0.8" fill="none" opacity="0.5"/><path d="M43,44 Q50,32 46,22" stroke="#85c1e9" stroke-width="0.8" fill="none" opacity="0.5"/><ellipse cx="30" cy="55" rx="11" ry="13" fill="#f1948a"/><path d="M20,54 Q25,63 30,62 Q35,63 40,54" fill="#e87a77" opacity="0.7"/><rect x="27" y="44" width="6" height="6" fill="#fddbb4"/><path d="M14,26 Q14,9 30,9 Q46,9 46,26" fill="#f9e4a0"/><circle cx="30" cy="10" r="3.5" fill="#f1c40f"/><circle cx="22" cy="13" r="2.5" fill="#f06eb0" opacity="0.9"/><circle cx="38" cy="13" r="2.5" fill="#f06eb0" opacity="0.9"/><circle cx="30" cy="26" r="16" fill="#fddbb4"/><path d="M14,26 Q16,11 30,11 Q44,11 46,26 L43,25 Q37,17 30,18 Q23,17 17,25 Z" fill="#f9e4a0"/><circle cx="24" cy="25" r="4.5" fill="#1a1a1a"/><circle cx="36" cy="25" r="4.5" fill="#1a1a1a"/><circle cx="26" cy="23" r="1.8" fill="white"/><circle cx="38" cy="23" r="1.8" fill="white"/><circle cx="23" cy="27" r="0.9" fill="white" opacity="0.6"/><circle cx="35" cy="27" r="0.9" fill="white" opacity="0.6"/><circle cx="16" cy="30" r="4.5" fill="#FFB6C1" opacity="0.75"/><circle cx="44" cy="30" r="4.5" fill="#FFB6C1" opacity="0.75"/><path d="M25,33 Q30,37 35,33" stroke="#c0735a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    dragon: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="14" ry="3" fill="rgba(0,0,0,0.1)"/><path d="M10,52 Q3,42 8,36 Q14,36 14,46 Q13,50 10,52" fill="#c0392b" opacity="0.85"/><path d="M50,52 Q57,42 52,36 Q46,36 46,46 Q47,50 50,52" fill="#c0392b" opacity="0.85"/><ellipse cx="30" cy="57" rx="20" ry="17" fill="#27ae60"/><path d="M16,50 Q20,54 24,50 Q20,58 16,54 Z" fill="#1e8449" opacity="0.6"/><path d="M24,46 Q28,50 32,46 Q28,54 24,50 Z" fill="#1e8449" opacity="0.6"/><path d="M36,50 Q40,54 44,50 Q40,58 36,54 Z" fill="#1e8449" opacity="0.6"/><path d="M44,66 Q52,70 50,75 Q46,73 44,68 Z" fill="#1e8449"/><circle cx="30" cy="25" r="18" fill="#2ecc71"/><path d="M20,10 Q15,1 22,7 Q24,10 23,14" fill="#f39c12"/><path d="M40,10 Q45,1 38,7 Q36,10 37,14" fill="#f39c12"/><ellipse cx="30" cy="33" rx="9" ry="6" fill="#27ae60"/><ellipse cx="27" cy="33" rx="1.8" ry="1.4" fill="#1a7a3a"/><ellipse cx="33" cy="33" rx="1.8" ry="1.4" fill="#1a7a3a"/><circle cx="22" cy="21" r="5.5" fill="white"/><circle cx="38" cy="21" r="5.5" fill="white"/><circle cx="22" cy="22" r="3.5" fill="#1a4a1a"/><circle cx="38" cy="22" r="3.5" fill="#1a4a1a"/><circle cx="23.5" cy="20.5" r="1.5" fill="white"/><circle cx="39.5" cy="20.5" r="1.5" fill="white"/><circle cx="21" cy="23.5" r="0.8" fill="white" opacity="0.7"/><circle cx="37" cy="23.5" r="0.8" fill="white" opacity="0.7"/><path d="M17,16 Q22,13 27,15" stroke="#1e8449" stroke-width="2" fill="none"/><path d="M33,15 Q38,13 43,16" stroke="#1e8449" stroke-width="2" fill="none"/><path d="M24,38 Q30,43 36,38" stroke="#1a7a3a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="28.5" y="37" width="3" height="4" rx="1.5" fill="#ecf0f1"/></svg>`,
+
+    slime: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="80" rx="16" ry="4" fill="rgba(0,0,0,0.12)"/><path d="M14,68 Q8,50 10,34 Q12,20 20,16 Q26,12 30,14 Q34,12 40,16 Q48,20 50,34 Q52,50 46,68 Q40,76 30,76 Q20,76 14,68 Z" fill="#74b9ff"/><circle cx="22" cy="16" r="6" fill="#74b9ff"/><circle cx="30" cy="13" r="7" fill="#74b9ff"/><circle cx="38" cy="16" r="6" fill="#74b9ff"/><ellipse cx="28" cy="40" rx="10" ry="16" fill="#81ecec" opacity="0.25"/><ellipse cx="22" cy="35" rx="5" ry="8" fill="white" opacity="0.12"/><rect x="22" y="8" width="16" height="6" rx="2" fill="#f1c40f"/><polygon points="22,8 24,2 26,8" fill="#f1c40f"/><polygon points="27.5,8 30,2 32.5,8" fill="#f1c40f"/><polygon points="34,8 36,2 38,8" fill="#f1c40f"/><circle cx="25" cy="5" r="1.5" fill="#e74c3c"/><circle cx="30" cy="4" r="1.5" fill="#e74c3c"/><circle cx="35" cy="5" r="1.5" fill="#e74c3c"/><ellipse cx="24" cy="42" rx="6" ry="7" fill="white"/><ellipse cx="36" cy="42" rx="6" ry="7" fill="white"/><circle cx="24" cy="43" r="4" fill="#2d3436"/><circle cx="36" cy="43" r="4" fill="#2d3436"/><circle cx="25.8" cy="41" r="1.8" fill="white"/><circle cx="37.8" cy="41" r="1.8" fill="white"/><path d="M21,54 Q30,62 39,54" stroke="#0984e3" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    witch: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><path d="M9,44 Q10,74 30,74 Q50,74 51,44 Z" fill="#1a1a2e"/><path d="M9,44 Q15,58 30,60 Q45,58 51,44" stroke="#6c3483" stroke-width="2" fill="none"/><circle cx="22" cy="58" r="1.5" fill="#9b59b6" opacity="0.8"/><circle cx="38" cy="62" r="1" fill="#9b59b6" opacity="0.8"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M13,28 Q12,16 17,14 Q13,20 13,28" fill="#1a1a1a"/><path d="M47,28 Q48,16 43,14 Q47,20 47,28" fill="#1a1a1a"/><ellipse cx="30" cy="14" rx="22" ry="5" fill="#1a1a2e"/><path d="M30,0 L20,14 Q25,11 30,11 Q35,11 40,14 Z" fill="#1a1a2e"/><rect x="26" y="11" width="8" height="5" rx="1" fill="#f1c40f"/><rect x="28" y="12" width="4" height="3" fill="#1a1a2e"/><ellipse cx="30" cy="18" rx="17" ry="3.5" fill="#1a1a2e" opacity="0.25"/><path d="M20,22 Q24,19 28,21" stroke="#2c2c2c" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M32,21 Q36,19 40,22" stroke="#2c2c2c" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="3.5" fill="#1a1a1a"/><circle cx="36" cy="27" r="3.5" fill="#1a1a1a"/><circle cx="25" cy="25.8" r="1.2" fill="#8e44ad"/><circle cx="37.5" cy="25.8" r="1" fill="white"/><circle cx="24" cy="27" r="1.5" fill="#8e44ad"/><ellipse cx="15" cy="31" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.5"/><ellipse cx="45" cy="31" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.5"/><path d="M23,35 Q27,40 30,38 Q33,40 37,35" stroke="#7a4a3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    goblin: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="11" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="14" y="44" width="32" height="28" rx="10" fill="#7f5c3a"/><path d="M22,44 L26,52 L22,60" stroke="#5d4037" stroke-width="1.5" fill="none"/><path d="M38,44 L34,52 L38,60" stroke="#5d4037" stroke-width="1.5" fill="none"/><path d="M12,24 Q4,20 6,28 Q8,36 14,30 Q12,28 12,24 Z" fill="#39b854"/><path d="M48,24 Q56,20 54,28 Q52,36 46,30 Q48,28 48,24 Z" fill="#39b854"/><path d="M12,24 Q7,22 8,28 Q10,33 13,30" fill="#27a344"/><path d="M48,24 Q53,22 52,28 Q50,33 47,30" fill="#27a344"/><circle cx="30" cy="27" r="16" fill="#39b854"/><path d="M14,24 Q16,8 30,10 Q44,8 46,24" fill="#2c2c2c"/><polygon points="22,22 19,10 25,17" fill="#2c2c2c"/><polygon points="30,20 28,9 32,9" fill="#2c2c2c"/><polygon points="38,22 41,10 35,17" fill="#2c2c2c"/><path d="M14,24 Q18,13 30,14 Q42,13 46,24 L43,22 Q37,17 30,18 Q23,17 17,22 Z" fill="#2c2c2c"/><path d="M18,22 Q22,18 26,21" stroke="#1a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M34,21 Q38,18 42,22" stroke="#1a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="27" rx="3" ry="2.5" fill="#f39c12"/><ellipse cx="37" cy="27" rx="3" ry="2.5" fill="#f39c12"/><circle cx="23" cy="27" r="1.5" fill="#1a1a1a"/><circle cx="37" cy="27" r="1.5" fill="#1a1a1a"/><circle cx="24" cy="26.2" r="0.7" fill="white"/><circle cx="38" cy="26.2" r="0.7" fill="white"/><ellipse cx="30" cy="32" rx="4" ry="3" fill="#2fa348"/><circle cx="28" cy="33" r="1.2" fill="#27a344"/><circle cx="32" cy="33" r="1.2" fill="#27a344"/><path d="M21,37 Q30,43 39,37" stroke="#27a344" stroke-width="1.5" fill="none"/><rect x="25" y="37" width="3" height="4" rx="0.5" fill="#ecf0f1"/><rect x="29.5" y="37" width="3" height="5" rx="0.5" fill="#ecf0f1"/><rect x="34" y="37" width="3" height="4" rx="0.5" fill="#ecf0f1"/></svg>`,
+
+    elf: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="12" y="44" width="36" height="30" rx="11" fill="#1e8449"/><path d="M26,46 Q30,52 34,46" fill="#196f3d"/><path d="M20,56 Q24,50 28,56" fill="#196f3d" opacity="0.6"/><path d="M32,56 Q36,50 40,56" fill="#196f3d" opacity="0.6"/><path d="M13,24 Q7,18 11,28 Q13,30 15,27" fill="#f5c899"/><path d="M47,24 Q53,18 49,28 Q47,30 45,27" fill="#f5c899"/><path d="M14,25 Q9,20 12,27" stroke="#e8b480" stroke-width="1" fill="none"/><path d="M46,25 Q51,20 48,27" stroke="#e8b480" stroke-width="1" fill="none"/><path d="M13,26 Q12,8 30,8 Q48,8 47,26" fill="#d5dbdb"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M13,26 Q15,10 30,10 Q45,10 47,26 L44,25 Q38,17 30,18 Q22,17 16,25 Z" fill="#d5dbdb"/><path d="M13,27 Q10,36 12,42 Q14,38 15,32 Z" fill="#d5dbdb"/><path d="M47,27 Q50,36 48,42 Q46,38 45,32 Z" fill="#d5dbdb"/><ellipse cx="30" cy="18" rx="16" ry="3" fill="#27ae60" opacity="0.8"/><path d="M18,18 Q22,12 26,18" fill="#2ecc71" opacity="0.7"/><path d="M34,18 Q38,12 42,18" fill="#2ecc71" opacity="0.7"/><circle cx="30" cy="16" r="2" fill="#f1c40f"/><path d="M19,26 Q24,23 29,26 Q24,29 19,26 Z" fill="#1a1a1a"/><path d="M31,26 Q36,23 41,26 Q36,29 31,26 Z" fill="#1a1a1a"/><circle cx="23" cy="25.5" r="1.2" fill="white"/><circle cx="35" cy="25.5" r="1.2" fill="white"/><path d="M18,22 Q22,20 27,21" stroke="#555" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M33,21 Q38,20 42,22" stroke="#555" stroke-width="1.3" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="30" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.4"/><ellipse cx="45" cy="30" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.4"/><path d="M25,34 Q30,38 35,34" stroke="#7a4a3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`
+  };
 
   // ── State ──────────────────────────────────────────────────────────────────
   let S = { tripName: t('trip_default_name'), participants: [], expenses: [] };
@@ -861,7 +902,7 @@
     }
     el.innerHTML = S.participants.map(name => `
       <div class="participant-chip">
-        <div class="p-avatar" style="background:${colorOf(name)}">${initial(name)}</div>
+        <div class="p-avatar">${charSvg(name, 20, 28)}</div>
         ${name}
         <button class="p-remove" onclick="removeParticipant('${esc(name)}')">×</button>
       </div>
@@ -884,7 +925,7 @@
       <div>
         <input type="checkbox" class="share-cb" id="sc-${i}" value="${p}" checked onchange="updateSplitInfo()">
         <label class="share-chip-label" for="sc-${i}">
-          <div class="chip-av" style="background:${colorOf(p)}">${initial(p)}</div>
+          <div class="chip-av">${charSvg(p, 16, 22)}</div>
           ${p}
         </label>
       </div>
@@ -962,7 +1003,7 @@
             <div class="expense-desc">${e.desc}</div>
             <div class="expense-meta">
               <span class="paid-badge">
-                ${avatar(e.paidBy, 14, '0.55rem')}
+                <span class="tiny-av">${charSvg(e.paidBy, 14, 20)}</span>
                 ${e.paidBy} ${t('expense_paid')}
               </span>
               ${t('expense_split_n', { count: e.sharedBy.length })} · ${t('expense_per_person', { amount: per })}
@@ -993,7 +1034,7 @@
         <div>
           <input type="checkbox" class="share-cb" id="ecb-${i}" value="${p}" ${checked}>
           <label class="share-chip-label" for="ecb-${i}">
-            ${avatar(p, 16, '0.6rem')} ${p}
+            <div class="chip-av">${charSvg(p, 16, 22)}</div> ${p}
           </label>
         </div>`;
     }).join('');
@@ -1083,7 +1124,7 @@
       const disp  = cls === 'zero' ? '—' : `฿${Math.abs(v).toLocaleString()}`;
       return `
         <div class="bal-card">
-          <div class="bal-avatar" style="background:${colorOf(p)}">${initial(p)}</div>
+          <div class="bal-avatar">${charSvg(p, 44, 62)}</div>
           <div class="bal-name">${p}</div>
           <div class="bal-amount ${cls}">${disp}</div>
           <div class="bal-label ${cls}">${label}</div>
@@ -1104,7 +1145,7 @@
     txnEl.innerHTML = txns.map((t, i) => `
       <div class="txn-item" style="animation-delay:${i * 0.06}s">
         <div class="txn-person">
-          ${avatar(t.from, 30, '0.78rem')}
+          <div class="txn-av">${charSvg(t.from, 28, 39)}</div>
           ${t.from}
         </div>
         <div class="txn-mid">
@@ -1112,7 +1153,7 @@
           <div class="txn-arrow">→</div>
         </div>
         <div class="txn-person">
-          ${avatar(t.to, 30, '0.78rem')}
+          <div class="txn-av">${charSvg(t.to, 28, 39)}</div>
           ${t.to}
         </div>
       </div>
@@ -1162,6 +1203,294 @@
     el.classList.add('show');
     clearTimeout(_toastTimer);
     _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+
+  // ── Excel helpers ──────────────────────────────────────────────────────────
+  async function saveWorkbook(wb, filename) {
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function xlHeaderRow(row, bgArgb) {
+    row.height = 22;
+    row.eachCell({ includeEmpty: true }, cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb || 'FF4a9070' } };
+      cell.alignment = { vertical: 'middle' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FF3a7558' } } };
+    });
+  }
+
+  function xlDataRow(row, isAlt) {
+    row.height = 18;
+    if (isAlt) row.eachCell({ includeEmpty: true }, cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4FAF7' } };
+    });
+  }
+
+  function cellStr(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return String(v.result ?? v.text ?? '');
+    return String(v);
+  }
+
+  // ── Export Excel ───────────────────────────────────────────────────────────
+  async function exportExcel() {
+    if (!S.expenses.length) { toast(t('err_no_data')); return; }
+    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Trip Splitter';
+
+    // ── Sheet 1: Expenses ──────────────────────────────────────────────────
+    const ws1 = wb.addWorksheet('Expenses');
+    ws1.getColumn(1).width = 32;
+    ws1.getColumn(2).width = 14;
+    ws1.getColumn(3).width = 16;
+    ws1.getColumn(4).width = 42;
+    ws1.views = [{ state: 'frozen', ySplit: 1 }];
+
+    xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
+
+    S.expenses.forEach((e, i) => {
+      const row = ws1.addRow([e.desc, e.amount, e.paidBy, e.sharedBy.join(', ')]);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws1.addRow([]);
+    const totRow = ws1.addRow(['Total', total]);
+    totRow.getCell(1).font = { bold: true };
+    totRow.getCell(1).border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
+    totRow.getCell(2).font = { bold: true };
+    totRow.getCell(2).numFmt = '#,##0.00';
+    totRow.getCell(2).alignment = { horizontal: 'right' };
+    totRow.getCell(2).border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
+
+    // ── Sheet 2: Settlement ────────────────────────────────────────────────
+    const ws2 = wb.addWorksheet('Settlement');
+    ws2.getColumn(1).width = 22;
+    ws2.getColumn(2).width = 22;
+    ws2.getColumn(3).width = 16;
+
+    const bal = calcBalances();
+    const txns = calcSettlements();
+
+    ws2.mergeCells('A1:C1');
+    const titleCell = ws2.getCell('A1');
+    titleCell.value = `Trip: ${S.tripName}`;
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FF4a9070' }, name: 'Calibri' };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFeaf6f1' } };
+    titleCell.alignment = { vertical: 'middle', indent: 1 };
+    titleCell.border = { bottom: { style: 'medium', color: { argb: 'FF4a9070' } } };
+    ws2.getRow(1).height = 30;
+
+    ws2.addRow([]);
+    const secBal = ws2.addRow(['BALANCES']);
+    secBal.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF4a9070' } };
+    secBal.height = 20;
+    ws2.addRow([]);
+
+    xlHeaderRow(ws2.addRow(['Person', 'Balance (฿)', 'Status']));
+    S.participants.forEach((p, i) => {
+      const v = Math.round((bal[p] || 0) * 100) / 100;
+      const status = v > 0.01 ? 'To receive' : v < -0.01 ? 'Owes' : 'Even';
+      const row = ws2.addRow([p, Math.abs(v), status]);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      if (v > 0.01) row.getCell(3).font = { bold: true, color: { argb: 'FF276749' } };
+      else if (v < -0.01) row.getCell(3).font = { bold: true, color: { argb: 'FFc53030' } };
+      else row.getCell(3).font = { color: { argb: 'FF718096' } };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws2.addRow([]);
+    const secTxn = ws2.addRow(['TRANSFERS']);
+    secTxn.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF4a9070' } };
+    secTxn.height = 20;
+    ws2.addRow([]);
+
+    xlHeaderRow(ws2.addRow(['From', 'To', 'Amount (฿)']));
+    txns.forEach((tx, i) => {
+      const row = ws2.addRow([tx.from, tx.to, tx.amount]);
+      row.getCell(3).numFmt = '#,##0.00';
+      row.getCell(3).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws2.addRow([]);
+    const tot2 = ws2.addRow(['Total Expenses (฿)', total]);
+    tot2.getCell(1).font = { bold: true };
+    tot2.getCell(2).font = { bold: true };
+    tot2.getCell(2).numFmt = '#,##0.00';
+    tot2.getCell(2).alignment = { horizontal: 'right' };
+
+    await saveWorkbook(wb, `${S.tripName || 'trip'}.xlsx`);
+  }
+
+  // ── Download Template ──────────────────────────────────────────────────────
+  async function downloadTemplate() {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Trip Splitter';
+
+    // ── Sheet 1: Instructions ──────────────────────────────────────────────
+    const ws1 = wb.addWorksheet('Instructions');
+    ws1.getColumn(1).width = 18;
+    ws1.getColumn(2).width = 50;
+    ws1.getColumn(3).width = 16;
+    ws1.getColumn(4).width = 40;
+
+    // Title
+    ws1.mergeCells('A1:D1');
+    const title = ws1.getCell('A1');
+    title.value = '✈  Trip Expense Splitter — How to Use';
+    title.font = { bold: true, size: 16, color: { argb: 'FF4a9070' }, name: 'Calibri' };
+    title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFeaf6f1' } };
+    title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    title.border = { bottom: { style: 'medium', color: { argb: 'FF4a9070' } } };
+    ws1.getRow(1).height = 42;
+
+    ws1.addRow([]);
+
+    // Instructions section
+    const instrSec = ws1.addRow(['INSTRUCTIONS']);
+    instrSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    instrSec.height = 22;
+
+    [
+      [' 1', 'Go to the "Expenses" sheet — click the tab at the bottom of this file'],
+      [' 2', 'Fill in your expenses starting from row 2 — do not modify the header row'],
+      [' 3', 'Save the file, then click "📥 Import Excel" in the app to upload it'],
+    ].forEach(([num, step]) => {
+      const row = ws1.addRow([num, step]);
+      row.getCell(1).font = { bold: true, color: { argb: 'FF4a9070' } };
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).alignment = { wrapText: false };
+      row.height = 18;
+    });
+
+    ws1.addRow([]);
+
+    // Column guide section
+    const colSec = ws1.addRow(['COLUMN GUIDE']);
+    colSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    colSec.height = 22;
+
+    [
+      ['Description', 'What the expense was for (e.g. Dinner, Hotel, Gas)'],
+      ['Amount',      'Total amount paid — numbers only, no currency symbols'],
+      ['Paid By',     'Name of the person who paid'],
+      ['Split With',  'Comma-separated names of everyone sharing the cost (e.g. Shane, Point, Arm)'],
+    ].forEach(([col, desc]) => {
+      const row = ws1.addRow([col, desc]);
+      row.getCell(1).font = { bold: true };
+      row.getCell(1).alignment = { horizontal: 'right' };
+      row.height = 18;
+    });
+
+    ws1.addRow([]);
+
+    // Examples section
+    const exSec = ws1.addRow(['EXAMPLES']);
+    exSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    exSec.height = 22;
+    ws1.addRow([]);
+
+    xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']), 'FF718096');
+
+    [
+      ['Dinner',  900,  'Shane', 'Shane, Point, Arm'],
+      ['Gas',     500,  'Point', 'Shane, Point'],
+      ['Hotel',  3000,  'Arm',   'Shane, Point, Arm'],
+    ].forEach((data, i) => {
+      const row = ws1.addRow(data);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws1.addRow([]);
+
+    // Notes section
+    const notesSec = ws1.addRow(['NOTES']);
+    notesSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    notesSec.height = 22;
+
+    [
+      'New participants found in the file will be added to the trip automatically.',
+      'If "Split With" is left blank, the expense is assigned to the payer only.',
+    ].forEach(note => {
+      const row = ws1.addRow(['⚠', note]);
+      row.getCell(1).font = { color: { argb: 'FFed8936' } };
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).font = { italic: true, color: { argb: 'FF718096' } };
+      row.height = 18;
+    });
+
+    // ── Sheet 2: Expenses (blank template) ────────────────────────────────
+    const ws2 = wb.addWorksheet('Expenses');
+    ws2.getColumn(1).width = 32;
+    ws2.getColumn(2).width = 14;
+    ws2.getColumn(3).width = 16;
+    ws2.getColumn(4).width = 42;
+    ws2.views = [{ state: 'frozen', ySplit: 1 }];
+
+    xlHeaderRow(ws2.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
+
+    for (let i = 0; i < 20; i++) {
+      const row = ws2.addRow(['', null, '', '']);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+      row.height = 18;
+    }
+
+    await saveWorkbook(wb, 'trip-template.xlsx');
+  }
+
+  // ── Import Excel ───────────────────────────────────────────────────────────
+  function triggerImport() {
+    document.getElementById('import-input').value = '';
+    document.getElementById('import-input').click();
+  }
+
+  async function importExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+      const ws = wb.worksheets.length > 1 ? wb.worksheets[1] : wb.worksheets[0];
+      let imported = 0;
+      let firstRow = true;
+      ws.eachRow({ includeEmpty: false }, row => {
+        if (firstRow) { firstRow = false; return; } // skip header
+        const v = row.values; // 1-indexed: v[1]=desc, v[2]=amount, v[3]=paidBy, v[4]=splitWith
+        const desc   = cellStr(v[1]).trim();
+        const amtNum = parseFloat(cellStr(v[2]));
+        const payer  = cellStr(v[3]).trim();
+        const split  = cellStr(v[4]);
+        if (!desc || !amtNum || amtNum <= 0 || !payer) return;
+        const sharers = split
+          ? split.split(',').map(s => s.trim()).filter(Boolean)
+          : [payer];
+        if (!S.participants.includes(payer)) S.participants.push(payer);
+        sharers.forEach(p => { if (p && !S.participants.includes(p)) S.participants.push(p); });
+        S.expenses.push({ id: Date.now() + Math.random(), desc, amount: amtNum, paidBy: payer, sharedBy: sharers });
+        imported++;
+      });
+      if (!imported) { toast(t('err_import_empty')); return; }
+      save(); renderAll();
+      toast(t('toast_imported', { n: imported }));
+    } catch (err) {
+      console.error('Import failed', err);
+      toast(t('err_import_format'));
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
