@@ -127,8 +127,9 @@
       margin-bottom: 32px;
       font-family: inherit;
     }
-    .btn-compare:hover { background: #2c5282; }
-    .btn-compare:active { transform: scale(0.99); }
+    .btn-compare:hover:not(:disabled) { background: #2c5282; }
+    .btn-compare:active:not(:disabled) { transform: scale(0.99); }
+    .btn-compare:disabled { background: #a0aec0; cursor: not-allowed; }
 
     .results { display: none; }
     .results.visible { display: block; }
@@ -360,7 +361,7 @@
       <div class="convert-btns" id="convert-btns"></div>
     </div>
 
-    <button class="btn-compare" onclick="compare()">เปรียบเทียบราคา →</button>
+    <button id="btn-compare" class="btn-compare" onclick="compare()" disabled>เปรียบเทียบราคา →</button>
 
     <div class="results" id="results">
       <h2>ผลการเปรียบเทียบ (เรียงจากถูกสุด)</h2>
@@ -403,6 +404,8 @@
         const shouldUnlock = !prevLocked && cardIsComplete(i - 1);
         card.classList.toggle('card-locked', !shouldUnlock);
       }
+      const completeCount = [1, 2, 3, 4].filter(i => cardIsComplete(i)).length;
+      document.getElementById('btn-compare').disabled = completeCount < 2;
     }
 
     function populateSelect(sel, group, keepValue) {
