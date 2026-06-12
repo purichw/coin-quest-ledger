@@ -575,6 +575,16 @@
     }
     .nav-link:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.08); }
     .nav-link.nav-active { color: #fff; background: rgba(255,255,255,0.13); }
+    .nav-lang { margin-left: auto; display: flex; gap: 3px; align-items: center; }
+    .lang-btn {
+      padding: 3px 9px; border-radius: 5px;
+      font-size: 0.72rem; font-weight: 700; font-family: inherit;
+      background: none; color: rgba(255,255,255,0.4);
+      border: 1.5px solid rgba(255,255,255,0.18); cursor: pointer;
+      transition: all 0.15s; letter-spacing: 0.04em;
+    }
+    .lang-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4); }
+    .lang-btn.lang-active { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
 
     /* ── Save status & share ── */
     .header-actions {
@@ -606,8 +616,12 @@
     <div class="nav-inner">
       <span class="nav-brand">🛠</span>
       <div class="nav-links">
-        <a href="/" class="nav-link">เปรียบเทียบราคา</a>
-        <a href="/trip/" class="nav-link nav-active">แบ่งค่าใช้จ่าย</a>
+        <a href="/" class="nav-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
+        <a href="/trip/" class="nav-link nav-active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
+      </div>
+      <div class="nav-lang">
+        <button class="lang-btn" data-lang="th" onclick="setLang('th')">TH</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
       </div>
     </div>
   </nav>
@@ -615,7 +629,7 @@
 
   <header>
     <span class="header-icon">🧾</span>
-    <div class="header-title">แบ่งค่าใช้จ่าย</div>
+    <div class="header-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</div>
     <div class="trip-name-row">
       <span id="trip-name-display" onclick="startEditTrip()"></span>
       <span class="trip-edit-icon" onclick="startEditTrip()">✏️</span>
@@ -624,22 +638,22 @@
     </div>
     <div class="header-actions">
       <span id="save-status"></span>
-      <button class="btn-share" onclick="shareTrip()">🔗 แชร์ลิงก์</button>
+      <button class="btn-share" onclick="shareTrip()" data-i18n="btn_share">🔗 แชร์ลิงก์</button>
     </div>
   </header>
 
   <!-- Participants -->
   <div class="section">
     <div class="section-header">
-      <div class="section-title">ผู้ร่วมทริป</div>
+      <div class="section-title" data-i18n="section_participants">ผู้ร่วมทริป</div>
     </div>
     <div class="card">
       <div class="participants-chips" id="p-chips"></div>
       <div class="add-p-row">
         <input class="field-input" id="new-p-input" type="text"
-          placeholder="ชื่อ (เช่น Shane)" maxlength="20"
+          placeholder="ชื่อ (เช่น Shane)" data-i18n-placeholder="placeholder_participant" maxlength="20"
           onkeydown="if(event.key==='Enter')addParticipant()" />
-        <button class="btn btn-green" onclick="addParticipant()">+ เพิ่ม</button>
+        <button class="btn btn-green" onclick="addParticipant()" data-i18n="btn_add_p">+ เพิ่ม</button>
       </div>
     </div>
   </div>
@@ -647,17 +661,17 @@
   <!-- Add expense -->
   <div class="section" id="add-section" style="display:none">
     <div class="section-header">
-      <div class="section-title">เพิ่มรายการ</div>
+      <div class="section-title" data-i18n="section_add_expense">เพิ่มรายการ</div>
     </div>
     <div class="card">
       <div class="form-grid">
         <div class="field-group">
-          <label class="field-label">รายการ</label>
+          <label class="field-label" data-i18n="field_desc">รายการ</label>
           <input class="field-input" type="text" id="exp-desc"
-            placeholder="เช่น ค่าอาหาร, ค่าน้ำมัน" />
+            placeholder="เช่น ค่าอาหาร, ค่าน้ำมัน" data-i18n-placeholder="placeholder_desc" />
         </div>
         <div class="field-group">
-          <label class="field-label">จำนวนเงิน (฿)</label>
+          <label class="field-label" data-i18n="field_amount">จำนวนเงิน (฿)</label>
           <div class="amount-wrap">
             <span class="amount-symbol">฿</span>
             <input class="field-input amount-input" type="number"
@@ -667,27 +681,27 @@
       </div>
       <div class="form-grid2">
         <div class="field-group">
-          <label class="field-label">ใครจ่าย</label>
+          <label class="field-label" data-i18n="field_payer">ใครจ่าย</label>
           <select class="field-select" id="exp-payer"></select>
         </div>
         <div class="field-group">
-          <label class="field-label">แบ่งกับ</label>
+          <label class="field-label" data-i18n="field_split_with">แบ่งกับ</label>
           <div style="font-size:0.82rem;color:var(--muted);padding-top:10px" id="split-info">—</div>
         </div>
       </div>
       <div class="field-group">
-        <label class="field-label">เลือกผู้ร่วมแบ่ง</label>
+        <label class="field-label" data-i18n="field_select_sharers">เลือกผู้ร่วมแบ่ง</label>
         <div class="shared-chips" id="shared-chips"></div>
       </div>
-      <button class="btn-full" onclick="addExpense()">+ เพิ่มรายการ</button>
+      <button class="btn-full" onclick="addExpense()" data-i18n="btn_add_expense">+ เพิ่มรายการ</button>
     </div>
   </div>
 
   <!-- Expense list -->
   <div class="section" id="list-section" style="display:none">
     <div class="section-header">
-      <div class="section-title">รายการค่าใช้จ่าย</div>
-      <button class="btn btn-ghost" onclick="confirmClearExpenses()">ล้างทั้งหมด</button>
+      <div class="section-title" data-i18n="section_expenses">รายการค่าใช้จ่าย</div>
+      <button class="btn btn-ghost" onclick="confirmClearExpenses()" data-i18n="btn_clear">ล้างทั้งหมด</button>
     </div>
     <div class="card">
       <div id="expense-list"></div>
@@ -698,7 +712,7 @@
   <!-- Settlement -->
   <div class="section" id="settle-section" style="display:none">
     <div class="section-header">
-      <div class="section-title">สรุปยอด</div>
+      <div class="section-title" data-i18n="section_settlement">สรุปยอด</div>
     </div>
     <div class="balance-grid" id="balance-grid"></div>
     <div id="txn-list"></div>
@@ -708,6 +722,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="/lang.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
@@ -748,7 +763,7 @@
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
-  let S = { tripName: 'ทริปใหม่', participants: [], expenses: [] };
+  let S = { tripName: t('trip_default_name'), participants: [], expenses: [] };
 
   // ── Save (debounced Firestore write) ───────────────────────────────────────
   let _saveTimer;
@@ -760,41 +775,41 @@
   }
 
   function save() {
-    setSaveStatus('saving', 'กำลังบันทึก...');
+    setSaveStatus('saving', t('status_saving'));
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(async () => {
       try {
         await tripRef.set({ ...S, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        setSaveStatus('saved', 'บันทึกแล้ว ✓');
+        setSaveStatus('saved', t('status_saved'));
       } catch (err) {
         console.error('Save failed', err);
-        setSaveStatus('error', 'บันทึกไม่สำเร็จ');
+        setSaveStatus('error', t('status_save_err'));
       }
     }, 800);
   }
 
   async function load() {
-    setSaveStatus('saving', 'กำลังโหลด...');
+    setSaveStatus('saving', t('status_loading'));
     try {
       const snap = await tripRef.get();
       if (snap.exists) {
         const data = snap.data();
         S = {
-          tripName: data.tripName || 'ทริปใหม่',
+          tripName: data.tripName || t('trip_default_name'),
           participants: data.participants || [],
           expenses: data.expenses || []
         };
       }
-      setSaveStatus('saved', 'บันทึกแล้ว ✓');
+      setSaveStatus('saved', t('status_saved'));
     } catch (err) {
       console.error('Load failed', err);
-      setSaveStatus('error', 'โหลดไม่สำเร็จ');
+      setSaveStatus('error', t('status_load_err'));
     }
   }
 
   function shareTrip() {
     const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => toast('คัดลอกลิงก์แล้ว ✓'));
+    navigator.clipboard.writeText(url).then(() => toast(t('toast_link_copied')));
   }
 
   // ── Trip name ──────────────────────────────────────────────────────────────
@@ -802,7 +817,7 @@
     const d = document.getElementById('trip-name-display');
     const icon = document.querySelector('.trip-edit-icon');
     const i = document.getElementById('trip-name-input');
-    d.textContent = S.tripName || 'คลิกเพื่อตั้งชื่อทริป';
+    d.textContent = S.tripName || t('trip_click_name');
     d.style.display = ''; if (icon) icon.style.display = '';
     i.style.display = 'none';
     document.title = (S.tripName || 'แบ่งค่าใช้จ่าย') + ' — แบ่งค่าใช้จ่าย';
@@ -816,7 +831,7 @@
     i.style.display = 'inline-block'; i.focus(); i.select();
   }
   function saveTrip() {
-    S.tripName = document.getElementById('trip-name-input').value.trim() || 'ทริป';
+    S.tripName = document.getElementById('trip-name-input').value.trim() || t('trip_fallback_name');
     save(); renderTripName();
   }
 
@@ -825,7 +840,7 @@
     const el = document.getElementById('new-p-input');
     const name = el.value.trim();
     if (!name) return;
-    if (S.participants.includes(name)) { toast(`"${name}" มีอยู่แล้ว`); return; }
+    if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
     S.participants.push(name);
     el.value = '';
     save(); renderAll();
@@ -833,7 +848,7 @@
 
   function removeParticipant(name) {
     const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name));
-    if (used) { toast(`ไม่สามารถลบ "${name}" — มีรายการที่เกี่ยวข้อง`); return; }
+    if (used) { toast(t('err_in_use', { name })); return; }
     S.participants = S.participants.filter(p => p !== name);
     save(); renderAll();
   }
@@ -841,7 +856,7 @@
   function renderParticipants() {
     const el = document.getElementById('p-chips');
     if (!S.participants.length) {
-      el.innerHTML = '<span class="no-participants">ยังไม่มีผู้ร่วมทริป — เพิ่มชื่อด้านล่าง</span>';
+      el.innerHTML = `<span class="no-participants">${t('no_participants')}</span>`;
       return;
     }
     el.innerHTML = S.participants.map(name => `
@@ -901,9 +916,9 @@
     const paidBy = document.getElementById('exp-payer').value;
     const shared = sharedBy();
 
-    if (!desc)              { toast('กรุณาใส่ชื่อรายการ'); return; }
-    if (!amount || amount <= 0) { toast('กรุณาใส่จำนวนเงิน'); return; }
-    if (!shared.length)    { toast('เลือกผู้ร่วมแบ่งอย่างน้อย 1 คน'); return; }
+    if (!desc)              { toast(t('err_desc')); return; }
+    if (!amount || amount <= 0) { toast(t('err_amount')); return; }
+    if (!shared.length)    { toast(t('err_sharers')); return; }
 
     S.expenses.push({ id: Date.now() + Math.random(), desc, amount, paidBy, sharedBy: shared });
     document.getElementById('exp-desc').value = '';
@@ -912,7 +927,7 @@
     updateSplitInfo();
 
     save(); renderAll();
-    toast('เพิ่มรายการแล้ว ✓');
+    toast(t('success_added'));
   }
 
   // ── Expense list ───────────────────────────────────────────────────────────
@@ -923,7 +938,7 @@
 
   function confirmClearExpenses() {
     if (!S.expenses.length) return;
-    if (confirm('ลบรายการค่าใช้จ่ายทั้งหมด?')) {
+    if (confirm(t('confirm_clear'))) {
       S.expenses = [];
       save(); renderAll();
     }
@@ -948,22 +963,22 @@
             <div class="expense-meta">
               <span class="paid-badge">
                 ${avatar(e.paidBy, 14, '0.55rem')}
-                ${e.paidBy} จ่าย
+                ${e.paidBy} ${t('expense_paid')}
               </span>
-              แบ่ง ${e.sharedBy.length} คน · คนละ ฿${per}
+              ${t('expense_split_n', { count: e.sharedBy.length })} · ${t('expense_per_person', { amount: per })}
             </div>
           </div>
           <div class="expense-right">
             <div class="expense-amount">฿${e.amount.toLocaleString()}</div>
           </div>
-          <button class="expense-edit-btn" onclick="startEditExpense(${e.id})" title="แก้ไข">✏️</button>
-          <button class="expense-del" onclick="deleteExpense(${e.id})" title="ลบ">✕</button>
+          <button class="expense-edit-btn" onclick="startEditExpense(${e.id})" title="${t('edit_title')}">✏️</button>
+          <button class="expense-del" onclick="deleteExpense(${e.id})" title="${t('del_title')}">✕</button>
         </div>
       `;
     }).join('');
 
     document.getElementById('total-bar').innerHTML = `
-      <span>รวมทั้งหมด</span>
+      <span>${t('expense_total')}</span>
       <span class="expense-total-num">฿${total.toLocaleString()}</span>
     `;
   }
@@ -989,14 +1004,14 @@
           <input class="field-input" id="edit-amount" type="number" value="${e.amount}" min="0" step="any" placeholder="0" />
         </div>
         <div class="expense-edit-payer">
-          <div class="field-label">ใครจ่าย</div>
+          <div class="field-label">${t('edit_label_payer')}</div>
           <select class="field-select" id="edit-payer" style="width:100%;padding:6px 10px;font-size:0.86rem">${payerOpts}</select>
         </div>
-        <div class="field-label" style="margin-bottom:6px">ผู้ร่วมแบ่ง</div>
+        <div class="field-label" style="margin-bottom:6px">${t('edit_label_sharers')}</div>
         <div class="expense-edit-chips">${chips}</div>
         <div class="expense-edit-actions">
-          <button class="btn-save-edit" onclick="saveEditExpense(${e.id})">บันทึก</button>
-          <button class="btn-cancel-edit" onclick="cancelEditExpense()">ยกเลิก</button>
+          <button class="btn-save-edit" onclick="saveEditExpense(${e.id})">${t('btn_save')}</button>
+          <button class="btn-cancel-edit" onclick="cancelEditExpense()">${t('btn_cancel')}</button>
         </div>
       </div>
     `;
@@ -1011,9 +1026,9 @@
     const paidBy = document.getElementById('edit-payer').value;
     const sharedBy = Array.from(document.querySelectorAll('.expense-edit-chips .share-cb:checked')).map(cb => cb.value);
 
-    if (!desc)              { toast('กรุณาใส่ชื่อรายการ'); return; }
-    if (!amount || amount <= 0) { toast('กรุณาใส่จำนวนเงิน'); return; }
-    if (!sharedBy.length)  { toast('เลือกผู้ร่วมแบ่งอย่างน้อย 1 คน'); return; }
+    if (!desc)              { toast(t('err_desc')); return; }
+    if (!amount || amount <= 0) { toast(t('err_amount')); return; }
+    if (!sharedBy.length)  { toast(t('err_sharers')); return; }
 
     const idx = S.expenses.findIndex(e => e.id === id);
     if (idx !== -1) S.expenses[idx] = { ...S.expenses[idx], desc, amount, paidBy, sharedBy };
@@ -1064,7 +1079,7 @@
     document.getElementById('balance-grid').innerHTML = S.participants.map(p => {
       const v = Math.round((bal[p] || 0) * 100) / 100;
       const cls = v > 0.01 ? 'pos' : v < -0.01 ? 'neg' : 'zero';
-      const label = cls === 'pos' ? 'ได้รับเงินคืน' : cls === 'neg' ? 'ต้องโอนเงิน' : 'เสมอกัน';
+      const label = cls === 'pos' ? t('balance_owed') : cls === 'neg' ? t('balance_owes') : t('balance_even');
       const disp  = cls === 'zero' ? '—' : `฿${Math.abs(v).toLocaleString()}`;
       return `
         <div class="bal-card">
@@ -1082,7 +1097,7 @@
       txnEl.innerHTML = `
         <div class="all-settled">
           <div class="all-settled-icon">🎉</div>
-          <div class="all-settled-text">ทุกคนจ่ายเท่ากัน ไม่ต้องโอนเงิน!</div>
+          <div class="all-settled-text">${t('all_settled')}</div>
         </div>`;
       return;
     }
@@ -1107,7 +1122,7 @@
     const total = S.expenses.reduce((s, e) => s + e.amount, 0);
     const copyText = buildCopyText(txns, total);
     txnEl.innerHTML += `
-      <button class="copy-btn" onclick="copySettlement()">📋 คัดลอกเพื่อส่งใน LINE</button>
+      <button class="copy-btn" onclick="copySettlement()">${t('btn_copy_line')}</button>
     `;
     txnEl._copyText = copyText;
   }
@@ -1116,10 +1131,10 @@
     const lines = [
       `🧾 ${S.tripName}`,
       ``,
-      `💰 สรุปการโอนเงิน:`,
-      ...txns.map(t => `• ${t.from} โอน ฿${t.amount.toLocaleString()} ให้ ${t.to}`),
+      t('copy_transfers_hdr'),
+      ...txns.map(tx => t('copy_transfer_line', { from: tx.from, amount: tx.amount.toLocaleString(), to: tx.to })),
       ``,
-      `📊 ค่าใช้จ่ายรวม: ฿${total.toLocaleString()}`,
+      t('copy_total', { amount: total.toLocaleString() }),
     ];
     return lines.join('\n');
   }
@@ -1127,7 +1142,7 @@
   function copySettlement() {
     const el = document.getElementById('txn-list');
     const text = el._copyText || '';
-    navigator.clipboard.writeText(text).then(() => toast('คัดลอกแล้ว ✓'));
+    navigator.clipboard.writeText(text).then(() => toast(t('toast_copied')));
   }
 
   // ── Render all ─────────────────────────────────────────────────────────────
@@ -1153,7 +1168,8 @@
   function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  load().then(() => renderAll());
+  translatePage();
+  load().then(() => { renderAll(); translatePage(); });
 </script>
 </body>
 </html>

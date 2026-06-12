@@ -1,0 +1,207 @@
+var LANG = localStorage.getItem('lang') || 'th';
+
+var T = {
+  th: {
+    nav_compare: 'เปรียบเทียบราคา',
+    nav_split: 'แบ่งค่าใช้จ่าย',
+    // Unit price calc
+    title_compare: 'เปรียบเทียบราคาต่อหน่วย',
+    subtitle_compare: 'กรอกข้อมูลสินค้าอย่างน้อย 2 รายการ แล้วกดเปรียบเทียบ',
+    btn_add_item: '+ เพิ่มสินค้า',
+    convert_label: 'แปลงหน่วยทั้งหมดเป็น →',
+    btn_compare: 'เปรียบเทียบราคา →',
+    results_title: 'ผลการเปรียบเทียบ (เรียงจากถูกสุด)',
+    field_product_name: 'ชื่อสินค้า / ยี่ห้อ',
+    placeholder_name: 'ชื่อ / ยี่ห้อ',
+    field_size_unit: 'ขนาด & หน่วย',
+    field_per_pack: '1 แพ็ค/กล่อง = กี่ชิ้น',
+    placeholder_per_pack: 'เช่น 12',
+    field_price: 'ราคา (บาท)',
+    field_promo: 'โปรโมชัน (ซื้อ / แถม)',
+    promo_sep: 'แถม',
+    delete_title: 'ลบรายการนี้',
+    err_incomplete: 'รายการที่ {i}: กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง',
+    err_per_pack: 'รายการที่ {i}: กรุณาระบุจำนวนชิ้นต่อแพ็ค/กล่อง',
+    err_min_items: 'กรุณากรอกข้อมูลอย่างน้อย 2 รายการ',
+    warn_mixed_units: '⚠️ สินค้าบางรายการใช้หน่วยต่างกลุ่ม ({units}) — เปรียบเทียบกันตรงๆ ไม่ได้ กรุณาเลือกหน่วยให้ตรงกัน',
+    badge_equal: 'ราคาเท่ากัน',
+    badge_cheapest_vs: 'ถูกกว่าแพงสุด -{pct}%',
+    badge_savings: 'ประหยัด {amount} บ./{unit}',
+    badge_expensive: 'แพงกว่าถูกสุด +{pct}%',
+    badge_more_expensive: 'แพงกว่า {amount} บ./{unit}',
+    label_cheapest: 'ถูกสุด',
+    result_price: 'ราคา {price} บาท',
+    unit_price_fmt: '{price} บ./{unit}',
+    promo_label: 'ซื้อ {buy} แถม {free}',
+    // Trip splitter
+    title_split: 'แบ่งค่าใช้จ่าย',
+    trip_default_name: 'ทริปใหม่',
+    trip_click_name: 'คลิกเพื่อตั้งชื่อทริป',
+    trip_fallback_name: 'ทริป',
+    btn_share: '🔗 แชร์ลิงก์',
+    section_participants: 'ผู้ร่วมทริป',
+    section_add_expense: 'เพิ่มรายการ',
+    section_expenses: 'รายการค่าใช้จ่าย',
+    section_settlement: 'สรุปยอด',
+    placeholder_participant: 'ชื่อ (เช่น Shane)',
+    btn_add_p: '+ เพิ่ม',
+    no_participants: 'ยังไม่มีผู้ร่วมทริป — เพิ่มชื่อด้านล่าง',
+    field_desc: 'รายการ',
+    placeholder_desc: 'เช่น ค่าอาหาร, ค่าน้ำมัน',
+    field_amount: 'จำนวนเงิน (฿)',
+    field_payer: 'ใครจ่าย',
+    field_split_with: 'แบ่งกับ',
+    field_select_sharers: 'เลือกผู้ร่วมแบ่ง',
+    btn_add_expense: '+ เพิ่มรายการ',
+    btn_clear: 'ล้างทั้งหมด',
+    err_desc: 'กรุณาใส่ชื่อรายการ',
+    err_amount: 'กรุณาใส่จำนวนเงิน',
+    err_sharers: 'เลือกผู้ร่วมแบ่งอย่างน้อย 1 คน',
+    err_duplicate: '"{name}" มีอยู่แล้ว',
+    err_in_use: 'ไม่สามารถลบ "{name}" — มีรายการที่เกี่ยวข้อง',
+    success_added: 'เพิ่มรายการแล้ว ✓',
+    confirm_clear: 'ลบรายการค่าใช้จ่ายทั้งหมด?',
+    expense_paid: 'จ่าย',
+    expense_split_n: 'แบ่ง {count} คน',
+    expense_per_person: 'คนละ ฿{amount}',
+    edit_title: 'แก้ไข',
+    del_title: 'ลบ',
+    edit_label_payer: 'ใครจ่าย',
+    edit_label_sharers: 'ผู้ร่วมแบ่ง',
+    btn_save: 'บันทึก',
+    btn_cancel: 'ยกเลิก',
+    expense_total: 'รวมทั้งหมด',
+    balance_owed: 'ได้รับเงินคืน',
+    balance_owes: 'ต้องโอนเงิน',
+    balance_even: 'เสมอกัน',
+    all_settled: 'ทุกคนจ่ายเท่ากัน ไม่ต้องโอนเงิน!',
+    btn_copy_line: '📋 คัดลอกเพื่อส่งใน LINE',
+    copy_transfers_hdr: '💰 สรุปการโอนเงิน:',
+    copy_transfer_line: '• {from} โอน ฿{amount} ให้ {to}',
+    copy_total: '📊 ค่าใช้จ่ายรวม: ฿{amount}',
+    toast_link_copied: 'คัดลอกลิงก์แล้ว ✓',
+    toast_copied: 'คัดลอกแล้ว ✓',
+    status_saving: 'กำลังบันทึก...',
+    status_loading: 'กำลังโหลด...',
+    status_saved: 'บันทึกแล้ว ✓',
+    status_save_err: 'บันทึกไม่สำเร็จ',
+    status_load_err: 'โหลดไม่สำเร็จ',
+  },
+  en: {
+    nav_compare: 'Compare Prices',
+    nav_split: 'Split Expenses',
+    // Unit price calc
+    title_compare: 'Unit Price Comparison',
+    subtitle_compare: 'Enter at least 2 products and press Compare',
+    btn_add_item: '+ Add Product',
+    convert_label: 'Convert all units to →',
+    btn_compare: 'Compare Prices →',
+    results_title: 'Results (cheapest first)',
+    field_product_name: 'Product / Brand',
+    placeholder_name: 'Name / Brand',
+    field_size_unit: 'Size & Unit',
+    field_per_pack: '1 pack/box = how many pieces?',
+    placeholder_per_pack: 'e.g. 12',
+    field_price: 'Price (Baht)',
+    field_promo: 'Promotion (buy / get free)',
+    promo_sep: 'free',
+    delete_title: 'Remove this item',
+    err_incomplete: 'Item {i}: Please fill in all fields correctly',
+    err_per_pack: 'Item {i}: Please specify pieces per pack/box',
+    err_min_items: 'Please enter at least 2 items',
+    warn_mixed_units: '⚠️ Some items use different unit groups ({units}) — cannot compare directly. Please use matching units',
+    badge_equal: 'Same price',
+    badge_cheapest_vs: '{pct}% cheaper than priciest',
+    badge_savings: 'Save {amount} ฿/{unit}',
+    badge_expensive: '+{pct}% vs cheapest',
+    badge_more_expensive: '{amount} ฿/{unit} more',
+    label_cheapest: 'Best value',
+    result_price: 'Price {price} Baht',
+    unit_price_fmt: '{price} ฿/{unit}',
+    promo_label: 'Buy {buy} get {free} free',
+    // Trip splitter
+    title_split: 'Expense Splitter',
+    trip_default_name: 'New Trip',
+    trip_click_name: 'Click to name this trip',
+    trip_fallback_name: 'Trip',
+    btn_share: '🔗 Share Link',
+    section_participants: 'Participants',
+    section_add_expense: 'Add Expense',
+    section_expenses: 'Expenses',
+    section_settlement: 'Summary',
+    placeholder_participant: 'Name (e.g. Shane)',
+    btn_add_p: '+ Add',
+    no_participants: 'No participants yet — add names below',
+    field_desc: 'Item',
+    placeholder_desc: 'e.g. Dinner, Gas, Hotel',
+    field_amount: 'Amount (฿)',
+    field_payer: 'Paid by',
+    field_split_with: 'Split with',
+    field_select_sharers: 'Select participants to split',
+    btn_add_expense: '+ Add Expense',
+    btn_clear: 'Clear All',
+    err_desc: 'Please enter an item name',
+    err_amount: 'Please enter an amount',
+    err_sharers: 'Select at least 1 person to split with',
+    err_duplicate: '"{name}" already exists',
+    err_in_use: 'Cannot remove "{name}" — they have existing expenses',
+    success_added: 'Expense added ✓',
+    confirm_clear: 'Delete all expenses?',
+    expense_paid: 'paid',
+    expense_split_n: '{count} people',
+    expense_per_person: '฿{amount} each',
+    edit_title: 'Edit',
+    del_title: 'Delete',
+    edit_label_payer: 'Paid by',
+    edit_label_sharers: 'Split with',
+    btn_save: 'Save',
+    btn_cancel: 'Cancel',
+    expense_total: 'Total',
+    balance_owed: 'to receive',
+    balance_owes: 'owes',
+    balance_even: 'even',
+    all_settled: 'Everyone is even — no transfers needed!',
+    btn_copy_line: '📋 Copy for LINE',
+    copy_transfers_hdr: '💰 Settlement:',
+    copy_transfer_line: '• {from} sends ฿{amount} to {to}',
+    copy_total: '📊 Total expenses: ฿{amount}',
+    toast_link_copied: 'Link copied ✓',
+    toast_copied: 'Copied ✓',
+    status_saving: 'Saving...',
+    status_loading: 'Loading...',
+    status_saved: 'Saved ✓',
+    status_save_err: 'Save failed',
+    status_load_err: 'Load failed',
+  }
+};
+
+function t(key, vars) {
+  var s = (T[LANG] || T.th)[key];
+  if (s === undefined) return key;
+  if (vars) {
+    for (var k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
+  }
+  return s;
+}
+
+function setLang(l) {
+  LANG = l;
+  localStorage.setItem('lang', l);
+  translatePage();
+  if (typeof renderAll === 'function') renderAll();
+}
+
+function translatePage() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+    el.title = t(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.toggle('lang-active', btn.dataset.lang === LANG);
+  });
+}

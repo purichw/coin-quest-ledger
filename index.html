@@ -422,6 +422,16 @@
     }
     .nav-link:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.08); }
     .nav-link.nav-active { color: #fff; background: rgba(255,255,255,0.13); }
+    .nav-lang { margin-left: auto; display: flex; gap: 3px; align-items: center; }
+    .lang-btn {
+      padding: 3px 9px; border-radius: 5px;
+      font-size: 0.72rem; font-weight: 700; font-family: inherit;
+      background: none; color: rgba(255,255,255,0.4);
+      border: 1.5px solid rgba(255,255,255,0.18); cursor: pointer;
+      transition: all 0.15s; letter-spacing: 0.04em;
+    }
+    .lang-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4); }
+    .lang-btn.lang-active { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
   </style>
 </head>
 <body>
@@ -429,34 +439,39 @@
     <div class="nav-inner">
       <span class="nav-brand">🛠</span>
       <div class="nav-links">
-        <a href="/" class="nav-link nav-active">เปรียบเทียบราคา</a>
-        <a href="/trip/" class="nav-link">แบ่งค่าใช้จ่าย</a>
+        <a href="/" class="nav-link nav-active" data-i18n="nav_compare">เปรียบเทียบราคา</a>
+        <a href="/trip/" class="nav-link" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
+      </div>
+      <div class="nav-lang">
+        <button class="lang-btn" data-lang="th" onclick="setLang('th')">TH</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
       </div>
     </div>
   </nav>
   <div class="container">
     <header>
-      <h1>เปรียบเทียบราคาต่อหน่วย</h1>
-      <p>กรอกข้อมูลสินค้าอย่างน้อย 2 รายการ แล้วกดเปรียบเทียบ</p>
+      <h1 data-i18n="title_compare">เปรียบเทียบราคาต่อหน่วย</h1>
+      <p data-i18n="subtitle_compare">กรอกข้อมูลสินค้าอย่างน้อย 2 รายการ แล้วกดเปรียบเทียบ</p>
     </header>
 
     <div class="cards-grid" id="cards-grid"></div>
 
-    <button id="btn-add-card" class="btn-add-card" onclick="addCard()">+ เพิ่มสินค้า</button>
+    <button id="btn-add-card" class="btn-add-card" onclick="addCard()" data-i18n="btn_add_item">+ เพิ่มสินค้า</button>
 
     <div class="convert-bar" id="convert-bar">
-      <span class="convert-label">แปลงหน่วยทั้งหมดเป็น →</span>
+      <span class="convert-label" data-i18n="convert_label">แปลงหน่วยทั้งหมดเป็น →</span>
       <div class="convert-btns" id="convert-btns"></div>
     </div>
 
-    <button id="btn-compare" class="btn-compare" onclick="compare()" disabled>เปรียบเทียบราคา →</button>
+    <button id="btn-compare" class="btn-compare" onclick="compare()" disabled data-i18n="btn_compare">เปรียบเทียบราคา →</button>
 
     <div class="results" id="results">
-      <h2>ผลการเปรียบเทียบ (เรียงจากถูกสุด)</h2>
+      <h2 data-i18n="results_title">ผลการเปรียบเทียบ (เรียงจากถูกสุด)</h2>
       <div id="results-list"></div>
     </div>
   </div>
 
+  <script src="/lang.js"></script>
   <script>
     const UNIT_GROUPS = [
       { name: 'volume', base: 'ml',   units: { ml: 1, l: 1000, kl: 1_000_000 } },
@@ -600,15 +615,15 @@
       wrapper.id = `card-${i}`;
       wrapper.style.borderTop = `4px solid ${CARD_COLORS[(i - 1) % CARD_COLORS.length]}`;
       wrapper.innerHTML = `
-        ${i > 2 ? `<button class="card-delete-btn" id="delete-btn-${i}" onclick="deleteCard()" title="ลบรายการนี้">×</button>` : ''}
+        ${i > 2 ? `<button class="card-delete-btn" id="delete-btn-${i}" onclick="deleteCard()" data-i18n-title="delete_title" title="${t('delete_title')}">×</button>` : ''}
         <div class="card-number">${i}</div>
         <div class="card-body">
           <div class="field">
-            <label>ชื่อสินค้า / ยี่ห้อ</label>
-            <input type="text" id="name-${i}" placeholder="ชื่อ / ยี่ห้อ" />
+            <label data-i18n="field_product_name">${t('field_product_name')}</label>
+            <input type="text" id="name-${i}" data-i18n-placeholder="placeholder_name" placeholder="${t('placeholder_name')}" />
           </div>
           <div class="field">
-            <label>ขนาด &amp; หน่วย</label>
+            <label data-i18n="field_size_unit">${t('field_size_unit')}</label>
             <div class="size-row">
               <div class="field">
                 <input type="number" id="size-${i}" placeholder="0" min="0" step="any" />
@@ -619,18 +634,18 @@
             </div>
           </div>
           <div class="field per-pack-row" id="per-pack-row-${i}" style="display:none">
-            <label>1 แพ็ค/กล่อง = กี่ชิ้น</label>
-            <input type="number" id="per-pack-${i}" placeholder="เช่น 12" min="1" step="1" />
+            <label data-i18n="field_per_pack">${t('field_per_pack')}</label>
+            <input type="number" id="per-pack-${i}" data-i18n-placeholder="placeholder_per_pack" placeholder="${t('placeholder_per_pack')}" min="1" step="1" />
           </div>
           <div class="field">
-            <label>ราคา (บาท)</label>
+            <label data-i18n="field_price">${t('field_price')}</label>
             <input type="number" id="price-${i}" placeholder="0.00" min="0" step="any" />
           </div>
           <div class="field">
-            <label>โปรโมชัน (ซื้อ / แถม)</label>
+            <label data-i18n="field_promo">${t('field_promo')}</label>
             <div class="promo-row">
               <input type="number" id="buy-${i}" value="1" min="1" step="1" />
-              <span class="promo-sep">แถม</span>
+              <span class="promo-sep" data-i18n="promo_sep">${t('promo_sep')}</span>
               <input type="number" id="free-${i}" value="0" min="0" step="1" />
             </div>
           </div>
@@ -678,7 +693,7 @@
 
         if (!name && isNaN(size) && isNaN(price)) continue;
         if (!name || isNaN(size) || size <= 0 || isNaN(price) || price <= 0) {
-          alert(`รายการที่ ${i}: กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง`);
+          alert(t('err_incomplete', { i }));
           return;
         }
         const conv = getConv(unit);
@@ -686,7 +701,7 @@
         if (unit === 'แพ็ค/กล่อง') {
           const perPack = parseInt(document.getElementById(`per-pack-${i}`).value) || 0;
           if (perPack < 1) {
-            alert(`รายการที่ ${i}: กรุณาระบุจำนวนชิ้นต่อแพ็ค/กล่อง`);
+            alert(t('err_per_pack', { i }));
             return;
           }
           unitFactor = perPack;
@@ -694,13 +709,13 @@
         const buy = Math.max(1, parseInt(document.getElementById(`buy-${i}`).value) || 1);
         const free = Math.max(0, parseInt(document.getElementById(`free-${i}`).value) || 0);
         const promoMult = (buy + free) / buy;
-        const promoLabel = free > 0 ? `ซื้อ ${buy} แถม ${free}` : null;
+        const promoLabel = free > 0 ? t('promo_label', { buy, free }) : null;
         const baseSize = size * unitFactor * promoMult;
         items.push({ name, size, unit, price, baseUnit: conv.base, baseSize, unitPrice: price / baseSize, promoLabel });
       }
 
       if (items.length < 2) {
-        alert('กรุณากรอกข้อมูลอย่างน้อย 2 รายการ');
+        alert(t('err_min_items'));
         return;
       }
 
@@ -722,7 +737,7 @@
 
       if (mixedUnits) {
         list.innerHTML = `<div style="background:#fffbeb;border:1.5px solid #f6ad55;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:0.9rem;color:#744210;">
-          ⚠️ สินค้าบางรายการใช้หน่วยต่างกลุ่ม (${baseUnits.join(', ')}) — เปรียบเทียบกันตรงๆ ไม่ได้ กรุณาเลือกหน่วยให้ตรงกัน
+          ${t('warn_mixed_units', { units: baseUnits.join(', ') })}
         </div>`;
       }
 
@@ -745,11 +760,11 @@
 
         let badges;
         if (allEqual) {
-          badges = `<span class="diff-badge equal-badge">ราคาเท่ากัน</span>`;
+          badges = `<span class="diff-badge equal-badge">${t('badge_equal')}</span>`;
         } else if (isCheapest) {
-          badges = `<span class="diff-badge">ถูกกว่าแพงสุด -${pctVsExpensive}%</span> <span class="diff-badge diff-badge-2">ประหยัด ${savedPerUnit} บ./${item.baseUnit}</span>`;
+          badges = `<span class="diff-badge">${t('badge_cheapest_vs', { pct: pctVsExpensive })}</span> <span class="diff-badge diff-badge-2">${t('badge_savings', { amount: savedPerUnit, unit: item.baseUnit })}</span>`;
         } else {
-          badges = `<span class="diff-badge">แพงกว่าถูกสุด +${pctVsCheapest}%</span> <span class="diff-badge diff-badge-2">แพงกว่า ${savingPerUnit} บ./${item.baseUnit}</span>`;
+          badges = `<span class="diff-badge">${t('badge_expensive', { pct: pctVsCheapest })}</span> <span class="diff-badge diff-badge-2">${t('badge_more_expensive', { amount: savingPerUnit, unit: item.baseUnit })}</span>`;
         }
 
         const rankDisplay = idx < 3 ? ['🥇','🥈','🥉'][idx] : (idx + 1);
@@ -759,12 +774,12 @@
             <div class="result-info">
               <div class="result-name">
                 ${item.name}
-                ${isCheapest ? '<span class="best-label">ถูกสุด</span>' : ''}
+                ${isCheapest ? `<span class="best-label">${t('label_cheapest')}</span>` : ''}
               </div>
-              <div class="result-detail">${sizeLabel} · ราคา ${item.price.toLocaleString()} บาท</div>
+              <div class="result-detail">${sizeLabel} · ${t('result_price', { price: item.price.toLocaleString() })}</div>
             </div>
             <div class="result-price">
-              <div class="unit-price">${item.unitPrice.toFixed(4)} บ./${item.baseUnit}</div>
+              <div class="unit-price">${t('unit_price_fmt', { price: item.unitPrice.toFixed(4), unit: item.baseUnit })}</div>
               <div style="margin-top:4px">${badges}</div>
             </div>
           </div>
@@ -777,6 +792,7 @@
     }
 
     buildCards();
+    translatePage();
   </script>
 </body>
 </html>
