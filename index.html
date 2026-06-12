@@ -51,13 +51,14 @@
     .card {
       background: #fff;
       border-radius: 12px;
-      padding: 20px;
+      padding: 24px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       border: 2px solid #e2e8f0;
-      transition: border-color 0.2s;
+      border-top: 4px solid #e2e8f0;
+      transition: border-color 0.2s, box-shadow 0.2s;
       position: relative;
     }
-    .card:focus-within { border-color: #63b3ed; }
+    .card:focus-within { border-color: #63b3ed; box-shadow: 0 2px 8px rgba(66,153,225,0.12); }
 
     .card-number {
       position: absolute;
@@ -77,9 +78,9 @@
 
     .card label {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
-      color: #4a5568;
+      color: #a0aec0;
       margin-bottom: 4px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -90,7 +91,7 @@
       padding: 8px 10px;
       border: 1.5px solid #e2e8f0;
       border-radius: 8px;
-      font-size: 0.95rem;
+      font-size: 1rem;
       color: #2d3748;
       background: #f7fafc;
       outline: none;
@@ -163,8 +164,19 @@
     .btn-compare:active:not(:disabled) { transform: scale(0.99); }
     .btn-compare:disabled { background: #a0aec0; cursor: not-allowed; }
 
+    @keyframes resultFadeIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
     .results { display: none; }
-    .results.visible { display: block; }
+    .results.visible { display: block; animation: fadeIn 0.3s ease both; }
+
+    .result-item { animation: resultFadeIn 0.35s ease both; }
 
     .results h2 {
       font-size: 1.1rem;
@@ -194,10 +206,11 @@
     }
 
     .rank {
-      font-size: 1.5rem;
+      font-size: 1.8rem;
       font-weight: 800;
-      min-width: 36px;
+      min-width: 40px;
       text-align: center;
+      line-height: 1;
     }
     .rank.first { color: #48bb78; }
     .rank.last { color: #fc8181; }
@@ -219,7 +232,7 @@
       text-align: right;
     }
     .unit-price {
-      font-size: 1.2rem;
+      font-size: 1.6rem;
       font-weight: 800;
       color: #2b6cb0;
     }
@@ -290,7 +303,7 @@
       padding: 8px 10px;
       border: 1.5px solid #e2e8f0;
       border-radius: 8px;
-      font-size: 0.95rem;
+      font-size: 1rem;
       color: #2d3748;
       background: #f7fafc;
       outline: none;
@@ -538,10 +551,13 @@
     let visibleCards = 2;
     const MAX_CARDS = 6;
 
+    const CARD_COLORS = ['#4299e1','#9f7aea','#48bb78','#ed8936','#ed64a6','#38b2ac'];
+
     function createCard(i) {
       const wrapper = document.createElement('div');
       wrapper.className = 'card';
       wrapper.id = `card-${i}`;
+      wrapper.style.borderTop = `4px solid ${CARD_COLORS[(i - 1) % CARD_COLORS.length]}`;
       wrapper.innerHTML = `
         ${i > 2 ? `<button class="card-delete-btn" id="delete-btn-${i}" onclick="deleteCard()" title="ลบรายการนี้">×</button>` : ''}
         <div class="card-number">${i}</div>
@@ -695,9 +711,10 @@
           badges = `<span class="diff-badge">แพงกว่าถูกสุด +${pctVsCheapest}%</span> <span class="diff-badge diff-badge-2">แพงกว่า ${savingPerUnit} บ./${item.baseUnit}</span>`;
         }
 
+        const rankDisplay = idx < 3 ? ['🥇','🥈','🥉'][idx] : (idx + 1);
         list.innerHTML += `
-          <div class="result-item ${cardClass}">
-            <div class="rank ${rankClass}">${idx + 1}</div>
+          <div class="result-item ${cardClass}" style="animation-delay:${idx * 0.08}s">
+            <div class="rank ${rankClass}">${rankDisplay}</div>
             <div class="result-info">
               <div class="result-name">
                 ${item.name}
