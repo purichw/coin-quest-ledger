@@ -26,7 +26,7 @@
     header h1 {
       font-size: 1.75rem;
       font-weight: 700;
-      color: #2b6cb0;
+      color: #4a9070;
     }
     header p {
       margin-top: 6px;
@@ -68,8 +68,8 @@
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #ebf4ff;
-      color: #2b6cb0;
+      background: #eaf6f1;
+      color: #4a9070;
       font-size: 0.75rem;
       font-weight: 700;
       display: flex;
@@ -101,7 +101,7 @@
       font-family: inherit;
     }
     .card input:focus, .card select:focus {
-      border-color: #4299e1;
+      border-color: #6fb898;
       background: #fff;
     }
 
@@ -129,7 +129,7 @@
     .btn-add-card {
       display: block; width: 100%;
       padding: 12px;
-      background: transparent; color: #2b6cb0;
+      background: transparent; color: #4a9070;
       border: 2px dashed #90cdf4; border-radius: 10px;
       font-size: 0.95rem; font-weight: 600;
       cursor: pointer; margin-bottom: 16px;
@@ -152,7 +152,7 @@
       display: block;
       width: 100%;
       padding: 14px;
-      background: #2b6cb0;
+      background: #4a9070;
       color: #fff;
       border: none;
       border-radius: 10px;
@@ -163,7 +163,7 @@
       margin-bottom: 32px;
       font-family: inherit;
     }
-    .btn-compare:hover:not(:disabled) { background: #2c5282; }
+    .btn-compare:hover:not(:disabled) { background: #3a7558; }
     .btn-compare:active:not(:disabled) { transform: scale(0.99); }
     .btn-compare:disabled { background: #a0aec0; cursor: not-allowed; }
 
@@ -237,7 +237,7 @@
     .unit-price {
       font-size: 1.6rem;
       font-weight: 800;
-      color: #2b6cb0;
+      color: #4a9070;
     }
     .cheapest .unit-price { color: #276749; }
     .most-expensive .unit-price { color: #c53030; }
@@ -314,7 +314,7 @@
       transition: border-color 0.15s, background 0.15s;
       min-width: 0;
     }
-    .promo-row input:focus { border-color: #4299e1; background: #fff; }
+    .promo-row input:focus { border-color: #6fb898; background: #fff; }
     .promo-sep {
       color: #718096;
       font-size: 0.85rem;
@@ -337,7 +337,7 @@
     .convert-label {
       font-size: 0.85rem;
       font-weight: 600;
-      color: #2b6cb0;
+      color: #4a9070;
       white-space: nowrap;
     }
     .convert-btns { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -345,7 +345,7 @@
       padding: 5px 14px;
       border: 1.5px solid #90cdf4;
       background: #ebf8ff;
-      color: #2b6cb0;
+      color: #4a9070;
       border-radius: 8px;
       font-size: 0.875rem;
       font-weight: 600;
@@ -354,7 +354,7 @@
       font-family: inherit;
     }
     .convert-btn:hover { background: #bee3f8; }
-    .convert-btn.active { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+    .convert-btn.active { background: #4a9070; color: #fff; border-color: #4a9070; }
 
     @media (max-width: 640px) {
       body { padding: 16px 12px 48px; }
@@ -607,7 +607,7 @@
     let visibleCards = 2;
     const MAX_CARDS = 6;
 
-    const CARD_COLORS = ['#4299e1','#9f7aea','#48bb78','#ed8936','#ed64a6','#38b2ac'];
+    const CARD_COLORS = ['#6fb898','#9f7aea','#48bb78','#ed8936','#ed64a6','#38b2ac'];
 
     function createCard(i) {
       const wrapper = document.createElement('div');
