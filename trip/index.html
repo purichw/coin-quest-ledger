@@ -530,6 +530,30 @@
     }
     .nav-link:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.08); }
     .nav-link.nav-active { color: #fff; background: rgba(255,255,255,0.13); }
+
+    /* ── Save status & share ── */
+    .header-actions {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-top: 10px;
+    }
+    #save-status {
+      font-size: 0.75rem; color: var(--muted);
+      transition: opacity 0.3s;
+      min-width: 90px; text-align: right;
+    }
+    #save-status.saving { color: var(--muted); }
+    #save-status.saved  { color: #276749; }
+    #save-status.error  { color: #c53030; }
+    .btn-share {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600; font-family: inherit;
+      background: var(--primary-light); color: var(--primary);
+      border: 1.5px solid var(--primary); cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-share:hover { background: #d3e8ff; }
+    .btn-share:active { transform: scale(0.96); }
   </style>
 </head>
 <body>
@@ -551,6 +575,10 @@
       <span id="trip-name-display" onclick="startEditTrip()"></span>
       <input id="trip-name-input" type="text"
         onblur="saveTrip()" onkeydown="if(event.key==='Enter')saveTrip()" />
+    </div>
+    <div class="header-actions">
+      <span id="save-status"></span>
+      <button class="btn-share" onclick="shareTrip()">🔗 แชร์ลิงก์</button>
     </div>
   </header>
 
@@ -634,7 +662,29 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
+  // ── Firebase ───────────────────────────────────────────────────────────────
+  firebase.initializeApp({
+    apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
+    authDomain: "pointy-personal-toolkit.firebaseapp.com",
+    projectId: "pointy-personal-toolkit",
+    storageBucket: "pointy-personal-toolkit.firebasestorage.app",
+    messagingSenderId: "901775387853",
+    appId: "1:901775387853:web:030f47acc78c71a5548d84"
+  });
+  const db = firebase.firestore();
+
+  // ── Trip ID from URL ───────────────────────────────────────────────────────
+  const _params = new URLSearchParams(window.location.search);
+  let tripId = _params.get('id');
+  if (!tripId) {
+    tripId = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+    history.replaceState(null, '', '?id=' + tripId);
+  }
+  const tripRef = db.collection('trips').doc(tripId);
+
   const PALETTE = ['#2A6049','#E06B3A','#6B4FA8','#1F7A9E','#B94E88','#6A7F2A','#9E4E2A','#2A7A6B'];
 
   function colorOf(name) {
@@ -652,11 +702,53 @@
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
-  let S = { tripName: 'ทริปหัวหิน', participants: [], expenses: [] };
+  let S = { tripName: 'ทริปใหม่', participants: [], expenses: [] };
 
-  function save() { localStorage.setItem('split_v2', JSON.stringify(S)); }
-  function load() {
-    try { const d = localStorage.getItem('split_v2'); if (d) S = JSON.parse(d); } catch(e) {}
+  // ── Save (debounced Firestore write) ───────────────────────────────────────
+  let _saveTimer;
+  function setSaveStatus(state, msg) {
+    const el = document.getElementById('save-status');
+    if (!el) return;
+    el.className = state;
+    el.textContent = msg;
+  }
+
+  function save() {
+    setSaveStatus('saving', 'กำลังบันทึก...');
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      try {
+        await tripRef.set({ ...S, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        setSaveStatus('saved', 'บันทึกแล้ว ✓');
+      } catch (err) {
+        console.error('Save failed', err);
+        setSaveStatus('error', 'บันทึกไม่สำเร็จ');
+      }
+    }, 800);
+  }
+
+  async function load() {
+    setSaveStatus('saving', 'กำลังโหลด...');
+    try {
+      const snap = await tripRef.get();
+      if (snap.exists) {
+        const data = snap.data();
+        S = {
+          tripName: data.tripName || 'ทริปใหม่',
+          participants: data.participants || [],
+          expenses: data.expenses || []
+        };
+      }
+      setSaveStatus('saved', 'บันทึกแล้ว ✓');
+    } catch (err) {
+      console.error('Load failed', err);
+      setSaveStatus('error', 'โหลดไม่สำเร็จ');
+    }
+  }
+
+  function shareTrip() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => toast('คัดลอกลิงก์แล้ว ✓'));
   }
 
   // ── Trip name ──────────────────────────────────────────────────────────────
@@ -954,8 +1046,7 @@
   function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  load();
-  renderAll();
+  load().then(() => renderAll());
 </script>
 </body>
 </html>
