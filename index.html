@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เปรียบเทียบราคาต่อหน่วย</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Display&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Google Sans', 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #2b6cb0;
+    }
+    header p {
+      margin-top: 6px;
+      color: #718096;
+      font-size: 0.95rem;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 2px solid #e2e8f0;
+      transition: border-color 0.2s;
+      position: relative;
+    }
+    .card:focus-within { border-color: #63b3ed; }
+
+    .card-number {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ebf4ff;
+      color: #2b6cb0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .card input, .card select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #2d3748;
+      background: #f7fafc;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 12px;
+      font-family: inherit;
+    }
+    .card input:focus, .card select:focus {
+      border-color: #4299e1;
+      background: #fff;
+    }
+
+    .card-locked {
+      opacity: 0.38;
+      pointer-events: none;
+    }
+
+    .size-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .size-row .field { margin-bottom: 0; }
+
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+
+    .btn-compare {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: #2b6cb0;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-bottom: 32px;
+      font-family: inherit;
+    }
+    .btn-compare:hover { background: #2c5282; }
+    .btn-compare:active { transform: scale(0.99); }
+
+    .results { display: none; }
+    .results.visible { display: block; }
+
+    .results h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 16px;
+    }
+
+    .result-item {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .result-item.cheapest {
+      border-color: #48bb78;
+      background: #f0fff4;
+    }
+    .result-item.most-expensive {
+      border-color: #fc8181;
+      background: #fff5f5;
+    }
+
+    .rank {
+      font-size: 1.5rem;
+      font-weight: 800;
+      min-width: 36px;
+      text-align: center;
+    }
+    .rank.first { color: #48bb78; }
+    .rank.last { color: #fc8181; }
+    .rank.mid { color: #a0aec0; }
+
+    .result-info { flex: 1; }
+    .result-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #2d3748;
+    }
+    .result-detail {
+      font-size: 0.85rem;
+      color: #718096;
+      margin-top: 2px;
+    }
+
+    .result-price {
+      text-align: right;
+    }
+    .unit-price {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #2b6cb0;
+    }
+    .cheapest .unit-price { color: #276749; }
+    .most-expensive .unit-price { color: #c53030; }
+
+    .diff-badge {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: #ebf8ff;
+      color: #2c7a7b;
+    }
+    .cheapest .diff-badge {
+      background: #c6f6d5;
+      color: #276749;
+    }
+    .most-expensive .diff-badge {
+      background: #fed7d7;
+      color: #c53030;
+    }
+
+    .equal-badge {
+      background: #e9d8fd;
+      color: #553c9a;
+    }
+
+    .diff-badge-2 {
+      background: #f0fff4;
+      color: #276749;
+      opacity: 0.85;
+    }
+    .most-expensive .diff-badge-2 {
+      background: #fff5f5;
+      color: #c53030;
+      opacity: 0.85;
+    }
+
+    .best-label {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: #48bb78;
+      color: #fff;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .error-msg {
+      color: #c53030;
+      font-size: 0.8rem;
+      margin-top: -8px;
+      margin-bottom: 8px;
+    }
+
+    .promo-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .promo-row input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #2d3748;
+      background: #f7fafc;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+      min-width: 0;
+    }
+    .promo-row input:focus { border-color: #4299e1; background: #fff; }
+    .promo-sep {
+      color: #718096;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .convert-bar {
+      display: none;
+      background: #fff;
+      border: 1.5px solid #bee3f8;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .convert-bar.visible { display: flex; }
+    .convert-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #2b6cb0;
+      white-space: nowrap;
+    }
+    .convert-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .convert-btn {
+      padding: 5px 14px;
+      border: 1.5px solid #90cdf4;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .convert-btn:hover { background: #bee3f8; }
+    .convert-btn.active { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+
+    @media (max-width: 640px) {
+      body { padding: 16px 12px 48px; }
+      header { margin-bottom: 20px; }
+      header h1 { font-size: 1.3rem; }
+      header p { font-size: 0.85rem; }
+
+      .cards-grid { grid-template-columns: 1fr; gap: 12px; }
+
+      .btn-compare { padding: 16px; font-size: 1rem; margin-bottom: 24px; }
+
+      .result-item {
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        grid-template-rows: auto auto;
+        align-items: start;
+        gap: 0 8px;
+        padding: 14px 16px;
+      }
+      .rank {
+        grid-row: 1 / 3;
+        font-size: 1.2rem;
+        padding-top: 3px;
+      }
+      .result-info { grid-column: 2; grid-row: 1; }
+      .result-price {
+        grid-column: 2;
+        grid-row: 2;
+        text-align: left;
+        margin-top: 8px;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .unit-price { font-size: 1rem; }
+      .diff-badge { font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>เปรียบเทียบราคาต่อหน่วย</h1>
+      <p>กรอกข้อมูลสินค้าสูงสุด 4 รายการ แล้วกดเปรียบเทียบ</p>
+    </header>
+
+    <div class="cards-grid" id="cards-grid"></div>
+
+    <div class="convert-bar" id="convert-bar">
+      <span class="convert-label">แปลงหน่วยทั้งหมดเป็น →</span>
+      <div class="convert-btns" id="convert-btns"></div>
+    </div>
+
+    <button class="btn-compare" onclick="compare()">เปรียบเทียบราคา →</button>
+
+    <div class="results" id="results">
+      <h2>ผลการเปรียบเทียบ (เรียงจากถูกสุด)</h2>
+      <div id="results-list"></div>
+    </div>
+  </div>
+
+  <script>
+    const UNIT_GROUPS = [
+      { name: 'volume', base: 'ml',   units: { ml: 1, l: 1000, kl: 1_000_000 } },
+      { name: 'weight', base: 'g',    units: { mg: 0.001, g: 1, kg: 1000 } },
+      { name: 'length', base: 'm',    units: { mm: 0.001, cm: 0.01, m: 1, km: 1000 } },
+      { name: 'count',  base: 'ชิ้น', units: { 'ชิ้น': 1, 'เม็ด': 1, 'แผ่น': 1, 'แคปซูล': 1, 'แพ็ค': 1, 'ห่อ': 1, 'กล่อง': 1, 'ถุง': 1 } },
+    ];
+
+    function getGroup(unit) {
+      return UNIT_GROUPS.find(g => unit in g.units) || null;
+    }
+
+    function getConv(unit) {
+      const g = getGroup(unit);
+      if (!g) return { base: unit, factor: 1 };
+      return { base: g.base, factor: g.units[unit] };
+    }
+
+    let lockedGroup = null;
+
+    function cardIsComplete(i) {
+      const name = document.getElementById(`name-${i}`).value.trim();
+      const size = parseFloat(document.getElementById(`size-${i}`).value);
+      const price = parseFloat(document.getElementById(`price-${i}`).value);
+      return name.length > 0 && size > 0 && !isNaN(size) && price > 0 && !isNaN(price);
+    }
+
+    function updateCardStates() {
+      for (let i = 2; i <= 4; i++) {
+        const card = document.getElementById(`card-${i}`);
+        const prevCard = document.getElementById(`card-${i - 1}`);
+        const prevLocked = prevCard.classList.contains('card-locked');
+        const shouldUnlock = !prevLocked && cardIsComplete(i - 1);
+        card.classList.toggle('card-locked', !shouldUnlock);
+      }
+    }
+
+    function populateSelect(sel, group, keepValue) {
+      const prev = keepValue || sel.value;
+      sel.innerHTML = '';
+      if (group) {
+        Object.keys(group.units).forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u; opt.textContent = u;
+          sel.appendChild(opt);
+        });
+        const keys = Object.keys(group.units);
+        sel.value = keys.includes(prev) ? prev : keys[0];
+      } else {
+        UNIT_GROUPS.forEach((g, gi) => {
+          Object.keys(g.units).forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u; opt.textContent = u;
+            sel.appendChild(opt);
+          });
+          if (gi < UNIT_GROUPS.length - 1) {
+            const sep = document.createElement('option');
+            sep.disabled = true; sep.textContent = '──────';
+            sel.appendChild(sep);
+          }
+        });
+        if (prev) sel.value = prev;
+      }
+    }
+
+    function onUnitChange(changedIdx) {
+      const unit = document.getElementById(`unit-${changedIdx}`).value;
+      lockedGroup = getGroup(unit);
+      for (let i = 1; i <= 4; i++) {
+        if (i === changedIdx) continue;
+        populateSelect(document.getElementById(`unit-${i}`), lockedGroup);
+      }
+      showConvertBar();
+    }
+
+    function showConvertBar() {
+      const bar = document.getElementById('convert-bar');
+      const btns = document.getElementById('convert-btns');
+      if (!lockedGroup) { bar.classList.remove('visible'); return; }
+      bar.classList.add('visible');
+      const currentUnits = new Set();
+      for (let i = 1; i <= 4; i++) {
+        if (document.getElementById(`name-${i}`).value.trim())
+          currentUnits.add(document.getElementById(`unit-${i}`).value);
+      }
+      btns.innerHTML = '';
+      Object.keys(lockedGroup.units).forEach(u => {
+        const btn = document.createElement('button');
+        btn.className = 'convert-btn' + (currentUnits.size === 1 && currentUnits.has(u) ? ' active' : '');
+        btn.textContent = u;
+        btn.onclick = () => convertAllTo(u);
+        btns.appendChild(btn);
+      });
+    }
+
+    function convertAllTo(targetUnit) {
+      const targetFactor = lockedGroup.units[targetUnit];
+      for (let i = 1; i <= 4; i++) {
+        const sizeEl = document.getElementById(`size-${i}`);
+        const unitEl = document.getElementById(`unit-${i}`);
+        const currentFactor = lockedGroup.units[unitEl.value] || 1;
+        const raw = parseFloat(sizeEl.value);
+        if (!isNaN(raw) && raw > 0) {
+          const converted = raw * currentFactor / targetFactor;
+          sizeEl.value = parseFloat(converted.toPrecision(8));
+          sizeEl.dispatchEvent(new Event('input'));
+        }
+        populateSelect(unitEl, lockedGroup, targetUnit);
+      }
+      showConvertBar();
+    }
+
+    function buildCards() {
+      const grid = document.getElementById('cards-grid');
+      for (let i = 1; i <= 4; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'card';
+        wrapper.id = `card-${i}`;
+        wrapper.innerHTML = `
+          <div class="card-number">${i}</div>
+          <div class="field">
+            <label>ชื่อสินค้า / ยี่ห้อ</label>
+            <input type="text" id="name-${i}" placeholder="ชื่อ / ยี่ห้อ" />
+          </div>
+          <div class="field">
+            <label>ขนาด &amp; หน่วย</label>
+            <div class="size-row">
+              <div class="field">
+                <input type="number" id="size-${i}" placeholder="0" min="0" step="any" />
+              </div>
+              <div class="field">
+                <select id="unit-${i}"></select>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>ราคา (บาท)</label>
+            <input type="number" id="price-${i}" placeholder="0.00" min="0" step="any" />
+          </div>
+          <div class="field">
+            <label>โปรโมชัน (ซื้อ / แถม)</label>
+            <div class="promo-row">
+              <input type="number" id="buy-${i}" value="1" min="1" step="1" />
+              <span class="promo-sep">แถม</span>
+              <input type="number" id="free-${i}" value="0" min="0" step="1" />
+            </div>
+          </div>
+        `;
+        grid.appendChild(wrapper);
+        const sel = wrapper.querySelector(`#unit-${i}`);
+        populateSelect(sel, null);
+        sel.addEventListener('change', () => onUnitChange(i));
+
+        wrapper.querySelectorAll('input').forEach(el =>
+          el.addEventListener('input', updateCardStates)
+        );
+      }
+      updateCardStates();
+    }
+
+    function compare() {
+      const items = [];
+      for (let i = 1; i <= 4; i++) {
+        const name = document.getElementById(`name-${i}`).value.trim();
+        const size = parseFloat(document.getElementById(`size-${i}`).value);
+        const unit = document.getElementById(`unit-${i}`).value;
+        const price = parseFloat(document.getElementById(`price-${i}`).value);
+
+        if (!name && isNaN(size) && isNaN(price)) continue;
+        if (!name || isNaN(size) || size <= 0 || isNaN(price) || price <= 0) {
+          alert(`รายการที่ ${i}: กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง`);
+          return;
+        }
+        const conv = getConv(unit);
+        const buy = Math.max(1, parseInt(document.getElementById(`buy-${i}`).value) || 1);
+        const free = Math.max(0, parseInt(document.getElementById(`free-${i}`).value) || 0);
+        const promoMult = (buy + free) / buy;
+        const promoLabel = free > 0 ? `ซื้อ ${buy} แถม ${free}` : null;
+        const baseSize = size * conv.factor * promoMult;
+        items.push({ name, size, unit, price, baseUnit: conv.base, baseSize, unitPrice: price / baseSize, promoLabel });
+      }
+
+      if (items.length < 2) {
+        alert('กรุณากรอกข้อมูลอย่างน้อย 2 รายการ');
+        return;
+      }
+
+      const baseUnits = [...new Set(items.map(it => it.baseUnit))];
+      const mixedUnits = baseUnits.length > 1;
+
+      items.sort((a, b) => a.unitPrice - b.unitPrice);
+
+      const cheapest = items[0].unitPrice;
+      const mostExpensive = items[items.length - 1].unitPrice;
+      const allEqual = cheapest === mostExpensive;
+      const list = document.getElementById('results-list');
+      list.innerHTML = '';
+
+      if (mixedUnits) {
+        list.innerHTML = `<div style="background:#fffbeb;border:1.5px solid #f6ad55;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:0.9rem;color:#744210;">
+          ⚠️ สินค้าบางรายการใช้หน่วยต่างกลุ่ม (${baseUnits.join(', ')}) — เปรียบเทียบกันตรงๆ ไม่ได้ กรุณาเลือกหน่วยให้ตรงกัน
+        </div>`;
+      }
+
+      items.forEach((item, idx) => {
+        const isCheapest = !allEqual && item.unitPrice === cheapest;
+        const isExpensive = !allEqual && item.unitPrice === mostExpensive;
+
+        const rankClass = allEqual ? 'mid' : isCheapest ? 'first' : isExpensive ? 'last' : 'mid';
+        const cardClass = allEqual ? '' : isCheapest ? 'cheapest' : isExpensive ? 'most-expensive' : '';
+
+        const pctVsCheapest = ((item.unitPrice - cheapest) / cheapest * 100).toFixed(1);
+        const pctVsExpensive = ((mostExpensive - item.unitPrice) / mostExpensive * 100).toFixed(1);
+        const savingPerUnit = (item.unitPrice - cheapest).toFixed(4);
+        const savedPerUnit = (mostExpensive - item.unitPrice).toFixed(4);
+
+        let sizeLabel = item.unit === item.baseUnit
+          ? `${item.size.toLocaleString()} ${item.unit}`
+          : `${item.size.toLocaleString()} ${item.unit} (= ${(item.size * (UNIT_GROUPS.find(g => item.unit in g.units)?.units[item.unit] || 1)).toLocaleString()} ${item.baseUnit})`;
+        if (item.promoLabel) sizeLabel += ` · ${item.promoLabel}`;
+
+        let badges;
+        if (allEqual) {
+          badges = `<span class="diff-badge equal-badge">ราคาเท่ากัน</span>`;
+        } else if (isCheapest) {
+          badges = `<span class="diff-badge">ถูกกว่าแพงสุด -${pctVsExpensive}%</span> <span class="diff-badge diff-badge-2">ประหยัด ${savedPerUnit} บ./${item.baseUnit}</span>`;
+        } else {
+          badges = `<span class="diff-badge">แพงกว่าถูกสุด +${pctVsCheapest}%</span> <span class="diff-badge diff-badge-2">แพงกว่า ${savingPerUnit} บ./${item.baseUnit}</span>`;
+        }
+
+        list.innerHTML += `
+          <div class="result-item ${cardClass}">
+            <div class="rank ${rankClass}">${idx + 1}</div>
+            <div class="result-info">
+              <div class="result-name">
+                ${item.name}
+                ${isCheapest ? '<span class="best-label">ถูกสุด</span>' : ''}
+              </div>
+              <div class="result-detail">${sizeLabel} · ราคา ${item.price.toLocaleString()} บาท</div>
+            </div>
+            <div class="result-price">
+              <div class="unit-price">${item.unitPrice.toFixed(4)} บ./${item.baseUnit}</div>
+              <div style="margin-top:4px">${badges}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      const resultsEl = document.getElementById('results');
+      resultsEl.classList.add('visible');
+      resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    buildCards();
+  </script>
+</body>
+</html>
