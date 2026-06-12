@@ -353,14 +353,52 @@
       font-size: 0.7rem; color: var(--muted); margin-top: 1px;
     }
 
-    .expense-del {
+    .expense-del, .expense-edit-btn {
       background: none; border: none; cursor: pointer;
       color: var(--muted); opacity: 0.4;
       font-size: 0.9rem; padding: 2px;
       transition: opacity 0.15s, color 0.15s;
       flex-shrink: 0; align-self: center;
     }
-    .expense-del:hover { opacity: 1; color: var(--accent); }
+    .expense-del:hover  { opacity: 1; color: #c53030; }
+    .expense-edit-btn:hover { opacity: 1; color: var(--primary); }
+
+    /* ── Inline edit form ── */
+    .expense-edit-row {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      animation: fadeSlideUp 0.15s ease both;
+    }
+    .expense-edit-row:last-child { border-bottom: none; }
+    .expense-edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .expense-edit-grid .field-input,
+    .expense-edit-grid .field-select { font-size: 0.86rem; padding: 6px 10px; }
+    .expense-edit-row .field-select { font-size: 0.86rem; padding: 6px 10px; }
+    .expense-edit-payer { margin-bottom: 8px; }
+    .expense-edit-payer .field-label { font-size: 0.68rem; margin-bottom: 3px; }
+    .expense-edit-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .expense-edit-actions { display: flex; gap: 8px; }
+    .btn-save-edit {
+      flex: 1; padding: 7px; border-radius: 8px;
+      background: var(--primary); color: #fff;
+      font-size: 0.82rem; font-weight: 700; font-family: inherit;
+      border: none; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save-edit:hover { background: #2c5282; }
+    .btn-cancel-edit {
+      padding: 7px 14px; border-radius: 8px;
+      background: none; color: var(--muted);
+      font-size: 0.82rem; font-weight: 600; font-family: inherit;
+      border: 2px solid var(--border); cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .btn-cancel-edit:hover { border-color: var(--muted); }
 
     .expense-total-bar {
       display: flex;
@@ -891,6 +929,8 @@
     }
   }
 
+  let _editingId = null;
+
   function renderExpenses() {
     const sec = document.getElementById('list-section');
     if (!S.expenses.length) { sec.style.display = 'none'; return; }
@@ -899,6 +939,7 @@
     const total = S.expenses.reduce((s, e) => s + e.amount, 0);
     const list  = document.getElementById('expense-list');
     list.innerHTML = S.expenses.map(e => {
+      if (e.id === _editingId) return renderEditRow(e);
       const per = (e.amount / e.sharedBy.length).toLocaleString('th', {maximumFractionDigits: 2});
       return `
         <div class="expense-row">
@@ -915,6 +956,7 @@
           <div class="expense-right">
             <div class="expense-amount">฿${e.amount.toLocaleString()}</div>
           </div>
+          <button class="expense-edit-btn" onclick="startEditExpense(${e.id})" title="แก้ไข">✏️</button>
           <button class="expense-del" onclick="deleteExpense(${e.id})" title="ลบ">✕</button>
         </div>
       `;
@@ -924,6 +966,59 @@
       <span>รวมทั้งหมด</span>
       <span class="expense-total-num">฿${total.toLocaleString()}</span>
     `;
+  }
+
+  function renderEditRow(e) {
+    const payerOpts = S.participants.map(p =>
+      `<option value="${p}" ${p === e.paidBy ? 'selected' : ''}>${p}</option>`
+    ).join('');
+    const chips = S.participants.map((p, i) => {
+      const checked = e.sharedBy.includes(p) ? 'checked' : '';
+      return `
+        <div>
+          <input type="checkbox" class="share-cb" id="ecb-${i}" value="${p}" ${checked}>
+          <label class="share-chip-label" for="ecb-${i}">
+            ${avatar(p, 16, '0.6rem')} ${p}
+          </label>
+        </div>`;
+    }).join('');
+    return `
+      <div class="expense-edit-row">
+        <div class="expense-edit-grid">
+          <input class="field-input" id="edit-desc" value="${esc(e.desc)}" placeholder="รายการ" />
+          <input class="field-input" id="edit-amount" type="number" value="${e.amount}" min="0" step="any" placeholder="0" />
+        </div>
+        <div class="expense-edit-payer">
+          <div class="field-label">ใครจ่าย</div>
+          <select class="field-select" id="edit-payer" style="width:100%;padding:6px 10px;font-size:0.86rem">${payerOpts}</select>
+        </div>
+        <div class="field-label" style="margin-bottom:6px">ผู้ร่วมแบ่ง</div>
+        <div class="expense-edit-chips">${chips}</div>
+        <div class="expense-edit-actions">
+          <button class="btn-save-edit" onclick="saveEditExpense(${e.id})">บันทึก</button>
+          <button class="btn-cancel-edit" onclick="cancelEditExpense()">ยกเลิก</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function startEditExpense(id) { _editingId = id; renderExpenses(); }
+  function cancelEditExpense()  { _editingId = null; renderExpenses(); }
+
+  function saveEditExpense(id) {
+    const desc   = document.getElementById('edit-desc').value.trim();
+    const amount = parseFloat(document.getElementById('edit-amount').value);
+    const paidBy = document.getElementById('edit-payer').value;
+    const sharedBy = Array.from(document.querySelectorAll('.expense-edit-chips .share-cb:checked')).map(cb => cb.value);
+
+    if (!desc)              { toast('กรุณาใส่ชื่อรายการ'); return; }
+    if (!amount || amount <= 0) { toast('กรุณาใส่จำนวนเงิน'); return; }
+    if (!sharedBy.length)  { toast('เลือกผู้ร่วมแบ่งอย่างน้อย 1 คน'); return; }
+
+    const idx = S.expenses.findIndex(e => e.id === id);
+    if (idx !== -1) S.expenses[idx] = { ...S.expenses[idx], desc, amount, paidBy, sharedBy };
+    _editingId = null;
+    save(); renderAll();
   }
 
   // ── Balances & settlement ──────────────────────────────────────────────────
