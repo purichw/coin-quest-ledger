@@ -64,6 +64,12 @@
       transition: color 0.15s;
     }
     #trip-name-display:hover { color: var(--primary); border-color: var(--primary); }
+    .trip-edit-icon {
+      font-size: 0.78rem; color: var(--border);
+      cursor: pointer; transition: color 0.15s;
+      line-height: 1;
+    }
+    .trip-name-row:hover .trip-edit-icon { color: var(--primary); }
 
     #trip-name-input {
       font-size: 0.95rem;
@@ -573,6 +579,7 @@
     <div class="header-title">แบ่งค่าใช้จ่าย</div>
     <div class="trip-name-row">
       <span id="trip-name-display" onclick="startEditTrip()"></span>
+      <span class="trip-edit-icon" onclick="startEditTrip()">✏️</span>
       <input id="trip-name-input" type="text"
         onblur="saveTrip()" onkeydown="if(event.key==='Enter')saveTrip()" />
     </div>
@@ -754,15 +761,19 @@
   // ── Trip name ──────────────────────────────────────────────────────────────
   function renderTripName() {
     const d = document.getElementById('trip-name-display');
+    const icon = document.querySelector('.trip-edit-icon');
     const i = document.getElementById('trip-name-input');
     d.textContent = S.tripName || 'คลิกเพื่อตั้งชื่อทริป';
-    d.style.display = ''; i.style.display = 'none';
+    d.style.display = ''; if (icon) icon.style.display = '';
+    i.style.display = 'none';
     document.title = (S.tripName || 'แบ่งค่าใช้จ่าย') + ' — แบ่งค่าใช้จ่าย';
   }
   function startEditTrip() {
     const d = document.getElementById('trip-name-display');
+    const icon = document.querySelector('.trip-edit-icon');
     const i = document.getElementById('trip-name-input');
-    i.value = S.tripName; d.style.display = 'none';
+    i.value = S.tripName;
+    d.style.display = 'none'; if (icon) icon.style.display = 'none';
     i.style.display = ''; i.focus(); i.select();
   }
   function saveTrip() {
