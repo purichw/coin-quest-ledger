@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>แบ่งค่าใช้จ่าย</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Display&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --primary: #4a9070;
+      --primary-light: #eaf6f1;
+      --accent: #4a9070;
+      --accent-light: #eaf6f1;
+      --text: #1a202c;
+      --muted: #718096;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Google Sans', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 16px 72px;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; }
+
+    /* ───── Header ───── */
+    header { text-align: center; margin-bottom: 40px; padding-top: 32px; }
+
+    .header-icon { font-size: 2.6rem; margin-bottom: 6px; display: block; }
+
+    .header-title {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+    }
+
+    .trip-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    #trip-name-display {
+      font-size: 0.95rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 1.5px dashed var(--border);
+      padding-bottom: 1px;
+      transition: color 0.15s;
+    }
+    #trip-name-display:hover { color: var(--primary); border-color: var(--primary); }
+    .trip-edit-icon {
+      font-size: 0.78rem; color: var(--border);
+      cursor: pointer; transition: color 0.15s;
+      line-height: 1;
+    }
+    .trip-name-row:hover .trip-edit-icon { color: var(--primary); }
+
+    #trip-name-input {
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      border: none;
+      border-bottom: 2px solid var(--primary);
+      background: transparent;
+      outline: none;
+      width: 200px;
+      text-align: center;
+      display: none;
+    }
+
+    /* ───── Section ───── */
+    .section { margin-bottom: 24px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    /* ───── Card ───── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border: 2px solid var(--border);
+    }
+
+    /* ───── Participants ───── */
+    .participants-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 34px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .participant-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px 5px 5px;
+      background: var(--primary-light);
+      border: 1.5px solid transparent;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary);
+      animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    .p-avatar {
+      width: 20px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .p-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--primary); opacity: 0.45;
+      font-size: 0.85rem; line-height: 1; padding: 0;
+      margin-left: 1px;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .p-remove:hover { opacity: 1; color: var(--accent); }
+
+    .no-participants {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .add-p-row { display: flex; gap: 8px; }
+
+    /* ───── Form fields ───── */
+    .field-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .field-input:focus { border-color: var(--primary); background: #fff; }
+    .field-input::placeholder { color: var(--muted); }
+
+    .field-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .field-group { margin-bottom: 14px; }
+    .field-group:last-child { margin-bottom: 0; }
+
+    /* ───── Expense form ───── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 130px;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .amount-wrap { position: relative; width: 100%; }
+    .amount-wrap .field-input { width: 100%; }
+    .amount-symbol {
+      position: absolute; left: 10px; top: 50%;
+      transform: translateY(-50%);
+      font-weight: 700; font-size: 0.9rem;
+      color: var(--muted); pointer-events: none;
+    }
+    .amount-input { padding-left: 22px !important; }
+
+    .form-grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .field-select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      cursor: pointer;
+    }
+    .field-select:focus { border-color: var(--primary); background: #fff; }
+
+    /* Shared-by chips */
+    .shared-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 4px;
+    }
+
+    .share-cb { display: none; }
+
+    .share-chip-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px 4px 5px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .share-chip-label .chip-av {
+      width: 16px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .share-cb:checked + .share-chip-label {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    /* ───── Buttons ───── */
+    .btn {
+      padding: 9px 16px;
+      border: none; border-radius: 8px;
+      font-size: 0.88rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-green { background: #4a9070; color: #fff; }
+    .btn-green:hover:not(:disabled) { background: #3a7558; }
+
+    .btn-full {
+      width: 100%;
+      padding: 13px;
+      background: #4a9070;
+      color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn-full:hover { background: #3a7558; }
+    .btn-full:active { transform: scale(0.99); }
+
+    .btn-ghost {
+      background: none;
+      border: 2px solid var(--border);
+      color: var(--muted);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+    }
+    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ───── Expense list ───── */
+    .expense-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border);
+      animation: fadeIn 0.2s ease both;
+    }
+    .expense-row:last-child { border-bottom: none; }
+
+    .expense-body { flex: 1; min-width: 0; }
+    .expense-desc {
+      font-size: 0.92rem; font-weight: 600;
+      color: var(--text); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .expense-meta {
+      font-size: 0.75rem; color: var(--muted); margin-top: 3px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+
+    .paid-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 0.7rem; font-weight: 700;
+      padding: 1px 7px 1px 4px;
+      border-radius: 999px;
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+    .paid-badge .tiny-av {
+      width: 14px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .expense-right { text-align: right; flex-shrink: 0; }
+    .expense-amount {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      color: var(--accent);
+    }
+    .expense-per {
+      font-size: 0.7rem; color: var(--muted); margin-top: 1px;
+    }
+
+    .expense-del, .expense-edit-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); opacity: 0.4;
+      font-size: 0.9rem; padding: 2px;
+      transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0; align-self: center;
+    }
+    .expense-del:hover  { opacity: 1; color: #c53030; }
+    .expense-edit-btn:hover { opacity: 1; color: var(--primary); }
+
+    /* ── Inline edit form ── */
+    .expense-edit-row {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      animation: fadeSlideUp 0.15s ease both;
+    }
+    .expense-edit-row:last-child { border-bottom: none; }
+    .expense-edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 110px;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .expense-edit-grid .field-input,
+    .expense-edit-grid .field-select { font-size: 0.86rem; padding: 6px 10px; }
+    .expense-edit-row .field-select { font-size: 0.86rem; padding: 6px 10px; }
+    .expense-edit-payer { margin-bottom: 8px; }
+    .expense-edit-payer .field-label { font-size: 0.68rem; margin-bottom: 3px; }
+    .expense-edit-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .expense-edit-actions { display: flex; gap: 8px; }
+    .btn-save-edit {
+      flex: 1; padding: 7px; border-radius: 8px;
+      background: var(--primary); color: #fff;
+      font-size: 0.82rem; font-weight: 700; font-family: inherit;
+      border: none; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save-edit:hover { background: #3a7558; }
+    .btn-cancel-edit {
+      padding: 7px 14px; border-radius: 8px;
+      background: none; color: var(--muted);
+      font-size: 0.82rem; font-weight: 600; font-family: inherit;
+      border: 2px solid var(--border); cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .btn-cancel-edit:hover { border-color: var(--muted); }
+
+    .expense-total-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 14px;
+      margin-top: 4px;
+      border-top: 2px solid var(--border);
+      font-weight: 700; font-size: 0.88rem;
+    }
+    .expense-total-num {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.15rem; color: var(--primary);
+    }
+
+    /* ───── Settlement ───── */
+    .balance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .bal-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+      border: 2px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .bal-avatar {
+      width: 44px; height: 62px;
+      margin: 0 auto 4px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .bal-name { font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .bal-amount {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+    }
+    .bal-amount.pos { color: #276749; }
+    .bal-amount.neg { color: #c53030; }
+    .bal-amount.zero { color: var(--muted); }
+    .bal-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    .bal-label.pos { color: #276749; }
+    .bal-label.neg { color: #c53030; }
+    .bal-label.zero { color: var(--muted); }
+
+    .txn-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+      animation: fadeSlideUp 0.3s ease both;
+    }
+
+    .txn-person {
+      display: flex; align-items: center;
+      gap: 6px; font-weight: 700; font-size: 0.9rem;
+    }
+    .txn-av {
+      width: 28px; height: 39px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .txn-mid {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 3px;
+    }
+    .txn-amount {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1rem; font-weight: 700; color: var(--accent);
+    }
+    .txn-arrow {
+      font-size: 1rem; color: var(--accent); letter-spacing: -2px;
+      width: 100%; text-align: center;
+    }
+
+    .all-settled {
+      text-align: center; padding: 28px 16px;
+    }
+    .all-settled-icon { font-size: 2.2rem; margin-bottom: 6px; }
+    .all-settled-text { font-size: 0.95rem; font-weight: 600; color: #276749; }
+
+    /* copy button */
+    .copy-btn {
+      display: block; width: 100%;
+      padding: 11px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.88rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      margin-top: 14px;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: #bee3f8; }
+
+    /* ───── Empty states ───── */
+    .empty {
+      text-align: center; padding: 32px 16px;
+      color: var(--muted); font-size: 0.88rem;
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
+
+    /* ───── Toast ───── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1C2826; color: #fff;
+      padding: 10px 20px; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 600;
+      transition: transform 0.28s ease;
+      z-index: 999; white-space: nowrap;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ───── Animations ───── */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ───── Import row ───── */
+    .import-row {
+      display: flex; gap: 8px; justify-content: center;
+      margin-bottom: 24px; flex-wrap: wrap;
+    }
+
+    /* ───── Responsive ───── */
+    @media (max-width: 500px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-grid2 { grid-template-columns: 1fr; }
+      .balance-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Site nav ── */
+    .site-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: #1a202c;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 0 16px;
+      margin: -0px; /* reset whatever body padding was at top */
+    }
+    .site-nav .nav-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; gap: 16px;
+      height: 48px;
+    }
+    .nav-brand {
+      font-size: 1.1rem; text-decoration: none;
+      opacity: 0.75; flex-shrink: 0;
+    }
+    .nav-links { display: flex; gap: 2px; }
+    .nav-link {
+      padding: 5px 13px; border-radius: 7px;
+      font-size: 0.82rem; font-weight: 600;
+      color: rgba(255,255,255,0.48);
+      text-decoration: none; font-family: inherit;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.08); }
+    .nav-link.nav-active { color: #fff; background: rgba(255,255,255,0.13); }
+    .nav-lang { margin-left: auto; display: flex; gap: 3px; align-items: center; }
+    .lang-btn {
+      padding: 3px 9px; border-radius: 5px;
+      font-size: 0.72rem; font-weight: 700; font-family: inherit;
+      background: none; color: rgba(255,255,255,0.4);
+      border: 1.5px solid rgba(255,255,255,0.18); cursor: pointer;
+      transition: all 0.15s; letter-spacing: 0.04em;
+    }
+    .lang-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4); }
+    .lang-btn.lang-active { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
+
+    /* ── Save status & share ── */
+    .header-actions {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-top: 10px;
+    }
+    #save-status {
+      font-size: 0.75rem; color: var(--muted);
+      transition: opacity 0.3s;
+      min-width: 90px; text-align: right;
+    }
+    #save-status.saving { color: var(--muted); }
+    #save-status.saved  { color: #276749; }
+    #save-status.error  { color: #c53030; }
+    .btn-share {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600; font-family: inherit;
+      background: var(--primary-light); color: var(--primary);
+      border: 1.5px solid var(--primary); cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-share:hover { background: #d3ede6; }
+    .btn-share:active { transform: scale(0.96); }
+    .btn-new-trip { background: transparent; color: var(--muted); border-color: var(--border); }
+    .btn-new-trip:hover { background: var(--bg); color: var(--text); }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <span class="nav-brand">🛠</span>
+      <div class="nav-links">
+        <a href="/" class="nav-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
+        <a href="/trip/" class="nav-link nav-active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
+      </div>
+      <div class="nav-lang">
+        <button class="lang-btn" data-lang="th" onclick="setLang('th')">TH</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+  </nav>
+<div class="container">
+
+  <header>
+    <span class="header-icon">🧾</span>
+    <div class="header-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</div>
+    <div class="trip-name-row">
+      <span id="trip-name-display" onclick="startEditTrip()"></span>
+      <span class="trip-edit-icon" onclick="startEditTrip()">✏️</span>
+      <input id="trip-name-input" type="text"
+        onblur="saveTrip()" onkeydown="if(event.key==='Enter')saveTrip()" />
+    </div>
+    <div class="header-actions">
+      <span id="save-status"></span>
+      <button class="btn-share btn-new-trip" onclick="newTrip()" data-i18n="btn_new_trip">✚ ทริปใหม่</button>
+      <button class="btn-share" onclick="shareTrip()" data-i18n="btn_share">🔗 แชร์ลิงก์</button>
+    </div>
+  </header>
+
+  <!-- Participants -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title" data-i18n="section_participants">ผู้ร่วมทริป</div>
+    </div>
+    <div class="card">
+      <div class="participants-chips" id="p-chips"></div>
+      <div class="add-p-row">
+        <input class="field-input" id="new-p-input" type="text"
+          placeholder="ชื่อ" data-i18n-placeholder="placeholder_participant" maxlength="20"
+          onkeydown="if(event.key==='Enter')addParticipant()" />
+        <button class="btn btn-green" onclick="addParticipant()" data-i18n="btn_add_p">+ เพิ่ม</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+  <div class="import-row">
+    <button class="btn btn-ghost" onclick="downloadTemplate()" data-i18n="btn_template">📋 Template</button>
+    <button class="btn btn-ghost" onclick="triggerImport()" data-i18n="btn_import">📥 Import Excel</button>
+  </div>
+
+  <!-- Add expense -->
+  <div class="section" id="add-section" style="display:none">
+    <div class="section-header">
+      <div class="section-title" data-i18n="section_add_expense">เพิ่มรายการ</div>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="field-group">
+          <label class="field-label" data-i18n="field_desc">รายการ</label>
+          <input class="field-input" type="text" id="exp-desc"
+            placeholder="เช่น ค่าอาหาร, ค่าน้ำมัน" data-i18n-placeholder="placeholder_desc" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" data-i18n="field_amount">จำนวนเงิน (฿)</label>
+          <div class="amount-wrap">
+            <span class="amount-symbol">฿</span>
+            <input class="field-input amount-input" type="number"
+              id="exp-amount" placeholder="0" min="0" step="any" />
+          </div>
+        </div>
+      </div>
+      <div class="form-grid2">
+        <div class="field-group">
+          <label class="field-label" data-i18n="field_payer">ใครจ่าย</label>
+          <select class="field-select" id="exp-payer"></select>
+        </div>
+        <div class="field-group">
+          <label class="field-label" data-i18n="field_split_with">แบ่งกับ</label>
+          <div style="font-size:0.82rem;color:var(--muted);padding-top:10px" id="split-info">—</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" data-i18n="field_select_sharers">เลือกผู้ร่วมแบ่ง</label>
+        <div class="shared-chips" id="shared-chips"></div>
+      </div>
+      <button class="btn-full" onclick="addExpense()" data-i18n="btn_add_expense">+ เพิ่มรายการ</button>
+    </div>
+  </div>
+
+  <!-- Expense list -->
+  <div class="section" id="list-section" style="display:none">
+    <div class="section-header">
+      <div class="section-title" data-i18n="section_expenses">รายการค่าใช้จ่าย</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" onclick="exportExcel()" data-i18n="btn_export">📤 Export</button>
+        <button class="btn btn-ghost" onclick="confirmClearExpenses()" data-i18n="btn_clear">ล้างทั้งหมด</button>
+      </div>
+    </div>
+    <div class="card">
+      <div id="expense-list"></div>
+      <div class="expense-total-bar" id="total-bar"></div>
+    </div>
+  </div>
+
+  <!-- Settlement -->
+  <div class="section" id="settle-section" style="display:none">
+    <div class="section-header">
+      <div class="section-title" data-i18n="section_settlement">สรุปยอด</div>
+    </div>
+    <div class="balance-grid" id="balance-grid"></div>
+    <div id="txn-list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="/lang.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  // ── Firebase ───────────────────────────────────────────────────────────────
+  firebase.initializeApp({
+    apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
+    authDomain: "pointy-personal-toolkit.firebaseapp.com",
+    projectId: "pointy-personal-toolkit",
+    storageBucket: "pointy-personal-toolkit.firebasestorage.app",
+    messagingSenderId: "901775387853",
+    appId: "1:901775387853:web:030f47acc78c71a5548d84"
+  });
+  const db = firebase.firestore();
+
+  // ── Trip ID from URL (with last-visited fallback) ─────────────────────────
+  const _params = new URLSearchParams(window.location.search);
+  let tripId = _params.get('id');
+  if (!tripId) {
+    const lastId = localStorage.getItem('last_trip_id');
+    tripId = lastId || (Math.random().toString(36).slice(2, 9) + Date.now().toString(36));
+    history.replaceState(null, '', '?id=' + tripId);
+  }
+  localStorage.setItem('last_trip_id', tripId);
+  const tripRef = db.collection('trips').doc(tripId);
+
+  function newTrip() {
+    const id = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+    window.open('?id=' + id, '_blank');
+  }
+
+  // ── RPG Character system ───────────────────────────────────────────────────
+  const CHAR_KEYS = ['knight','wizard','fairy','dragon','slime','witch','goblin','elf'];
+
+  function charOf(name) {
+    let h = 0;
+    for (const c of (name || '?')) h = h * 31 + c.charCodeAt(0);
+    return CHAR_KEYS[Math.abs(h) % CHAR_KEYS.length];
+  }
+
+  function charSvg(name, w, h) {
+    return CHARS[charOf(name || '?')].replace('viewBox="0 0 60 84"',
+      `viewBox="0 0 60 84" width="${w}" height="${h}"`);
+  }
+
+  function avatar(name, size = 22) {
+    const h = Math.round(size * 84 / 60);
+    return `<span style="width:${size}px;height:${h}px;display:inline-flex;flex-shrink:0">${charSvg(name, size, h)}</span>`;
+  }
+
+  const CHARS = {
+    knight: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="12" y="44" width="36" height="30" rx="8" fill="#8fa8c8"/><path d="M22,46 L30,56 L38,46" fill="#7393b7"/><ellipse cx="13" cy="51" rx="5" ry="7" fill="#8fa8c8"/><ellipse cx="47" cy="51" rx="5" ry="7" fill="#8fa8c8"/><circle cx="30" cy="26" r="18" fill="#8fa8c8"/><rect x="27" y="8" width="6" height="10" rx="2" fill="#9eb8d0"/><path d="M24,8 Q30,0 36,8 L34,14 Q30,11 26,14 Z" fill="#e74c3c"/><rect x="16" y="22" width="28" height="8" rx="2" fill="#1c2833"/><circle cx="24" cy="26" r="3" fill="#5dade2"/><circle cx="36" cy="26" r="3" fill="#5dade2"/><circle cx="25.5" cy="24.8" r="1" fill="white"/><circle cx="37.5" cy="24.8" r="1" fill="white"/><path d="M16,26 L44,26" stroke="#0d1b2a" stroke-width="0.5"/><path d="M16,34 Q22,39 30,39 Q38,39 44,34" stroke="#7393b7" stroke-width="2" fill="none"/></svg>`,
+
+    wizard: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><path d="M9,44 Q10,74 30,74 Q50,74 51,44 Z" fill="#2e4a7f"/><circle cx="22" cy="55" r="2" fill="#f1c40f" opacity="0.8"/><circle cx="38" cy="60" r="1.5" fill="#f1c40f" opacity="0.8"/><circle cx="18" cy="65" r="1" fill="#f1c40f" opacity="0.6"/><circle cx="42" cy="52" r="1" fill="#f1c40f" opacity="0.6"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M18,38 Q22,52 30,54 Q38,52 42,38 Q37,44 30,46 Q23,44 18,38 Z" fill="#ecf0f1"/><ellipse cx="30" cy="16" rx="20" ry="5" fill="#2e4a7f"/><path d="M30,2 L18,16 Q24,13 30,13 Q36,13 42,16 Z" fill="#2e4a7f"/><circle cx="27" cy="10" r="1.5" fill="#f1c40f" opacity="0.9"/><circle cx="32" cy="6" r="1" fill="#f1c40f" opacity="0.9"/><circle cx="23" cy="15" r="1" fill="#f1c40f" opacity="0.7"/><ellipse cx="30" cy="20" rx="17" ry="3.5" fill="#2e4a7f" opacity="0.2"/><path d="M19,22 Q23,19 27,21" stroke="#bdc3c7" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M33,21 Q37,19 41,22" stroke="#bdc3c7" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="3" fill="#2c3e50"/><circle cx="36" cy="27" r="3" fill="#2c3e50"/><circle cx="25.5" cy="25.8" r="1" fill="white"/><circle cx="37.5" cy="25.8" r="1" fill="white"/><path d="M25,35 Q30,38 35,35" stroke="#8e6a50" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    fairy: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="10" ry="2" fill="rgba(0,0,0,0.1)"/><circle cx="7" cy="38" r="2" fill="#f1c40f" opacity="0.8"/><circle cx="53" cy="32" r="1.5" fill="#f1c40f" opacity="0.7"/><circle cx="5" cy="56" r="1.5" fill="#f1c40f" opacity="0.6"/><circle cx="55" cy="56" r="2" fill="#f1c40f" opacity="0.7"/><circle cx="9" cy="20" r="1" fill="#f1c40f" opacity="0.5"/><circle cx="51" cy="18" r="1" fill="#f1c40f" opacity="0.5"/><path d="M17,44 Q3,30 10,18 Q18,16 20,30 Q20,38 17,44" fill="#aed6f1" opacity="0.75"/><path d="M43,44 Q57,30 50,18 Q42,16 40,30 Q40,38 43,44" fill="#aed6f1" opacity="0.75"/><path d="M17,50 Q6,58 10,64 Q14,62 18,52" fill="#d6eaf8" opacity="0.65"/><path d="M43,50 Q54,58 50,64 Q46,62 42,52" fill="#d6eaf8" opacity="0.65"/><path d="M17,44 Q10,32 14,22" stroke="#85c1e9" stroke-width="0.8" fill="none" opacity="0.5"/><path d="M43,44 Q50,32 46,22" stroke="#85c1e9" stroke-width="0.8" fill="none" opacity="0.5"/><ellipse cx="30" cy="55" rx="11" ry="13" fill="#f1948a"/><path d="M20,54 Q25,63 30,62 Q35,63 40,54" fill="#e87a77" opacity="0.7"/><rect x="27" y="44" width="6" height="6" fill="#fddbb4"/><path d="M14,26 Q14,9 30,9 Q46,9 46,26" fill="#f9e4a0"/><circle cx="30" cy="10" r="3.5" fill="#f1c40f"/><circle cx="22" cy="13" r="2.5" fill="#f06eb0" opacity="0.9"/><circle cx="38" cy="13" r="2.5" fill="#f06eb0" opacity="0.9"/><circle cx="30" cy="26" r="16" fill="#fddbb4"/><path d="M14,26 Q16,11 30,11 Q44,11 46,26 L43,25 Q37,17 30,18 Q23,17 17,25 Z" fill="#f9e4a0"/><circle cx="24" cy="25" r="4.5" fill="#1a1a1a"/><circle cx="36" cy="25" r="4.5" fill="#1a1a1a"/><circle cx="26" cy="23" r="1.8" fill="white"/><circle cx="38" cy="23" r="1.8" fill="white"/><circle cx="23" cy="27" r="0.9" fill="white" opacity="0.6"/><circle cx="35" cy="27" r="0.9" fill="white" opacity="0.6"/><circle cx="16" cy="30" r="4.5" fill="#FFB6C1" opacity="0.75"/><circle cx="44" cy="30" r="4.5" fill="#FFB6C1" opacity="0.75"/><path d="M25,33 Q30,37 35,33" stroke="#c0735a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    dragon: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="14" ry="3" fill="rgba(0,0,0,0.1)"/><path d="M10,52 Q3,42 8,36 Q14,36 14,46 Q13,50 10,52" fill="#c0392b" opacity="0.85"/><path d="M50,52 Q57,42 52,36 Q46,36 46,46 Q47,50 50,52" fill="#c0392b" opacity="0.85"/><ellipse cx="30" cy="57" rx="20" ry="17" fill="#27ae60"/><path d="M16,50 Q20,54 24,50 Q20,58 16,54 Z" fill="#1e8449" opacity="0.6"/><path d="M24,46 Q28,50 32,46 Q28,54 24,50 Z" fill="#1e8449" opacity="0.6"/><path d="M36,50 Q40,54 44,50 Q40,58 36,54 Z" fill="#1e8449" opacity="0.6"/><path d="M44,66 Q52,70 50,75 Q46,73 44,68 Z" fill="#1e8449"/><circle cx="30" cy="25" r="18" fill="#2ecc71"/><path d="M20,10 Q15,1 22,7 Q24,10 23,14" fill="#f39c12"/><path d="M40,10 Q45,1 38,7 Q36,10 37,14" fill="#f39c12"/><ellipse cx="30" cy="33" rx="9" ry="6" fill="#27ae60"/><ellipse cx="27" cy="33" rx="1.8" ry="1.4" fill="#1a7a3a"/><ellipse cx="33" cy="33" rx="1.8" ry="1.4" fill="#1a7a3a"/><circle cx="22" cy="21" r="5.5" fill="white"/><circle cx="38" cy="21" r="5.5" fill="white"/><circle cx="22" cy="22" r="3.5" fill="#1a4a1a"/><circle cx="38" cy="22" r="3.5" fill="#1a4a1a"/><circle cx="23.5" cy="20.5" r="1.5" fill="white"/><circle cx="39.5" cy="20.5" r="1.5" fill="white"/><circle cx="21" cy="23.5" r="0.8" fill="white" opacity="0.7"/><circle cx="37" cy="23.5" r="0.8" fill="white" opacity="0.7"/><path d="M17,16 Q22,13 27,15" stroke="#1e8449" stroke-width="2" fill="none"/><path d="M33,15 Q38,13 43,16" stroke="#1e8449" stroke-width="2" fill="none"/><path d="M24,38 Q30,43 36,38" stroke="#1a7a3a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="28.5" y="37" width="3" height="4" rx="1.5" fill="#ecf0f1"/></svg>`,
+
+    slime: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="80" rx="16" ry="4" fill="rgba(0,0,0,0.12)"/><path d="M14,68 Q8,50 10,34 Q12,20 20,16 Q26,12 30,14 Q34,12 40,16 Q48,20 50,34 Q52,50 46,68 Q40,76 30,76 Q20,76 14,68 Z" fill="#74b9ff"/><circle cx="22" cy="16" r="6" fill="#74b9ff"/><circle cx="30" cy="13" r="7" fill="#74b9ff"/><circle cx="38" cy="16" r="6" fill="#74b9ff"/><ellipse cx="28" cy="40" rx="10" ry="16" fill="#81ecec" opacity="0.25"/><ellipse cx="22" cy="35" rx="5" ry="8" fill="white" opacity="0.12"/><rect x="22" y="8" width="16" height="6" rx="2" fill="#f1c40f"/><polygon points="22,8 24,2 26,8" fill="#f1c40f"/><polygon points="27.5,8 30,2 32.5,8" fill="#f1c40f"/><polygon points="34,8 36,2 38,8" fill="#f1c40f"/><circle cx="25" cy="5" r="1.5" fill="#e74c3c"/><circle cx="30" cy="4" r="1.5" fill="#e74c3c"/><circle cx="35" cy="5" r="1.5" fill="#e74c3c"/><ellipse cx="24" cy="42" rx="6" ry="7" fill="white"/><ellipse cx="36" cy="42" rx="6" ry="7" fill="white"/><circle cx="24" cy="43" r="4" fill="#2d3436"/><circle cx="36" cy="43" r="4" fill="#2d3436"/><circle cx="25.8" cy="41" r="1.8" fill="white"/><circle cx="37.8" cy="41" r="1.8" fill="white"/><path d="M21,54 Q30,62 39,54" stroke="#0984e3" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    witch: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><path d="M9,44 Q10,74 30,74 Q50,74 51,44 Z" fill="#1a1a2e"/><path d="M9,44 Q15,58 30,60 Q45,58 51,44" stroke="#6c3483" stroke-width="2" fill="none"/><circle cx="22" cy="58" r="1.5" fill="#9b59b6" opacity="0.8"/><circle cx="38" cy="62" r="1" fill="#9b59b6" opacity="0.8"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M13,28 Q12,16 17,14 Q13,20 13,28" fill="#1a1a1a"/><path d="M47,28 Q48,16 43,14 Q47,20 47,28" fill="#1a1a1a"/><ellipse cx="30" cy="14" rx="22" ry="5" fill="#1a1a2e"/><path d="M30,0 L20,14 Q25,11 30,11 Q35,11 40,14 Z" fill="#1a1a2e"/><rect x="26" y="11" width="8" height="5" rx="1" fill="#f1c40f"/><rect x="28" y="12" width="4" height="3" fill="#1a1a2e"/><ellipse cx="30" cy="18" rx="17" ry="3.5" fill="#1a1a2e" opacity="0.25"/><path d="M20,22 Q24,19 28,21" stroke="#2c2c2c" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M32,21 Q36,19 40,22" stroke="#2c2c2c" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="3.5" fill="#1a1a1a"/><circle cx="36" cy="27" r="3.5" fill="#1a1a1a"/><circle cx="25" cy="25.8" r="1.2" fill="#8e44ad"/><circle cx="37.5" cy="25.8" r="1" fill="white"/><circle cx="24" cy="27" r="1.5" fill="#8e44ad"/><ellipse cx="15" cy="31" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.5"/><ellipse cx="45" cy="31" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.5"/><path d="M23,35 Q27,40 30,38 Q33,40 37,35" stroke="#7a4a3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
+
+    goblin: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="11" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="14" y="44" width="32" height="28" rx="10" fill="#7f5c3a"/><path d="M22,44 L26,52 L22,60" stroke="#5d4037" stroke-width="1.5" fill="none"/><path d="M38,44 L34,52 L38,60" stroke="#5d4037" stroke-width="1.5" fill="none"/><path d="M12,24 Q4,20 6,28 Q8,36 14,30 Q12,28 12,24 Z" fill="#39b854"/><path d="M48,24 Q56,20 54,28 Q52,36 46,30 Q48,28 48,24 Z" fill="#39b854"/><path d="M12,24 Q7,22 8,28 Q10,33 13,30" fill="#27a344"/><path d="M48,24 Q53,22 52,28 Q50,33 47,30" fill="#27a344"/><circle cx="30" cy="27" r="16" fill="#39b854"/><path d="M14,24 Q16,8 30,10 Q44,8 46,24" fill="#2c2c2c"/><polygon points="22,22 19,10 25,17" fill="#2c2c2c"/><polygon points="30,20 28,9 32,9" fill="#2c2c2c"/><polygon points="38,22 41,10 35,17" fill="#2c2c2c"/><path d="M14,24 Q18,13 30,14 Q42,13 46,24 L43,22 Q37,17 30,18 Q23,17 17,22 Z" fill="#2c2c2c"/><path d="M18,22 Q22,18 26,21" stroke="#1a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M34,21 Q38,18 42,22" stroke="#1a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="27" rx="3" ry="2.5" fill="#f39c12"/><ellipse cx="37" cy="27" rx="3" ry="2.5" fill="#f39c12"/><circle cx="23" cy="27" r="1.5" fill="#1a1a1a"/><circle cx="37" cy="27" r="1.5" fill="#1a1a1a"/><circle cx="24" cy="26.2" r="0.7" fill="white"/><circle cx="38" cy="26.2" r="0.7" fill="white"/><ellipse cx="30" cy="32" rx="4" ry="3" fill="#2fa348"/><circle cx="28" cy="33" r="1.2" fill="#27a344"/><circle cx="32" cy="33" r="1.2" fill="#27a344"/><path d="M21,37 Q30,43 39,37" stroke="#27a344" stroke-width="1.5" fill="none"/><rect x="25" y="37" width="3" height="4" rx="0.5" fill="#ecf0f1"/><rect x="29.5" y="37" width="3" height="5" rx="0.5" fill="#ecf0f1"/><rect x="34" y="37" width="3" height="4" rx="0.5" fill="#ecf0f1"/></svg>`,
+
+    elf: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="12" y="44" width="36" height="30" rx="11" fill="#1e8449"/><path d="M26,46 Q30,52 34,46" fill="#196f3d"/><path d="M20,56 Q24,50 28,56" fill="#196f3d" opacity="0.6"/><path d="M32,56 Q36,50 40,56" fill="#196f3d" opacity="0.6"/><path d="M13,24 Q7,18 11,28 Q13,30 15,27" fill="#f5c899"/><path d="M47,24 Q53,18 49,28 Q47,30 45,27" fill="#f5c899"/><path d="M14,25 Q9,20 12,27" stroke="#e8b480" stroke-width="1" fill="none"/><path d="M46,25 Q51,20 48,27" stroke="#e8b480" stroke-width="1" fill="none"/><path d="M13,26 Q12,8 30,8 Q48,8 47,26" fill="#d5dbdb"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M13,26 Q15,10 30,10 Q45,10 47,26 L44,25 Q38,17 30,18 Q22,17 16,25 Z" fill="#d5dbdb"/><path d="M13,27 Q10,36 12,42 Q14,38 15,32 Z" fill="#d5dbdb"/><path d="M47,27 Q50,36 48,42 Q46,38 45,32 Z" fill="#d5dbdb"/><ellipse cx="30" cy="18" rx="16" ry="3" fill="#27ae60" opacity="0.8"/><path d="M18,18 Q22,12 26,18" fill="#2ecc71" opacity="0.7"/><path d="M34,18 Q38,12 42,18" fill="#2ecc71" opacity="0.7"/><circle cx="30" cy="16" r="2" fill="#f1c40f"/><path d="M19,26 Q24,23 29,26 Q24,29 19,26 Z" fill="#1a1a1a"/><path d="M31,26 Q36,23 41,26 Q36,29 31,26 Z" fill="#1a1a1a"/><circle cx="23" cy="25.5" r="1.2" fill="white"/><circle cx="35" cy="25.5" r="1.2" fill="white"/><path d="M18,22 Q22,20 27,21" stroke="#555" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M33,21 Q38,20 42,22" stroke="#555" stroke-width="1.3" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="30" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.4"/><ellipse cx="45" cy="30" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.4"/><path d="M25,34 Q30,38 35,34" stroke="#7a4a3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`
+  };
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let S = { tripName: t('trip_default_name'), participants: [], expenses: [] };
+
+  // ── Save (debounced Firestore write) ───────────────────────────────────────
+  let _saveTimer;
+  function setSaveStatus(state, msg) {
+    const el = document.getElementById('save-status');
+    if (!el) return;
+    el.className = state;
+    el.textContent = msg;
+  }
+
+  function save() {
+    setSaveStatus('saving', t('status_saving'));
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      try {
+        await tripRef.set({ ...S, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        setSaveStatus('saved', t('status_saved'));
+      } catch (err) {
+        console.error('Save failed', err);
+        setSaveStatus('error', t('status_save_err'));
+      }
+    }, 800);
+  }
+
+  async function load() {
+    setSaveStatus('saving', t('status_loading'));
+    try {
+      const snap = await tripRef.get();
+      if (snap.exists) {
+        const data = snap.data();
+        S = {
+          tripName: data.tripName || t('trip_default_name'),
+          participants: data.participants || [],
+          expenses: data.expenses || []
+        };
+      }
+      setSaveStatus('saved', t('status_saved'));
+    } catch (err) {
+      console.error('Load failed', err);
+      setSaveStatus('error', t('status_load_err'));
+    }
+  }
+
+  function shareTrip() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => toast(t('toast_link_copied')));
+  }
+
+  // ── Trip name ──────────────────────────────────────────────────────────────
+  function renderTripName() {
+    const d = document.getElementById('trip-name-display');
+    const icon = document.querySelector('.trip-edit-icon');
+    const i = document.getElementById('trip-name-input');
+    d.textContent = S.tripName || t('trip_click_name');
+    d.style.display = ''; if (icon) icon.style.display = '';
+    i.style.display = 'none';
+    document.title = (S.tripName || 'แบ่งค่าใช้จ่าย') + ' — แบ่งค่าใช้จ่าย';
+  }
+  function startEditTrip() {
+    const d = document.getElementById('trip-name-display');
+    const icon = document.querySelector('.trip-edit-icon');
+    const i = document.getElementById('trip-name-input');
+    i.value = S.tripName;
+    d.style.display = 'none'; if (icon) icon.style.display = 'none';
+    i.style.display = 'inline-block'; i.focus(); i.select();
+  }
+  function saveTrip() {
+    S.tripName = document.getElementById('trip-name-input').value.trim() || t('trip_fallback_name');
+    save(); renderTripName();
+  }
+
+  // ── Participants ───────────────────────────────────────────────────────────
+  function addParticipant() {
+    const el = document.getElementById('new-p-input');
+    const name = el.value.trim();
+    if (!name) return;
+    if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
+    S.participants.push(name);
+    el.value = '';
+    save(); renderAll();
+  }
+
+  function removeParticipant(name) {
+    const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name));
+    if (used) { toast(t('err_in_use', { name })); return; }
+    S.participants = S.participants.filter(p => p !== name);
+    save(); renderAll();
+  }
+
+  function renderParticipants() {
+    const el = document.getElementById('p-chips');
+    if (!S.participants.length) {
+      el.innerHTML = `<span class="no-participants">${t('no_participants')}</span>`;
+      return;
+    }
+    el.innerHTML = S.participants.map(name => `
+      <div class="participant-chip">
+        <div class="p-avatar">${charSvg(name, 20, 28)}</div>
+        ${name}
+        <button class="p-remove" onclick="removeParticipant('${esc(name)}')">×</button>
+      </div>
+    `).join('');
+  }
+
+  // ── Expense form ───────────────────────────────────────────────────────────
+  function renderForm() {
+    const enough = S.participants.length >= 2;
+    document.getElementById('add-section').style.display = enough ? '' : 'none';
+    if (!enough) return;
+
+    const payer = document.getElementById('exp-payer');
+    const prev = payer.value;
+    payer.innerHTML = S.participants.map(p => `<option value="${p}">${p}</option>`).join('');
+    if (S.participants.includes(prev)) payer.value = prev;
+
+    const grid = document.getElementById('shared-chips');
+    grid.innerHTML = S.participants.map((p, i) => `
+      <div>
+        <input type="checkbox" class="share-cb" id="sc-${i}" value="${p}" checked onchange="updateSplitInfo()">
+        <label class="share-chip-label" for="sc-${i}">
+          <div class="chip-av">${charSvg(p, 16, 22)}</div>
+          ${p}
+        </label>
+      </div>
+    `).join('');
+
+    updateSplitInfo();
+  }
+
+  function updateSplitInfo() {
+    const n = document.querySelectorAll('.share-cb:checked').length;
+    const amt = parseFloat(document.getElementById('exp-amount').value) || 0;
+    const info = document.getElementById('split-info');
+    if (n === 0) { info.textContent = '—'; return; }
+    const per = amt > 0 ? ` (คนละ ฿${(amt / n).toLocaleString('th', {minimumFractionDigits: 0, maximumFractionDigits: 2})})` : '';
+    info.textContent = `${n} คน${per}`;
+  }
+
+  document.addEventListener('input', e => {
+    if (e.target.id === 'exp-amount') updateSplitInfo();
+  });
+
+  function sharedBy() {
+    return Array.from(document.querySelectorAll('.share-cb:checked')).map(cb => cb.value);
+  }
+
+  function addExpense() {
+    const desc   = document.getElementById('exp-desc').value.trim();
+    const amount = parseFloat(document.getElementById('exp-amount').value);
+    const paidBy = document.getElementById('exp-payer').value;
+    const shared = sharedBy();
+
+    if (!desc)              { toast(t('err_desc')); return; }
+    if (!amount || amount <= 0) { toast(t('err_amount')); return; }
+    if (!shared.length)    { toast(t('err_sharers')); return; }
+
+    S.expenses.push({ id: Date.now() + Math.random(), desc, amount, paidBy, sharedBy: shared });
+    document.getElementById('exp-desc').value = '';
+    document.getElementById('exp-amount').value = '';
+    document.querySelectorAll('.share-cb').forEach(cb => cb.checked = true);
+    updateSplitInfo();
+
+    save(); renderAll();
+    toast(t('success_added'));
+  }
+
+  // ── Expense list ───────────────────────────────────────────────────────────
+  function deleteExpense(id) {
+    S.expenses = S.expenses.filter(e => e.id !== id);
+    save(); renderAll();
+  }
+
+  function confirmClearExpenses() {
+    if (!S.expenses.length) return;
+    if (confirm(t('confirm_clear'))) {
+      S.expenses = [];
+      save(); renderAll();
+    }
+  }
+
+  let _editingId = null;
+
+  function renderExpenses() {
+    const sec = document.getElementById('list-section');
+    if (!S.expenses.length) { sec.style.display = 'none'; return; }
+    sec.style.display = '';
+
+    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
+    const list  = document.getElementById('expense-list');
+    list.innerHTML = S.expenses.map(e => {
+      if (e.id === _editingId) return renderEditRow(e);
+      const per = (e.amount / e.sharedBy.length).toLocaleString('th', {maximumFractionDigits: 2});
+      return `
+        <div class="expense-row">
+          <div class="expense-body">
+            <div class="expense-desc">${e.desc}</div>
+            <div class="expense-meta">
+              <span class="paid-badge">
+                <span class="tiny-av">${charSvg(e.paidBy, 14, 20)}</span>
+                ${e.paidBy} ${t('expense_paid')}
+              </span>
+              ${t('expense_split_n', { count: e.sharedBy.length })} · ${t('expense_per_person', { amount: per })}
+            </div>
+          </div>
+          <div class="expense-right">
+            <div class="expense-amount">฿${e.amount.toLocaleString()}</div>
+          </div>
+          <button class="expense-edit-btn" onclick="startEditExpense(${e.id})" title="${t('edit_title')}">✏️</button>
+          <button class="expense-del" onclick="deleteExpense(${e.id})" title="${t('del_title')}">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('total-bar').innerHTML = `
+      <span>${t('expense_total')}</span>
+      <span class="expense-total-num">฿${total.toLocaleString()}</span>
+    `;
+  }
+
+  function renderEditRow(e) {
+    const payerOpts = S.participants.map(p =>
+      `<option value="${p}" ${p === e.paidBy ? 'selected' : ''}>${p}</option>`
+    ).join('');
+    const chips = S.participants.map((p, i) => {
+      const checked = e.sharedBy.includes(p) ? 'checked' : '';
+      return `
+        <div>
+          <input type="checkbox" class="share-cb" id="ecb-${i}" value="${p}" ${checked}>
+          <label class="share-chip-label" for="ecb-${i}">
+            <div class="chip-av">${charSvg(p, 16, 22)}</div> ${p}
+          </label>
+        </div>`;
+    }).join('');
+    return `
+      <div class="expense-edit-row">
+        <div class="expense-edit-grid">
+          <input class="field-input" id="edit-desc" value="${esc(e.desc)}" placeholder="รายการ" />
+          <input class="field-input" id="edit-amount" type="number" value="${e.amount}" min="0" step="any" placeholder="0" />
+        </div>
+        <div class="expense-edit-payer">
+          <div class="field-label">${t('edit_label_payer')}</div>
+          <select class="field-select" id="edit-payer" style="width:100%;padding:6px 10px;font-size:0.86rem">${payerOpts}</select>
+        </div>
+        <div class="field-label" style="margin-bottom:6px">${t('edit_label_sharers')}</div>
+        <div class="expense-edit-chips">${chips}</div>
+        <div class="expense-edit-actions">
+          <button class="btn-save-edit" onclick="saveEditExpense(${e.id})">${t('btn_save')}</button>
+          <button class="btn-cancel-edit" onclick="cancelEditExpense()">${t('btn_cancel')}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function startEditExpense(id) { _editingId = id; renderExpenses(); }
+  function cancelEditExpense()  { _editingId = null; renderExpenses(); }
+
+  function saveEditExpense(id) {
+    const desc   = document.getElementById('edit-desc').value.trim();
+    const amount = parseFloat(document.getElementById('edit-amount').value);
+    const paidBy = document.getElementById('edit-payer').value;
+    const sharedBy = Array.from(document.querySelectorAll('.expense-edit-chips .share-cb:checked')).map(cb => cb.value);
+
+    if (!desc)              { toast(t('err_desc')); return; }
+    if (!amount || amount <= 0) { toast(t('err_amount')); return; }
+    if (!sharedBy.length)  { toast(t('err_sharers')); return; }
+
+    const idx = S.expenses.findIndex(e => e.id === id);
+    if (idx !== -1) S.expenses[idx] = { ...S.expenses[idx], desc, amount, paidBy, sharedBy };
+    _editingId = null;
+    save(); renderAll();
+  }
+
+  // ── Balances & settlement ──────────────────────────────────────────────────
+  function calcBalances() {
+    const b = {};
+    S.participants.forEach(p => b[p] = 0);
+    S.expenses.forEach(e => {
+      const share = e.amount / e.sharedBy.length;
+      b[e.paidBy] = (b[e.paidBy] || 0) + e.amount;
+      e.sharedBy.forEach(p => b[p] = (b[p] || 0) - share);
+    });
+    return b;
+  }
+
+  function calcSettlements() {
+    const b = calcBalances();
+    const cred = [], debt = [];
+    Object.entries(b).forEach(([p, v]) => {
+      const r = Math.round(v * 100) / 100;
+      if (r > 0.01)  cred.push({ p, v: r });
+      if (r < -0.01) debt.push({ p, v: -r });
+    });
+    cred.sort((a, b) => b.v - a.v);
+    debt.sort((a, b) => b.v - a.v);
+    const out = [];
+    let i = 0, j = 0;
+    while (i < cred.length && j < debt.length) {
+      const amt = Math.min(cred[i].v, debt[j].v);
+      if (amt > 0.01) out.push({ from: debt[j].p, to: cred[i].p, amount: Math.round(amt) });
+      cred[i].v -= amt; debt[j].v -= amt;
+      if (cred[i].v < 0.01) i++;
+      if (debt[j].v < 0.01) j++;
+    }
+    return out;
+  }
+
+  function renderSettlement() {
+    const sec = document.getElementById('settle-section');
+    if (!S.expenses.length || S.participants.length < 2) { sec.style.display = 'none'; return; }
+    sec.style.display = '';
+
+    const bal = calcBalances();
+    document.getElementById('balance-grid').innerHTML = S.participants.map(p => {
+      const v = Math.round((bal[p] || 0) * 100) / 100;
+      const cls = v > 0.01 ? 'pos' : v < -0.01 ? 'neg' : 'zero';
+      const label = cls === 'pos' ? t('balance_owed') : cls === 'neg' ? t('balance_owes') : t('balance_even');
+      const disp  = cls === 'zero' ? '—' : `฿${Math.abs(v).toLocaleString()}`;
+      return `
+        <div class="bal-card">
+          <div class="bal-avatar">${charSvg(p, 44, 62)}</div>
+          <div class="bal-name">${p}</div>
+          <div class="bal-amount ${cls}">${disp}</div>
+          <div class="bal-label ${cls}">${label}</div>
+        </div>
+      `;
+    }).join('');
+
+    const txns = calcSettlements();
+    const txnEl = document.getElementById('txn-list');
+    if (!txns.length) {
+      txnEl.innerHTML = `
+        <div class="all-settled">
+          <div class="all-settled-icon">🎉</div>
+          <div class="all-settled-text">${t('all_settled')}</div>
+        </div>`;
+      return;
+    }
+    txnEl.innerHTML = txns.map((t, i) => `
+      <div class="txn-item" style="animation-delay:${i * 0.06}s">
+        <div class="txn-person">
+          <div class="txn-av">${charSvg(t.from, 28, 39)}</div>
+          ${t.from}
+        </div>
+        <div class="txn-mid">
+          <div class="txn-amount">฿${t.amount.toLocaleString()}</div>
+          <div class="txn-arrow">→</div>
+        </div>
+        <div class="txn-person">
+          <div class="txn-av">${charSvg(t.to, 28, 39)}</div>
+          ${t.to}
+        </div>
+      </div>
+    `).join('');
+
+    // Copy button
+    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
+    const copyText = buildCopyText(txns, total);
+    txnEl.innerHTML += `
+      <button class="copy-btn" onclick="copySettlement()">${t('btn_copy_line')}</button>
+    `;
+    txnEl._copyText = copyText;
+  }
+
+  function buildCopyText(txns, total) {
+    const lines = [
+      `🧾 ${S.tripName}`,
+      ``,
+      t('copy_transfers_hdr'),
+      ...txns.map(tx => t('copy_transfer_line', { from: tx.from, amount: tx.amount.toLocaleString(), to: tx.to })),
+      ``,
+      t('copy_total', { amount: total.toLocaleString() }),
+    ];
+    return lines.join('\n');
+  }
+
+  function copySettlement() {
+    const el = document.getElementById('txn-list');
+    const text = el._copyText || '';
+    navigator.clipboard.writeText(text).then(() => toast(t('toast_copied')));
+  }
+
+  // ── Render all ─────────────────────────────────────────────────────────────
+  function renderAll() {
+    renderTripName();
+    renderParticipants();
+    renderForm();
+    renderExpenses();
+    renderSettlement();
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  let _toastTimer;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+
+  // ── Excel helpers ──────────────────────────────────────────────────────────
+  async function saveWorkbook(wb, filename) {
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function xlHeaderRow(row, bgArgb) {
+    row.height = 22;
+    row.eachCell({ includeEmpty: true }, cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb || 'FF4a9070' } };
+      cell.alignment = { vertical: 'middle' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FF3a7558' } } };
+    });
+  }
+
+  function xlDataRow(row, isAlt) {
+    row.height = 18;
+    if (isAlt) row.eachCell({ includeEmpty: true }, cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4FAF7' } };
+    });
+  }
+
+  function cellStr(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') return String(v.result ?? v.text ?? '');
+    return String(v);
+  }
+
+  // ── Export Excel ───────────────────────────────────────────────────────────
+  async function exportExcel() {
+    if (!S.expenses.length) { toast(t('err_no_data')); return; }
+    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Trip Splitter';
+
+    // ── Sheet 1: Expenses ──────────────────────────────────────────────────
+    const ws1 = wb.addWorksheet('Expenses');
+    ws1.getColumn(1).width = 32;
+    ws1.getColumn(2).width = 14;
+    ws1.getColumn(3).width = 16;
+    ws1.getColumn(4).width = 42;
+    ws1.views = [{ state: 'frozen', ySplit: 1 }];
+
+    xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
+
+    S.expenses.forEach((e, i) => {
+      const row = ws1.addRow([e.desc, e.amount, e.paidBy, e.sharedBy.join(', ')]);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws1.addRow([]);
+    const totRow = ws1.addRow(['Total', total]);
+    totRow.getCell(1).font = { bold: true };
+    totRow.getCell(1).border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
+    totRow.getCell(2).font = { bold: true };
+    totRow.getCell(2).numFmt = '#,##0.00';
+    totRow.getCell(2).alignment = { horizontal: 'right' };
+    totRow.getCell(2).border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
+
+    // ── Sheet 2: Settlement ────────────────────────────────────────────────
+    const ws2 = wb.addWorksheet('Settlement');
+    ws2.getColumn(1).width = 22;
+    ws2.getColumn(2).width = 22;
+    ws2.getColumn(3).width = 16;
+
+    const bal = calcBalances();
+    const txns = calcSettlements();
+
+    ws2.mergeCells('A1:C1');
+    const titleCell = ws2.getCell('A1');
+    titleCell.value = `Trip: ${S.tripName}`;
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FF4a9070' }, name: 'Calibri' };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFeaf6f1' } };
+    titleCell.alignment = { vertical: 'middle', indent: 1 };
+    titleCell.border = { bottom: { style: 'medium', color: { argb: 'FF4a9070' } } };
+    ws2.getRow(1).height = 30;
+
+    ws2.addRow([]);
+    const secBal = ws2.addRow(['BALANCES']);
+    secBal.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF4a9070' } };
+    secBal.height = 20;
+    ws2.addRow([]);
+
+    xlHeaderRow(ws2.addRow(['Person', 'Balance (฿)', 'Status']));
+    S.participants.forEach((p, i) => {
+      const v = Math.round((bal[p] || 0) * 100) / 100;
+      const status = v > 0.01 ? 'To receive' : v < -0.01 ? 'Owes' : 'Even';
+      const row = ws2.addRow([p, Math.abs(v), status]);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      if (v > 0.01) row.getCell(3).font = { bold: true, color: { argb: 'FF276749' } };
+      else if (v < -0.01) row.getCell(3).font = { bold: true, color: { argb: 'FFc53030' } };
+      else row.getCell(3).font = { color: { argb: 'FF718096' } };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws2.addRow([]);
+    const secTxn = ws2.addRow(['TRANSFERS']);
+    secTxn.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF4a9070' } };
+    secTxn.height = 20;
+    ws2.addRow([]);
+
+    xlHeaderRow(ws2.addRow(['From', 'To', 'Amount (฿)']));
+    txns.forEach((tx, i) => {
+      const row = ws2.addRow([tx.from, tx.to, tx.amount]);
+      row.getCell(3).numFmt = '#,##0.00';
+      row.getCell(3).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws2.addRow([]);
+    const tot2 = ws2.addRow(['Total Expenses (฿)', total]);
+    tot2.getCell(1).font = { bold: true };
+    tot2.getCell(2).font = { bold: true };
+    tot2.getCell(2).numFmt = '#,##0.00';
+    tot2.getCell(2).alignment = { horizontal: 'right' };
+
+    await saveWorkbook(wb, `${S.tripName || 'trip'}.xlsx`);
+  }
+
+  // ── Download Template ──────────────────────────────────────────────────────
+  async function downloadTemplate() {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Trip Splitter';
+
+    // ── Sheet 1: Instructions ──────────────────────────────────────────────
+    const ws1 = wb.addWorksheet('Instructions');
+    ws1.getColumn(1).width = 18;
+    ws1.getColumn(2).width = 50;
+    ws1.getColumn(3).width = 16;
+    ws1.getColumn(4).width = 40;
+
+    // Title
+    ws1.mergeCells('A1:D1');
+    const title = ws1.getCell('A1');
+    title.value = '✈  Trip Expense Splitter — How to Use';
+    title.font = { bold: true, size: 16, color: { argb: 'FF4a9070' }, name: 'Calibri' };
+    title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFeaf6f1' } };
+    title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    title.border = { bottom: { style: 'medium', color: { argb: 'FF4a9070' } } };
+    ws1.getRow(1).height = 42;
+
+    ws1.addRow([]);
+
+    // Instructions section
+    const instrSec = ws1.addRow(['INSTRUCTIONS']);
+    instrSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    instrSec.height = 22;
+
+    [
+      [' 1', 'Go to the "Expenses" sheet — click the tab at the bottom of this file'],
+      [' 2', 'Fill in your expenses starting from row 2 — do not modify the header row'],
+      [' 3', 'Save the file, then click "📥 Import Excel" in the app to upload it'],
+    ].forEach(([num, step]) => {
+      const row = ws1.addRow([num, step]);
+      row.getCell(1).font = { bold: true, color: { argb: 'FF4a9070' } };
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).alignment = { wrapText: false };
+      row.height = 18;
+    });
+
+    ws1.addRow([]);
+
+    // Column guide section
+    const colSec = ws1.addRow(['COLUMN GUIDE']);
+    colSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    colSec.height = 22;
+
+    [
+      ['Description', 'What the expense was for (e.g. Dinner, Hotel, Gas)'],
+      ['Amount',      'Total amount paid — numbers only, no currency symbols'],
+      ['Paid By',     'Name of the person who paid'],
+      ['Split With',  'Comma-separated names of everyone sharing the cost (e.g. Shane, Point, Arm)'],
+    ].forEach(([col, desc]) => {
+      const row = ws1.addRow([col, desc]);
+      row.getCell(1).font = { bold: true };
+      row.getCell(1).alignment = { horizontal: 'right' };
+      row.height = 18;
+    });
+
+    ws1.addRow([]);
+
+    // Examples section
+    const exSec = ws1.addRow(['EXAMPLES']);
+    exSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    exSec.height = 22;
+    ws1.addRow([]);
+
+    xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']), 'FF718096');
+
+    [
+      ['Dinner',  900,  'Shane', 'Shane, Point, Arm'],
+      ['Gas',     500,  'Point', 'Shane, Point'],
+      ['Hotel',  3000,  'Arm',   'Shane, Point, Arm'],
+    ].forEach((data, i) => {
+      const row = ws1.addRow(data);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+    });
+
+    ws1.addRow([]);
+
+    // Notes section
+    const notesSec = ws1.addRow(['NOTES']);
+    notesSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
+    notesSec.height = 22;
+
+    [
+      'New participants found in the file will be added to the trip automatically.',
+      'If "Split With" is left blank, the expense is assigned to the payer only.',
+    ].forEach(note => {
+      const row = ws1.addRow(['⚠', note]);
+      row.getCell(1).font = { color: { argb: 'FFed8936' } };
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).font = { italic: true, color: { argb: 'FF718096' } };
+      row.height = 18;
+    });
+
+    // ── Sheet 2: Expenses (blank template) ────────────────────────────────
+    const ws2 = wb.addWorksheet('Expenses');
+    ws2.getColumn(1).width = 32;
+    ws2.getColumn(2).width = 14;
+    ws2.getColumn(3).width = 16;
+    ws2.getColumn(4).width = 42;
+    ws2.views = [{ state: 'frozen', ySplit: 1 }];
+
+    xlHeaderRow(ws2.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
+
+    for (let i = 0; i < 20; i++) {
+      const row = ws2.addRow(['', null, '', '']);
+      row.getCell(2).numFmt = '#,##0.00';
+      row.getCell(2).alignment = { horizontal: 'right' };
+      xlDataRow(row, i % 2 === 1);
+      row.height = 18;
+    }
+
+    await saveWorkbook(wb, 'trip-template.xlsx');
+  }
+
+  // ── Import Excel ───────────────────────────────────────────────────────────
+  function triggerImport() {
+    document.getElementById('import-input').value = '';
+    document.getElementById('import-input').click();
+  }
+
+  async function importExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(buffer);
+      const ws = wb.worksheets.length > 1 ? wb.worksheets[1] : wb.worksheets[0];
+      let imported = 0;
+      let firstRow = true;
+      ws.eachRow({ includeEmpty: false }, row => {
+        if (firstRow) { firstRow = false; return; } // skip header
+        const v = row.values; // 1-indexed: v[1]=desc, v[2]=amount, v[3]=paidBy, v[4]=splitWith
+        const desc   = cellStr(v[1]).trim();
+        const amtNum = parseFloat(cellStr(v[2]));
+        const payer  = cellStr(v[3]).trim();
+        const split  = cellStr(v[4]);
+        if (!desc || !amtNum || amtNum <= 0 || !payer) return;
+        const sharers = split
+          ? split.split(',').map(s => s.trim()).filter(Boolean)
+          : [payer];
+        if (!S.participants.includes(payer)) S.participants.push(payer);
+        sharers.forEach(p => { if (p && !S.participants.includes(p)) S.participants.push(p); });
+        S.expenses.push({ id: Date.now() + Math.random(), desc, amount: amtNum, paidBy: payer, sharedBy: sharers });
+        imported++;
+      });
+      if (!imported) { toast(t('err_import_empty')); return; }
+      save(); renderAll();
+      toast(t('toast_imported', { n: imported }));
+    } catch (err) {
+      console.error('Import failed', err);
+      toast(t('err_import_format'));
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  translatePage();
+  load().then(() => { renderAll(); translatePage(); });
+</script>
+</body>
+</html>

@@ -3,1502 +3,996 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>แบ่งค่าใช้จ่าย</title>
+  <title>Party Ledger — แบ่งค่าใช้จ่าย</title>
+  <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f0f4f8;
-      --surface: #ffffff;
-      --primary: #4a9070;
-      --primary-light: #eaf6f1;
-      --accent: #4a9070;
-      --accent-light: #eaf6f1;
-      --text: #1a202c;
-      --muted: #718096;
-      --border: #e2e8f0;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08);
-      --radius: 12px;
+      --font-display: "Mitr", system-ui, sans-serif;
+      --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
+      --font-stat: "Chakra Petch", monospace;
+      --accent: #2f8f5b;
+      --bg: #e7dcc6;
+      --bg-glow: #f0e7d4;
+      --panel: #fbf6ea;
+      --panel-2: #f3e9d4;
+      --panel-in: #fffdf7;
+      --ink: #2f2515;
+      --ink-soft: #87745a;
+      --border: #ddc9a3;
+      --border-strong: #c9ad7c;
+      --gold: #c79320;
+      --gold-soft: #efe0b6;
+      --hp: #cf4633;
+      --hp-bg: #e7d3c6;
+      --xp: #d39a25;
+      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
+      --topbar: #2b2113;
+      --topbar-ink: #efe4cc;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
+    [data-theme="dungeon"] {
+      --bg: #14121f;
+      --bg-glow: #221d36;
+      --panel: #221d33;
+      --panel-2: #2b2542;
+      --panel-in: #1a1628;
+      --ink: #ece8f8;
+      --ink-soft: #a39bc4;
+      --border: #3b3357;
+      --border-strong: #4a4170;
+      --gold: #ecc14e;
+      --gold-soft: #3a3050;
+      --hp: #ff5d70;
+      --hp-bg: #3a2740;
+      --xp: #ecc14e;
+      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
+      --topbar: #0e0c17;
+      --topbar-ink: #d9d2f0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
     body {
-      font-family: 'Google Sans', 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
       min-height: 100vh;
-      padding: 0 16px 72px;
+      color: var(--ink);
+      font-family: var(--font-body);
+      background:
+        radial-gradient(1100px 520px at 50% -10%, var(--bg-glow), transparent 72%),
+        var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font-family: inherit; }
+    button { cursor: pointer; }
+    .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
+    .tb-inner { max-width: 980px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .tb-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .tb-logo { font-size: 22px; flex-shrink: 0; }
+    .tb-nav { display: flex; gap: 6px; min-width: 0; }
+    .tb-link { color: var(--topbar-ink); text-decoration: none; opacity: .62; font-size: 14px; padding: 7px 14px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
+    .tb-link.active { opacity: 1; background: rgba(255,255,255,.12); }
+    .lang-toggle { display: flex; background: rgba(255,255,255,.1); border-radius: 9px; padding: 3px; flex-shrink: 0; }
+    .lang-toggle button { border: 0; background: transparent; color: var(--topbar-ink); opacity: .62; padding: 5px 11px; border-radius: 7px; font-family: var(--font-stat); font-weight: 700; font-size: 13px; }
+    .lang-toggle button.lang-active { opacity: 1; background: var(--accent); color: #fff; }
+    .page { max-width: 980px; margin: 0 auto; padding: 26px 20px 60px; }
+    .banner { text-align: center; padding: 8px 0 22px; }
+    .banner-crest { font-size: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.2)); }
+    .banner-title { margin: 6px 0 10px; font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--accent); letter-spacing: 0; }
+    .campaign-row { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex-wrap: wrap; }
+    .camp-label { font-family: var(--font-stat); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); }
+    .camp-name { border: 0; background: transparent; color: var(--ink); font-family: var(--font-display); font-size: 18px; font-weight: 500; border-radius: 7px; padding: 2px 6px; }
+    .camp-name:hover { background: var(--panel-2); }
+    .camp-edit { display: none; border: 2px solid var(--accent); border-radius: 8px; background: var(--panel-in); color: var(--ink); padding: 3px 8px; text-align: center; font-family: var(--font-display); font-size: 18px; }
+    .banner-gold { display: inline-flex; align-items: center; gap: 9px; margin: 16px auto 4px; padding: 8px 18px; border-radius: 999px; background: linear-gradient(var(--panel), var(--panel-2)); border: 1.5px solid var(--border-strong); box-shadow: var(--shadow); }
+    .bg-coin { font-size: 20px; }
+    .bg-amt { font-family: var(--font-stat); font-size: 22px; font-weight: 700; color: var(--gold); }
+    .bg-lab { font-size: 12px; color: var(--ink-soft); font-weight: 600; }
+    .banner-actions { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    #save-status { font-size: 12px; color: var(--ink-soft); font-weight: 600; }
+    #save-status.error { color: var(--hp); }
+    .btn-primary, .btn-gold, .btn-ghost, .btn-tool, .seg button, .chip-all, .icon-btn, .icon-opt {
+      border: 0; border-radius: 11px; font-weight: 600; transition: transform .08s, box-shadow .08s, background .14s, border-color .14s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; padding: 11px 18px; font-size: 14px; box-shadow: 0 3px 0 color-mix(in oklab, var(--accent), #000 28%); }
+    .btn-primary:active, .btn-gold:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in oklab, var(--accent), #000 28%); }
+    .btn-primary.big { width: 100%; padding: 14px; font-family: var(--font-display); font-size: 16px; margin-top: 4px; }
+    .btn-primary.sm { padding: 8px 13px; font-size: 13px; box-shadow: 0 2px 0 color-mix(in oklab, var(--accent), #000 28%); }
+    .btn-gold { background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 14%)); color: #2a1f06; padding: 10px 16px; font-size: 14px; box-shadow: 0 3px 0 color-mix(in oklab, var(--gold), #000 35%); }
+    .btn-ghost, .btn-tool { border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink); padding: 10px 15px; font-size: 14px; }
+    .btn-ghost:hover, .btn-tool:hover { background: var(--panel-2); }
+    .btn-ghost.xs { padding: 6px 11px; font-size: 12px; border-radius: 9px; }
+    .btn-ghost.danger:hover { border-color: var(--hp); color: var(--hp); }
+    .panel { background: var(--panel); border: 1.5px solid var(--border); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .panel-title { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .count-pill { font-family: var(--font-stat); font-size: 13px; font-weight: 700; background: var(--accent); color: #fff; border-radius: 999px; padding: 1px 9px; }
+    .party-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .hero-card { position: relative; background: linear-gradient(var(--panel-in), var(--panel-2)); border: 1.5px solid var(--border); border-radius: 16px; padding: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); overflow: hidden; }
+    .hero-card.guardian { border-color: color-mix(in oklab, var(--accent), var(--border) 30%); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 0 0 1px color-mix(in oklab, var(--accent), transparent 60%), 0 8px 24px -14px var(--accent); }
+    .hero-card.debt { border-color: color-mix(in oklab, var(--hp), var(--border) 45%); }
+    .hero-remove { position: absolute; top: 7px; right: 7px; z-index: 3; width: 24px; height: 24px; border: 0; border-radius: 8px; color: #fff; background: rgba(0,0,0,.3); opacity: 0; }
+    .hero-card:hover .hero-remove { opacity: .88; }
+    .hero-remove:hover { background: var(--hp); }
+    .portrait { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 13px; margin-bottom: 10px; overflow: hidden; border: 2px solid var(--frame, var(--border)); background: linear-gradient(160deg, var(--cc-top), var(--cc-bot)); display: flex; align-items: center; justify-content: center; }
+    .portrait.gold { box-shadow: 0 0 12px -3px var(--gold), inset 0 0 0 1px color-mix(in oklab, var(--gold), #000 28%); }
+    .portrait.legend { animation: legend-glow 2.6s ease-in-out infinite; }
+    .portrait-glyph { font-size: clamp(44px, 10vw, 74px); filter: drop-shadow(0 2px 2px rgba(0,0,0,.28)); }
+    .class-badge, .lvl-badge, .status-badge { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; }
+    .class-badge { left: 7px; top: 7px; width: 30px; height: 30px; border-radius: 9px; background: rgba(0,0,0,.4); color: #fff; backdrop-filter: blur(3px); }
+    .lvl-badge { right: 7px; top: 7px; flex-direction: column; min-width: 44px; border-radius: 10px; padding: 2px 8px; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 16%)); border: 1.5px solid color-mix(in oklab, var(--gold), #000 25%); color: #2a1f05; }
+    .lvl-badge span:first-child { font-family: var(--font-stat); font-size: 8px; letter-spacing: 1px; font-weight: 700; }
+    .lvl-badge span:last-child { font-family: var(--font-stat); font-size: 19px; font-weight: 700; line-height: 1; }
+    .status-badge { right: 7px; bottom: 7px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; background: var(--panel-2); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+    .hero-name { font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.15; }
+    .hero-class-row { display: flex; align-items: center; gap: 7px; margin-top: 4px; flex-wrap: wrap; }
+    .hero-class { font-size: 12px; color: var(--ink-soft); }
+    .rank-pill { font-family: var(--font-stat); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); color: var(--ink-soft); }
+    .rank-bronze { color: #8a5e2c; background: color-mix(in oklab, #c08a4a, transparent 80%); }
+    .rank-silver { color: #5d6b80; background: color-mix(in oklab, #aab4c4, transparent 74%); }
+    .rank-gold { color: var(--gold); background: var(--gold-soft); }
+    .rank-legend { color: #fff; background: linear-gradient(90deg, var(--gold), #e6a626); }
+    .bars { margin: 11px 0 10px; display: flex; flex-direction: column; gap: 7px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; }
+    .bar-lab { width: 22px; font-family: var(--font-stat); font-size: 10px; font-weight: 700; }
+    .bar-lab.hp { color: var(--hp); }
+    .bar-lab.xp { color: var(--xp); }
+    .bar { flex: 1; height: 10px; border-radius: 6px; background: var(--hp-bg); overflow: hidden; border: 1px solid rgba(0,0,0,.08); }
+    .bar-fill { height: 100%; border-radius: 6px; transition: width .45s ease; }
+    .xp-bar { background: var(--gold-soft); }
+    .xp-bar .bar-fill { background: linear-gradient(var(--xp), color-mix(in oklab, var(--xp), #000 18%)); }
+    .bar-val, .budget-edit { font-family: var(--font-stat); font-size: 10px; color: var(--ink-soft); min-width: 50px; text-align: right; }
+    .budget-btn { border: 0; background: transparent; color: var(--ink-soft); border-radius: 5px; padding: 1px 3px; }
+    .budget-btn:hover { background: var(--panel-2); color: var(--ink); }
+    .budget-btn .over { color: var(--hp); font-weight: 700; }
+    .budget-edit { width: 68px; border: 1.5px solid var(--gold); border-radius: 6px; padding: 2px 5px; background: var(--panel-in); color: var(--ink); }
+    .hero-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 9px; margin-top: 10px; border-top: 1px solid var(--border); }
+    .mini-stat { display: flex; flex-direction: column; }
+    .mini-stat span:first-child { font-size: 10px; color: var(--ink-soft); font-weight: 600; }
+    .mini-stat span:last-child { font-family: var(--font-stat); font-size: 15px; font-weight: 700; }
+    .status-chip { display: flex; align-items: center; gap: 6px; border-radius: 10px; padding: 4px 9px 4px 7px; }
+    .status-chip.guardian { background: color-mix(in oklab, var(--accent), transparent 86%); color: var(--accent); }
+    .status-chip.debt { background: var(--hp-bg); color: var(--hp); }
+    .status-chip.even { background: var(--panel-2); color: var(--ink-soft); }
+    .status-chip strong { display: block; font-size: 10px; letter-spacing: .2px; }
+    .status-chip span:last-child { font-family: var(--font-stat); color: var(--ink); font-size: 13px; font-weight: 700; }
+    .levelup { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle, color-mix(in oklab, var(--gold), transparent 30%), transparent 70%); animation: lub-flash 1.6s ease-out forwards; }
+    .levelup strong { color: #fff; font-family: var(--font-display); font-size: 19px; text-shadow: 0 2px 8px rgba(0,0,0,.5); animation: lub-pop 1.6s ease-out forwards; }
+    .add-hero { border: 2px dashed var(--border-strong); background: transparent; color: var(--ink-soft); border-radius: 16px; min-height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-weight: 600; }
+    .add-hero:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
+    .add-hero-form { display: grid; gap: 10px; }
+    .class-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+    .class-btn { width: 35px; height: 35px; border-radius: 9px; border: 2px solid var(--ring); background: linear-gradient(160deg, var(--top), var(--bot)); font-size: 16px; }
+    .class-btn.on { transform: scale(1.08); box-shadow: 0 0 0 2px var(--gold); }
+    .tools-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
+    .field.grow { flex: 1; }
+    .field label, .field-label { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+    .lab-hint { color: var(--ink-soft); font-weight: 500; opacity: .84; }
+    .field-input, .field-select { width: 100%; border: 1.5px solid var(--border-strong); border-radius: 11px; padding: 11px 13px; background: var(--panel-in); color: var(--ink); font-size: 15px; }
+    .field-input:focus, .field-select:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 82%); }
+    .qf-top { display: flex; gap: 11px; align-items: flex-end; margin-bottom: 13px; }
+    .gold-field { width: 150px; flex-shrink: 0; }
+    .gold-in { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 11px; background: var(--panel-in); padding-left: 12px; }
+    .gold-in:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px color-mix(in oklab, var(--gold), transparent 82%); }
+    .gold-in span { color: var(--gold); font-family: var(--font-stat); font-size: 16px; font-weight: 700; }
+    .gold-in input { border: 0; box-shadow: none; background: transparent; padding-left: 6px; font-family: var(--font-stat); font-weight: 700; }
+    .icon-picker { position: relative; }
+    .icon-btn { width: 48px; height: 48px; border: 1.5px solid var(--border-strong); background: var(--panel-in); font-size: 24px; }
+    .icon-pop { position: absolute; z-index: 10; top: 54px; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow); }
+    .icon-opt { width: 38px; height: 38px; background: transparent; font-size: 20px; }
+    .icon-opt:hover, .icon-opt.on { background: var(--panel-2); }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .hero-chip { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--border-strong); background: var(--panel-in); color: var(--ink); border-radius: 999px; padding: 5px 13px 5px 5px; font-size: 14px; font-weight: 600; }
+    .hero-chip.dim { opacity: .5; filter: saturate(.45); }
+    .hero-chip.on { border-color: var(--cc-ring); background: var(--cc-soft); color: var(--cc); box-shadow: 0 2px 0 var(--cc-ring); opacity: 1; filter: none; }
+    .chip-avatar { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--cc-ring); background: linear-gradient(160deg, var(--cc-top), var(--cc-bot)); display: inline-flex; align-items: center; justify-content: center; }
+    .chip-all { border: 1.5px dashed var(--border-strong); background: transparent; color: var(--ink-soft); padding: 6px 14px; }
+    .seg { display: flex; background: var(--panel-2); border-radius: 9px; padding: 3px; }
+    .seg button { background: transparent; color: var(--ink-soft); padding: 5px 12px; font-size: 12px; }
+    .seg button.on { background: var(--accent); color: #fff; }
+    .quick-amount { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 10px 0 6px; }
+    .quick-amount span { font-family: var(--font-stat); font-size: 36px; color: var(--gold); font-weight: 700; }
+    .quick-amount input { width: 5ch; border: 0; background: transparent; color: var(--ink); font-family: var(--font-stat); font-size: 56px; font-weight: 700; text-align: center; }
+    .quick-amount input:focus { outline: 0; }
+    .quick-payers { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .quick-payer { border: 1.5px solid transparent; background: transparent; color: var(--ink-soft); border-radius: 13px; padding: 9px 13px; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; }
+    .quick-payer.on { border-color: var(--gold); background: var(--gold-soft); color: var(--ink); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    .two-col .panel { margin-bottom: 0; }
+    .quest-rows, .tribute-list, .debt-map { display: flex; flex-direction: column; gap: 8px; }
+    .quest-row { position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 12px; background: var(--panel-in); border: 1.5px solid var(--border); }
+    .qr-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .qr-main { flex: 1; min-width: 0; }
+    .qr-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+    .qr-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 2px; color: var(--ink-soft); font-size: 12px; }
+    .qr-right { text-align: right; flex-shrink: 0; }
+    .qr-amt { font-family: var(--font-stat); font-size: 16px; font-weight: 700; }
+    .qr-xp { color: var(--xp); font-family: var(--font-stat); font-size: 10px; font-weight: 600; }
+    .qr-del, .offer-del { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); opacity: 0; }
+    .quest-row:hover .qr-del { opacity: 1; }
+    .qr-del:hover { color: var(--hp); border-color: var(--hp); }
+    .log-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 12px 4px; margin-top: 4px; border-top: 1.5px dashed var(--border); }
+    .log-total span { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+    .log-total strong { color: var(--gold); font-family: var(--font-stat); font-size: 19px; }
+    .empty { text-align: center; padding: 30px; color: var(--ink-soft); font-size: 14px; }
+    .tribute { display: flex; align-items: center; gap: 9px; padding: 10px; border-radius: 13px; background: var(--panel-in); border: 1.5px solid var(--border); }
+    .tr-person { width: 58px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+    .tr-mid { flex: 1; text-align: center; }
+    .tr-amt { color: var(--gold); font-family: var(--font-stat); font-weight: 700; }
+    .debt-row { display: flex; align-items: center; gap: 10px; }
+    .debt-name { width: 104px; display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; min-width: 0; }
+    .debt-track { flex: 1; height: 22px; position: relative; background: var(--panel-2); border-radius: 7px; }
+    .debt-zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--border-strong); }
+    .debt-fill { position: absolute; top: 3px; bottom: 3px; border-radius: 5px; }
+    .debt-fill.pos { left: 50%; background: var(--accent); }
+    .debt-fill.neg { right: 50%; background: var(--hp); }
+    .debt-val { width: 82px; text-align: right; font-family: var(--font-stat); font-size: 13px; font-weight: 700; }
+    .debt-val.pos { color: var(--accent); }
+    .debt-val.neg { color: var(--hp); }
+    .settled { text-align: center; padding: 28px 16px; }
+    .settled .emoji { font-size: 40px; }
+    .settled .title { color: var(--accent); font-family: var(--font-display); font-size: 20px; font-weight: 600; margin-top: 8px; }
+    .settled .sub { color: var(--ink-soft); font-size: 13px; margin-top: 4px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--topbar); color: var(--topbar-ink); padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s; z-index: 50; font-weight: 600; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .hidden { display: none !important; }
+    @keyframes legend-glow {
+      0%,100% { box-shadow: 0 0 0 2px color-mix(in oklab, var(--gold), #fff 20%), 0 0 14px 0 color-mix(in oklab, var(--gold), transparent 55%); }
+      50% { box-shadow: 0 0 0 2px color-mix(in oklab, var(--gold), #fff 35%), 0 0 24px 4px color-mix(in oklab, var(--gold), transparent 30%); }
+    }
+    @keyframes lub-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes lub-pop { 0% { transform: scale(.4); opacity: 0; } 25% { transform: scale(1.15); opacity: 1; } 70% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+    @media (max-width: 760px) {
+      .tb-inner { padding: 10px 12px; }
+      .tb-link { padding: 7px 9px; font-size: 13px; }
+      .page { padding: 22px 14px 52px; }
+      .banner-title { font-size: 30px; }
+      .party-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .qf-top { flex-wrap: wrap; }
+      .gold-field { width: 100%; }
+      .two-col { grid-template-columns: 1fr; }
+      .quest-row, .tribute { align-items: flex-start; }
+      .quick-amount input { font-size: 46px; }
     }
-
-    .container { max-width: 680px; margin: 0 auto; }
-
-    /* ───── Header ───── */
-    header { text-align: center; margin-bottom: 40px; padding-top: 32px; }
-
-    .header-icon { font-size: 2.6rem; margin-bottom: 6px; display: block; }
-
-    .header-title {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 1.9rem;
-      font-weight: 800;
-      color: var(--primary);
-      letter-spacing: -0.02em;
-    }
-
-    .trip-name-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    #trip-name-display {
-      font-size: 0.95rem;
-      color: var(--muted);
-      cursor: pointer;
-      border-bottom: 1.5px dashed var(--border);
-      padding-bottom: 1px;
-      transition: color 0.15s;
-    }
-    #trip-name-display:hover { color: var(--primary); border-color: var(--primary); }
-    .trip-edit-icon {
-      font-size: 0.78rem; color: var(--border);
-      cursor: pointer; transition: color 0.15s;
-      line-height: 1;
-    }
-    .trip-name-row:hover .trip-edit-icon { color: var(--primary); }
-
-    #trip-name-input {
-      font-size: 0.95rem;
-      font-family: inherit;
-      color: var(--text);
-      border: none;
-      border-bottom: 2px solid var(--primary);
-      background: transparent;
-      outline: none;
-      width: 200px;
-      text-align: center;
-      display: none;
-    }
-
-    /* ───── Section ───── */
-    .section { margin-bottom: 24px; }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .section-title {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-    }
-
-    /* ───── Card ───── */
-    .card {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 20px;
-      box-shadow: var(--shadow);
-      border: 2px solid var(--border);
-    }
-
-    /* ───── Participants ───── */
-    .participants-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      min-height: 34px;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-
-    .participant-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 10px 5px 5px;
-      background: var(--primary-light);
-      border: 1.5px solid transparent;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--primary);
-      animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-
-    .p-avatar {
-      width: 20px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .p-remove {
-      background: none; border: none; cursor: pointer;
-      color: var(--primary); opacity: 0.45;
-      font-size: 0.85rem; line-height: 1; padding: 0;
-      margin-left: 1px;
-      transition: opacity 0.15s, color 0.15s;
-    }
-    .p-remove:hover { opacity: 1; color: var(--accent); }
-
-    .no-participants {
-      font-size: 0.85rem;
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    .add-p-row { display: flex; gap: 8px; }
-
-    /* ───── Form fields ───── */
-    .field-input {
-      flex: 1;
-      padding: 8px 12px;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.92rem;
-      font-family: inherit;
-      color: var(--text);
-      background: var(--bg);
-      outline: none;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .field-input:focus { border-color: var(--primary); background: #fff; }
-    .field-input::placeholder { color: var(--muted); }
-
-    .field-label {
-      display: block;
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 5px;
-    }
-
-    .field-group { margin-bottom: 14px; }
-    .field-group:last-child { margin-bottom: 0; }
-
-    /* ───── Expense form ───── */
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 130px;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .amount-wrap { position: relative; width: 100%; }
-    .amount-wrap .field-input { width: 100%; }
-    .amount-symbol {
-      position: absolute; left: 10px; top: 50%;
-      transform: translateY(-50%);
-      font-weight: 700; font-size: 0.9rem;
-      color: var(--muted); pointer-events: none;
-    }
-    .amount-input { padding-left: 22px !important; }
-
-    .form-grid2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .field-select {
-      width: 100%;
-      padding: 8px 12px;
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.92rem;
-      font-family: inherit;
-      color: var(--text);
-      background: var(--bg);
-      outline: none;
-      transition: border-color 0.15s, background 0.15s;
-      cursor: pointer;
-    }
-    .field-select:focus { border-color: var(--primary); background: #fff; }
-
-    /* Shared-by chips */
-    .shared-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      margin-top: 4px;
-    }
-
-    .share-cb { display: none; }
-
-    .share-chip-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px 4px 5px;
-      border-radius: 999px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 2px solid var(--border);
-      background: var(--bg);
-      color: var(--muted);
-      transition: all 0.15s;
-      user-select: none;
-    }
-    .share-chip-label .chip-av {
-      width: 16px; height: 22px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .share-cb:checked + .share-chip-label {
-      border-color: var(--primary);
-      background: var(--primary-light);
-      color: var(--primary);
-    }
-
-    /* ───── Buttons ───── */
-    .btn {
-      padding: 9px 16px;
-      border: none; border-radius: 8px;
-      font-size: 0.88rem; font-weight: 700;
-      font-family: inherit; cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      white-space: nowrap;
-    }
-    .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .btn-green { background: #4a9070; color: #fff; }
-    .btn-green:hover:not(:disabled) { background: #3a7558; }
-
-    .btn-full {
-      width: 100%;
-      padding: 13px;
-      background: #4a9070;
-      color: #fff;
-      border: none; border-radius: 10px;
-      font-size: 0.95rem; font-weight: 700;
-      font-family: inherit; cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-      margin-top: 4px;
-    }
-    .btn-full:hover { background: #3a7558; }
-    .btn-full:active { transform: scale(0.99); }
-
-    .btn-ghost {
-      background: none;
-      border: 2px solid var(--border);
-      color: var(--muted);
-      padding: 6px 12px;
-      font-size: 0.78rem;
-    }
-    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
-
-    /* ───── Expense list ───── */
-    .expense-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 13px 0;
-      border-bottom: 1px solid var(--border);
-      animation: fadeIn 0.2s ease both;
-    }
-    .expense-row:last-child { border-bottom: none; }
-
-    .expense-body { flex: 1; min-width: 0; }
-    .expense-desc {
-      font-size: 0.92rem; font-weight: 600;
-      color: var(--text); white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-    .expense-meta {
-      font-size: 0.75rem; color: var(--muted); margin-top: 3px;
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    }
-
-    .paid-badge {
-      display: inline-flex; align-items: center; gap: 3px;
-      font-size: 0.7rem; font-weight: 700;
-      padding: 1px 7px 1px 4px;
-      border-radius: 999px;
-      background: var(--accent-light);
-      color: var(--accent);
-    }
-    .paid-badge .tiny-av {
-      width: 14px; height: 20px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .expense-right { text-align: right; flex-shrink: 0; }
-    .expense-amount {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 1rem; font-weight: 700;
-      color: var(--accent);
-    }
-    .expense-per {
-      font-size: 0.7rem; color: var(--muted); margin-top: 1px;
-    }
-
-    .expense-del, .expense-edit-btn {
-      background: none; border: none; cursor: pointer;
-      color: var(--muted); opacity: 0.4;
-      font-size: 0.9rem; padding: 2px;
-      transition: opacity 0.15s, color 0.15s;
-      flex-shrink: 0; align-self: center;
-    }
-    .expense-del:hover  { opacity: 1; color: #c53030; }
-    .expense-edit-btn:hover { opacity: 1; color: var(--primary); }
-
-    /* ── Inline edit form ── */
-    .expense-edit-row {
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-      animation: fadeSlideUp 0.15s ease both;
-    }
-    .expense-edit-row:last-child { border-bottom: none; }
-    .expense-edit-grid {
-      display: grid;
-      grid-template-columns: 1fr 110px;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .expense-edit-grid .field-input,
-    .expense-edit-grid .field-select { font-size: 0.86rem; padding: 6px 10px; }
-    .expense-edit-row .field-select { font-size: 0.86rem; padding: 6px 10px; }
-    .expense-edit-payer { margin-bottom: 8px; }
-    .expense-edit-payer .field-label { font-size: 0.68rem; margin-bottom: 3px; }
-    .expense-edit-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-    .expense-edit-actions { display: flex; gap: 8px; }
-    .btn-save-edit {
-      flex: 1; padding: 7px; border-radius: 8px;
-      background: var(--primary); color: #fff;
-      font-size: 0.82rem; font-weight: 700; font-family: inherit;
-      border: none; cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-save-edit:hover { background: #3a7558; }
-    .btn-cancel-edit {
-      padding: 7px 14px; border-radius: 8px;
-      background: none; color: var(--muted);
-      font-size: 0.82rem; font-weight: 600; font-family: inherit;
-      border: 2px solid var(--border); cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .btn-cancel-edit:hover { border-color: var(--muted); }
-
-    .expense-total-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 14px;
-      margin-top: 4px;
-      border-top: 2px solid var(--border);
-      font-weight: 700; font-size: 0.88rem;
-    }
-    .expense-total-num {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 1.15rem; color: var(--primary);
-    }
-
-    /* ───── Settlement ───── */
-    .balance-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-
-    .bal-card {
-      background: var(--surface);
-      border-radius: 12px;
-      padding: 14px 10px;
-      text-align: center;
-      border: 2px solid var(--border);
-      box-shadow: var(--shadow);
-    }
-
-    .bal-avatar {
-      width: 44px; height: 62px;
-      margin: 0 auto 4px;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .bal-name { font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    .bal-amount {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 0.95rem; font-weight: 700;
-    }
-    .bal-amount.pos { color: #276749; }
-    .bal-amount.neg { color: #c53030; }
-    .bal-amount.zero { color: var(--muted); }
-    .bal-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
-    .bal-label.pos { color: #276749; }
-    .bal-label.neg { color: #c53030; }
-    .bal-label.zero { color: var(--muted); }
-
-    .txn-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 16px;
-      background: var(--surface);
-      border-radius: 12px;
-      border: 2px solid var(--border);
-      margin-bottom: 8px;
-      box-shadow: var(--shadow);
-      animation: fadeSlideUp 0.3s ease both;
-    }
-
-    .txn-person {
-      display: flex; align-items: center;
-      gap: 6px; font-weight: 700; font-size: 0.9rem;
-    }
-    .txn-av {
-      width: 28px; height: 39px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .txn-mid {
-      flex: 1;
-      display: flex; flex-direction: column;
-      align-items: center; gap: 3px;
-    }
-    .txn-amount {
-      font-family: 'Google Sans', sans-serif;
-      font-size: 1rem; font-weight: 700; color: var(--accent);
-    }
-    .txn-arrow {
-      font-size: 1rem; color: var(--accent); letter-spacing: -2px;
-      width: 100%; text-align: center;
-    }
-
-    .all-settled {
-      text-align: center; padding: 28px 16px;
-    }
-    .all-settled-icon { font-size: 2.2rem; margin-bottom: 6px; }
-    .all-settled-text { font-size: 0.95rem; font-weight: 600; color: #276749; }
-
-    /* copy button */
-    .copy-btn {
-      display: block; width: 100%;
-      padding: 11px;
-      background: var(--primary-light);
-      color: var(--primary);
-      border: 2px solid var(--border);
-      border-radius: 10px;
-      font-size: 0.88rem; font-weight: 700;
-      font-family: inherit; cursor: pointer;
-      margin-top: 14px;
-      transition: background 0.15s;
-    }
-    .copy-btn:hover { background: #bee3f8; }
-
-    /* ───── Empty states ───── */
-    .empty {
-      text-align: center; padding: 32px 16px;
-      color: var(--muted); font-size: 0.88rem;
-    }
-    .empty-icon { font-size: 2rem; margin-bottom: 8px; display: block; }
-
-    /* ───── Toast ───── */
-    .toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: #1C2826; color: #fff;
-      padding: 10px 20px; border-radius: 999px;
-      font-size: 0.85rem; font-weight: 600;
-      transition: transform 0.28s ease;
-      z-index: 999; white-space: nowrap;
-      pointer-events: none;
-    }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-
-    /* ───── Animations ───── */
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes fadeSlideUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.8); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-
-    /* ───── Import row ───── */
-    .import-row {
-      display: flex; gap: 8px; justify-content: center;
-      margin-bottom: 24px; flex-wrap: wrap;
-    }
-
-    /* ───── Responsive ───── */
-    @media (max-width: 500px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .form-grid2 { grid-template-columns: 1fr; }
-      .balance-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    /* ── Site nav ── */
-    .site-nav {
-      position: sticky; top: 0; z-index: 100;
-      background: #1a202c;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      padding: 0 16px;
-      margin: -0px; /* reset whatever body padding was at top */
-    }
-    .site-nav .nav-inner {
-      max-width: 960px; margin: 0 auto;
-      display: flex; align-items: center; gap: 16px;
-      height: 48px;
-    }
-    .nav-brand {
-      font-size: 1.1rem; text-decoration: none;
-      opacity: 0.75; flex-shrink: 0;
-    }
-    .nav-links { display: flex; gap: 2px; }
-    .nav-link {
-      padding: 5px 13px; border-radius: 7px;
-      font-size: 0.82rem; font-weight: 600;
-      color: rgba(255,255,255,0.48);
-      text-decoration: none; font-family: inherit;
-      transition: all 0.15s;
-      white-space: nowrap;
-    }
-    .nav-link:hover { color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.08); }
-    .nav-link.nav-active { color: #fff; background: rgba(255,255,255,0.13); }
-    .nav-lang { margin-left: auto; display: flex; gap: 3px; align-items: center; }
-    .lang-btn {
-      padding: 3px 9px; border-radius: 5px;
-      font-size: 0.72rem; font-weight: 700; font-family: inherit;
-      background: none; color: rgba(255,255,255,0.4);
-      border: 1.5px solid rgba(255,255,255,0.18); cursor: pointer;
-      transition: all 0.15s; letter-spacing: 0.04em;
-    }
-    .lang-btn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.4); }
-    .lang-btn.lang-active { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
-
-    /* ── Save status & share ── */
-    .header-actions {
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; margin-top: 10px;
-    }
-    #save-status {
-      font-size: 0.75rem; color: var(--muted);
-      transition: opacity 0.3s;
-      min-width: 90px; text-align: right;
-    }
-    #save-status.saving { color: var(--muted); }
-    #save-status.saved  { color: #276749; }
-    #save-status.error  { color: #c53030; }
-    .btn-share {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 14px; border-radius: 999px;
-      font-size: 0.78rem; font-weight: 600; font-family: inherit;
-      background: var(--primary-light); color: var(--primary);
-      border: 1.5px solid var(--primary); cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-    }
-    .btn-share:hover { background: #d3ede6; }
-    .btn-share:active { transform: scale(0.96); }
-    .btn-new-trip { background: transparent; color: var(--muted); border-color: var(--border); }
-    .btn-new-trip:hover { background: var(--bg); color: var(--text); }
   </style>
 </head>
-<body>
-  <nav class="site-nav">
-    <div class="nav-inner">
-      <span class="nav-brand">🛠</span>
-      <div class="nav-links">
-        <a href="/" class="nav-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
-        <a href="/trip/" class="nav-link nav-active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
+<body data-theme="tavern">
+  <nav class="topbar">
+    <div class="tb-inner">
+      <div class="tb-left">
+        <span class="tb-logo">🛠️</span>
+        <div class="tb-nav">
+          <a href="/" class="tb-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
+          <a href="/trip/" class="tb-link active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
+        </div>
       </div>
-      <div class="nav-lang">
+      <div class="lang-toggle">
         <button class="lang-btn" data-lang="th" onclick="setLang('th')">TH</button>
         <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
       </div>
     </div>
   </nav>
-<div class="container">
 
-  <header>
-    <span class="header-icon">🧾</span>
-    <div class="header-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</div>
-    <div class="trip-name-row">
-      <span id="trip-name-display" onclick="startEditTrip()"></span>
-      <span class="trip-edit-icon" onclick="startEditTrip()">✏️</span>
-      <input id="trip-name-input" type="text"
-        onblur="saveTrip()" onkeydown="if(event.key==='Enter')saveTrip()" />
-    </div>
-    <div class="header-actions">
-      <span id="save-status"></span>
-      <button class="btn-share btn-new-trip" onclick="newTrip()" data-i18n="btn_new_trip">✚ ทริปใหม่</button>
-      <button class="btn-share" onclick="shareTrip()" data-i18n="btn_share">🔗 แชร์ลิงก์</button>
-    </div>
-  </header>
-
-  <!-- Participants -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-title" data-i18n="section_participants">ผู้ร่วมทริป</div>
-    </div>
-    <div class="card">
-      <div class="participants-chips" id="p-chips"></div>
-      <div class="add-p-row">
-        <input class="field-input" id="new-p-input" type="text"
-          placeholder="ชื่อ" data-i18n-placeholder="placeholder_participant" maxlength="20"
-          onkeydown="if(event.key==='Enter')addParticipant()" />
-        <button class="btn btn-green" onclick="addParticipant()" data-i18n="btn_add_p">+ เพิ่ม</button>
+  <main class="page">
+    <section class="banner">
+      <div class="banner-crest">🧾</div>
+      <h1 class="banner-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</h1>
+      <div class="campaign-row">
+        <span class="camp-label" data-i18n="campaign">เควสปัจจุบัน</span>
+        <button id="trip-name-display" class="camp-name" onclick="startEditTrip()"></button>
+        <input id="trip-name-input" class="camp-edit" onblur="saveTrip()" onkeydown="if(event.key==='Enter')saveTrip()" />
       </div>
-    </div>
-  </div>
+      <div class="banner-gold">
+        <span class="bg-coin">🪙</span>
+        <span class="bg-amt" id="party-total">฿0</span>
+        <span class="bg-lab" data-i18n="party_gold">ทองรวมของปาร์ตี้</span>
+      </div>
+      <div class="banner-actions">
+        <span id="save-status"></span>
+        <button class="btn-ghost" onclick="newTrip()" data-i18n="new_trip_quest">✚ ออกเดินทางใหม่</button>
+        <button class="btn-gold" onclick="shareTrip()" data-i18n="share_party">🔗 ชวนปาร์ตี้</button>
+      </div>
+    </section>
 
-  <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
-  <div class="import-row">
-    <button class="btn btn-ghost" onclick="downloadTemplate()" data-i18n="btn_template">📋 Template</button>
-    <button class="btn btn-ghost" onclick="triggerImport()" data-i18n="btn_import">📥 Import Excel</button>
-  </div>
+    <section class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title"><span>🎖️</span><span data-i18n="party">ปาร์ตี้ของคุณ</span></h2>
+        <span class="count-pill" id="party-count">0</span>
+      </div>
+      <div class="party-grid" id="party-grid"></div>
+    </section>
 
-  <!-- Add expense -->
-  <div class="section" id="add-section" style="display:none">
-    <div class="section-header">
-      <div class="section-title" data-i18n="section_add_expense">เพิ่มรายการ</div>
+    <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+    <div class="tools-row">
+      <button class="btn-tool" onclick="downloadTemplate()" data-i18n="btn_template">📋 Template</button>
+      <button class="btn-tool" onclick="triggerImport()" data-i18n="btn_import">📥 Import Excel</button>
     </div>
-    <div class="card">
-      <div class="form-grid">
-        <div class="field-group">
-          <label class="field-label" data-i18n="field_desc">รายการ</label>
-          <input class="field-input" type="text" id="exp-desc"
-            placeholder="เช่น ค่าอาหาร, ค่าน้ำมัน" data-i18n-placeholder="placeholder_desc" />
+
+    <section class="panel" id="entry-section">
+      <div class="panel-head">
+        <h2 class="panel-title" id="entry-title">📜</h2>
+        <div class="seg">
+          <button id="entry-form-btn" onclick="setEntryMode('form')" data-i18n="quest_form">ฟอร์มเควส</button>
+          <button id="entry-quick-btn" onclick="setEntryMode('quick')" data-i18n="quick_strike">โจมตีเร็ว</button>
         </div>
-        <div class="field-group">
-          <label class="field-label" data-i18n="field_amount">จำนวนเงิน (฿)</label>
-          <div class="amount-wrap">
-            <span class="amount-symbol">฿</span>
-            <input class="field-input amount-input" type="number"
-              id="exp-amount" placeholder="0" min="0" step="any" />
+      </div>
+      <div id="entry-body"></div>
+    </section>
+
+    <div class="two-col">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">📖 <span data-i18n="quest_log">สมุดบันทึกเควส</span> <span class="count-pill" id="expense-count">0</span></h2>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <button class="btn-ghost xs" onclick="exportExcel()" data-i18n="btn_export">📤 Export Excel</button>
+            <button class="btn-ghost xs danger" onclick="confirmClearExpenses()" data-i18n="clear_campaign">🗑️ เริ่มเควสใหม่</button>
           </div>
         </div>
-      </div>
-      <div class="form-grid2">
-        <div class="field-group">
-          <label class="field-label" data-i18n="field_payer">ใครจ่าย</label>
-          <select class="field-select" id="exp-payer"></select>
+        <div id="quest-log"></div>
+      </section>
+
+      <section class="panel" id="settle-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">⚖️ <span data-i18n="settle_party">ปรับสมดุลปาร์ตี้</span></h2>
+          <div class="seg">
+            <button id="settle-list-btn" onclick="setSettleView('list')" data-i18n="list_view">รายการ</button>
+            <button id="settle-map-btn" onclick="setSettleView('map')" data-i18n="map_view">แผนผัง</button>
+          </div>
         </div>
-        <div class="field-group">
-          <label class="field-label" data-i18n="field_split_with">แบ่งกับ</label>
-          <div style="font-size:0.82rem;color:var(--muted);padding-top:10px" id="split-info">—</div>
-        </div>
-      </div>
-      <div class="field-group">
-        <label class="field-label" data-i18n="field_select_sharers">เลือกผู้ร่วมแบ่ง</label>
-        <div class="shared-chips" id="shared-chips"></div>
-      </div>
-      <button class="btn-full" onclick="addExpense()" data-i18n="btn_add_expense">+ เพิ่มรายการ</button>
+        <div id="settle-body"></div>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <!-- Expense list -->
-  <div class="section" id="list-section" style="display:none">
-    <div class="section-header">
-      <div class="section-title" data-i18n="section_expenses">รายการค่าใช้จ่าย</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-ghost" onclick="exportExcel()" data-i18n="btn_export">📤 Export</button>
-        <button class="btn btn-ghost" onclick="confirmClearExpenses()" data-i18n="btn_clear">ล้างทั้งหมด</button>
-      </div>
-    </div>
-    <div class="card">
-      <div id="expense-list"></div>
-      <div class="expense-total-bar" id="total-bar"></div>
-    </div>
-  </div>
+  <div class="toast" id="toast"></div>
 
-  <!-- Settlement -->
-  <div class="section" id="settle-section" style="display:none">
-    <div class="section-header">
-      <div class="section-title" data-i18n="section_settlement">สรุปยอด</div>
-    </div>
-    <div class="balance-grid" id="balance-grid"></div>
-    <div id="txn-list"></div>
-  </div>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="/lang.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
+      authDomain: "pointy-personal-toolkit.firebaseapp.com",
+      projectId: "pointy-personal-toolkit",
+      storageBucket: "pointy-personal-toolkit.firebasestorage.app",
+      messagingSenderId: "901775387853",
+      appId: "1:901775387853:web:030f47acc78c71a5548d84"
+    });
+    const db = firebase.firestore();
 
-</div>
+    const _params = new URLSearchParams(window.location.search);
+    let tripId = _params.get('id');
+    if (!tripId) {
+      const lastId = localStorage.getItem('last_trip_id');
+      tripId = lastId || makeId();
+      history.replaceState(null, '', '?id=' + tripId);
+    }
+    localStorage.setItem('last_trip_id', tripId);
+    const tripRef = db.collection('trips').doc(tripId);
 
-<div class="toast" id="toast"></div>
+    const QUEST_ICONS = ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
+    const CLASS_ORDER = ["ranger","mage","knight","rogue","bard","cleric","druid","warrior"];
+    const CLASSES = {
+      ranger:  { glyph:"🏹", hue:146, th:"นักล่า", en:"Ranger" },
+      mage:    { glyph:"🔮", hue:268, th:"จอมเวท", en:"Mage" },
+      knight:  { glyph:"🛡️", hue:248, th:"อัศวิน", en:"Knight" },
+      rogue:   { glyph:"🗡️", hue:350, th:"นักโจร", en:"Rogue" },
+      bard:    { glyph:"🎻", hue:42,  th:"นักดนตรี", en:"Bard" },
+      cleric:  { glyph:"✨", hue:198, th:"นักบวช", en:"Cleric" },
+      druid:   { glyph:"🍃", hue:120, th:"ดรูอิด", en:"Druid" },
+      warrior: { glyph:"⚔️", hue:26,  th:"นักรบ", en:"Warrior" }
+    };
+    const LEVEL_STEP = 600;
+    const SETTLE_BONUS_PAYER = 400;
+    const SETTLE_BONUS_PAYEE = 200;
+    const LEVEL_REWARDS = [
+      { lvl:1, frame:"novice", glyph:"", title:{ th:"มือใหม่", en:"Novice" } },
+      { lvl:2, frame:"bronze", glyph:"🌿", title:{ th:"น่าเชื่อถือ", en:"Trusted" } },
+      { lvl:4, frame:"silver", glyph:"🪙", title:{ th:"ใจบุญ", en:"Generous" } },
+      { lvl:6, frame:"gold", glyph:"⚔️", title:{ th:"ผู้กล้า", en:"Champion" } },
+      { lvl:9, frame:"legend", glyph:"👑", title:{ th:"ตำนาน", en:"Legend" } }
+    ];
 
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<script src="/lang.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script>
-  // ── Firebase ───────────────────────────────────────────────────────────────
-  firebase.initializeApp({
-    apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
-    authDomain: "pointy-personal-toolkit.firebaseapp.com",
-    projectId: "pointy-personal-toolkit",
-    storageBucket: "pointy-personal-toolkit.firebasestorage.app",
-    messagingSenderId: "901775387853",
-    appId: "1:901775387853:web:030f47acc78c71a5548d84"
-  });
-  const db = firebase.firestore();
+    let S = {
+      tripName: t('trip_default_name'),
+      participants: [],
+      expenses: [],
+      budgets: {},
+      heroClasses: {},
+      settleXp: {},
+      settings: { entry: 'form', settleView: 'list', theme: 'tavern', stats: true }
+    };
+    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = 'rogue';
+    let _resetEntryDraft = false;
+    let _settledTx = [];
+    let _celebrateName = null;
+    let _celebrateTimer;
+    let _prevLevels = {};
 
-  // ── Trip ID from URL (with last-visited fallback) ─────────────────────────
-  const _params = new URLSearchParams(window.location.search);
-  let tripId = _params.get('id');
-  if (!tripId) {
-    const lastId = localStorage.getItem('last_trip_id');
-    tripId = lastId || (Math.random().toString(36).slice(2, 9) + Date.now().toString(36));
-    history.replaceState(null, '', '?id=' + tripId);
-  }
-  localStorage.setItem('last_trip_id', tripId);
-  const tripRef = db.collection('trips').doc(tripId);
+    function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
+    function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
+    function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
+    function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
+    function hashOf(name) { let x = 0; for (const c of String(name || '?')) x = ((x * 31) + c.charCodeAt(0)) | 0; return Math.abs(x); }
+    function classOf(name) { return S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]; }
+    function classColor(clsId) {
+      const h = (CLASSES[clsId] || CLASSES.ranger).hue;
+      return {
+        top: `oklch(0.74 0.16 ${h})`, bot: `oklch(0.55 0.17 ${h})`,
+        ring: `oklch(0.46 0.15 ${h})`, soft: `oklch(0.92 0.05 ${h})`,
+        text: `oklch(0.42 0.16 ${h})`
+      };
+    }
+    function colorVars(clsId) {
+      const c = classColor(clsId);
+      return `--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--cc-soft:${c.soft};--cc:${c.text}`;
+    }
+    function heroAvatar(name, size = 32, hp = null) {
+      const cls = classOf(name), c = classColor(cls), g = CLASSES[cls].glyph;
+      return `<span style="position:relative;width:${size}px;height:${size}px;display:inline-flex;flex-shrink:0">
+        <span style="width:${size}px;height:${size}px;border-radius:${Math.round(size*.28)}px;border:2px solid ${c.ring};background:linear-gradient(160deg,${c.top},${c.bot});display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.48)}px">${g}</span>
+        ${hp !== null && hp < 100 ? `<span style="position:absolute;left:10%;right:10%;bottom:-3px;height:5px;border-radius:4px;background:var(--hp-bg);overflow:hidden;border:1px solid rgba(0,0,0,.15)"><span style="display:block;height:100%;width:${hp}%;background:var(--hp)"></span></span>` : ''}
+      </span>`;
+    }
+    function heroChip(name, active, dim, onClick) {
+      const cls = classOf(name), g = CLASSES[cls].glyph;
+      return `<button type="button" class="hero-chip ${active ? 'on' : ''} ${dim ? 'dim' : ''}" style="${colorVars(cls)}" onclick="${onClick}">
+        <span class="chip-avatar">${g}</span><span>${h(name)}</span>
+      </button>`;
+    }
+    function levelFromXp(xp) {
+      const lvl = Math.floor(xp / LEVEL_STEP) + 1;
+      const into = xp - (lvl - 1) * LEVEL_STEP;
+      return { lvl, into, need: LEVEL_STEP, pct: Math.round((into / LEVEL_STEP) * 100) };
+    }
+    function rewardFor(lvl) {
+      let r = LEVEL_REWARDS[0];
+      LEVEL_REWARDS.forEach(x => { if (lvl >= x.lvl) r = x; });
+      return r;
+    }
+    function hpColor(pct) {
+      if (pct >= 55) return { a: "oklch(0.72 0.16 150)", b: "oklch(0.58 0.16 150)" };
+      if (pct >= 28) return { a: "oklch(0.78 0.15 78)", b: "oklch(0.66 0.15 70)" };
+      return { a: "oklch(0.66 0.2 26)", b: "oklch(0.55 0.2 26)" };
+    }
+    function statusOf(hero) {
+      if (hero.bal > 0.5) return { kind: 'guardian', icon: '🛡️', label: t('st_guardian'), amt: hero.bal };
+      if (hero.bal < -0.5) return { kind: 'debt', icon: '💸', label: t('st_debt'), amt: -hero.bal };
+      return { kind: 'even', icon: '⚖️', label: t('st_even'), amt: 0 };
+    }
+    function normalizeState(data) {
+      const out = {
+        tripName: data?.tripName || t('trip_default_name'),
+        participants: Array.isArray(data?.participants) ? data.participants : [],
+        expenses: Array.isArray(data?.expenses) ? data.expenses : [],
+        budgets: data?.budgets || {},
+        heroClasses: data?.heroClasses || {},
+        settleXp: data?.settleXp || {},
+        settings: { entry: 'form', settleView: 'list', theme: 'tavern', stats: true, ...(data?.settings || {}) }
+      };
+      out.expenses = out.expenses.map(e => ({
+        id: e.id || Date.now() + Math.random(),
+        desc: e.desc || e.name || t('quest_fallback'),
+        icon: e.icon || QUEST_ICONS[hashOf(e.desc || e.name || '') % QUEST_ICONS.length],
+        amount: Number(e.amount) || 0,
+        paidBy: e.paidBy || e.payer || '',
+        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : [])
+      })).filter(e => e.amount > 0 && e.paidBy && e.sharedBy.length);
+      return out;
+    }
+    function computeParty() {
+      const stat = {};
+      S.participants.forEach(name => { stat[name] = { paid: 0, share: 0, gen: 0, quests: 0 }; });
+      S.expenses.forEach(e => {
+        const parts = e.sharedBy.filter(p => stat[p]);
+        if (!parts.length) return;
+        const per = e.amount / parts.length;
+        if (stat[e.paidBy]) {
+          stat[e.paidBy].paid += e.amount;
+          stat[e.paidBy].gen += Math.max(0, e.amount - (parts.includes(e.paidBy) ? per : 0));
+        }
+        parts.forEach(p => { stat[p].share += per; stat[p].quests += 1; });
+      });
+      return S.participants.map(name => {
+        const s = stat[name] || { paid: 0, share: 0, gen: 0, quests: 0 };
+        const budget = Number(S.budgets[name]) || 3000;
+        const remaining = budget - s.share;
+        const hp = Math.max(0, Math.min(100, Math.round((remaining / budget) * 100)));
+        const xp = Math.round(s.gen + (Number(S.settleXp[name]) || 0));
+        const level = levelFromXp(xp);
+        return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen), quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
+      });
+    }
+    function settleUp(party) {
+      const cred = party.filter(p => p.bal > 0.5).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
+      const debt = party.filter(p => p.bal < -0.5).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
+      const out = [];
+      let i = 0, j = 0;
+      while (i < debt.length && j < cred.length) {
+        const amt = Math.min(debt[i].amt, cred[j].amt);
+        if (amt > 0.5) out.push({ from: debt[i].name, to: cred[j].name, amount: amt });
+        debt[i].amt -= amt; cred[j].amt -= amt;
+        if (debt[i].amt < 0.5) i++;
+        if (cred[j].amt < 0.5) j++;
+      }
+      return out;
+    }
+    function detectLevelUps(party) {
+      party.forEach(p => {
+        const prev = _prevLevels[p.name];
+        if (prev !== undefined && p.level.lvl > prev) {
+          _celebrateName = p.name;
+          clearTimeout(_celebrateTimer);
+          _celebrateTimer = setTimeout(() => { _celebrateName = null; renderAll(false); }, 1600);
+        }
+        _prevLevels[p.name] = p.level.lvl;
+      });
+    }
 
-  function newTrip() {
-    const id = Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
-    window.open('?id=' + id, '_blank');
-  }
-
-  // ── RPG Character system ───────────────────────────────────────────────────
-  const CHAR_KEYS = ['knight','wizard','fairy','dragon','slime','witch','goblin','elf'];
-
-  function charOf(name) {
-    let h = 0;
-    for (const c of (name || '?')) h = h * 31 + c.charCodeAt(0);
-    return CHAR_KEYS[Math.abs(h) % CHAR_KEYS.length];
-  }
-
-  function charSvg(name, w, h) {
-    return CHARS[charOf(name || '?')].replace('viewBox="0 0 60 84"',
-      `viewBox="0 0 60 84" width="${w}" height="${h}"`);
-  }
-
-  function avatar(name, size = 22) {
-    const h = Math.round(size * 84 / 60);
-    return `<span style="width:${size}px;height:${h}px;display:inline-flex;flex-shrink:0">${charSvg(name, size, h)}</span>`;
-  }
-
-  const CHARS = {
-    knight: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="12" y="44" width="36" height="30" rx="8" fill="#8fa8c8"/><path d="M22,46 L30,56 L38,46" fill="#7393b7"/><ellipse cx="13" cy="51" rx="5" ry="7" fill="#8fa8c8"/><ellipse cx="47" cy="51" rx="5" ry="7" fill="#8fa8c8"/><circle cx="30" cy="26" r="18" fill="#8fa8c8"/><rect x="27" y="8" width="6" height="10" rx="2" fill="#9eb8d0"/><path d="M24,8 Q30,0 36,8 L34,14 Q30,11 26,14 Z" fill="#e74c3c"/><rect x="16" y="22" width="28" height="8" rx="2" fill="#1c2833"/><circle cx="24" cy="26" r="3" fill="#5dade2"/><circle cx="36" cy="26" r="3" fill="#5dade2"/><circle cx="25.5" cy="24.8" r="1" fill="white"/><circle cx="37.5" cy="24.8" r="1" fill="white"/><path d="M16,26 L44,26" stroke="#0d1b2a" stroke-width="0.5"/><path d="M16,34 Q22,39 30,39 Q38,39 44,34" stroke="#7393b7" stroke-width="2" fill="none"/></svg>`,
-
-    wizard: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><path d="M9,44 Q10,74 30,74 Q50,74 51,44 Z" fill="#2e4a7f"/><circle cx="22" cy="55" r="2" fill="#f1c40f" opacity="0.8"/><circle cx="38" cy="60" r="1.5" fill="#f1c40f" opacity="0.8"/><circle cx="18" cy="65" r="1" fill="#f1c40f" opacity="0.6"/><circle cx="42" cy="52" r="1" fill="#f1c40f" opacity="0.6"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M18,38 Q22,52 30,54 Q38,52 42,38 Q37,44 30,46 Q23,44 18,38 Z" fill="#ecf0f1"/><ellipse cx="30" cy="16" rx="20" ry="5" fill="#2e4a7f"/><path d="M30,2 L18,16 Q24,13 30,13 Q36,13 42,16 Z" fill="#2e4a7f"/><circle cx="27" cy="10" r="1.5" fill="#f1c40f" opacity="0.9"/><circle cx="32" cy="6" r="1" fill="#f1c40f" opacity="0.9"/><circle cx="23" cy="15" r="1" fill="#f1c40f" opacity="0.7"/><ellipse cx="30" cy="20" rx="17" ry="3.5" fill="#2e4a7f" opacity="0.2"/><path d="M19,22 Q23,19 27,21" stroke="#bdc3c7" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M33,21 Q37,19 41,22" stroke="#bdc3c7" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="3" fill="#2c3e50"/><circle cx="36" cy="27" r="3" fill="#2c3e50"/><circle cx="25.5" cy="25.8" r="1" fill="white"/><circle cx="37.5" cy="25.8" r="1" fill="white"/><path d="M25,35 Q30,38 35,35" stroke="#8e6a50" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
-
-    fairy: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="10" ry="2" fill="rgba(0,0,0,0.1)"/><circle cx="7" cy="38" r="2" fill="#f1c40f" opacity="0.8"/><circle cx="53" cy="32" r="1.5" fill="#f1c40f" opacity="0.7"/><circle cx="5" cy="56" r="1.5" fill="#f1c40f" opacity="0.6"/><circle cx="55" cy="56" r="2" fill="#f1c40f" opacity="0.7"/><circle cx="9" cy="20" r="1" fill="#f1c40f" opacity="0.5"/><circle cx="51" cy="18" r="1" fill="#f1c40f" opacity="0.5"/><path d="M17,44 Q3,30 10,18 Q18,16 20,30 Q20,38 17,44" fill="#aed6f1" opacity="0.75"/><path d="M43,44 Q57,30 50,18 Q42,16 40,30 Q40,38 43,44" fill="#aed6f1" opacity="0.75"/><path d="M17,50 Q6,58 10,64 Q14,62 18,52" fill="#d6eaf8" opacity="0.65"/><path d="M43,50 Q54,58 50,64 Q46,62 42,52" fill="#d6eaf8" opacity="0.65"/><path d="M17,44 Q10,32 14,22" stroke="#85c1e9" stroke-width="0.8" fill="none" opacity="0.5"/><path d="M43,44 Q50,32 46,22" stroke="#85c1e9" stroke-width="0.8" fill="none" opacity="0.5"/><ellipse cx="30" cy="55" rx="11" ry="13" fill="#f1948a"/><path d="M20,54 Q25,63 30,62 Q35,63 40,54" fill="#e87a77" opacity="0.7"/><rect x="27" y="44" width="6" height="6" fill="#fddbb4"/><path d="M14,26 Q14,9 30,9 Q46,9 46,26" fill="#f9e4a0"/><circle cx="30" cy="10" r="3.5" fill="#f1c40f"/><circle cx="22" cy="13" r="2.5" fill="#f06eb0" opacity="0.9"/><circle cx="38" cy="13" r="2.5" fill="#f06eb0" opacity="0.9"/><circle cx="30" cy="26" r="16" fill="#fddbb4"/><path d="M14,26 Q16,11 30,11 Q44,11 46,26 L43,25 Q37,17 30,18 Q23,17 17,25 Z" fill="#f9e4a0"/><circle cx="24" cy="25" r="4.5" fill="#1a1a1a"/><circle cx="36" cy="25" r="4.5" fill="#1a1a1a"/><circle cx="26" cy="23" r="1.8" fill="white"/><circle cx="38" cy="23" r="1.8" fill="white"/><circle cx="23" cy="27" r="0.9" fill="white" opacity="0.6"/><circle cx="35" cy="27" r="0.9" fill="white" opacity="0.6"/><circle cx="16" cy="30" r="4.5" fill="#FFB6C1" opacity="0.75"/><circle cx="44" cy="30" r="4.5" fill="#FFB6C1" opacity="0.75"/><path d="M25,33 Q30,37 35,33" stroke="#c0735a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
-
-    dragon: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="14" ry="3" fill="rgba(0,0,0,0.1)"/><path d="M10,52 Q3,42 8,36 Q14,36 14,46 Q13,50 10,52" fill="#c0392b" opacity="0.85"/><path d="M50,52 Q57,42 52,36 Q46,36 46,46 Q47,50 50,52" fill="#c0392b" opacity="0.85"/><ellipse cx="30" cy="57" rx="20" ry="17" fill="#27ae60"/><path d="M16,50 Q20,54 24,50 Q20,58 16,54 Z" fill="#1e8449" opacity="0.6"/><path d="M24,46 Q28,50 32,46 Q28,54 24,50 Z" fill="#1e8449" opacity="0.6"/><path d="M36,50 Q40,54 44,50 Q40,58 36,54 Z" fill="#1e8449" opacity="0.6"/><path d="M44,66 Q52,70 50,75 Q46,73 44,68 Z" fill="#1e8449"/><circle cx="30" cy="25" r="18" fill="#2ecc71"/><path d="M20,10 Q15,1 22,7 Q24,10 23,14" fill="#f39c12"/><path d="M40,10 Q45,1 38,7 Q36,10 37,14" fill="#f39c12"/><ellipse cx="30" cy="33" rx="9" ry="6" fill="#27ae60"/><ellipse cx="27" cy="33" rx="1.8" ry="1.4" fill="#1a7a3a"/><ellipse cx="33" cy="33" rx="1.8" ry="1.4" fill="#1a7a3a"/><circle cx="22" cy="21" r="5.5" fill="white"/><circle cx="38" cy="21" r="5.5" fill="white"/><circle cx="22" cy="22" r="3.5" fill="#1a4a1a"/><circle cx="38" cy="22" r="3.5" fill="#1a4a1a"/><circle cx="23.5" cy="20.5" r="1.5" fill="white"/><circle cx="39.5" cy="20.5" r="1.5" fill="white"/><circle cx="21" cy="23.5" r="0.8" fill="white" opacity="0.7"/><circle cx="37" cy="23.5" r="0.8" fill="white" opacity="0.7"/><path d="M17,16 Q22,13 27,15" stroke="#1e8449" stroke-width="2" fill="none"/><path d="M33,15 Q38,13 43,16" stroke="#1e8449" stroke-width="2" fill="none"/><path d="M24,38 Q30,43 36,38" stroke="#1a7a3a" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="28.5" y="37" width="3" height="4" rx="1.5" fill="#ecf0f1"/></svg>`,
-
-    slime: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="80" rx="16" ry="4" fill="rgba(0,0,0,0.12)"/><path d="M14,68 Q8,50 10,34 Q12,20 20,16 Q26,12 30,14 Q34,12 40,16 Q48,20 50,34 Q52,50 46,68 Q40,76 30,76 Q20,76 14,68 Z" fill="#74b9ff"/><circle cx="22" cy="16" r="6" fill="#74b9ff"/><circle cx="30" cy="13" r="7" fill="#74b9ff"/><circle cx="38" cy="16" r="6" fill="#74b9ff"/><ellipse cx="28" cy="40" rx="10" ry="16" fill="#81ecec" opacity="0.25"/><ellipse cx="22" cy="35" rx="5" ry="8" fill="white" opacity="0.12"/><rect x="22" y="8" width="16" height="6" rx="2" fill="#f1c40f"/><polygon points="22,8 24,2 26,8" fill="#f1c40f"/><polygon points="27.5,8 30,2 32.5,8" fill="#f1c40f"/><polygon points="34,8 36,2 38,8" fill="#f1c40f"/><circle cx="25" cy="5" r="1.5" fill="#e74c3c"/><circle cx="30" cy="4" r="1.5" fill="#e74c3c"/><circle cx="35" cy="5" r="1.5" fill="#e74c3c"/><ellipse cx="24" cy="42" rx="6" ry="7" fill="white"/><ellipse cx="36" cy="42" rx="6" ry="7" fill="white"/><circle cx="24" cy="43" r="4" fill="#2d3436"/><circle cx="36" cy="43" r="4" fill="#2d3436"/><circle cx="25.8" cy="41" r="1.8" fill="white"/><circle cx="37.8" cy="41" r="1.8" fill="white"/><path d="M21,54 Q30,62 39,54" stroke="#0984e3" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>`,
-
-    witch: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><path d="M9,44 Q10,74 30,74 Q50,74 51,44 Z" fill="#1a1a2e"/><path d="M9,44 Q15,58 30,60 Q45,58 51,44" stroke="#6c3483" stroke-width="2" fill="none"/><circle cx="22" cy="58" r="1.5" fill="#9b59b6" opacity="0.8"/><circle cx="38" cy="62" r="1" fill="#9b59b6" opacity="0.8"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M13,28 Q12,16 17,14 Q13,20 13,28" fill="#1a1a1a"/><path d="M47,28 Q48,16 43,14 Q47,20 47,28" fill="#1a1a1a"/><ellipse cx="30" cy="14" rx="22" ry="5" fill="#1a1a2e"/><path d="M30,0 L20,14 Q25,11 30,11 Q35,11 40,14 Z" fill="#1a1a2e"/><rect x="26" y="11" width="8" height="5" rx="1" fill="#f1c40f"/><rect x="28" y="12" width="4" height="3" fill="#1a1a2e"/><ellipse cx="30" cy="18" rx="17" ry="3.5" fill="#1a1a2e" opacity="0.25"/><path d="M20,22 Q24,19 28,21" stroke="#2c2c2c" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M32,21 Q36,19 40,22" stroke="#2c2c2c" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="24" cy="27" r="3.5" fill="#1a1a1a"/><circle cx="36" cy="27" r="3.5" fill="#1a1a1a"/><circle cx="25" cy="25.8" r="1.2" fill="#8e44ad"/><circle cx="37.5" cy="25.8" r="1" fill="white"/><circle cx="24" cy="27" r="1.5" fill="#8e44ad"/><ellipse cx="15" cy="31" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.5"/><ellipse cx="45" cy="31" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.5"/><path d="M23,35 Q27,40 30,38 Q33,40 37,35" stroke="#7a4a3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`,
-
-    goblin: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="11" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="14" y="44" width="32" height="28" rx="10" fill="#7f5c3a"/><path d="M22,44 L26,52 L22,60" stroke="#5d4037" stroke-width="1.5" fill="none"/><path d="M38,44 L34,52 L38,60" stroke="#5d4037" stroke-width="1.5" fill="none"/><path d="M12,24 Q4,20 6,28 Q8,36 14,30 Q12,28 12,24 Z" fill="#39b854"/><path d="M48,24 Q56,20 54,28 Q52,36 46,30 Q48,28 48,24 Z" fill="#39b854"/><path d="M12,24 Q7,22 8,28 Q10,33 13,30" fill="#27a344"/><path d="M48,24 Q53,22 52,28 Q50,33 47,30" fill="#27a344"/><circle cx="30" cy="27" r="16" fill="#39b854"/><path d="M14,24 Q16,8 30,10 Q44,8 46,24" fill="#2c2c2c"/><polygon points="22,22 19,10 25,17" fill="#2c2c2c"/><polygon points="30,20 28,9 32,9" fill="#2c2c2c"/><polygon points="38,22 41,10 35,17" fill="#2c2c2c"/><path d="M14,24 Q18,13 30,14 Q42,13 46,24 L43,22 Q37,17 30,18 Q23,17 17,22 Z" fill="#2c2c2c"/><path d="M18,22 Q22,18 26,21" stroke="#1a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M34,21 Q38,18 42,22" stroke="#1a1a1a" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="23" cy="27" rx="3" ry="2.5" fill="#f39c12"/><ellipse cx="37" cy="27" rx="3" ry="2.5" fill="#f39c12"/><circle cx="23" cy="27" r="1.5" fill="#1a1a1a"/><circle cx="37" cy="27" r="1.5" fill="#1a1a1a"/><circle cx="24" cy="26.2" r="0.7" fill="white"/><circle cx="38" cy="26.2" r="0.7" fill="white"/><ellipse cx="30" cy="32" rx="4" ry="3" fill="#2fa348"/><circle cx="28" cy="33" r="1.2" fill="#27a344"/><circle cx="32" cy="33" r="1.2" fill="#27a344"/><path d="M21,37 Q30,43 39,37" stroke="#27a344" stroke-width="1.5" fill="none"/><rect x="25" y="37" width="3" height="4" rx="0.5" fill="#ecf0f1"/><rect x="29.5" y="37" width="3" height="5" rx="0.5" fill="#ecf0f1"/><rect x="34" y="37" width="3" height="4" rx="0.5" fill="#ecf0f1"/></svg>`,
-
-    elf: `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="82" rx="12" ry="2.5" fill="rgba(0,0,0,0.1)"/><rect x="12" y="44" width="36" height="30" rx="11" fill="#1e8449"/><path d="M26,46 Q30,52 34,46" fill="#196f3d"/><path d="M20,56 Q24,50 28,56" fill="#196f3d" opacity="0.6"/><path d="M32,56 Q36,50 40,56" fill="#196f3d" opacity="0.6"/><path d="M13,24 Q7,18 11,28 Q13,30 15,27" fill="#f5c899"/><path d="M47,24 Q53,18 49,28 Q47,30 45,27" fill="#f5c899"/><path d="M14,25 Q9,20 12,27" stroke="#e8b480" stroke-width="1" fill="none"/><path d="M46,25 Q51,20 48,27" stroke="#e8b480" stroke-width="1" fill="none"/><path d="M13,26 Q12,8 30,8 Q48,8 47,26" fill="#d5dbdb"/><circle cx="30" cy="27" r="17" fill="#f5c899"/><path d="M13,26 Q15,10 30,10 Q45,10 47,26 L44,25 Q38,17 30,18 Q22,17 16,25 Z" fill="#d5dbdb"/><path d="M13,27 Q10,36 12,42 Q14,38 15,32 Z" fill="#d5dbdb"/><path d="M47,27 Q50,36 48,42 Q46,38 45,32 Z" fill="#d5dbdb"/><ellipse cx="30" cy="18" rx="16" ry="3" fill="#27ae60" opacity="0.8"/><path d="M18,18 Q22,12 26,18" fill="#2ecc71" opacity="0.7"/><path d="M34,18 Q38,12 42,18" fill="#2ecc71" opacity="0.7"/><circle cx="30" cy="16" r="2" fill="#f1c40f"/><path d="M19,26 Q24,23 29,26 Q24,29 19,26 Z" fill="#1a1a1a"/><path d="M31,26 Q36,23 41,26 Q36,29 31,26 Z" fill="#1a1a1a"/><circle cx="23" cy="25.5" r="1.2" fill="white"/><circle cx="35" cy="25.5" r="1.2" fill="white"/><path d="M18,22 Q22,20 27,21" stroke="#555" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M33,21 Q38,20 42,22" stroke="#555" stroke-width="1.3" fill="none" stroke-linecap="round"/><ellipse cx="15" cy="30" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.4"/><ellipse cx="45" cy="30" rx="3.5" ry="2" fill="#FFB6C1" opacity="0.4"/><path d="M25,34 Q30,38 35,34" stroke="#7a4a3a" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`
-  };
-
-  // ── State ──────────────────────────────────────────────────────────────────
-  let S = { tripName: t('trip_default_name'), participants: [], expenses: [] };
-
-  // ── Save (debounced Firestore write) ───────────────────────────────────────
-  let _saveTimer;
-  function setSaveStatus(state, msg) {
-    const el = document.getElementById('save-status');
-    if (!el) return;
-    el.className = state;
-    el.textContent = msg;
-  }
-
-  function save() {
-    setSaveStatus('saving', t('status_saving'));
-    clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(async () => {
+    function setSaveStatus(state, msg) {
+      const el = document.getElementById('save-status');
+      if (!el) return;
+      el.className = state;
+      el.textContent = msg;
+    }
+    function save() {
+      setSaveStatus('saving', t('status_saving'));
+      clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(async () => {
+        try {
+          await tripRef.set({ ...S, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          setSaveStatus('saved', t('status_saved'));
+        } catch (err) {
+          console.error('Save failed', err);
+          setSaveStatus('error', t('status_save_err'));
+        }
+      }, 800);
+    }
+    async function load() {
+      setSaveStatus('saving', t('status_loading'));
       try {
-        await tripRef.set({ ...S, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        const snap = await tripRef.get();
+        if (snap.exists) S = normalizeState(snap.data());
+        document.body.dataset.theme = S.settings.theme || 'tavern';
         setSaveStatus('saved', t('status_saved'));
       } catch (err) {
-        console.error('Save failed', err);
-        setSaveStatus('error', t('status_save_err'));
+        console.error('Load failed', err);
+        setSaveStatus('error', t('status_load_err'));
       }
-    }, 800);
-  }
-
-  async function load() {
-    setSaveStatus('saving', t('status_loading'));
-    try {
-      const snap = await tripRef.get();
-      if (snap.exists) {
-        const data = snap.data();
-        S = {
-          tripName: data.tripName || t('trip_default_name'),
-          participants: data.participants || [],
-          expenses: data.expenses || []
-        };
-      }
-      setSaveStatus('saved', t('status_saved'));
-    } catch (err) {
-      console.error('Load failed', err);
-      setSaveStatus('error', t('status_load_err'));
     }
-  }
 
-  function shareTrip() {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => toast(t('toast_link_copied')));
-  }
-
-  // ── Trip name ──────────────────────────────────────────────────────────────
-  function renderTripName() {
-    const d = document.getElementById('trip-name-display');
-    const icon = document.querySelector('.trip-edit-icon');
-    const i = document.getElementById('trip-name-input');
-    d.textContent = S.tripName || t('trip_click_name');
-    d.style.display = ''; if (icon) icon.style.display = '';
-    i.style.display = 'none';
-    document.title = (S.tripName || 'แบ่งค่าใช้จ่าย') + ' — แบ่งค่าใช้จ่าย';
-  }
-  function startEditTrip() {
-    const d = document.getElementById('trip-name-display');
-    const icon = document.querySelector('.trip-edit-icon');
-    const i = document.getElementById('trip-name-input');
-    i.value = S.tripName;
-    d.style.display = 'none'; if (icon) icon.style.display = 'none';
-    i.style.display = 'inline-block'; i.focus(); i.select();
-  }
-  function saveTrip() {
-    S.tripName = document.getElementById('trip-name-input').value.trim() || t('trip_fallback_name');
-    save(); renderTripName();
-  }
-
-  // ── Participants ───────────────────────────────────────────────────────────
-  function addParticipant() {
-    const el = document.getElementById('new-p-input');
-    const name = el.value.trim();
-    if (!name) return;
-    if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
-    S.participants.push(name);
-    el.value = '';
-    save(); renderAll();
-  }
-
-  function removeParticipant(name) {
-    const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name));
-    if (used) { toast(t('err_in_use', { name })); return; }
-    S.participants = S.participants.filter(p => p !== name);
-    save(); renderAll();
-  }
-
-  function renderParticipants() {
-    const el = document.getElementById('p-chips');
-    if (!S.participants.length) {
-      el.innerHTML = `<span class="no-participants">${t('no_participants')}</span>`;
-      return;
+    function newTrip() { window.open('?id=' + makeId(), '_blank'); }
+    function shareTrip() {
+      navigator.clipboard.writeText(window.location.href).then(() => toast(t('toast_link_copied')));
     }
-    el.innerHTML = S.participants.map(name => `
-      <div class="participant-chip">
-        <div class="p-avatar">${charSvg(name, 20, 28)}</div>
-        ${name}
-        <button class="p-remove" onclick="removeParticipant('${esc(name)}')">×</button>
-      </div>
-    `).join('');
-  }
+    function startEditTrip() {
+      const d = document.getElementById('trip-name-display');
+      const i = document.getElementById('trip-name-input');
+      i.value = S.tripName;
+      d.style.display = 'none';
+      i.style.display = 'inline-block';
+      i.focus(); i.select();
+    }
+    function saveTrip() {
+      S.tripName = document.getElementById('trip-name-input').value.trim() || t('trip_fallback_name');
+      save(); renderTripName();
+    }
+    function renderTripName() {
+      document.getElementById('trip-name-display').textContent = S.tripName || t('trip_click_name');
+      document.getElementById('trip-name-display').style.display = '';
+      document.getElementById('trip-name-input').style.display = 'none';
+      document.title = `${S.tripName || t('title_split')} — Party Ledger`;
+    }
 
-  // ── Expense form ───────────────────────────────────────────────────────────
-  function renderForm() {
-    const enough = S.participants.length >= 2;
-    document.getElementById('add-section').style.display = enough ? '' : 'none';
-    if (!enough) return;
-
-    const payer = document.getElementById('exp-payer');
-    const prev = payer.value;
-    payer.innerHTML = S.participants.map(p => `<option value="${p}">${p}</option>`).join('');
-    if (S.participants.includes(prev)) payer.value = prev;
-
-    const grid = document.getElementById('shared-chips');
-    grid.innerHTML = S.participants.map((p, i) => `
-      <div>
-        <input type="checkbox" class="share-cb" id="sc-${i}" value="${p}" checked onchange="updateSplitInfo()">
-        <label class="share-chip-label" for="sc-${i}">
-          <div class="chip-av">${charSvg(p, 16, 22)}</div>
-          ${p}
-        </label>
-      </div>
-    `).join('');
-
-    updateSplitInfo();
-  }
-
-  function updateSplitInfo() {
-    const n = document.querySelectorAll('.share-cb:checked').length;
-    const amt = parseFloat(document.getElementById('exp-amount').value) || 0;
-    const info = document.getElementById('split-info');
-    if (n === 0) { info.textContent = '—'; return; }
-    const per = amt > 0 ? ` (คนละ ฿${(amt / n).toLocaleString('th', {minimumFractionDigits: 0, maximumFractionDigits: 2})})` : '';
-    info.textContent = `${n} คน${per}`;
-  }
-
-  document.addEventListener('input', e => {
-    if (e.target.id === 'exp-amount') updateSplitInfo();
-  });
-
-  function sharedBy() {
-    return Array.from(document.querySelectorAll('.share-cb:checked')).map(cb => cb.value);
-  }
-
-  function addExpense() {
-    const desc   = document.getElementById('exp-desc').value.trim();
-    const amount = parseFloat(document.getElementById('exp-amount').value);
-    const paidBy = document.getElementById('exp-payer').value;
-    const shared = sharedBy();
-
-    if (!desc)              { toast(t('err_desc')); return; }
-    if (!amount || amount <= 0) { toast(t('err_amount')); return; }
-    if (!shared.length)    { toast(t('err_sharers')); return; }
-
-    S.expenses.push({ id: Date.now() + Math.random(), desc, amount, paidBy, sharedBy: shared });
-    document.getElementById('exp-desc').value = '';
-    document.getElementById('exp-amount').value = '';
-    document.querySelectorAll('.share-cb').forEach(cb => cb.checked = true);
-    updateSplitInfo();
-
-    save(); renderAll();
-    toast(t('success_added'));
-  }
-
-  // ── Expense list ───────────────────────────────────────────────────────────
-  function deleteExpense(id) {
-    S.expenses = S.expenses.filter(e => e.id !== id);
-    save(); renderAll();
-  }
-
-  function confirmClearExpenses() {
-    if (!S.expenses.length) return;
-    if (confirm(t('confirm_clear'))) {
-      S.expenses = [];
+    function addParticipant() {
+      const el = document.getElementById('new-hero-name');
+      const name = el.value.trim();
+      if (!name) return;
+      if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
+      S.participants.push(name);
+      S.heroClasses[name] = _addHeroClass;
+      S.budgets[name] = 3000;
+      _addHeroOpen = false;
       save(); renderAll();
     }
-  }
+    function removeParticipant(name) {
+      const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name));
+      if (used && !confirm(t('confirm_remove_hero'))) return;
+      S.participants = S.participants.filter(p => p !== name);
+      S.expenses = S.expenses.map(e => ({ ...e, sharedBy: e.sharedBy.filter(p => p !== name) }))
+        .filter(e => e.paidBy !== name && e.sharedBy.length > 0);
+      delete S.budgets[name]; delete S.heroClasses[name]; delete S.settleXp[name];
+      save(); renderAll();
+    }
+    function saveBudget(name) {
+      const el = document.getElementById('budget-' + hashOf(name));
+      const n = parseFloat(el.value);
+      if (n > 0) { S.budgets[name] = n; save(); renderAll(); }
+    }
+    function pickClass(cls) { _addHeroClass = cls; renderParty(); }
+    function openAddHero() { _addHeroOpen = true; renderParty(); setTimeout(() => document.getElementById('new-hero-name')?.focus(), 0); }
 
-  let _editingId = null;
-
-  function renderExpenses() {
-    const sec = document.getElementById('list-section');
-    if (!S.expenses.length) { sec.style.display = 'none'; return; }
-    sec.style.display = '';
-
-    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
-    const list  = document.getElementById('expense-list');
-    list.innerHTML = S.expenses.map(e => {
-      if (e.id === _editingId) return renderEditRow(e);
-      const per = (e.amount / e.sharedBy.length).toLocaleString('th', {maximumFractionDigits: 2});
-      return `
-        <div class="expense-row">
-          <div class="expense-body">
-            <div class="expense-desc">${e.desc}</div>
-            <div class="expense-meta">
-              <span class="paid-badge">
-                <span class="tiny-av">${charSvg(e.paidBy, 14, 20)}</span>
-                ${e.paidBy} ${t('expense_paid')}
-              </span>
-              ${t('expense_split_n', { count: e.sharedBy.length })} · ${t('expense_per_person', { amount: per })}
+    function renderParty() {
+      const party = computeParty();
+      document.getElementById('party-count').textContent = S.participants.length;
+      const grid = document.getElementById('party-grid');
+      const cards = party.map(hero => {
+        const cls = CLASSES[hero.cls];
+        const c = classColor(hero.cls);
+        const status = statusOf(hero);
+        const hpCol = hpColor(hero.hp);
+        const reward = hero.reward;
+        const rankTitle = reward.title[LANG] || reward.title.th;
+        const frameClass = reward.frame === 'legend' ? 'legend' : reward.frame === 'gold' ? 'gold' : '';
+        return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${reward.frame === 'bronze' ? '#c08a4a' : reward.frame === 'silver' ? '#b6c0cf' : reward.frame === 'gold' || reward.frame === 'legend' ? 'var(--gold)' : 'var(--border)'}">
+          ${S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
+          <div class="portrait ${frameClass}">
+            <span class="portrait-glyph">${cls.glyph}</span>
+            <span class="class-badge">${cls.glyph}</span>
+            <span class="lvl-badge"><span>${t('lvl')}</span><span>${hero.level.lvl}</span></span>
+            <span class="status-badge">${status.icon}</span>
+            ${_celebrateName === hero.name ? `<div class="levelup"><strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div></div>` : ''}
+          </div>
+          <div class="hero-name">${h(hero.name)}</div>
+          <div class="hero-class-row">
+            <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
+            <span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>
+          </div>
+          <div class="bars">
+            <div class="bar-row">
+              <span class="bar-lab hp">${t('hp')}</span>
+              <span class="bar"><span class="bar-fill" style="width:${hero.hp}%;background:linear-gradient(${hpCol.a},${hpCol.b})"></span></span>
+              <button class="bar-val budget-btn" onclick="editBudget(${q(hero.name)})">${hero.over ? `<span class="over">${t('over_budget')}</span>` : money(hero.remaining)}</button>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lab xp">${t('xp')}</span>
+              <span class="bar xp-bar"><span class="bar-fill" style="width:${hero.level.pct}%"></span></span>
+              <span class="bar-val">${hero.level.into}/${hero.level.need}</span>
             </div>
           </div>
-          <div class="expense-right">
-            <div class="expense-amount">฿${e.amount.toLocaleString()}</div>
+          <div class="hero-foot">
+            <div class="mini-stat"><span>💰 ${t('gold')}</span><span>${money(hero.paid)}</span></div>
+            <div class="status-chip ${status.kind}">
+              <span>${status.icon}</span><span><strong>${status.label}</strong>${status.amt > 0 ? `<span>${status.kind === 'guardian' ? '+' : '−'}${money(status.amt)}</span>` : ''}</span>
+            </div>
           </div>
-          <button class="expense-edit-btn" onclick="startEditExpense(${e.id})" title="${t('edit_title')}">✏️</button>
-          <button class="expense-del" onclick="deleteExpense(${e.id})" title="${t('del_title')}">✕</button>
-        </div>
-      `;
-    }).join('');
-
-    document.getElementById('total-bar').innerHTML = `
-      <span>${t('expense_total')}</span>
-      <span class="expense-total-num">฿${total.toLocaleString()}</span>
-    `;
-  }
-
-  function renderEditRow(e) {
-    const payerOpts = S.participants.map(p =>
-      `<option value="${p}" ${p === e.paidBy ? 'selected' : ''}>${p}</option>`
-    ).join('');
-    const chips = S.participants.map((p, i) => {
-      const checked = e.sharedBy.includes(p) ? 'checked' : '';
-      return `
-        <div>
-          <input type="checkbox" class="share-cb" id="ecb-${i}" value="${p}" ${checked}>
-          <label class="share-chip-label" for="ecb-${i}">
-            <div class="chip-av">${charSvg(p, 16, 22)}</div> ${p}
-          </label>
         </div>`;
-    }).join('');
-    return `
-      <div class="expense-edit-row">
-        <div class="expense-edit-grid">
-          <input class="field-input" id="edit-desc" value="${esc(e.desc)}" placeholder="รายการ" />
-          <input class="field-input" id="edit-amount" type="number" value="${e.amount}" min="0" step="any" placeholder="0" />
+      }).join('');
+      const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
+        <input id="new-hero-name" class="field-input" placeholder="${h(t('hero_name'))}" maxlength="24" onkeydown="if(event.key==='Enter')addParticipant()">
+        <div class="field-label">${t('pick_class')}</div>
+        <div class="class-picker">${CLASS_ORDER.map(id => {
+          const c = classColor(id);
+          return `<button class="class-btn ${_addHeroClass === id ? 'on' : ''}" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring}" onclick="pickClass('${id}')" title="${h(CLASSES[id][LANG] || CLASSES[id].th)}">${CLASSES[id].glyph}</button>`;
+        }).join('')}</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn-ghost" onclick="_addHeroOpen=false;renderParty()">✕</button>
+          <button class="btn-primary sm" onclick="addParticipant()">${t('add_hero')}</button>
         </div>
-        <div class="expense-edit-payer">
-          <div class="field-label">${t('edit_label_payer')}</div>
-          <select class="field-select" id="edit-payer" style="width:100%;padding:6px 10px;font-size:0.86rem">${payerOpts}</select>
-        </div>
-        <div class="field-label" style="margin-bottom:6px">${t('edit_label_sharers')}</div>
-        <div class="expense-edit-chips">${chips}</div>
-        <div class="expense-edit-actions">
-          <button class="btn-save-edit" onclick="saveEditExpense(${e.id})">${t('btn_save')}</button>
-          <button class="btn-cancel-edit" onclick="cancelEditExpense()">${t('btn_cancel')}</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function startEditExpense(id) { _editingId = id; renderExpenses(); }
-  function cancelEditExpense()  { _editingId = null; renderExpenses(); }
-
-  function saveEditExpense(id) {
-    const desc   = document.getElementById('edit-desc').value.trim();
-    const amount = parseFloat(document.getElementById('edit-amount').value);
-    const paidBy = document.getElementById('edit-payer').value;
-    const sharedBy = Array.from(document.querySelectorAll('.expense-edit-chips .share-cb:checked')).map(cb => cb.value);
-
-    if (!desc)              { toast(t('err_desc')); return; }
-    if (!amount || amount <= 0) { toast(t('err_amount')); return; }
-    if (!sharedBy.length)  { toast(t('err_sharers')); return; }
-
-    const idx = S.expenses.findIndex(e => e.id === id);
-    if (idx !== -1) S.expenses[idx] = { ...S.expenses[idx], desc, amount, paidBy, sharedBy };
-    _editingId = null;
-    save(); renderAll();
-  }
-
-  // ── Balances & settlement ──────────────────────────────────────────────────
-  function calcBalances() {
-    const b = {};
-    S.participants.forEach(p => b[p] = 0);
-    S.expenses.forEach(e => {
-      const share = e.amount / e.sharedBy.length;
-      b[e.paidBy] = (b[e.paidBy] || 0) + e.amount;
-      e.sharedBy.forEach(p => b[p] = (b[p] || 0) - share);
-    });
-    return b;
-  }
-
-  function calcSettlements() {
-    const b = calcBalances();
-    const cred = [], debt = [];
-    Object.entries(b).forEach(([p, v]) => {
-      const r = Math.round(v * 100) / 100;
-      if (r > 0.01)  cred.push({ p, v: r });
-      if (r < -0.01) debt.push({ p, v: -r });
-    });
-    cred.sort((a, b) => b.v - a.v);
-    debt.sort((a, b) => b.v - a.v);
-    const out = [];
-    let i = 0, j = 0;
-    while (i < cred.length && j < debt.length) {
-      const amt = Math.min(cred[i].v, debt[j].v);
-      if (amt > 0.01) out.push({ from: debt[j].p, to: cred[i].p, amount: Math.round(amt) });
-      cred[i].v -= amt; debt[j].v -= amt;
-      if (cred[i].v < 0.01) i++;
-      if (debt[j].v < 0.01) j++;
+      </div>` : `<button class="add-hero" onclick="openAddHero()"><span style="font-size:28px;line-height:1">＋</span><span>${t('add_hero')}</span></button>`;
+      grid.innerHTML = cards + add;
     }
-    return out;
-  }
-
-  function renderSettlement() {
-    const sec = document.getElementById('settle-section');
-    if (!S.expenses.length || S.participants.length < 2) { sec.style.display = 'none'; return; }
-    sec.style.display = '';
-
-    const bal = calcBalances();
-    document.getElementById('balance-grid').innerHTML = S.participants.map(p => {
-      const v = Math.round((bal[p] || 0) * 100) / 100;
-      const cls = v > 0.01 ? 'pos' : v < -0.01 ? 'neg' : 'zero';
-      const label = cls === 'pos' ? t('balance_owed') : cls === 'neg' ? t('balance_owes') : t('balance_even');
-      const disp  = cls === 'zero' ? '—' : `฿${Math.abs(v).toLocaleString()}`;
-      return `
-        <div class="bal-card">
-          <div class="bal-avatar">${charSvg(p, 44, 62)}</div>
-          <div class="bal-name">${p}</div>
-          <div class="bal-amount ${cls}">${disp}</div>
-          <div class="bal-label ${cls}">${label}</div>
-        </div>
-      `;
-    }).join('');
-
-    const txns = calcSettlements();
-    const txnEl = document.getElementById('txn-list');
-    if (!txns.length) {
-      txnEl.innerHTML = `
-        <div class="all-settled">
-          <div class="all-settled-icon">🎉</div>
-          <div class="all-settled-text">${t('all_settled')}</div>
-        </div>`;
-      return;
-    }
-    txnEl.innerHTML = txns.map((t, i) => `
-      <div class="txn-item" style="animation-delay:${i * 0.06}s">
-        <div class="txn-person">
-          <div class="txn-av">${charSvg(t.from, 28, 39)}</div>
-          ${t.from}
-        </div>
-        <div class="txn-mid">
-          <div class="txn-amount">฿${t.amount.toLocaleString()}</div>
-          <div class="txn-arrow">→</div>
-        </div>
-        <div class="txn-person">
-          <div class="txn-av">${charSvg(t.to, 28, 39)}</div>
-          ${t.to}
-        </div>
-      </div>
-    `).join('');
-
-    // Copy button
-    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
-    const copyText = buildCopyText(txns, total);
-    txnEl.innerHTML += `
-      <button class="copy-btn" onclick="copySettlement()">${t('btn_copy_line')}</button>
-    `;
-    txnEl._copyText = copyText;
-  }
-
-  function buildCopyText(txns, total) {
-    const lines = [
-      `🧾 ${S.tripName}`,
-      ``,
-      t('copy_transfers_hdr'),
-      ...txns.map(tx => t('copy_transfer_line', { from: tx.from, amount: tx.amount.toLocaleString(), to: tx.to })),
-      ``,
-      t('copy_total', { amount: total.toLocaleString() }),
-    ];
-    return lines.join('\n');
-  }
-
-  function copySettlement() {
-    const el = document.getElementById('txn-list');
-    const text = el._copyText || '';
-    navigator.clipboard.writeText(text).then(() => toast(t('toast_copied')));
-  }
-
-  // ── Render all ─────────────────────────────────────────────────────────────
-  function renderAll() {
-    renderTripName();
-    renderParticipants();
-    renderForm();
-    renderExpenses();
-    renderSettlement();
-  }
-
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  let _toastTimer;
-  function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
-  }
-
-  // ── Excel helpers ──────────────────────────────────────────────────────────
-  async function saveWorkbook(wb, filename) {
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  function xlHeaderRow(row, bgArgb) {
-    row.height = 22;
-    row.eachCell({ includeEmpty: true }, cell => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb || 'FF4a9070' } };
-      cell.alignment = { vertical: 'middle' };
-      cell.border = { bottom: { style: 'thin', color: { argb: 'FF3a7558' } } };
-    });
-  }
-
-  function xlDataRow(row, isAlt) {
-    row.height = 18;
-    if (isAlt) row.eachCell({ includeEmpty: true }, cell => {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4FAF7' } };
-    });
-  }
-
-  function cellStr(v) {
-    if (v === null || v === undefined) return '';
-    if (typeof v === 'object') return String(v.result ?? v.text ?? '');
-    return String(v);
-  }
-
-  // ── Export Excel ───────────────────────────────────────────────────────────
-  async function exportExcel() {
-    if (!S.expenses.length) { toast(t('err_no_data')); return; }
-    const total = S.expenses.reduce((s, e) => s + e.amount, 0);
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'Trip Splitter';
-
-    // ── Sheet 1: Expenses ──────────────────────────────────────────────────
-    const ws1 = wb.addWorksheet('Expenses');
-    ws1.getColumn(1).width = 32;
-    ws1.getColumn(2).width = 14;
-    ws1.getColumn(3).width = 16;
-    ws1.getColumn(4).width = 42;
-    ws1.views = [{ state: 'frozen', ySplit: 1 }];
-
-    xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
-
-    S.expenses.forEach((e, i) => {
-      const row = ws1.addRow([e.desc, e.amount, e.paidBy, e.sharedBy.join(', ')]);
-      row.getCell(2).numFmt = '#,##0.00';
-      row.getCell(2).alignment = { horizontal: 'right' };
-      xlDataRow(row, i % 2 === 1);
-    });
-
-    ws1.addRow([]);
-    const totRow = ws1.addRow(['Total', total]);
-    totRow.getCell(1).font = { bold: true };
-    totRow.getCell(1).border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
-    totRow.getCell(2).font = { bold: true };
-    totRow.getCell(2).numFmt = '#,##0.00';
-    totRow.getCell(2).alignment = { horizontal: 'right' };
-    totRow.getCell(2).border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
-
-    // ── Sheet 2: Settlement ────────────────────────────────────────────────
-    const ws2 = wb.addWorksheet('Settlement');
-    ws2.getColumn(1).width = 22;
-    ws2.getColumn(2).width = 22;
-    ws2.getColumn(3).width = 16;
-
-    const bal = calcBalances();
-    const txns = calcSettlements();
-
-    ws2.mergeCells('A1:C1');
-    const titleCell = ws2.getCell('A1');
-    titleCell.value = `Trip: ${S.tripName}`;
-    titleCell.font = { bold: true, size: 14, color: { argb: 'FF4a9070' }, name: 'Calibri' };
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFeaf6f1' } };
-    titleCell.alignment = { vertical: 'middle', indent: 1 };
-    titleCell.border = { bottom: { style: 'medium', color: { argb: 'FF4a9070' } } };
-    ws2.getRow(1).height = 30;
-
-    ws2.addRow([]);
-    const secBal = ws2.addRow(['BALANCES']);
-    secBal.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF4a9070' } };
-    secBal.height = 20;
-    ws2.addRow([]);
-
-    xlHeaderRow(ws2.addRow(['Person', 'Balance (฿)', 'Status']));
-    S.participants.forEach((p, i) => {
-      const v = Math.round((bal[p] || 0) * 100) / 100;
-      const status = v > 0.01 ? 'To receive' : v < -0.01 ? 'Owes' : 'Even';
-      const row = ws2.addRow([p, Math.abs(v), status]);
-      row.getCell(2).numFmt = '#,##0.00';
-      row.getCell(2).alignment = { horizontal: 'right' };
-      if (v > 0.01) row.getCell(3).font = { bold: true, color: { argb: 'FF276749' } };
-      else if (v < -0.01) row.getCell(3).font = { bold: true, color: { argb: 'FFc53030' } };
-      else row.getCell(3).font = { color: { argb: 'FF718096' } };
-      xlDataRow(row, i % 2 === 1);
-    });
-
-    ws2.addRow([]);
-    const secTxn = ws2.addRow(['TRANSFERS']);
-    secTxn.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF4a9070' } };
-    secTxn.height = 20;
-    ws2.addRow([]);
-
-    xlHeaderRow(ws2.addRow(['From', 'To', 'Amount (฿)']));
-    txns.forEach((tx, i) => {
-      const row = ws2.addRow([tx.from, tx.to, tx.amount]);
-      row.getCell(3).numFmt = '#,##0.00';
-      row.getCell(3).alignment = { horizontal: 'right' };
-      xlDataRow(row, i % 2 === 1);
-    });
-
-    ws2.addRow([]);
-    const tot2 = ws2.addRow(['Total Expenses (฿)', total]);
-    tot2.getCell(1).font = { bold: true };
-    tot2.getCell(2).font = { bold: true };
-    tot2.getCell(2).numFmt = '#,##0.00';
-    tot2.getCell(2).alignment = { horizontal: 'right' };
-
-    await saveWorkbook(wb, `${S.tripName || 'trip'}.xlsx`);
-  }
-
-  // ── Download Template ──────────────────────────────────────────────────────
-  async function downloadTemplate() {
-    const wb = new ExcelJS.Workbook();
-    wb.creator = 'Trip Splitter';
-
-    // ── Sheet 1: Instructions ──────────────────────────────────────────────
-    const ws1 = wb.addWorksheet('Instructions');
-    ws1.getColumn(1).width = 18;
-    ws1.getColumn(2).width = 50;
-    ws1.getColumn(3).width = 16;
-    ws1.getColumn(4).width = 40;
-
-    // Title
-    ws1.mergeCells('A1:D1');
-    const title = ws1.getCell('A1');
-    title.value = '✈  Trip Expense Splitter — How to Use';
-    title.font = { bold: true, size: 16, color: { argb: 'FF4a9070' }, name: 'Calibri' };
-    title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFeaf6f1' } };
-    title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
-    title.border = { bottom: { style: 'medium', color: { argb: 'FF4a9070' } } };
-    ws1.getRow(1).height = 42;
-
-    ws1.addRow([]);
-
-    // Instructions section
-    const instrSec = ws1.addRow(['INSTRUCTIONS']);
-    instrSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
-    instrSec.height = 22;
-
-    [
-      [' 1', 'Go to the "Expenses" sheet — click the tab at the bottom of this file'],
-      [' 2', 'Fill in your expenses starting from row 2 — do not modify the header row'],
-      [' 3', 'Save the file, then click "📥 Import Excel" in the app to upload it'],
-    ].forEach(([num, step]) => {
-      const row = ws1.addRow([num, step]);
-      row.getCell(1).font = { bold: true, color: { argb: 'FF4a9070' } };
-      row.getCell(1).alignment = { horizontal: 'center' };
-      row.getCell(2).alignment = { wrapText: false };
-      row.height = 18;
-    });
-
-    ws1.addRow([]);
-
-    // Column guide section
-    const colSec = ws1.addRow(['COLUMN GUIDE']);
-    colSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
-    colSec.height = 22;
-
-    [
-      ['Description', 'What the expense was for (e.g. Dinner, Hotel, Gas)'],
-      ['Amount',      'Total amount paid — numbers only, no currency symbols'],
-      ['Paid By',     'Name of the person who paid'],
-      ['Split With',  'Comma-separated names of everyone sharing the cost (e.g. Shane, Point, Arm)'],
-    ].forEach(([col, desc]) => {
-      const row = ws1.addRow([col, desc]);
-      row.getCell(1).font = { bold: true };
-      row.getCell(1).alignment = { horizontal: 'right' };
-      row.height = 18;
-    });
-
-    ws1.addRow([]);
-
-    // Examples section
-    const exSec = ws1.addRow(['EXAMPLES']);
-    exSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
-    exSec.height = 22;
-    ws1.addRow([]);
-
-    xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']), 'FF718096');
-
-    [
-      ['Dinner',  900,  'Shane', 'Shane, Point, Arm'],
-      ['Gas',     500,  'Point', 'Shane, Point'],
-      ['Hotel',  3000,  'Arm',   'Shane, Point, Arm'],
-    ].forEach((data, i) => {
-      const row = ws1.addRow(data);
-      row.getCell(2).numFmt = '#,##0.00';
-      row.getCell(2).alignment = { horizontal: 'right' };
-      xlDataRow(row, i % 2 === 1);
-    });
-
-    ws1.addRow([]);
-
-    // Notes section
-    const notesSec = ws1.addRow(['NOTES']);
-    notesSec.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF4a9070' } };
-    notesSec.height = 22;
-
-    [
-      'New participants found in the file will be added to the trip automatically.',
-      'If "Split With" is left blank, the expense is assigned to the payer only.',
-    ].forEach(note => {
-      const row = ws1.addRow(['⚠', note]);
-      row.getCell(1).font = { color: { argb: 'FFed8936' } };
-      row.getCell(1).alignment = { horizontal: 'center' };
-      row.getCell(2).font = { italic: true, color: { argb: 'FF718096' } };
-      row.height = 18;
-    });
-
-    // ── Sheet 2: Expenses (blank template) ────────────────────────────────
-    const ws2 = wb.addWorksheet('Expenses');
-    ws2.getColumn(1).width = 32;
-    ws2.getColumn(2).width = 14;
-    ws2.getColumn(3).width = 16;
-    ws2.getColumn(4).width = 42;
-    ws2.views = [{ state: 'frozen', ySplit: 1 }];
-
-    xlHeaderRow(ws2.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
-
-    for (let i = 0; i < 20; i++) {
-      const row = ws2.addRow(['', null, '', '']);
-      row.getCell(2).numFmt = '#,##0.00';
-      row.getCell(2).alignment = { horizontal: 'right' };
-      xlDataRow(row, i % 2 === 1);
-      row.height = 18;
+    function editBudget(name) {
+      const id = 'budget-' + hashOf(name);
+      const btn = event.currentTarget;
+      btn.outerHTML = `<input class="budget-edit" id="${id}" type="number" value="${Number(S.budgets[name]) || 3000}" onblur="saveBudget(${q(name)})" onkeydown="if(event.key==='Enter')saveBudget(${q(name)})">`;
+      setTimeout(() => document.getElementById(id)?.focus(), 0);
     }
 
-    await saveWorkbook(wb, 'trip-template.xlsx');
-  }
-
-  // ── Import Excel ───────────────────────────────────────────────────────────
-  function triggerImport() {
-    document.getElementById('import-input').value = '';
-    document.getElementById('import-input').click();
-  }
-
-  async function importExcel(input) {
-    const file = input.files[0];
-    if (!file) return;
-    try {
-      const buffer = await file.arrayBuffer();
-      const wb = new ExcelJS.Workbook();
-      await wb.xlsx.load(buffer);
-      const ws = wb.worksheets.length > 1 ? wb.worksheets[1] : wb.worksheets[0];
-      let imported = 0;
-      let firstRow = true;
-      ws.eachRow({ includeEmpty: false }, row => {
-        if (firstRow) { firstRow = false; return; } // skip header
-        const v = row.values; // 1-indexed: v[1]=desc, v[2]=amount, v[3]=paidBy, v[4]=splitWith
-        const desc   = cellStr(v[1]).trim();
-        const amtNum = parseFloat(cellStr(v[2]));
-        const payer  = cellStr(v[3]).trim();
-        const split  = cellStr(v[4]);
-        if (!desc || !amtNum || amtNum <= 0 || !payer) return;
-        const sharers = split
-          ? split.split(',').map(s => s.trim()).filter(Boolean)
-          : [payer];
-        if (!S.participants.includes(payer)) S.participants.push(payer);
-        sharers.forEach(p => { if (p && !S.participants.includes(p)) S.participants.push(p); });
-        S.expenses.push({ id: Date.now() + Math.random(), desc, amount: amtNum, paidBy: payer, sharedBy: sharers });
-        imported++;
-      });
-      if (!imported) { toast(t('err_import_empty')); return; }
+    function setEntryMode(mode) { S.settings.entry = mode; save(); renderEntry(); }
+    function toggleIconPicker() { _iconOpen = !_iconOpen; renderEntry(); }
+    function pickExpenseIcon(icon) { document.getElementById('exp-icon-value').value = icon; _iconOpen = false; renderEntry(); }
+    function sharedBy() { return Array.from(document.querySelectorAll('.share-cb:checked')).map(cb => cb.value); }
+    function toggleShare(name) {
+      const cb = document.querySelector(`.share-cb[value="${CSS.escape(name)}"]`);
+      if (cb) { cb.checked = !cb.checked; updateSplitInfo(); renderShareChips(); }
+    }
+    function selectAllShares() {
+      const boxes = Array.from(document.querySelectorAll('.share-cb'));
+      const all = boxes.every(cb => cb.checked);
+      boxes.forEach(cb => cb.checked = !all);
+      updateSplitInfo(); renderShareChips();
+    }
+    function updateSplitInfo() {
+      const n = sharedBy().length;
+      const amt = parseFloat(document.getElementById('exp-amount')?.value) || 0;
+      const info = document.getElementById('split-info');
+      if (info) info.textContent = n ? `${n} ${LANG === 'en' ? 'heroes' : 'คน'}${amt > 0 ? ' · ' + money2(amt / n) + ' ' + t('each') : ''}` : '—';
+    }
+    function renderShareChips() {
+      const box = document.getElementById('share-chip-row');
+      if (!box) return;
+      const active = sharedBy();
+      box.innerHTML = S.participants.map(name => heroChip(name, active.includes(name), !active.includes(name), `toggleShare(${q(name)})`)).join('') +
+        `<button type="button" class="chip-all" onclick="selectAllShares()">${active.length === S.participants.length ? '✕' : '✓'} ${t('everyone')}</button>`;
+    }
+    function renderEntry() {
+      document.getElementById('entry-section').style.display = S.participants.length ? '' : 'none';
+      if (!S.participants.length) return;
+      const mode = S.settings.entry || 'form';
+      document.getElementById('entry-form-btn').classList.toggle('on', mode === 'form');
+      document.getElementById('entry-quick-btn').classList.toggle('on', mode === 'quick');
+      document.getElementById('entry-title').innerHTML = mode === 'quick' ? `⚡ ${t('quick_strike')}` : `📜 ${t('log_encounter')}`;
+      const resetDraft = _resetEntryDraft;
+      _resetEntryDraft = false;
+      const prevDesc = resetDraft ? '' : (document.getElementById('exp-desc')?.value || '');
+      const prevAmt = resetDraft ? '' : (document.getElementById('exp-amount')?.value || '');
+      const prevIcon = resetDraft ? QUEST_ICONS[0] : (document.getElementById('exp-icon-value')?.value || QUEST_ICONS[0]);
+      const prevPayer = resetDraft ? S.participants[0] : (document.getElementById('exp-payer')?.value || S.participants[0]);
+      const split = resetDraft ? S.participants.slice() : sharedBy();
+      const payerOptions = S.participants.map(p => `<option value="${h(p)}" ${p === prevPayer ? 'selected' : ''}>${h(p)}</option>`).join('');
+      const hiddenShares = S.participants.map(p => `<input type="checkbox" class="share-cb" value="${h(p)}" ${!split.length || split.includes(p) ? 'checked' : ''}>`).join('');
+      const iconPicker = `<div class="icon-picker"><button class="icon-btn" onclick="toggleIconPicker()" type="button">${prevIcon}</button>${_iconOpen ? `<div class="icon-pop">${QUEST_ICONS.map(ic => `<button class="icon-opt ${ic === prevIcon ? 'on' : ''}" onclick="pickExpenseIcon('${ic}')" type="button">${ic}</button>`).join('')}</div>` : ''}</div><input type="hidden" id="exp-icon-value" value="${prevIcon}">`;
+      const shareBlock = `<div id="hidden-shares" class="hidden">${hiddenShares}</div><div class="field"><label>${t('split_with')} <span class="lab-hint" id="split-info"></span></label><div class="chip-row" id="share-chip-row"></div></div>`;
+      document.getElementById('entry-body').innerHTML = mode === 'quick' ? `
+        <div class="quick-amount"><span>฿</span><input id="exp-amount" type="number" inputmode="decimal" value="${h(prevAmt)}" placeholder="0" oninput="updateSplitInfo()"></div>
+        <div class="qf-top">${iconPicker}<div class="field grow"><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div></div>
+        <input type="hidden" id="exp-payer" value="${h(prevPayer)}">
+        <div class="field"><label>${t('tap_payer')}</label><div class="quick-payers">${S.participants.map(p => `<button class="quick-payer ${p === prevPayer ? 'on' : ''}" onclick="setQuickPayer(${q(p)})">${heroAvatar(p, p === prevPayer ? 54 : 46)}<span>${h(p)}</span></button>`).join('')}</div></div>
+        ${shareBlock}
+        <button class="btn-primary big" onclick="addExpense()">⚔️ ${t('log_it')}</button>` : `
+        <div class="qf-top">
+          ${iconPicker}
+          <div class="field grow"><label>${t('quest_name')}</label><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}" onkeydown="if(event.key==='Enter')addExpense()"></div>
+          <div class="field gold-field"><label>${t('gold_spent')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="number" inputmode="decimal" value="${h(prevAmt)}" placeholder="0" oninput="updateSplitInfo()" onkeydown="if(event.key==='Enter')addExpense()"></div></div>
+        </div>
+        <div class="field"><label>${t('who_paid')}</label><select class="field-select" id="exp-payer">${payerOptions}</select></div>
+        ${shareBlock}
+        <button class="btn-primary big" onclick="addExpense()">⚔️ ${t('add_entry')}</button>`;
+      updateSplitInfo(); renderShareChips();
+    }
+    function setQuickPayer(name) { document.getElementById('exp-payer').value = name; renderEntry(); }
+    document.addEventListener('input', e => { if (e.target.id === 'exp-amount') updateSplitInfo(); });
+    function addExpense() {
+      const desc = document.getElementById('exp-desc').value.trim() || t('quest_fallback');
+      const amount = parseFloat(document.getElementById('exp-amount').value);
+      const paidBy = document.getElementById('exp-payer').value;
+      const shared = sharedBy();
+      const icon = document.getElementById('exp-icon-value').value || QUEST_ICONS[0];
+      if (!amount || amount <= 0) { toast(t('err_amount')); return; }
+      if (!paidBy) { toast(t('err_payer')); return; }
+      if (!shared.length) { toast(t('err_sharers')); return; }
+      S.expenses.push({ id: Date.now() + Math.random(), desc, icon, amount, paidBy, sharedBy: shared });
+      _settledTx = [];
+      _resetEntryDraft = true;
+      save(); renderAll(); toast(t('success_added'));
+    }
+    function deleteExpense(id) {
+      S.expenses = S.expenses.filter(e => e.id !== id);
+      _settledTx = [];
       save(); renderAll();
-      toast(t('toast_imported', { n: imported }));
-    } catch (err) {
-      console.error('Import failed', err);
-      toast(t('err_import_format'));
     }
-  }
+    function confirmClearExpenses() {
+      if (!S.expenses.length) return;
+      if (confirm(t('confirm_clear'))) {
+        S.expenses = []; S.settleXp = {}; _settledTx = [];
+        save(); renderAll();
+      }
+    }
+    function renderLog(party) {
+      document.getElementById('expense-count').textContent = S.expenses.length;
+      const total = S.expenses.reduce((a,e) => a + e.amount, 0);
+      document.getElementById('party-total').textContent = money(total);
+      const el = document.getElementById('quest-log');
+      if (!S.expenses.length) { el.innerHTML = `<div class="empty">⚔️ ${t('no_quests')}</div>`; return; }
+      const byName = Object.fromEntries(party.map(p => [p.name, p]));
+      el.innerHTML = `<div class="quest-rows">${S.expenses.slice().reverse().map(e => {
+        const parts = e.sharedBy.filter(p => byName[p]);
+        const per = parts.length ? e.amount / parts.length : 0;
+        const payer = byName[e.paidBy];
+        return `<div class="quest-row">
+          <div class="qr-icon">${h(e.icon || '🍜')}</div>
+          <div class="qr-main">
+            <div class="qr-name">${h(e.desc)}</div>
+            <div class="qr-meta">
+              ${payer ? `<span>${heroAvatar(payer.name, 18)} ${h(payer.name)}</span>` : ''}
+              <span>·</span>
+              <span>${parts.map(p => CLASSES[classOf(p)].glyph).join('')} <span style="font-family:var(--font-stat)">${money2(per)} ${t('each')}</span></span>
+            </div>
+          </div>
+          <div class="qr-right"><div class="qr-amt">${money(e.amount)}</div><div class="qr-xp">+${Math.round(e.amount)} ${t('xp')}</div></div>
+          <button class="qr-del" onclick="deleteExpense(${e.id})">×</button>
+        </div>`;
+      }).join('')}<div class="log-total"><span>${t('party_gold')}</span><strong>${money(total)}</strong></div></div>`;
+    }
+    function setSettleView(view) { S.settings.settleView = view; save(); renderSettlement(computeParty()); }
+    function settleOne(key, from, to) {
+      _settledTx.push(key);
+      S.settleXp[from] = (Number(S.settleXp[from]) || 0) + SETTLE_BONUS_PAYER;
+      S.settleXp[to] = (Number(S.settleXp[to]) || 0) + SETTLE_BONUS_PAYEE;
+      save(); renderAll();
+    }
+    function renderSettlement(party) {
+      document.getElementById('settle-list-btn').classList.toggle('on', (S.settings.settleView || 'list') === 'list');
+      document.getElementById('settle-map-btn').classList.toggle('on', S.settings.settleView === 'map');
+      const el = document.getElementById('settle-body');
+      if (!S.expenses.length || party.length < 2) { el.innerHTML = `<div class="empty">${t('no_quests')}</div>`; return; }
+      const txns = settleUp(party).filter(tx => !_settledTx.includes(tx.from + '>' + tx.to));
+      if (!txns.length) {
+        el.innerHTML = `<div class="settled"><div class="emoji">🛡️✨</div><div class="title">${t('settled_msg')}</div><div class="sub">${t('rest_msg')}</div></div>`;
+        return;
+      }
+      const byName = Object.fromEntries(party.map(p => [p.name, p]));
+      if (S.settings.settleView === 'map') {
+        const max = Math.max(1, ...party.map(p => Math.abs(p.bal)));
+        el.innerHTML = `<div class="debt-map">${party.slice().sort((a,b) => b.bal - a.bal).map(p => {
+          const pos = p.bal > .5, neg = p.bal < -.5, w = Math.round((Math.abs(p.bal) / max) * 50);
+          return `<div class="debt-row">
+            <div class="debt-name">${heroAvatar(p.name, 32)}<span>${h(p.name)}</span></div>
+            <div class="debt-track"><span class="debt-zero"></span>${pos || neg ? `<span class="debt-fill ${pos ? 'pos' : 'neg'}" style="width:${w}%"></span>` : ''}</div>
+            <div class="debt-val ${pos ? 'pos' : neg ? 'neg' : ''}">${pos ? '+' + money(p.bal) : neg ? '−' + money(-p.bal) : t('even')}</div>
+          </div>`;
+        }).join('')}</div>`;
+        return;
+      }
+      el.innerHTML = `<div class="tribute-list"><div class="field-label">${t('tributes')}</div>${txns.map(tx => {
+        const from = byName[tx.from], to = byName[tx.to], key = tx.from + '>' + tx.to;
+        return `<div class="tribute">
+          <div class="tr-person">${heroAvatar(tx.from, 38, from?.hp ?? null)}<span>${h(tx.from)}</span></div>
+          <div class="tr-mid"><div class="tr-amt">${money(tx.amount)}</div><div>⮕</div></div>
+          <div class="tr-person">${heroAvatar(tx.to, 38)}<span>${h(tx.to)}</span></div>
+          <button class="btn-primary sm" onclick="settleOne(${q(key)},${q(tx.from)},${q(tx.to)})">♥ ${t('mark_paid')}</button>
+        </div>`;
+      }).join('')}</div>`;
+    }
+    function renderAll(checkLevels = true) {
+      const party = computeParty();
+      if (checkLevels) detectLevelUps(party);
+      renderTripName();
+      renderParty();
+      renderEntry();
+      renderLog(party);
+      renderSettlement(party);
+      translatePage();
+    }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+    }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
-  translatePage();
-  load().then(() => { renderAll(); translatePage(); });
-</script>
+    async function saveWorkbook(wb, filename) {
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function xlHeaderRow(row, bgArgb) {
+      row.height = 22;
+      row.eachCell({ includeEmpty: true }, cell => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Calibri' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb || 'FF2f8f5b' } };
+        cell.alignment = { vertical: 'middle' };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FF1f6b41' } } };
+      });
+    }
+    function xlDataRow(row, isAlt) {
+      row.height = 18;
+      if (isAlt) row.eachCell({ includeEmpty: true }, cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3E9D4' } };
+      });
+    }
+    function cellStr(v) {
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'object') return String(v.result ?? v.text ?? '');
+      return String(v);
+    }
+    async function exportExcel() {
+      if (!S.expenses.length) { toast(t('err_no_data')); return; }
+      const total = S.expenses.reduce((s, e) => s + e.amount, 0);
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Party Ledger';
+      const ws1 = wb.addWorksheet('Quest Log');
+      [34,14,18,42].forEach((w,i) => ws1.getColumn(i + 1).width = w);
+      ws1.views = [{ state: 'frozen', ySplit: 1 }];
+      xlHeaderRow(ws1.addRow(['Quest', 'Gold (฿)', 'Paid By', 'Split With']));
+      S.expenses.forEach((e, i) => {
+        const row = ws1.addRow([e.desc, e.amount, e.paidBy, e.sharedBy.join(', ')]);
+        row.getCell(2).numFmt = '#,##0.00';
+        row.getCell(2).alignment = { horizontal: 'right' };
+        xlDataRow(row, i % 2 === 1);
+      });
+      ws1.addRow([]);
+      const totRow = ws1.addRow(['Total', total]);
+      totRow.getCell(1).font = { bold: true };
+      totRow.getCell(2).font = { bold: true };
+      totRow.getCell(2).numFmt = '#,##0.00';
+      const party = computeParty();
+      const txns = settleUp(party);
+      const ws2 = wb.addWorksheet('Balance the Party');
+      [22,22,16].forEach((w,i) => ws2.getColumn(i + 1).width = w);
+      ws2.mergeCells('A1:C1');
+      ws2.getCell('A1').value = `Party Ledger: ${S.tripName}`;
+      ws2.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF2f8f5b' } };
+      ws2.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFefe0b6' } };
+      ws2.addRow([]); xlHeaderRow(ws2.addRow(['Hero', 'Balance (฿)', 'Status']));
+      party.forEach((p, i) => {
+        const row = ws2.addRow([p.name, Math.abs(p.bal), p.bal > .5 ? 'Guardian' : p.bal < -.5 ? 'In Debt' : 'Even']);
+        row.getCell(2).numFmt = '#,##0.00';
+        row.getCell(2).alignment = { horizontal: 'right' };
+        xlDataRow(row, i % 2 === 1);
+      });
+      ws2.addRow([]); xlHeaderRow(ws2.addRow(['From', 'To', 'Gold (฿)']));
+      txns.forEach((tx, i) => {
+        const row = ws2.addRow([tx.from, tx.to, tx.amount]);
+        row.getCell(3).numFmt = '#,##0.00';
+        row.getCell(3).alignment = { horizontal: 'right' };
+        xlDataRow(row, i % 2 === 1);
+      });
+      await saveWorkbook(wb, `${S.tripName || 'party-ledger'}.xlsx`);
+    }
+    async function downloadTemplate() {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Party Ledger';
+      const ws1 = wb.addWorksheet('Instructions');
+      [18,54,16,42].forEach((w,i) => ws1.getColumn(i + 1).width = w);
+      ws1.mergeCells('A1:D1');
+      ws1.getCell('A1').value = 'Party Ledger — Import Template';
+      ws1.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FF2f8f5b' } };
+      ws1.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFefe0b6' } };
+      ws1.addRow([]); xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
+      [['Dinner',900,'Shane','Shane, Pointy, Arm'],['Gas',500,'Pointy','Shane, Pointy'],['Hotel',3000,'Arm','Shane, Pointy, Arm']].forEach((data, i) => {
+        const row = ws1.addRow(data); row.getCell(2).numFmt = '#,##0.00'; xlDataRow(row, i % 2 === 1);
+      });
+      const ws2 = wb.addWorksheet('Expenses');
+      [34,14,18,42].forEach((w,i) => ws2.getColumn(i + 1).width = w);
+      ws2.views = [{ state: 'frozen', ySplit: 1 }];
+      xlHeaderRow(ws2.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
+      for (let i = 0; i < 20; i++) {
+        const row = ws2.addRow(['', null, '', '']);
+        row.getCell(2).numFmt = '#,##0.00';
+        xlDataRow(row, i % 2 === 1);
+      }
+      await saveWorkbook(wb, 'party-ledger-template.xlsx');
+    }
+    function triggerImport() {
+      document.getElementById('import-input').value = '';
+      document.getElementById('import-input').click();
+    }
+    async function importExcel(input) {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const buffer = await file.arrayBuffer();
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(buffer);
+        const ws = wb.worksheets.length > 1 ? wb.worksheets[1] : wb.worksheets[0];
+        let imported = 0, firstRow = true;
+        ws.eachRow({ includeEmpty: false }, row => {
+          if (firstRow) { firstRow = false; return; }
+          const v = row.values;
+          const desc = cellStr(v[1]).trim();
+          const amtNum = parseFloat(cellStr(v[2]));
+          const payer = cellStr(v[3]).trim();
+          const split = cellStr(v[4]);
+          if (!desc || !amtNum || amtNum <= 0 || !payer) return;
+          const sharers = split ? split.split(',').map(s => s.trim()).filter(Boolean) : [payer];
+          if (!S.participants.includes(payer)) S.participants.push(payer);
+          sharers.forEach(p => { if (p && !S.participants.includes(p)) S.participants.push(p); });
+          const icon = QUEST_ICONS[hashOf(desc) % QUEST_ICONS.length];
+          S.expenses.push({ id: Date.now() + Math.random(), desc, icon, amount: amtNum, paidBy: payer, sharedBy: sharers });
+          imported++;
+        });
+        if (!imported) { toast(t('err_import_empty')); return; }
+        _settledTx = [];
+        save(); renderAll();
+        toast(t('toast_imported', { n: imported }));
+      } catch (err) {
+        console.error('Import failed', err);
+        toast(t('err_import_format'));
+      }
+    }
+
+    translatePage();
+    renderAll(false);
+    load().then(() => { renderAll(false); translatePage(); });
+  </script>
 </body>
 </html>
