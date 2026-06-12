@@ -41,6 +41,12 @@
       gap: 16px;
       margin-bottom: 24px;
     }
+    .cards-grid.two-cards {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+    }
 
     .card {
       background: #fff;
@@ -446,6 +452,7 @@
       const completeCount = Array.from({length: visibleCards}, (_, i) => i + 1).filter(i => cardIsComplete(i)).length;
       document.getElementById('btn-compare').disabled = completeCount < 2;
       document.getElementById('btn-add-card').style.display = visibleCards >= MAX_CARDS ? 'none' : '';
+      document.getElementById('cards-grid').classList.toggle('two-cards', visibleCards === 2);
     }
 
     function populateSelect(sel, group, keepValue) {
