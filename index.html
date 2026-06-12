@@ -102,6 +102,32 @@
       pointer-events: none;
     }
 
+    .card-delete-btn {
+      position: absolute;
+      top: 12px; left: 12px;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: #fed7d7; color: #c53030;
+      border: none; cursor: pointer;
+      font-size: 0.9rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; line-height: 1;
+      transition: all 0.15s;
+    }
+    .card-delete-btn:hover { background: #fc8181; color: #fff; }
+
+    .btn-add-card {
+      display: block; width: 100%;
+      padding: 12px;
+      background: transparent; color: #2b6cb0;
+      border: 2px dashed #90cdf4; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; margin-bottom: 16px;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-add-card:hover { background: #ebf8ff; border-color: #63b3ed; }
+
     .size-row {
       display: grid;
       grid-template-columns: 1fr 2fr;
@@ -351,10 +377,12 @@
   <div class="container">
     <header>
       <h1>เปรียบเทียบราคาต่อหน่วย</h1>
-      <p>กรอกข้อมูลสินค้าสูงสุด 4 รายการ แล้วกดเปรียบเทียบ</p>
+      <p>กรอกข้อมูลสินค้าอย่างน้อย 2 รายการ แล้วกดเปรียบเทียบ</p>
     </header>
 
     <div class="cards-grid" id="cards-grid"></div>
+
+    <button id="btn-add-card" class="btn-add-card" onclick="addCard()">+ เพิ่มสินค้า</button>
 
     <div class="convert-bar" id="convert-bar">
       <span class="convert-label">แปลงหน่วยทั้งหมดเป็น →</span>
@@ -403,15 +431,21 @@
     }
 
     function updateCardStates() {
-      for (let i = 2; i <= 4; i++) {
+      for (let i = 2; i <= visibleCards; i++) {
         const card = document.getElementById(`card-${i}`);
         const prevCard = document.getElementById(`card-${i - 1}`);
         const prevLocked = prevCard.classList.contains('card-locked');
         const shouldUnlock = !prevLocked && cardIsComplete(i - 1);
         card.classList.toggle('card-locked', !shouldUnlock);
       }
-      const completeCount = [1, 2, 3, 4].filter(i => cardIsComplete(i)).length;
+      // show delete btn only on the last card (if > 2)
+      for (let i = 3; i <= visibleCards; i++) {
+        const btn = document.getElementById(`delete-btn-${i}`);
+        if (btn) btn.style.display = i === visibleCards ? '' : 'none';
+      }
+      const completeCount = Array.from({length: visibleCards}, (_, i) => i + 1).filter(i => cardIsComplete(i)).length;
       document.getElementById('btn-compare').disabled = completeCount < 2;
+      document.getElementById('btn-add-card').style.display = visibleCards >= MAX_CARDS ? 'none' : '';
     }
 
     function populateSelect(sel, group, keepValue) {
@@ -445,11 +479,11 @@
     function onUnitChange(changedIdx) {
       const unit = document.getElementById(`unit-${changedIdx}`).value;
       lockedGroup = getGroup(unit);
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= visibleCards; i++) {
         if (i === changedIdx) continue;
         populateSelect(document.getElementById(`unit-${i}`), lockedGroup);
       }
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= visibleCards; i++) {
         const u = document.getElementById(`unit-${i}`).value;
         document.getElementById(`per-pack-row-${i}`).style.display = u === 'แพ็ค/กล่อง' ? '' : 'none';
       }
@@ -463,7 +497,7 @@
       if (!lockedGroup || lockedGroup.name === 'count') { bar.classList.remove('visible'); return; }
       bar.classList.add('visible');
       const currentUnits = new Set();
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= visibleCards; i++) {
         if (document.getElementById(`name-${i}`).value.trim())
           currentUnits.add(document.getElementById(`unit-${i}`).value);
       }
@@ -479,7 +513,7 @@
 
     function convertAllTo(targetUnit) {
       const targetFactor = lockedGroup.units[targetUnit];
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= visibleCards; i++) {
         const sizeEl = document.getElementById(`size-${i}`);
         const unitEl = document.getElementById(`unit-${i}`);
         const currentFactor = lockedGroup.units[unitEl.value] || 1;
@@ -494,61 +528,83 @@
       showConvertBar();
     }
 
+    let visibleCards = 2;
+    const MAX_CARDS = 6;
+
+    function createCard(i) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'card';
+      wrapper.id = `card-${i}`;
+      wrapper.innerHTML = `
+        ${i > 2 ? `<button class="card-delete-btn" id="delete-btn-${i}" onclick="deleteCard()" title="ลบรายการนี้">×</button>` : ''}
+        <div class="card-number">${i}</div>
+        <div class="field">
+          <label>ชื่อสินค้า / ยี่ห้อ</label>
+          <input type="text" id="name-${i}" placeholder="ชื่อ / ยี่ห้อ" />
+        </div>
+        <div class="field">
+          <label>ขนาด &amp; หน่วย</label>
+          <div class="size-row">
+            <div class="field">
+              <input type="number" id="size-${i}" placeholder="0" min="0" step="any" />
+            </div>
+            <div class="field">
+              <select id="unit-${i}"></select>
+            </div>
+          </div>
+        </div>
+        <div class="field per-pack-row" id="per-pack-row-${i}" style="display:none">
+          <label>1 แพ็ค/กล่อง = กี่ชิ้น</label>
+          <input type="number" id="per-pack-${i}" placeholder="เช่น 12" min="1" step="1" />
+        </div>
+        <div class="field">
+          <label>ราคา (บาท)</label>
+          <input type="number" id="price-${i}" placeholder="0.00" min="0" step="any" />
+        </div>
+        <div class="field">
+          <label>โปรโมชัน (ซื้อ / แถม)</label>
+          <div class="promo-row">
+            <input type="number" id="buy-${i}" value="1" min="1" step="1" />
+            <span class="promo-sep">แถม</span>
+            <input type="number" id="free-${i}" value="0" min="0" step="1" />
+          </div>
+        </div>
+      `;
+      const sel = wrapper.querySelector(`#unit-${i}`);
+      populateSelect(sel, lockedGroup);
+      sel.addEventListener('change', () => onUnitChange(i));
+      wrapper.querySelectorAll('input').forEach(el =>
+        el.addEventListener('input', updateCardStates)
+      );
+      return wrapper;
+    }
+
     function buildCards() {
       const grid = document.getElementById('cards-grid');
-      for (let i = 1; i <= 4; i++) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'card';
-        wrapper.id = `card-${i}`;
-        wrapper.innerHTML = `
-          <div class="card-number">${i}</div>
-          <div class="field">
-            <label>ชื่อสินค้า / ยี่ห้อ</label>
-            <input type="text" id="name-${i}" placeholder="ชื่อ / ยี่ห้อ" />
-          </div>
-          <div class="field">
-            <label>ขนาด &amp; หน่วย</label>
-            <div class="size-row">
-              <div class="field">
-                <input type="number" id="size-${i}" placeholder="0" min="0" step="any" />
-              </div>
-              <div class="field">
-                <select id="unit-${i}"></select>
-              </div>
-            </div>
-          </div>
-          <div class="field per-pack-row" id="per-pack-row-${i}" style="display:none">
-            <label>1 แพ็ค/กล่อง = กี่ชิ้น</label>
-            <input type="number" id="per-pack-${i}" placeholder="เช่น 12" min="1" step="1" />
-          </div>
-          <div class="field">
-            <label>ราคา (บาท)</label>
-            <input type="number" id="price-${i}" placeholder="0.00" min="0" step="any" />
-          </div>
-          <div class="field">
-            <label>โปรโมชัน (ซื้อ / แถม)</label>
-            <div class="promo-row">
-              <input type="number" id="buy-${i}" value="1" min="1" step="1" />
-              <span class="promo-sep">แถม</span>
-              <input type="number" id="free-${i}" value="0" min="0" step="1" />
-            </div>
-          </div>
-        `;
-        grid.appendChild(wrapper);
-        const sel = wrapper.querySelector(`#unit-${i}`);
-        populateSelect(sel, null);
-        sel.addEventListener('change', () => onUnitChange(i));
-
-        wrapper.querySelectorAll('input').forEach(el =>
-          el.addEventListener('input', updateCardStates)
-        );
+      for (let i = 1; i <= 2; i++) {
+        grid.appendChild(createCard(i));
       }
+      updateCardStates();
+    }
+
+    function addCard() {
+      if (visibleCards >= MAX_CARDS) return;
+      visibleCards++;
+      const grid = document.getElementById('cards-grid');
+      grid.appendChild(createCard(visibleCards));
+      updateCardStates();
+    }
+
+    function deleteCard() {
+      if (visibleCards <= 2) return;
+      document.getElementById(`card-${visibleCards}`).remove();
+      visibleCards--;
       updateCardStates();
     }
 
     function compare() {
       const items = [];
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= visibleCards; i++) {
         const name = document.getElementById(`name-${i}`).value.trim();
         const size = parseFloat(document.getElementById(`size-${i}`).value);
         const unit = document.getElementById(`unit-${i}`).value;
