@@ -110,7 +110,7 @@
 
     .card-delete-btn {
       position: absolute;
-      top: 12px; left: 12px;
+      top: 10px; right: 44px;
       width: 22px; height: 22px;
       border-radius: 50%;
       background: #fed7d7; color: #c53030;
@@ -121,6 +121,10 @@
       transition: all 0.15s;
     }
     .card-delete-btn:hover { background: #fc8181; color: #fff; }
+    .card-locked .card-delete-btn {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
     .btn-add-card {
       display: block; width: 100%;
