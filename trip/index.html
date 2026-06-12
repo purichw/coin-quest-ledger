@@ -774,7 +774,7 @@
     const i = document.getElementById('trip-name-input');
     i.value = S.tripName;
     d.style.display = 'none'; if (icon) icon.style.display = 'none';
-    i.style.display = ''; i.focus(); i.select();
+    i.style.display = 'inline-block'; i.focus(); i.select();
   }
   function saveTrip() {
     S.tripName = document.getElementById('trip-name-input').value.trim() || 'ทริป';
