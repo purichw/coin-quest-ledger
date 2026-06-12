@@ -562,7 +562,12 @@
 
       const cheapest = items[0].unitPrice;
       const mostExpensive = items[items.length - 1].unitPrice;
-      const allEqual = cheapest === mostExpensive;
+      const approxEqual = (a, b) => {
+        if (a === b) return true;
+        const mag = Math.max(Math.abs(a), Math.abs(b));
+        return mag > 0 && Math.abs(a - b) / mag < 1e-9;
+      };
+      const allEqual = approxEqual(cheapest, mostExpensive);
       const list = document.getElementById('results-list');
       list.innerHTML = '';
 
@@ -573,8 +578,8 @@
       }
 
       items.forEach((item, idx) => {
-        const isCheapest = !allEqual && item.unitPrice === cheapest;
-        const isExpensive = !allEqual && item.unitPrice === mostExpensive;
+        const isCheapest = !allEqual && approxEqual(item.unitPrice, cheapest);
+        const isExpensive = !allEqual && approxEqual(item.unitPrice, mostExpensive);
 
         const rankClass = allEqual ? 'mid' : isCheapest ? 'first' : isExpensive ? 'last' : 'mid';
         const cardClass = allEqual ? '' : isCheapest ? 'cheapest' : isExpensive ? 'most-expensive' : '';
