@@ -113,10 +113,11 @@
     .hero-remove { position: absolute; top: 7px; right: 7px; z-index: 3; width: 24px; height: 24px; border: 0; border-radius: 8px; color: #fff; background: rgba(0,0,0,.3); opacity: 0; }
     .hero-card:hover .hero-remove { opacity: .88; }
     .hero-remove:hover { background: var(--hp); }
-    .portrait { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 13px; margin-bottom: 10px; overflow: hidden; border: 2px solid var(--frame, var(--border)); background: linear-gradient(160deg, var(--cc-top), var(--cc-bot)); display: flex; align-items: center; justify-content: center; }
+    .portrait { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 13px; margin-bottom: 10px; overflow: hidden; border: 2px solid var(--frame, var(--border)); background: radial-gradient(circle at 50% 30%, color-mix(in oklab, var(--cc-top), #fff 14%), var(--cc-bot)); display: flex; align-items: flex-end; justify-content: center; }
     .portrait.gold { box-shadow: 0 0 12px -3px var(--gold), inset 0 0 0 1px color-mix(in oklab, var(--gold), #000 28%); }
     .portrait.legend { animation: legend-glow 2.6s ease-in-out infinite; }
-    .portrait-glyph { font-size: clamp(44px, 10vw, 74px); filter: drop-shadow(0 2px 2px rgba(0,0,0,.28)); }
+    .portrait-img { position: absolute; left: 50%; bottom: -7%; width: 112%; height: 112%; transform: translateX(-50%); object-fit: contain; object-position: center bottom; filter: drop-shadow(0 7px 8px rgba(0,0,0,.28)); }
+    .portrait-fallback { font-size: clamp(44px, 10vw, 74px); filter: drop-shadow(0 2px 2px rgba(0,0,0,.28)); margin: auto; }
     .class-badge, .lvl-badge, .status-badge { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; }
     .class-badge { left: 7px; top: 7px; width: 30px; height: 30px; border-radius: 9px; background: rgba(0,0,0,.4); color: #fff; backdrop-filter: blur(3px); }
     .lvl-badge { right: 7px; top: 7px; flex-direction: column; min-width: 44px; border-radius: 10px; padding: 2px 8px; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 16%)); border: 1.5px solid color-mix(in oklab, var(--gold), #000 25%); color: #2a1f05; }
@@ -159,10 +160,22 @@
     .levelup strong { color: #fff; font-family: var(--font-display); font-size: 19px; text-shadow: 0 2px 8px rgba(0,0,0,.5); animation: lub-pop 1.6s ease-out forwards; }
     .add-hero { border: 2px dashed var(--border-strong); background: transparent; color: var(--ink-soft); border-radius: 16px; min-height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-weight: 600; }
     .add-hero:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
-    .add-hero-form { display: grid; gap: 10px; }
-    .class-picker { display: flex; flex-wrap: wrap; gap: 6px; }
-    .class-btn { width: 35px; height: 35px; border-radius: 9px; border: 2px solid var(--ring); background: linear-gradient(160deg, var(--top), var(--bot)); font-size: 16px; }
-    .class-btn.on { transform: scale(1.08); box-shadow: 0 0 0 2px var(--gold); }
+    .add-hero-form { display: grid; grid-column: span 2; gap: 10px; }
+    .hero-builder { display: grid; grid-template-columns: minmax(104px, .8fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+    .avatar-preview { position: relative; min-height: 168px; border: 2px solid var(--ring); border-radius: 14px; background: radial-gradient(circle at 50% 28%, var(--top), var(--bot)); overflow: hidden; }
+    .avatar-preview img { position: absolute; left: 50%; bottom: -8%; width: 118%; height: 118%; transform: translateX(-50%); object-fit: contain; object-position: center bottom; filter: drop-shadow(0 7px 8px rgba(0,0,0,.28)); }
+    .avatar-preview .class-badge { left: 8px; top: 8px; }
+    .avatar-preview .portrait-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 52px; }
+    .avatar-preview-label { position: absolute; z-index: 2; left: 8px; right: 8px; bottom: 7px; padding: 4px 7px; border-radius: 8px; background: rgba(0,0,0,.48); color: #fff; text-align: center; font-size: 11px; font-weight: 700; backdrop-filter: blur(3px); }
+    .class-tools { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+    .gender-toggle { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; width: max-content; }
+    .gender-btn { width: 36px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 16px; font-weight: 800; }
+    .gender-btn.on { background: var(--accent); color: #fff; }
+    .class-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; }
+    .class-btn { min-width: 0; height: 38px; border-radius: 9px; border: 2px solid var(--ring); background: linear-gradient(160deg, var(--top), var(--bot)); font-size: 17px; }
+    .class-btn.on { transform: scale(1.06); box-shadow: 0 0 0 2px var(--gold); }
+    .lock-note { color: var(--ink-soft); font-size: 10px; line-height: 1.4; }
+    .btn-primary:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; transform: none; }
     .tools-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
     .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
     .field.grow { flex: 1; }
@@ -185,7 +198,8 @@
     .hero-chip { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--border-strong); background: var(--panel-in); color: var(--ink); border-radius: 999px; padding: 5px 13px 5px 5px; font-size: 14px; font-weight: 600; }
     .hero-chip.dim { opacity: .5; filter: saturate(.45); }
     .hero-chip.on { border-color: var(--cc-ring); background: var(--cc-soft); color: var(--cc); box-shadow: 0 2px 0 var(--cc-ring); opacity: 1; filter: none; }
-    .chip-avatar { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--cc-ring); background: linear-gradient(160deg, var(--cc-top), var(--cc-bot)); display: inline-flex; align-items: center; justify-content: center; }
+    .chip-avatar { position: relative; width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--cc-ring); background: linear-gradient(160deg, var(--cc-top), var(--cc-bot)); display: inline-flex; align-items: center; justify-content: center; overflow: hidden; }
+    .chip-avatar img { position: absolute; left: 50%; bottom: -5%; width: 118%; height: 118%; transform: translateX(-50%); object-fit: contain; object-position: center bottom; }
     .chip-all { border: 1.5px dashed var(--border-strong); background: transparent; color: var(--ink-soft); padding: 6px 14px; }
     .seg { display: flex; background: var(--panel-2); border-radius: 9px; padding: 3px; }
     .seg button { background: transparent; color: var(--ink-soft); padding: 5px 12px; font-size: 12px; }
@@ -248,6 +262,8 @@
       .page { padding: 22px 14px 52px; }
       .banner-title { font-size: 30px; }
       .party-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .hero-builder { grid-template-columns: 1fr; }
+      .avatar-preview { min-height: 220px; }
       .qf-top { flex-wrap: wrap; }
       .gold-field { width: 100%; }
       .two-col { grid-template-columns: 1fr; }
@@ -372,16 +388,21 @@
     const tripRef = db.collection('trips').doc(tripId);
 
     const QUEST_ICONS = ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
-    const CLASS_ORDER = ["ranger","mage","knight","rogue","bard","cleric","druid","warrior"];
+    const CLASS_ORDER = ["warrior","wizard","cleric","monk","bard","dragoon","summoner","thief","ranger","alchemist","necromancer","engineer","berserker"];
     const CLASSES = {
-      ranger:  { glyph:"🏹", hue:146, th:"นักล่า", en:"Ranger" },
-      mage:    { glyph:"🔮", hue:268, th:"จอมเวท", en:"Mage" },
-      knight:  { glyph:"🛡️", hue:248, th:"อัศวิน", en:"Knight" },
-      rogue:   { glyph:"🗡️", hue:350, th:"นักโจร", en:"Rogue" },
-      bard:    { glyph:"🎻", hue:42,  th:"นักดนตรี", en:"Bard" },
-      cleric:  { glyph:"✨", hue:198, th:"นักบวช", en:"Cleric" },
-      druid:   { glyph:"🍃", hue:120, th:"ดรูอิด", en:"Druid" },
-      warrior: { glyph:"⚔️", hue:26,  th:"นักรบ", en:"Warrior" }
+      warrior:     { glyph:"⚔️", hue:142, th:"นักรบ", en:"Warrior" },
+      wizard:      { glyph:"📖", hue:168, th:"จอมเวท", en:"Wizard" },
+      cleric:      { glyph:"✚", hue:104, th:"นักบวช", en:"Cleric" },
+      monk:        { glyph:"✋", hue:76,  th:"นักบวชหมัด", en:"Monk" },
+      bard:        { glyph:"🎼", hue:32,  th:"นักดนตรี", en:"Bard" },
+      dragoon:     { glyph:"🔱", hue:250, th:"ดรากูน", en:"Dragoon" },
+      summoner:    { glyph:"🐾", hue:228, th:"ผู้อัญเชิญ", en:"Summoner" },
+      thief:       { glyph:"🗡️", hue:202, th:"นักโจร", en:"Thief" },
+      ranger:      { glyph:"🏹", hue:132, th:"นักล่า", en:"Ranger" },
+      alchemist:   { glyph:"⚗️", hue:188, th:"นักเล่นแร่แปรธาตุ", en:"Alchemist" },
+      necromancer: { glyph:"☠️", hue:304, th:"หมอผี", en:"Necromancer" },
+      engineer:    { glyph:"🔧", hue:58,  th:"วิศวกร", en:"Engineer" },
+      berserker:   { glyph:"🪓", hue:28,  th:"เบอร์เซิร์กเกอร์", en:"Berserker" }
     };
     const LEVEL_STEP = 600;
     const SETTLE_BONUS_PAYER = 400;
@@ -400,10 +421,11 @@
       expenses: [],
       budgets: {},
       heroClasses: {},
+      heroGenders: {},
       settleXp: {},
       settings: { entry: 'form', settleView: 'list', theme: 'tavern', stats: true }
     };
-    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = 'rogue';
+    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = 'warrior', _addHeroGender = 'male', _addHeroName = '';
     let _resetEntryDraft = false;
     let _settledTx = [];
     let _celebrateName = null;
@@ -416,7 +438,14 @@
     function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
     function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
     function hashOf(name) { let x = 0; for (const c of String(name || '?')) x = ((x * 31) + c.charCodeAt(0)) | 0; return Math.abs(x); }
-    function classOf(name) { return S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]; }
+    function normalizeClass(cls) {
+      const map = { mage: 'wizard', knight: 'warrior', rogue: 'thief', druid: 'summoner' };
+      const id = map[cls] || cls;
+      return CLASSES[id] ? id : CLASS_ORDER[hashOf(id) % CLASS_ORDER.length];
+    }
+    function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]); }
+    function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
+    function avatarSrc(clsId, gender) { return `/assets/rpg-classes/${normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}.webp`; }
     function classColor(clsId) {
       const h = (CLASSES[clsId] || CLASSES.ranger).hue;
       return {
@@ -432,14 +461,22 @@
     function heroAvatar(name, size = 32, hp = null) {
       const cls = classOf(name), c = classColor(cls), g = CLASSES[cls].glyph;
       return `<span style="position:relative;width:${size}px;height:${size}px;display:inline-flex;flex-shrink:0">
-        <span style="width:${size}px;height:${size}px;border-radius:${Math.round(size*.28)}px;border:2px solid ${c.ring};background:linear-gradient(160deg,${c.top},${c.bot});display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.48)}px">${g}</span>
+        <span style="position:relative;width:${size}px;height:${size}px;border-radius:${Math.round(size*.28)}px;border:2px solid ${c.ring};background:linear-gradient(160deg,${c.top},${c.bot});display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:${Math.round(size*.48)}px">
+          <img src="${avatarSrc(cls, genderOf(name))}" alt="" style="position:absolute;left:50%;bottom:-5%;width:118%;height:118%;transform:translateX(-50%);object-fit:contain;object-position:center bottom" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span style="display:none;align-items:center;justify-content:center">${g}</span>
+        </span>
         ${hp !== null && hp < 100 ? `<span style="position:absolute;left:10%;right:10%;bottom:-3px;height:5px;border-radius:4px;background:var(--hp-bg);overflow:hidden;border:1px solid rgba(0,0,0,.15)"><span style="display:block;height:100%;width:${hp}%;background:var(--hp)"></span></span>` : ''}
       </span>`;
+    }
+    function heroPortraitImg(name, clsId, gender, extra = '') {
+      const cls = normalizeClass(clsId);
+      const glyph = CLASSES[cls].glyph;
+      return `<img class="portrait-img ${extra}" src="${avatarSrc(cls, gender)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'portrait-fallback',textContent:'${glyph}'}))">`;
     }
     function heroChip(name, active, dim, onClick) {
       const cls = classOf(name), g = CLASSES[cls].glyph;
       return `<button type="button" class="hero-chip ${active ? 'on' : ''} ${dim ? 'dim' : ''}" style="${colorVars(cls)}" onclick="${onClick}">
-        <span class="chip-avatar">${g}</span><span>${h(name)}</span>
+        <span class="chip-avatar"><img src="${avatarSrc(cls, genderOf(name))}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none">${g}</span></span><span>${h(name)}</span>
       </button>`;
     }
     function levelFromXp(xp) {
@@ -468,7 +505,8 @@
         participants: Array.isArray(data?.participants) ? data.participants : [],
         expenses: Array.isArray(data?.expenses) ? data.expenses : [],
         budgets: data?.budgets || {},
-        heroClasses: data?.heroClasses || {},
+        heroClasses: Object.fromEntries(Object.entries(data?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
+        heroGenders: data?.heroGenders || {},
         settleXp: data?.settleXp || {},
         settings: { entry: 'form', settleView: 'list', theme: 'tavern', stats: true, ...(data?.settings || {}) }
       };
@@ -588,13 +626,15 @@
 
     function addParticipant() {
       const el = document.getElementById('new-hero-name');
-      const name = el.value.trim();
+      const name = (el?.value || _addHeroName).trim();
       if (!name) return;
       if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
       S.participants.push(name);
       S.heroClasses[name] = _addHeroClass;
+      S.heroGenders[name] = _addHeroGender;
       S.budgets[name] = 3000;
       _addHeroOpen = false;
+      _addHeroName = '';
       save(); renderAll();
     }
     function removeParticipant(name) {
@@ -603,7 +643,7 @@
       S.participants = S.participants.filter(p => p !== name);
       S.expenses = S.expenses.map(e => ({ ...e, sharedBy: e.sharedBy.filter(p => p !== name) }))
         .filter(e => e.paidBy !== name && e.sharedBy.length > 0);
-      delete S.budgets[name]; delete S.heroClasses[name]; delete S.settleXp[name];
+      delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.settleXp[name];
       save(); renderAll();
     }
     function saveBudget(name) {
@@ -611,8 +651,9 @@
       const n = parseFloat(el.value);
       if (n > 0) { S.budgets[name] = n; save(); renderAll(); }
     }
-    function pickClass(cls) { _addHeroClass = cls; renderParty(); }
-    function openAddHero() { _addHeroOpen = true; renderParty(); setTimeout(() => document.getElementById('new-hero-name')?.focus(), 0); }
+    function pickClass(cls) { _addHeroClass = normalizeClass(cls); renderParty(); }
+    function pickGender(gender) { _addHeroGender = gender === 'female' ? 'female' : 'male'; renderParty(); }
+    function openAddHero() { _addHeroName = ''; _addHeroOpen = true; renderParty(); setTimeout(() => document.getElementById('new-hero-name')?.focus(), 0); }
 
     function renderParty() {
       const party = computeParty();
@@ -629,7 +670,7 @@
         return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${reward.frame === 'bronze' ? '#c08a4a' : reward.frame === 'silver' ? '#b6c0cf' : reward.frame === 'gold' || reward.frame === 'legend' ? 'var(--gold)' : 'var(--border)'}">
           ${S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
           <div class="portrait ${frameClass}">
-            <span class="portrait-glyph">${cls.glyph}</span>
+            ${heroPortraitImg(hero.name, hero.cls, genderOf(hero.name))}
             <span class="class-badge">${cls.glyph}</span>
             <span class="lvl-badge"><span>${t('lvl')}</span><span>${hero.level.lvl}</span></span>
             <span class="status-badge">${status.icon}</span>
@@ -661,15 +702,35 @@
         </div>`;
       }).join('');
       const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
-        <input id="new-hero-name" class="field-input" placeholder="${h(t('hero_name'))}" maxlength="24" onkeydown="if(event.key==='Enter')addParticipant()">
-        <div class="field-label">${t('pick_class')}</div>
-        <div class="class-picker">${CLASS_ORDER.map(id => {
-          const c = classColor(id);
-          return `<button class="class-btn ${_addHeroClass === id ? 'on' : ''}" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring}" onclick="pickClass('${id}')" title="${h(CLASSES[id][LANG] || CLASSES[id].th)}">${CLASSES[id].glyph}</button>`;
-        }).join('')}</div>
+        <input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;document.getElementById('confirm-hero-btn').disabled=!this.value.trim()" onkeydown="if(event.key==='Enter' && this.value.trim())addParticipant()">
+        <div class="hero-builder">
+          ${(() => {
+            const c = classColor(_addHeroClass);
+            const cls = CLASSES[_addHeroClass];
+            return `<div class="avatar-preview" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring}">
+              ${heroPortraitImg('', _addHeroClass, _addHeroGender)}
+              <span class="class-badge">${cls.glyph}</span>
+              <span class="avatar-preview-label">${h(cls[LANG] || cls.th)} · ${t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male')}</span>
+            </div>`;
+          })()}
+          <div class="class-tools">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div class="field-label">${t('pick_class')}</div>
+              <div class="gender-toggle">
+                <button type="button" class="gender-btn ${_addHeroGender === 'male' ? 'on' : ''}" aria-pressed="${_addHeroGender === 'male'}" onclick="pickGender('male')" title="${h(t('gender_male'))}">♂</button>
+                <button type="button" class="gender-btn ${_addHeroGender === 'female' ? 'on' : ''}" aria-pressed="${_addHeroGender === 'female'}" onclick="pickGender('female')" title="${h(t('gender_female'))}">♀</button>
+              </div>
+            </div>
+            <div class="class-picker">${CLASS_ORDER.map(id => {
+              const c = classColor(id);
+              return `<button type="button" class="class-btn ${_addHeroClass === id ? 'on' : ''}" aria-pressed="${_addHeroClass === id}" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring}" onclick="pickClass('${id}')" title="${h(CLASSES[id][LANG] || CLASSES[id].th)}">${CLASSES[id].glyph}</button>`;
+            }).join('')}</div>
+            <div class="lock-note">${t('hero_choice_locked')}</div>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="btn-ghost" onclick="_addHeroOpen=false;renderParty()">✕</button>
-          <button class="btn-primary sm" onclick="addParticipant()">${t('add_hero')}</button>
+          <button type="button" class="btn-ghost" onclick="_addHeroName='';_addHeroOpen=false;renderParty()">✕</button>
+          <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="addParticipant()" ${_addHeroName.trim() ? '' : 'disabled'}>${t('confirm_hero')}</button>
         </div>
       </div>` : `<button class="add-hero" onclick="openAddHero()"><span style="font-size:28px;line-height:1">＋</span><span>${t('add_hero')}</span></button>`;
       grid.innerHTML = cards + add;
