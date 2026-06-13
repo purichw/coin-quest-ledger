@@ -41,8 +41,9 @@
         var(--bg);
       -webkit-font-smoothing: antialiased;
     }
-    button, input { font-family: inherit; }
+    button, input, select { font-family: inherit; }
     button { cursor: pointer; }
+    button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; transform: none; }
     .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
     .tb-inner { max-width: 980px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .tb-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
@@ -87,11 +88,28 @@
     .of-unit { color: var(--ink-soft); font-size: 10px; font-weight: 500; }
     .of-tag { margin-top: 1px; font-size: 10px; font-weight: 700; color: var(--r-text); }
     .best-tag { color: var(--r-text); }
+    .offer-meta { color: var(--ink-soft); font-family: var(--font-stat); font-size: 10px; margin-top: 1px; }
+    .offer-builder { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+    .draft-slot { position: relative; border: 1.5px solid var(--border); border-radius: 12px; background: color-mix(in oklab, var(--panel-in), var(--panel-2) 28%); overflow: hidden; }
+    .draft-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-bottom: 1px solid color-mix(in oklab, var(--border), transparent 35%); color: var(--ink-soft); font-size: 11px; font-weight: 700; }
+    .slot-num { font-family: var(--font-stat); color: var(--gold); }
+    .slot-lock { color: var(--ink-soft); font-size: 10px; }
+    .draft-body { display: grid; grid-template-columns: minmax(110px, 1.1fr) 78px minmax(74px, .72fr) minmax(90px, .75fr); gap: 7px; padding: 9px; align-items: center; }
+    .draft-extra { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(130px, 1fr); gap: 7px; padding: 0 9px 9px; }
+    .draft-slot.locked .draft-body, .draft-slot.locked .draft-extra { opacity: .32; pointer-events: none; }
+    .mini-field { display: none; align-items: center; gap: 6px; min-width: 0; }
+    .mini-field.show { display: flex; }
+    .mini-label { color: var(--ink-soft); font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .promo-mini { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .promo-mini .num { width: 58px; }
+    .offer-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .offer-hint { color: var(--ink-soft); font-size: 11px; }
     .add-offer, .add-item-row { display: flex; align-items: center; gap: 7px; }
-    .input, .num { border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--panel-in); color: var(--ink); font-size: 13px; }
+    .input, .num, .select { border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--panel-in); color: var(--ink); font-size: 13px; }
     .input { min-width: 0; padding: 8px 10px; flex: 1; }
-    .input:focus, .num input:focus { outline: 0; }
-    .input:focus, .num:focus-within { border-color: var(--accent); }
+    .select { min-width: 0; width: 100%; padding: 8px 9px; outline: 0; }
+    .input:focus, .num input:focus, .select:focus { outline: 0; }
+    .input:focus, .num:focus-within, .select:focus { border-color: var(--accent); }
     .num { display: flex; align-items: center; padding-left: 8px; width: 78px; flex-shrink: 0; }
     .num span { color: var(--gold); font-family: var(--font-stat); font-weight: 700; font-size: 13px; }
     .num input { width: 100%; border: 0; background: transparent; color: var(--ink); padding: 8px 8px 8px 4px; font-family: var(--font-stat); font-weight: 600; }
@@ -117,7 +135,11 @@
       .page { padding: 22px 14px 52px; }
       .banner-title { font-size: 30px; }
       .cmp-grid { grid-template-columns: 1fr; }
-      .add-offer { flex-wrap: wrap; }
+      .add-offer, .draft-body, .draft-extra { grid-template-columns: 1fr; }
+      .add-item-row { flex-wrap: wrap; }
+      .add-item-row .select { flex: 1 1 160px; }
+      .draft-body { gap: 8px; }
+      .draft-extra { padding-top: 0; }
       .num { flex: 1; min-width: 92px; }
     }
   </style>
@@ -161,13 +183,29 @@
   <script>
     const STORE_KEY = 'pointy_compare_v2';
     const ITEM_ICONS = ["🥛","🧴","🍚","🍫","☕","🧻","🥤","🍜","🔋","💊","🧃","🍞"];
+    const UNIT_GROUPS = [
+      { name: 'volume', base: 'ml', units: { ml: 1, l: 1000, kl: 1000000 } },
+      { name: 'weight', base: 'g', units: { mg: 0.001, g: 1, kg: 1000 } },
+      { name: 'length', base: 'm', units: { mm: 0.001, cm: 0.01, m: 1, km: 1000 } },
+      { name: 'count', base: 'ชิ้น', units: { 'ชิ้น': 1, 'แพ็ค/กล่อง': 1 } }
+    ];
+    const BASE_UNITS = ['ml', 'g', 'm', 'ชิ้น'];
+    const UNIT_ALIAS = {
+      'มล.': 'ml', 'มล': 'ml', 'ml.': 'ml',
+      'ลิตร': 'l', 'กรัม': 'g', 'ก.': 'g',
+      'กก.': 'kg', 'กิโลกรัม': 'kg',
+      'เมตร': 'm', 'ซม.': 'cm', 'มม.': 'mm',
+      'หน่วย': 'ชิ้น', 'pcs': 'ชิ้น', 'piece': 'ชิ้น', 'pieces': 'ชิ้น'
+    };
     const RARITY = {
       legendary: { th: "ในตำนาน", en: "Legendary", hue: 42, glyph: "👑" },
       epic: { th: "หายาก", en: "Epic", hue: 285, glyph: "💎" },
       rare: { th: "ดี", en: "Rare", hue: 235, glyph: "🔷" },
       common: { th: "ธรรมดา", en: "Common", hue: 30, glyph: "⚪" }
     };
+    const MAX_DRAFT_OFFERS = 6;
     let comparisons = loadState();
+    let draftSlots = {};
     let addOpen = false;
     let iconOpenFor = null;
     let draftIcon = ITEM_ICONS[0];
@@ -175,14 +213,14 @@
 
     function seed() {
       return [
-        { id: uid(), name: "นมจืด UHT", icon: "🥛", unit: "มล.", offers: [
-          { id: uid(), merchant: "ร้านสะดวกซื้อ", price: 18, qty: 180 },
-          { id: uid(), merchant: "โลตัส", price: 42, qty: 1000 },
-          { id: uid(), merchant: "บิ๊กซี", price: 59, qty: 1500 }
+        { id: uid(), name: "นมจืด UHT", icon: "🥛", baseUnit: "ml", offers: [
+          { id: uid(), merchant: "ร้านสะดวกซื้อ", price: 18, qty: 180, unit: "ml", buy: 1, free: 0 },
+          { id: uid(), merchant: "โลตัส", price: 42, qty: 1, unit: "l", buy: 1, free: 0 },
+          { id: uid(), merchant: "บิ๊กซี", price: 59, qty: 1.5, unit: "l", buy: 1, free: 0 }
         ] },
-        { id: uid(), name: "ผงซักฟอก", icon: "🧴", unit: "กรัม", offers: [
-          { id: uid(), merchant: "ร้านใกล้บ้าน", price: 35, qty: 400 },
-          { id: uid(), merchant: "แม็คโคร", price: 175, qty: 3000 }
+        { id: uid(), name: "ผงซักฟอก", icon: "🧴", baseUnit: "g", offers: [
+          { id: uid(), merchant: "ร้านใกล้บ้าน", price: 35, qty: 400, unit: "g", buy: 1, free: 0 },
+          { id: uid(), merchant: "แม็คโคร", price: 175, qty: 3, unit: "kg", buy: 1, free: 0 }
         ] }
       ];
     }
@@ -190,30 +228,107 @@
     function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
     function money(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
+    function approxEqual(a, b) {
+      if (a === b) return true;
+      const mag = Math.max(Math.abs(a), Math.abs(b));
+      return mag > 0 && Math.abs(a - b) / mag < 1e-9;
+    }
+    function locale() { return LANG === 'th' ? 'th-TH' : 'en-US'; }
+    function fmtQty(n) {
+      return (Number(n) || 0).toLocaleString(locale(), { maximumFractionDigits: 4 });
+    }
+    function normalizeUnit(unit) {
+      const raw = String(unit || '').trim();
+      return UNIT_ALIAS[raw] || raw || 'ชิ้น';
+    }
+    function groupOf(unit) {
+      const u = normalizeUnit(unit);
+      return UNIT_GROUPS.find(g => Object.prototype.hasOwnProperty.call(g.units, u)) || null;
+    }
+    function groupForCmp(cmp) {
+      return groupOf(cmp.baseUnit || cmp.unit) || UNIT_GROUPS[3];
+    }
+    function displayUnit(unit) {
+      const u = normalizeUnit(unit);
+      const th = { ml: 'มล.', l: 'ลิตร', kl: 'kl', mg: 'มก.', g: 'กรัม', kg: 'กก.', mm: 'มม.', cm: 'ซม.', m: 'เมตร', km: 'กม.', 'ชิ้น': 'ชิ้น', 'แพ็ค/กล่อง': 'แพ็ค/กล่อง' };
+      const en = { ml: 'ml', l: 'l', kl: 'kl', mg: 'mg', g: 'g', kg: 'kg', mm: 'mm', cm: 'cm', m: 'm', km: 'km', 'ชิ้น': 'pcs', 'แพ็ค/กล่อง': 'pack/box' };
+      return (LANG === 'th' ? th[u] : en[u]) || u;
+    }
+    function unitOptionsFor(cmp, selected) {
+      const group = groupForCmp(cmp);
+      return Object.keys(group.units).map(u => `<option value="${h(u)}" ${normalizeUnit(selected) === u ? 'selected' : ''}>${h(displayUnit(u))}</option>`).join('');
+    }
+    function baseUnitOptions(selected) {
+      const key = u => u === 'ชิ้น' ? 'pcs' : u;
+      return BASE_UNITS.map(u => `<option value="${h(u)}" ${normalizeUnit(selected) === u ? 'selected' : ''}>${h(t('base_unit_' + key(u)))}</option>`).join('');
+    }
+    function normalizeComparison(cmp) {
+      const baseUnit = normalizeUnit(cmp.baseUnit || cmp.unit || 'ชิ้น');
+      const group = groupOf(baseUnit) || UNIT_GROUPS[3];
+      return {
+        id: cmp.id || uid(),
+        name: String(cmp.name || '').trim() || t('item'),
+        icon: cmp.icon || '🛒',
+        baseUnit: group.base,
+        offers: Array.isArray(cmp.offers) ? cmp.offers.map(o => ({
+          id: o.id || uid(),
+          merchant: String(o.merchant || t('merchant')).trim(),
+          price: Number(o.price) || 0,
+          qty: Number(o.qty) || 0,
+          unit: normalizeUnit(o.unit || cmp.unit || group.base),
+          perPack: Number(o.perPack) || 0,
+          buy: Math.max(1, parseInt(o.buy, 10) || 1),
+          free: Math.max(0, parseInt(o.free, 10) || 0)
+        })).filter(o => o.price > 0 && o.qty > 0) : []
+      };
+    }
     function loadState() {
       try {
         const raw = localStorage.getItem(STORE_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (Array.isArray(data)) return data.map(normalizeComparison);
+        }
       } catch (e) {}
-      return seed();
+      return seed().map(normalizeComparison);
     }
     function saveState() {
       try { localStorage.setItem(STORE_KEY, JSON.stringify(comparisons)); } catch (e) {}
     }
-    function perUnit(o) { return o.qty > 0 ? o.price / o.qty : Infinity; }
-    function rankOffers(offers) {
+    function normalizedOffer(offer, cmp) {
+      const unit = normalizeUnit(offer.unit || cmp.baseUnit);
+      const group = groupForCmp(cmp);
+      const unitGroup = groupOf(unit);
+      if (!unitGroup || unitGroup.name !== group.name) return { valid: false, unit, baseUnit: group.base, qty: 0, pu: Infinity };
+      let factor = group.units[unit] || 1;
+      if (unit === 'แพ็ค/กล่อง') {
+        factor = Number(offer.perPack) || 0;
+        if (factor <= 0) return { valid: false, unit, baseUnit: group.base, qty: 0, pu: Infinity };
+      }
+      const qty = Number(offer.qty) || 0;
+      const price = Number(offer.price) || 0;
+      const buy = Math.max(1, parseInt(offer.buy, 10) || 1);
+      const free = Math.max(0, parseInt(offer.free, 10) || 0);
+      const promoMult = (buy + free) / buy;
+      const normalizedQty = qty * factor * promoMult;
+      return { valid: normalizedQty > 0 && price > 0, unit, baseUnit: group.base, qty: normalizedQty, pu: normalizedQty > 0 ? price / normalizedQty : Infinity, promoMult, buy, free };
+    }
+    function perUnit(o, cmp) { return normalizedOffer(o, cmp).pu; }
+    function rankOffers(offers, cmp) {
       if (!offers.length) return [];
-      const sorted = offers.slice().sort((a, b) => perUnit(a) - perUnit(b));
-      const best = perUnit(sorted[0]);
-      const worst = perUnit(sorted[sorted.length - 1]);
+      const sorted = offers.slice().sort((a, b) => perUnit(a, cmp) - perUnit(b, cmp));
+      const best = perUnit(sorted[0], cmp);
+      const worst = perUnit(sorted[sorted.length - 1], cmp);
+      const allEqual = sorted.length > 1 && approxEqual(best, worst);
       return sorted.map((o, i) => {
-        const pu = perUnit(o);
+        const norm = normalizedOffer(o, cmp);
+        const pu = norm.pu;
         const r = best > 0 ? pu / best : 1;
         let tier = "common";
-        if (i === 0) tier = "legendary";
+        if (!allEqual && approxEqual(pu, best)) tier = "legendary";
         else if (r <= 1.12) tier = "epic";
         else if (r <= 1.32) tier = "rare";
-        return { ...o, pu, tier, savePct: worst > 0 ? Math.round((1 - pu / worst) * 100) : 0, isBest: i === 0 };
+        return { ...o, norm, pu, tier, savePct: worst > 0 ? Math.round((1 - pu / worst) * 100) : 0, isBest: !allEqual && approxEqual(pu, best), isEqual: allEqual };
       });
     }
     function fmtUnit(pu) {
@@ -232,33 +347,105 @@
       document.getElementById('cmp-empty').innerHTML = comparisons.length ? '' : `<div class="empty">🔍 ${t('no_items')}</div>`;
       translatePage();
     }
+    function renderAll() { render(); }
     function renderCard(cmp) {
-      const ranked = rankOffers(cmp.offers || []);
+      const ranked = rankOffers(cmp.offers || [], cmp);
       const best = ranked.find(o => o.isBest);
       const enough = ranked.length >= 2;
       return `<div class="cmp-card">
         <div class="cmp-head">
           <span class="cmp-icon">${h(cmp.icon || "🛒")}</span>
-          <div class="cmp-id"><div class="cmp-name">${h(cmp.name)}</div><div class="cmp-unit">${t('per_unit')} ${h(cmp.unit)}</div></div>
+          <div class="cmp-id"><div class="cmp-name">${h(cmp.name)}</div><div class="cmp-unit">${t('per_unit')} ${h(displayUnit(cmp.baseUnit))}</div></div>
           ${enough && best && best.savePct > 0 ? `<div class="cmp-save"><span class="cs-pct">−${best.savePct}%</span><span class="cs-lab">${t('cheaper_by')}</span></div>` : ''}
           <button class="card-del" onclick="deleteComparison(${q(cmp.id)})">×</button>
         </div>
-        ${ranked.length ? `<div class="offer-list">${ranked.map(o => renderOffer(cmp, o)).join('')}</div>` : `<div class="empty">${t('no_offers')}</div>`}
-        <div class="add-offer">
-          <input class="input" id="m-${cmp.id}" placeholder="${h(t('merchant_ph'))}" onkeydown="if(event.key==='Enter')addOffer(${q(cmp.id)})">
-          <span class="num"><span>฿</span><input id="p-${cmp.id}" type="number" inputmode="decimal" placeholder="${h(t('price'))}" onkeydown="if(event.key==='Enter')addOffer(${q(cmp.id)})"></span>
-          <span class="num"><input id="q-${cmp.id}" type="number" inputmode="decimal" placeholder="${h(t('qty'))}" onkeydown="if(event.key==='Enter')addOffer(${q(cmp.id)})"></span>
-          <button class="btn-primary" onclick="addOffer(${q(cmp.id)})">＋</button>
+        ${ranked.length ? `<div class="offer-list">${ranked.map(o => renderOffer(cmp, o, enough)).join('')}</div>` : `<div class="empty">${t('no_offers')}</div>`}
+        ${renderOfferBuilder(cmp)}
+      </div>`;
+    }
+    function renderOffer(cmp, offer, enough) {
+      const r = RARITY[offer.tier];
+      const norm = offer.norm || normalizedOffer(offer, cmp);
+      const pack = normalizeUnit(offer.unit) === 'แพ็ค/กล่อง' && offer.perPack ? ` · ${t('pack_short', { n: fmtQty(offer.perPack) })}` : '';
+      const promo = offer.free > 0 ? ` · ${t('promo_label', { buy: offer.buy || 1, free: offer.free })}` : '';
+      const normalized = norm.valid && (!approxEqual(norm.qty, offer.qty) || normalizeUnit(offer.unit) !== norm.baseUnit || offer.free > 0)
+        ? `<div class="offer-meta">${t('normalized_to', { qty: fmtQty(norm.qty), unit: displayUnit(norm.baseUnit) })}${pack}${promo}</div>` : '';
+      const tag = offer.isEqual ? `<div class="of-tag">${t('badge_equal')}</div>`
+        : enough && offer.isBest ? `<div class="of-tag best-tag">👑 ${t('best_deal')}</div>`
+        : `<div class="of-tag">${h(r[LANG] || r.th)}</div>`;
+      return `<div class="offer-row ${offer.isBest ? 'best' : ''}" style="${rarityStyle(r.hue)}">
+        <div class="of-rarity" title="${h(r[LANG] || r.th)}">${r.glyph}</div>
+        <div class="of-main"><div class="of-merchant">${h(offer.merchant || t('merchant'))}</div><div class="of-detail">${money(offer.price)} · ${fmtQty(offer.qty)} ${h(displayUnit(offer.unit))}</div>${normalized}</div>
+        <div class="of-right"><div class="of-pu">${fmtUnit(offer.pu)}<span class="of-unit">/${h(displayUnit(norm.baseUnit))}</span></div>${tag}</div>
+        <button class="offer-del" onclick="deleteOffer(${q(cmp.id)},${q(offer.id)})">×</button>
+      </div>`;
+    }
+    function defaultDraft(cmp) {
+      return { id: uid(), merchant: '', price: '', qty: '', unit: groupForCmp(cmp).base, perPack: '', buy: '1', free: '0' };
+    }
+    function ensureDrafts(cid) {
+      const cmp = comparisons.find(c => c.id === cid);
+      if (!cmp) return [];
+      if (!draftSlots[cid]) draftSlots[cid] = [defaultDraft(cmp), defaultDraft(cmp)];
+      while (draftSlots[cid].length < 2) draftSlots[cid].push(defaultDraft(cmp));
+      return draftSlots[cid];
+    }
+    function draftComplete(draft, cmp) {
+      if (!draft) return false;
+      const merchant = String(draft.merchant || '').trim();
+      const price = parseFloat(draft.price);
+      const qty = parseFloat(draft.qty);
+      if (!merchant || !(price > 0) || !(qty > 0)) return false;
+      if (normalizeUnit(draft.unit) === 'แพ็ค/กล่อง') {
+        const perPack = parseFloat(draft.perPack);
+        if (!(perPack > 0)) return false;
+      }
+      return normalizedOffer({ ...draft, price, qty }, cmp).valid;
+    }
+    function renderOfferBuilder(cmp) {
+      const slots = ensureDrafts(cmp.id);
+      let unlocked = true;
+      const rows = slots.map((slot, i) => {
+        const locked = !unlocked;
+        unlocked = unlocked && draftComplete(slot, cmp);
+        return renderDraftSlot(cmp, slot, i, locked);
+      }).join('');
+      const completeCount = slots.filter(s => draftComplete(s, cmp)).length;
+      const canAdd = slots.length < MAX_DRAFT_OFFERS && draftComplete(slots[slots.length - 1], cmp);
+      return `<div class="offer-builder" id="builder-${cmp.id}">
+        ${rows}
+        <div class="offer-actions">
+          <span class="offer-hint">${t('offer_count', { n: (cmp.offers || []).length })}</span>
+          <span>
+            ${slots.length > 2 ? `<button class="btn-ghost" onclick="deleteDraftSlot(${q(cmp.id)})">${t('remove_offer_slot')}</button>` : ''}
+            <button class="btn-ghost" onclick="addDraftSlot(${q(cmp.id)})" ${canAdd ? '' : 'disabled'}>${t('add_offer_slot')}</button>
+            <button class="btn-primary" onclick="saveDraftOffers(${q(cmp.id)})" ${completeCount ? '' : 'disabled'}>${t('save_offers')}</button>
+          </span>
         </div>
       </div>`;
     }
-    function renderOffer(cmp, offer) {
-      const r = RARITY[offer.tier];
-      return `<div class="offer-row ${offer.isBest ? 'best' : ''}" style="${rarityStyle(r.hue)}">
-        <div class="of-rarity" title="${h(r[LANG] || r.th)}">${r.glyph}</div>
-        <div class="of-main"><div class="of-merchant">${h(offer.merchant || t('merchant'))}</div><div class="of-detail">${money(offer.price)} · ${Number(offer.qty).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US')} ${h(cmp.unit)}</div></div>
-        <div class="of-right"><div class="of-pu">${fmtUnit(offer.pu)}<span class="of-unit">/${h(cmp.unit)}</span></div>${offer.isBest ? `<div class="of-tag best-tag">👑 ${t('best_deal')}</div>` : `<div class="of-tag">${h(r[LANG] || r.th)}</div>`}</div>
-        <button class="offer-del" onclick="deleteOffer(${q(cmp.id)},${q(offer.id)})">×</button>
+    function renderDraftSlot(cmp, slot, i, locked) {
+      const packOpen = normalizeUnit(slot.unit) === 'แพ็ค/กล่อง';
+      return `<div class="draft-slot ${locked ? 'locked' : ''}" id="slot-${cmp.id}-${i}">
+        <div class="draft-head"><span class="slot-num">${t('offer_slot', { n: i + 1 })}</span>${locked ? `<span class="slot-lock">${t('lock_prev_offer')}</span>` : ''}</div>
+        <div class="draft-body">
+          <input class="input" value="${h(slot.merchant)}" placeholder="${h(t('merchant_ph'))}" oninput="updateDraft(${q(cmp.id)},${i},'merchant',this.value)">
+          <span class="num"><span>฿</span><input value="${h(slot.price)}" type="number" inputmode="decimal" placeholder="${h(t('price'))}" oninput="updateDraft(${q(cmp.id)},${i},'price',this.value)"></span>
+          <span class="num"><input value="${h(slot.qty)}" type="number" inputmode="decimal" placeholder="${h(t('qty'))}" oninput="updateDraft(${q(cmp.id)},${i},'qty',this.value)"></span>
+          <select class="select" onchange="updateDraft(${q(cmp.id)},${i},'unit',this.value)">${unitOptionsFor(cmp, slot.unit)}</select>
+        </div>
+        <div class="draft-extra">
+          <div class="mini-field ${packOpen ? 'show' : ''}" id="pack-${cmp.id}-${i}">
+            <span class="mini-label">${t('field_per_pack')}</span>
+            <span class="num"><input value="${h(slot.perPack)}" type="number" inputmode="decimal" placeholder="${h(t('placeholder_per_pack'))}" oninput="updateDraft(${q(cmp.id)},${i},'perPack',this.value)"></span>
+          </div>
+          <div class="promo-mini">
+            <span class="mini-label">${t('field_promo')}</span>
+            <span class="num"><input value="${h(slot.buy || 1)}" type="number" inputmode="numeric" min="1" step="1" oninput="updateDraft(${q(cmp.id)},${i},'buy',this.value)"></span>
+            <span class="mini-label">${t('promo_sep')}</span>
+            <span class="num"><input value="${h(slot.free || 0)}" type="number" inputmode="numeric" min="0" step="1" oninput="updateDraft(${q(cmp.id)},${i},'free',this.value)"></span>
+          </div>
+        </div>
       </div>`;
     }
     function renderAddCard() {
@@ -269,7 +456,7 @@
           <input class="input" id="new-name" placeholder="${h(t('item_name_ph'))}" onkeydown="if(event.key==='Enter')addComparison()">
         </div>
         <div class="add-item-row">
-          <input class="input" id="new-unit" placeholder="${h(t('unit_ph'))}" onkeydown="if(event.key==='Enter')addComparison()">
+          <select class="select" id="new-unit">${baseUnitOptions('ml')}</select>
           <button class="btn-ghost" onclick="addOpen=false;render()">✕</button>
           <button class="btn-primary" onclick="addComparison()">${t('add_item')}</button>
         </div>
@@ -277,26 +464,85 @@
     }
     function addComparison() {
       const name = document.getElementById('new-name')?.value.trim();
-      const unit = document.getElementById('new-unit')?.value.trim();
+      const unit = normalizeUnit(document.getElementById('new-unit')?.value);
       if (!name) { toast(t('err_desc')); return; }
-      comparisons.unshift({ id: uid(), name, unit: unit || (LANG === 'en' ? 'unit' : 'หน่วย'), icon: draftIcon, offers: [] });
+      const group = groupOf(unit) || UNIT_GROUPS[0];
+      comparisons.unshift({ id: uid(), name, baseUnit: group.base, icon: draftIcon, offers: [] });
       addOpen = false; draftIcon = ITEM_ICONS[0]; saveState(); render();
     }
     function deleteComparison(id) {
       comparisons = comparisons.filter(c => c.id !== id);
       saveState(); render();
     }
-    function addOffer(id) {
-      const m = document.getElementById('m-' + id)?.value.trim();
-      const price = parseFloat(document.getElementById('p-' + id)?.value);
-      const qty = parseFloat(document.getElementById('q-' + id)?.value);
-      if (!price || !qty || price <= 0 || qty <= 0) { toast(t('err_amount')); return; }
-      comparisons = comparisons.map(c => c.id === id ? { ...c, offers: [...c.offers, { id: uid(), merchant: m || t('merchant'), price, qty }] } : c);
-      saveState(); render();
-    }
     function deleteOffer(cid, oid) {
       comparisons = comparisons.map(c => c.id === cid ? { ...c, offers: c.offers.filter(o => o.id !== oid) } : c);
       saveState(); render();
+    }
+    function updateDraft(cid, idx, field, value) {
+      const cmp = comparisons.find(c => c.id === cid);
+      if (!cmp) return;
+      const slots = ensureDrafts(cid);
+      slots[idx][field] = value;
+      if (field === 'unit') {
+        const pack = document.getElementById(`pack-${cid}-${idx}`);
+        if (pack) pack.classList.toggle('show', normalizeUnit(value) === 'แพ็ค/กล่อง');
+      }
+      updateDraftState(cid);
+    }
+    function updateDraftState(cid) {
+      const cmp = comparisons.find(c => c.id === cid);
+      if (!cmp) return;
+      const slots = ensureDrafts(cid);
+      let unlocked = true;
+      slots.forEach((slot, i) => {
+        const el = document.getElementById(`slot-${cid}-${i}`);
+        if (el) el.classList.toggle('locked', !unlocked);
+        unlocked = unlocked && draftComplete(slot, cmp);
+      });
+      const builder = document.getElementById(`builder-${cid}`);
+      if (!builder) return;
+      const buttons = builder.querySelectorAll('.offer-actions button');
+      const completeCount = slots.filter(s => draftComplete(s, cmp)).length;
+      if (buttons.length) {
+        const addBtn = Array.from(buttons).find(btn => btn.textContent === t('add_offer_slot'));
+        const saveBtn = Array.from(buttons).find(btn => btn.textContent === t('save_offers'));
+        if (addBtn) addBtn.disabled = !(slots.length < MAX_DRAFT_OFFERS && draftComplete(slots[slots.length - 1], cmp));
+        if (saveBtn) saveBtn.disabled = completeCount < 1;
+      }
+    }
+    function addDraftSlot(cid) {
+      const cmp = comparisons.find(c => c.id === cid);
+      const slots = ensureDrafts(cid);
+      if (!cmp || slots.length >= MAX_DRAFT_OFFERS) { toast(t('max_offers')); return; }
+      if (!draftComplete(slots[slots.length - 1], cmp)) { toast(t('err_offer_incomplete')); return; }
+      slots.push(defaultDraft(cmp));
+      render();
+    }
+    function deleteDraftSlot(cid) {
+      const slots = ensureDrafts(cid);
+      if (slots.length <= 2) return;
+      slots.pop();
+      render();
+    }
+    function saveDraftOffers(cid) {
+      const cmp = comparisons.find(c => c.id === cid);
+      const slots = ensureDrafts(cid);
+      if (!cmp) return;
+      const complete = slots.filter(s => draftComplete(s, cmp));
+      if (!complete.length) { toast(t('err_no_complete_offer')); return; }
+      const offers = complete.map(s => ({
+        id: uid(),
+        merchant: String(s.merchant || '').trim(),
+        price: parseFloat(s.price),
+        qty: parseFloat(s.qty),
+        unit: normalizeUnit(s.unit),
+        perPack: parseFloat(s.perPack) || 0,
+        buy: Math.max(1, parseInt(s.buy, 10) || 1),
+        free: Math.max(0, parseInt(s.free, 10) || 0)
+      }));
+      comparisons = comparisons.map(c => c.id === cid ? { ...c, offers: [...(c.offers || []), ...offers] } : c);
+      draftSlots[cid] = [defaultDraft(cmp), defaultDraft(cmp)];
+      saveState(); render(); toast(t('offers_saved', { n: offers.length }));
     }
     function toast(msg) {
       const el = document.getElementById('toast');
