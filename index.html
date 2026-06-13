@@ -561,6 +561,7 @@
       if (!complete.length) { toast(t('err_no_complete_offer')); return; }
       const offers = complete.map(s => ({
         id: uid(),
+        merchant: String(s.merchant || '').trim(),
         price: parseFloat(s.price),
         qty: parseFloat(s.qty),
         unit: normalizeUnit(s.unit),
