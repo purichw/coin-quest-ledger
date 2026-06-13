@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" shape-rendering="crispEdges" role="img" aria-label="Gold loot chest">
+  <style>
+    .loot-glint {
+      transform-origin: 16px 4px;
+      animation: loot-twinkle 2.8s ease-in-out infinite;
+    }
+    @keyframes loot-twinkle {
+      0%, 62%, 100% { opacity: 0; transform: scale(0.4); }
+      72% { opacity: 1; transform: scale(1.15); }
+      84% { opacity: 0.7; transform: scale(0.85); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .loot-glint { animation: none; opacity: 0.9; }
+    }
+  </style>
+
+  <g>
+    <rect x="1" y="18" width="5" height="5" rx="1" fill="#2c1a0c" />
+    <rect x="2" y="19" width="3" height="3" fill="#f2c544" />
+    <rect x="2" y="19" width="3" height="1" fill="#ffe79c" />
+  </g>
+  <g>
+    <rect x="18" y="18" width="5" height="5" rx="1" fill="#2c1a0c" />
+    <rect x="19" y="19" width="3" height="3" fill="#f2c544" />
+    <rect x="19" y="19" width="3" height="1" fill="#ffe79c" />
+  </g>
+  <g>
+    <rect x="15" y="19" width="5" height="4" rx="1" fill="#2c1a0c" />
+    <rect x="16" y="20" width="3" height="2" fill="#f2c544" />
+    <rect x="16" y="20" width="3" height="1" fill="#ffe79c" />
+  </g>
+
+  <rect x="3" y="1" width="18" height="8" rx="2" fill="#2c1a0c" />
+  <rect x="4" y="2" width="16" height="6" fill="#7a4a22" />
+  <rect x="4" y="2" width="16" height="2" fill="#9a6230" />
+  <rect x="11" y="2" width="2" height="6" fill="#5e3818" />
+  <rect x="3" y="7" width="18" height="3" rx="1" fill="#b07d1c" />
+  <rect x="3" y="7" width="18" height="1" fill="#f2c544" />
+
+  <rect x="5" y="8" width="14" height="3" fill="#e8b73a" />
+  <rect x="6" y="7" width="12" height="2" fill="#f2c544" />
+  <rect x="7" y="6" width="4" height="2" fill="#ffe79c" />
+  <rect x="13" y="7" width="3" height="1" fill="#ffe79c" />
+  <rect x="8" y="6" width="2" height="2" rx="1" fill="#ffe79c" />
+  <rect x="14" y="6" width="2" height="2" rx="1" fill="#fff4cf" />
+
+  <rect x="3" y="10" width="18" height="12" rx="2" fill="#2c1a0c" />
+  <rect x="4" y="11" width="16" height="10" fill="#7a4a22" />
+  <rect x="4" y="11" width="16" height="2" fill="#9a6230" />
+  <rect x="5" y="11" width="2" height="10" fill="#b07d1c" />
+  <rect x="17" y="11" width="2" height="10" fill="#b07d1c" />
+  <rect x="5" y="11" width="1" height="10" fill="#d9a334" />
+  <rect x="17" y="11" width="1" height="10" fill="#d9a334" />
+  <rect x="4" y="20" width="16" height="1" fill="#b07d1c" />
+  <rect x="10" y="13" width="4" height="5" rx="1" fill="#2c1a0c" />
+  <rect x="10" y="13" width="4" height="4" rx="1" fill="#f2c544" />
+  <rect x="10" y="13" width="4" height="1" fill="#ffe79c" />
+  <rect x="11" y="15" width="2" height="2" fill="#2c1a0c" />
+
+  <g class="loot-glint">
+    <rect x="17" y="2" width="1" height="5" fill="#fff4cf" />
+    <rect x="15" y="4" width="5" height="1" fill="#fff4cf" />
+  </g>
+</svg>
