@@ -150,6 +150,7 @@ var T = {
     no_items: 'ยังไม่มีไอเทม — เริ่มล่าดีลกันเลย!',
     merchant: 'ตัวเลือก',
     merchant_ph: 'ร้าน / ขนาด / แพ็ก',
+    option_note_ph: 'ชื่อ/โน้ต (ไม่บังคับ)',
     price: 'ราคา',
     qty: 'ปริมาณ',
     item: 'ไอเทม',
@@ -170,6 +171,9 @@ var T = {
     err_offer_incomplete: 'กรอกแถวตัวเลือกล่าสุดให้ครบก่อน',
     err_no_complete_offer: 'กรอกข้อมูลตัวเลือกให้ครบอย่างน้อย 1 แถว',
     offers_saved: 'บันทึก {n} ตัวเลือกแล้ว ✓',
+    required_price_qty: 'ต้องกรอกราคา + ปริมาณ',
+    show_advanced: '+ โปร / แพ็ก',
+    hide_advanced: 'ซ่อนโปร / แพ็ก',
   },
   en: {
     nav_compare: 'Compare Prices',
@@ -320,6 +324,7 @@ var T = {
     no_items: 'No items yet — start hunting deals!',
     merchant: 'Option',
     merchant_ph: 'Shop / size / pack',
+    option_note_ph: 'Name/note (optional)',
     price: 'Price',
     qty: 'Qty',
     item: 'Item',
@@ -340,6 +345,9 @@ var T = {
     err_offer_incomplete: 'Complete the latest option row first',
     err_no_complete_offer: 'Complete at least 1 option row',
     offers_saved: 'Saved {n} options ✓',
+    required_price_qty: 'Price + qty required',
+    show_advanced: '+ Promo / pack',
+    hide_advanced: 'Hide promo / pack',
   }
 };
 
