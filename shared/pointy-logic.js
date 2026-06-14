@@ -165,6 +165,43 @@
 
   function normalizeTripState(data, opts = {}) {
     const questIcons = opts.questIcons || [];
+    const normalizeExpense = e => {
+      const desc = e.desc || e.name || opts.questFallback || '';
+      const split = e.split && typeof e.split === 'object' ? {
+        ...e.split,
+        items: Array.isArray(e.split.items) ? e.split.items.map(it => ({
+          name: String(it.name || '').trim(),
+          amount: Number(it.amount) || 0,
+          claimedBy: Array.isArray(it.claimedBy) ? it.claimedBy : []
+        })).filter(it => it.amount > 0) : undefined
+      } : undefined;
+      return {
+        id: e.id || Date.now() + Math.random(),
+        desc,
+        icon: e.icon || (questIcons.length ? questIcons[hashOf(desc) % questIcons.length] : ''),
+        amount: Number(e.amount) || 0,
+        paidBy: e.paidBy || e.payer || '',
+        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : []),
+        payers: e.payers && typeof e.payers === 'object' ? e.payers : undefined,
+        split,
+        receipt: typeof e.receipt === 'string' ? e.receipt : undefined,
+        date: typeof e.date === 'string' ? e.date : undefined
+      };
+    };
+    const normalizeCampaign = c => ({
+      id: c?.id || `camp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      tripName: c?.tripName || data?.tripName || opts.defaultTripName || '',
+      participants: Array.isArray(c?.participants) ? c.participants : [],
+      expenses: Array.isArray(c?.expenses) ? c.expenses.map(normalizeExpense).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length) : [],
+      budgets: c?.budgets || {},
+      heroClasses: Object.fromEntries(Object.entries(c?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
+      heroGenders: c?.heroGenders || {},
+      characterIds: c?.characterIds || {},
+      promptpay: c?.promptpay || {},
+      settleXp: c?.settleXp || {},
+      createdAt: c?.createdAt || Date.now(),
+      completedAt: c?.completedAt || null
+    });
     const out = {
       tripName: data?.tripName || opts.defaultTripName || '',
       participants: Array.isArray(data?.participants) ? data.participants : [],
@@ -174,6 +211,9 @@
       heroGenders: data?.heroGenders || {},
       settleXp: data?.settleXp || {},
       characterIds: data?.characterIds || {},
+      promptpay: data?.promptpay || {},
+      activeCampaignId: data?.activeCampaignId || data?.activeId || '',
+      campaigns: Array.isArray(data?.campaigns) ? data.campaigns.map(normalizeCampaign) : [],
       admin: {
         passwordHash: data?.admin?.passwordHash || '',
         createdAt: data?.admin?.createdAt || null,
@@ -181,19 +221,7 @@
       },
       settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true, ...(data?.settings || {}) }
     };
-    out.expenses = out.expenses.map(e => {
-      const desc = e.desc || e.name || opts.questFallback || '';
-      return {
-        id: e.id || Date.now() + Math.random(),
-        desc,
-        icon: e.icon || (questIcons.length ? questIcons[hashOf(desc) % questIcons.length] : ''),
-        amount: Number(e.amount) || 0,
-        paidBy: e.paidBy || e.payer || '',
-        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : []),
-        payers: e.payers && typeof e.payers === 'object' ? e.payers : undefined,
-        split: e.split && typeof e.split === 'object' ? e.split : undefined
-      };
-    }).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length);
+    out.expenses = out.expenses.map(normalizeExpense).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length);
     return out;
   }
 
@@ -225,6 +253,19 @@
     if (!parts.length) return out;
     const mode = e.split?.mode || 'equal';
     const weights = e.split?.weights || {};
+    if (mode === 'items') {
+      const items = Array.isArray(e.split?.items) ? e.split.items : [];
+      items.forEach(it => {
+        const amount = Math.max(0, Number(it.amount) || 0);
+        if (!amount) return;
+        let claim = (Array.isArray(it.claimedBy) ? it.claimedBy : []).filter(name => !validNames || validNames.includes(name));
+        if (!claim.length) claim = parts;
+        if (!claim.length) return;
+        const per = amount / claim.length;
+        claim.forEach(name => { out[name] = (out[name] || 0) + per; });
+      });
+      return out;
+    }
     if (mode === 'exact') {
       let sum = 0;
       parts.forEach(name => {

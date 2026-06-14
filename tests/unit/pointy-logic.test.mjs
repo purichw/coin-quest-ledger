@@ -76,6 +76,26 @@ test('payerMap prefers valid multi-payer data and falls back to paidBy', () => {
   assert.deepEqual(plain(logic.payerMap({ amount: 100, paidBy: 'Shane', payers: { Pointy: 0 } })), { Shane: 100 });
 });
 
+test('splitShares supports itemized loot claimers and unclaimed fallback', () => {
+  const names = ['Shane', 'Pointy', 'Arm'];
+  const shares = logic.splitShares({
+    amount: 600,
+    sharedBy: names,
+    split: {
+      mode: 'items',
+      items: [
+        { name: 'Sushi', amount: 300, claimedBy: ['Shane', 'Pointy'] },
+        { name: 'Tea', amount: 150, claimedBy: ['Arm'] },
+        { name: 'Snack', amount: 150, claimedBy: [] }
+      ]
+    }
+  }, names);
+
+  closeTo(shares.Shane, 200);
+  closeTo(shares.Pointy, 200);
+  closeTo(shares.Arm, 200);
+});
+
 test('computeParty calculates paid, share, balance, XP, and settlement', () => {
   const state = {
     participants: ['Shane', 'Pointy'],

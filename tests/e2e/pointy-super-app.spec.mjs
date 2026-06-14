@@ -146,11 +146,50 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await expect(page.locator('#party-grid')).toContainText('−฿300');
   await expect(page.locator('#settle-body')).toContainText('฿300');
 
-  await page.getByRole('button', { name: '♥ ชำระแล้ว' }).click();
+  await page.getByRole('button', { name: /ส่งบรรณาการ/ }).click();
+  await expect(page.getByText('ตั้งพร้อมเพย์ของผู้รับก่อนสร้าง QR')).toBeVisible();
+  await page.locator('#promptpay-input').fill('0812345678');
+  await page.getByRole('button', { name: 'บันทึกพร้อมเพย์' }).click();
+  await expect(page.getByText('สแกนเพื่อจ่าย')).toBeVisible();
+  await expect(page.locator('.qr-svg')).toBeVisible();
+  await page.getByRole('button', { name: /ยืนยันชำระแล้ว/ }).click();
   await expect(page.locator('#settle-body')).toContainText('ปาร์ตี้สมดุลแล้ว');
   await expect(page.getByText('ผ่านเควสแล้ว!')).toBeVisible();
   await expect(page.locator('#party-grid')).toContainText('500/600');
   await expect(page.locator('#party-grid')).toContainText('400/600');
+});
+
+test('expense splitter supports itemized loot split, receipt date, and quest board campaigns', async ({ page }) => {
+  await gotoFreshTrip(page, 'loot-board');
+  await addWarrior(page, 'Shane');
+  await addWarrior(page, 'Pointy');
+
+  await page.locator('#exp-desc').fill('Market loot');
+  await page.getByRole('button', { name: 'แยกของ' }).click();
+  await page.locator('.loot-name').first().fill('Sushi');
+  await page.locator('.loot-amount').first().fill('300');
+  await page.locator('.loot-row').first().getByRole('button', { name: /Shane/ }).click();
+  await page.getByRole('button', { name: /เพิ่มของ/ }).click();
+  await page.locator('.loot-name').nth(1).fill('Snacks');
+  await page.locator('.loot-amount').nth(1).fill('100');
+  await expect(page.locator('#exp-amount')).toHaveValue('400');
+  await page.locator('#exp-date').fill('2026-06-14T18:30');
+  await page.getByRole('button', { name: '⚔️ บันทึกเควส' }).click();
+
+  await expect(page.locator('#quest-log')).toContainText('แยกของ');
+  await expect(page.locator('#quest-log')).toContainText('Shane ฿350');
+  await expect(page.locator('#quest-log')).toContainText('Pointy ฿50');
+  await expect(page.locator('#party-total')).toHaveText('฿400');
+
+  await page.getByRole('button', { name: /กระดานเควส/ }).click();
+  await expect(page.getByText('กระดานเควส').last()).toBeVisible();
+  await expect(page.locator('.board-card')).toHaveCount(1);
+  await page.getByRole('button', { name: /เริ่มแคมเปญใหม่/ }).click();
+  await expect(page.locator('#party-count')).toHaveText('2');
+  await expect(page.locator('#expense-count')).toHaveText('0');
+
+  await page.getByRole('button', { name: /กระดานเควส/ }).click();
+  await expect(page.locator('.board-card')).toHaveCount(2);
 });
 
 test('expense splitter imports text, switches settings, and avoids mobile overflow', async ({ page }) => {
