@@ -173,7 +173,13 @@
       heroClasses: Object.fromEntries(Object.entries(data?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
       heroGenders: data?.heroGenders || {},
       settleXp: data?.settleXp || {},
-      settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, ...(data?.settings || {}) }
+      characterIds: data?.characterIds || {},
+      admin: {
+        passwordHash: data?.admin?.passwordHash || '',
+        createdAt: data?.admin?.createdAt || null,
+        urlLocked: !!data?.admin?.urlLocked
+      },
+      settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true, ...(data?.settings || {}) }
     };
     out.expenses = out.expenses.map(e => {
       const desc = e.desc || e.name || opts.questFallback || '';
@@ -246,6 +252,7 @@
     const budgets = state.budgets || {};
     const settleXp = state.settleXp || {};
     const classOf = opts.classOf || (() => PointyLogic.CLASS_ORDER[0]);
+    const baseXp = opts.baseXp || (() => 0);
     const stat = {};
     participants.forEach(name => { stat[name] = { paid: 0, share: 0, gen: 0, quests: 0 }; });
     expenses.forEach(e => {
@@ -268,7 +275,7 @@
       const budget = Number(budgets[name]) || 3000;
       const remaining = budget - s.share;
       const hp = Math.max(0, Math.min(100, Math.round((remaining / budget) * 100)));
-      const xp = Math.round(s.gen + (Number(settleXp[name]) || 0));
+      const xp = Math.round((Number(baseXp(name)) || 0) + s.gen + (Number(settleXp[name]) || 0));
       const level = levelFromXp(xp);
       return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen), quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
     });

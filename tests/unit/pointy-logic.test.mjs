@@ -105,6 +105,18 @@ test('computeParty calculates paid, share, balance, XP, and settlement', () => {
   assert.deepEqual(plain(logic.settleUp(party)), [{ from: 'Pointy', to: 'Shane', amount: 300 }]);
 });
 
+test('computeParty can add cross-trip base XP for character progress', () => {
+  const party = logic.computeParty({
+    participants: ['Shane'],
+    budgets: {},
+    settleXp: { Shane: 50 },
+    expenses: [{ amount: 100, paidBy: 'Shane', sharedBy: ['Shane'] }]
+  }, { classOf: () => 'warrior', baseXp: name => name === 'Shane' ? 700 : 0 });
+
+  assert.equal(party[0].xp, 750);
+  assert.equal(party[0].level.lvl, 2);
+});
+
 test('normalizeTripState keeps legacy trip data compatible', () => {
   const state = logic.normalizeTripState({
     participants: ['A'],

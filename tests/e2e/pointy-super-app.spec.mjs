@@ -74,6 +74,42 @@ test('expense splitter requires explicit hero choice and locks the confirmed cha
   await expect(page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' })).toHaveCount(0);
 });
 
+test('expense splitter supports admin URL setup, character IDs, admin unlock, and quick toggles', async ({ page }) => {
+  await gotoFreshTrip(page, 'admin-setup');
+  const slug = `party-${Math.random().toString(36).slice(2, 10)}`;
+
+  await page.getByRole('button', { name: /ตั้งค่าแอดมิน/ }).click();
+  await page.locator('#admin-url-id').fill(slug);
+  await page.locator('#admin-pass-new').fill('hero-pass');
+  await page.getByRole('button', { name: 'สร้างแอดมิน' }).click();
+  await expect(page).toHaveURL(new RegExp(`/trip/\\?id=${slug}&test=1$`));
+  await page.locator('.picker-close').click();
+
+  await addWarrior(page, 'Shane');
+  await expect(page.locator('#party-grid')).toContainText(/#\d{4}/);
+
+  await page.locator('#quick-toggles button').nth(1).click();
+  await expect(page.locator('body')).toHaveClass(/no-animations/);
+  await page.locator('#quick-toggles button').first().click();
+  await expect(page.locator('#quick-toggles button').first()).toHaveAttribute('aria-pressed', 'false');
+  await page.waitForTimeout(900);
+  await expect(page.locator('#save-status')).toContainText('บันทึกแล้ว');
+
+  await page.evaluate(() => {
+    Object.keys(sessionStorage)
+      .filter(key => key.startsWith('pointy_admin_unlocked_'))
+      .forEach(key => sessionStorage.removeItem(key));
+  });
+  await expect(page.locator('#party-grid')).toContainText('Shane');
+  await expect(page.locator('#party-grid')).toContainText(/#\d{4}/);
+
+  await page.getByLabel('Settings').click();
+  await expect(page.getByText('ปลดล็อกเพื่อดูและแก้ไขข้อมูลแอดมิน')).toBeVisible();
+  await page.locator('#admin-pass').fill('hero-pass');
+  await page.getByRole('button', { name: 'ปลดล็อก' }).click();
+  await expect(page.locator('.admin-table')).toContainText('Shane');
+});
+
 test('expense splitter supports duplicate avatars, multi-payer exact split, settlement XP, and victory', async ({ page }) => {
   await gotoFreshTrip(page, 'expense-math');
   await addWarrior(page, 'Shane');

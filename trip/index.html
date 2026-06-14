@@ -62,6 +62,11 @@
         var(--bg);
       -webkit-font-smoothing: antialiased;
     }
+    body.no-animations *, body.no-animations *::before, body.no-animations *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
     button, input, select { font-family: inherit; }
     button { cursor: pointer; }
     .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
@@ -237,10 +242,23 @@
     .import-actions { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: 14px; flex-wrap: wrap; }
     .modal-divider { margin: 15px 0; border: 0; border-top: 1px dashed var(--border); }
     .settings-fab { position: fixed; right: 18px; bottom: 18px; z-index: 45; width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-size: 20px; }
+    .quick-toggles { position: fixed; right: 14px; top: 72px; z-index: 44; display: flex; flex-direction: column; gap: 8px; }
+    .quick-toggle { width: 38px; height: 38px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
+    .quick-toggle.off { opacity: .55; filter: grayscale(.35); }
     .settings-grid { display: grid; gap: 15px; }
     .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
     .settings-label { color: var(--ink); font-weight: 600; }
     .settings-sub { color: var(--ink-soft); font-size: 11px; }
+    .settings-section { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 10px; }
+    .admin-box { border: 1.5px solid var(--border); border-radius: 14px; background: var(--panel-in); padding: 12px; display: grid; gap: 10px; }
+    .admin-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow: hidden; border-radius: 10px; }
+    .admin-table th, .admin-table td { border-bottom: 1px solid var(--border); padding: 7px 6px; text-align: left; vertical-align: middle; }
+    .admin-table th { color: var(--ink-soft); font-size: 10px; font-family: var(--font-stat); text-transform: uppercase; letter-spacing: .6px; }
+    .admin-table tr:last-child td { border-bottom: 0; }
+    .admin-id-input { width: 68px; border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--panel); color: var(--ink); padding: 5px 7px; font-family: var(--font-stat); font-weight: 700; text-align: center; }
+    .admin-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .char-id { display: inline-flex; align-items: center; margin-left: 7px; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink-soft); font-family: var(--font-stat); font-size: 10px; font-weight: 700; vertical-align: middle; }
     .setting-seg { display: flex; padding: 3px; border-radius: 9px; background: var(--panel-2); }
     .setting-seg button { border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft); padding: 6px 10px; font-size: 12px; }
     .setting-seg button.on { background: var(--accent); color: #fff; }
@@ -422,6 +440,10 @@
       .split-seg { width: 100%; overflow-x: auto; }
       .split-seg button { flex: 1; white-space: nowrap; }
       .settings-fab { right: 12px; bottom: 12px; }
+      .quick-toggles { right: 10px; top: 58px; flex-direction: row; }
+      .quick-toggle { width: 34px; height: 34px; border-radius: 10px; }
+      .admin-row { grid-template-columns: 1fr; }
+      .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
       .vc-recap { flex-wrap: wrap; }
     }
   </style>
@@ -517,6 +539,7 @@
   </main>
 
   <div class="toast" id="toast"></div>
+  <div class="quick-toggles" id="quick-toggles"></div>
   <button class="settings-fab" type="button" onclick="openSettings()" aria-label="Settings" title="Settings">⚙</button>
   <div id="app-overlays"></div>
 
@@ -535,17 +558,19 @@
       history.replaceState(null, '', '?id=' + tripId);
     }
     if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
-    const tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+    let tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
 
     function cloudTripRef(id) {
-      firebase.initializeApp({
-        apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
-        authDomain: "pointy-personal-toolkit.firebaseapp.com",
-        projectId: "pointy-personal-toolkit",
-        storageBucket: "pointy-personal-toolkit.firebasestorage.app",
-        messagingSenderId: "901775387853",
-        appId: "1:901775387853:web:030f47acc78c71a5548d84"
-      });
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
+          authDomain: "pointy-personal-toolkit.firebaseapp.com",
+          projectId: "pointy-personal-toolkit",
+          storageBucket: "pointy-personal-toolkit.firebasestorage.app",
+          messagingSenderId: "901775387853",
+          appId: "1:901775387853:web:030f47acc78c71a5548d84"
+        });
+      }
       return firebase.firestore().collection('trips').doc(id);
     }
     function testTripRef(id) {
@@ -563,6 +588,7 @@
     }
 
     const QUEST_ICONS = ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
+    const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
     const CLASS_ORDER = PointyLogic.CLASS_ORDER;
     const CLASSES = PointyLogic.CLASSES;
     const LEVEL_STEP = PointyLogic.LEVEL_STEP;
@@ -584,8 +610,10 @@
       budgets: {},
       heroClasses: {},
       heroGenders: {},
+      characterIds: {},
       settleXp: {},
-      settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true }
+      admin: { passwordHash: '', createdAt: null, urlLocked: false },
+      settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
     };
     let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all';
     let _resetEntryDraft = false;
@@ -596,6 +624,7 @@
     let _splitMode = 'equal', _payerMode = 'one', _splitWeights = {}, _payerAmounts = {};
     let _overlay = null, _prevOutstanding = null;
     let _audioCtx = null;
+    let _characterRegistry = {};
 
     function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
     function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -603,6 +632,120 @@
     function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
     function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
     function hashOf(name) { return PointyLogic.hashOf(name); }
+    function adminHash(pass) { return String(hashOf(`pointy:${pass || ''}:admin`)); }
+    function adminSessionKey() { return `pointy_admin_unlocked_${tripId}`; }
+    function isAdminConfigured() { return !!S.admin?.passwordHash; }
+    function isAdminUnlocked() { return !isAdminConfigured() || sessionStorage.getItem(adminSessionKey()) === '1'; }
+    function canChangeTripUrl() { return !S.participants.length && !S.expenses.length && !S.admin?.urlLocked; }
+    function sanitizeTripSlug(value) {
+      return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 36);
+    }
+    function tripLinkFor(id = tripId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('id', id);
+      if (TEST_MODE) url.searchParams.set('test', '1');
+      else url.searchParams.delete('test');
+      return url.toString();
+    }
+    function readLocalRegistry() {
+      try {
+        const data = JSON.parse(localStorage.getItem(CHARACTER_REGISTRY_KEY) || '{}');
+        return data && typeof data === 'object' ? data : {};
+      } catch (_) {
+        return {};
+      }
+    }
+    function writeLocalRegistry(registry) {
+      try { localStorage.setItem(CHARACTER_REGISTRY_KEY, JSON.stringify(registry)); } catch (_) {}
+    }
+    async function loadCharacterRegistry(ids = []) {
+      _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry };
+      if (!TEST_MODE && ids.length) {
+        await Promise.all([...new Set(ids.filter(Boolean))].map(async id => {
+          try {
+            const snap = await firebase.firestore().collection('characters').doc(id).get();
+            if (snap.exists) _characterRegistry[id] = { ...(_characterRegistry[id] || {}), ...snap.data(), id };
+          } catch (err) {
+            console.warn('Character registry load failed', id, err);
+          }
+        }));
+      }
+      writeLocalRegistry(_characterRegistry);
+    }
+    function persistCharacterRecord(rec) {
+      _characterRegistry[rec.id] = rec;
+      writeLocalRegistry(_characterRegistry);
+      if (!TEST_MODE) {
+        firebase.firestore().collection('characters').doc(rec.id).set({ ...rec, updatedAt: Date.now() }, { merge: true }).catch(err => {
+          console.warn('Character registry save failed', rec.id, err);
+        });
+      }
+    }
+    function deleteCharacterRecord(id) {
+      delete _characterRegistry[id];
+      writeLocalRegistry(_characterRegistry);
+      if (!TEST_MODE) {
+        firebase.firestore().collection('characters').doc(id).delete().catch(err => {
+          console.warn('Character registry delete failed', id, err);
+        });
+      }
+    }
+    function generateCharacterId() {
+      const registry = { ...readLocalRegistry(), ..._characterRegistry };
+      const used = new Set([...Object.keys(registry), ...Object.values(S.characterIds || {})].map(String));
+      for (let i = 0; i < 2000; i++) {
+        const id = String(Math.floor(1000 + Math.random() * 9000));
+        if (!used.has(id)) return id;
+      }
+      for (let n = 1000; n <= 9999; n++) {
+        const id = String(n);
+        if (!used.has(id)) return id;
+      }
+      return String(Math.floor(1000 + Math.random() * 9000));
+    }
+    function ensureCharacterId(name) {
+      S.characterIds ||= {};
+      if (!S.characterIds[name]) S.characterIds[name] = generateCharacterId();
+      return S.characterIds[name];
+    }
+    function ensureAllCharacterIds() {
+      let changed = false;
+      S.participants.forEach(name => {
+        if (!S.characterIds?.[name]) {
+          ensureCharacterId(name);
+          changed = true;
+        }
+      });
+      Object.keys(S.characterIds || {}).forEach(name => {
+        if (!S.participants.includes(name)) {
+          delete S.characterIds[name];
+          changed = true;
+        }
+      });
+      return changed;
+    }
+    function characterBaseXp(name) {
+      const id = S.characterIds?.[name];
+      if (!id) return 0;
+      const rec = _characterRegistry[id] || readLocalRegistry()[id];
+      if (!rec?.trips) return Number(rec?.xp) || 0;
+      return Object.entries(rec.trips).reduce((sum, [id, xp]) => id === tripId ? sum : sum + (Number(xp) || 0), 0);
+    }
+    function syncCharacterRegistry(party) {
+      party.forEach(hero => {
+        const id = ensureCharacterId(hero.name);
+        const rec = _characterRegistry[id] || { id, trips: {}, createdAt: Date.now() };
+        const before = JSON.stringify(rec);
+        const base = characterBaseXp(hero.name);
+        rec.name = hero.name;
+        rec.class = hero.cls;
+        rec.gender = genderOf(hero.name);
+        rec.trips = { ...(rec.trips || {}), [tripId]: Math.max(0, Math.round(hero.xp - base)) };
+        rec.xp = Object.values(rec.trips).reduce((sum, xp) => sum + (Number(xp) || 0), 0);
+        rec.updatedAt = Date.now();
+        if (before !== JSON.stringify(rec)) persistCharacterRecord(rec);
+      });
+    }
     function normalizeClass(cls) { return PointyLogic.normalizeClass(cls); }
     function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]); }
     function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
@@ -695,7 +838,7 @@
     }
     function payerMap(e) { return PointyLogic.payerMap(e); }
     function splitShares(e, validNames = null) { return PointyLogic.splitShares(e, validNames); }
-    function computeParty() { return PointyLogic.computeParty(S, { classOf }); }
+    function computeParty() { return PointyLogic.computeParty(S, { classOf, baseXp: characterBaseXp }); }
     function settleUp(party) { return PointyLogic.settleUp(party); }
     function detectLevelUps(party) {
       party.forEach(p => {
@@ -719,31 +862,44 @@
     function save() {
       setSaveStatus('saving', t('status_saving'));
       clearTimeout(_saveTimer);
-      _saveTimer = setTimeout(async () => {
-        try {
-          await tripRef.set({ ...S, updatedAt: TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp() });
-          setSaveStatus('saved', t('status_saved'));
-        } catch (err) {
-          console.error('Save failed', err);
-          setSaveStatus('error', t('status_save_err'));
-        }
-      }, 800);
+      _saveTimer = setTimeout(writeState, 800);
+    }
+    async function saveNow() {
+      setSaveStatus('saving', t('status_saving'));
+      clearTimeout(_saveTimer);
+      await writeState();
+    }
+    async function writeState() {
+      try {
+        await tripRef.set({ ...S, updatedAt: TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp() });
+        setSaveStatus('saved', t('status_saved'));
+      } catch (err) {
+        console.error('Save failed', err);
+        setSaveStatus('error', t('status_save_err'));
+      }
     }
     function applySettings() {
       document.body.dataset.theme = S.settings.theme || 'tavern';
+      document.body.classList.toggle('no-animations', S.settings.animations === false);
       document.documentElement.style.setProperty('--accent', S.settings.accent || '#2f8f5b');
+      renderQuickToggles();
     }
     async function load() {
       setSaveStatus('saving', t('status_loading'));
+      let migrated = false;
       try {
         const snap = await tripRef.get();
         if (snap.exists) {
           S = normalizeState(snap.data());
+          migrated = ensureAllCharacterIds();
+          await loadCharacterRegistry(Object.values(S.characterIds || {}));
         } else {
+          await loadCharacterRegistry();
           _overlay = 'onboarding';
         }
         applySettings();
         setSaveStatus('saved', t('status_saved'));
+        if (migrated) save();
       } catch (err) {
         console.error('Load failed', err);
         setSaveStatus('error', t('status_load_err'));
@@ -787,6 +943,7 @@
       if (!name || !_addHeroClass || !_addHeroGender) return;
       if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
       S.participants.push(name);
+      S.characterIds[name] = generateCharacterId();
       S.heroClasses[name] = _addHeroClass;
       S.heroGenders[name] = _addHeroGender;
       S.budgets[name] = 3000;
@@ -800,7 +957,7 @@
       _addHeroGender = null;
       _addHeroCustom = null;
       SFX.click();
-      save(); renderAll();
+      saveNow(); renderAll();
     }
     function removeParticipant(name) {
       const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name) || Number(e.payers?.[name]) > 0);
@@ -819,6 +976,7 @@
         };
       }).filter(e => e.sharedBy.length > 0 && (e.paidBy !== name || Object.keys(e.payers || {}).length > 0));
       delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.settleXp[name];
+      delete S.characterIds[name];
       try { localStorage.removeItem(customAvatarKey(name)); } catch (_) {}
       save(); renderAll();
     }
@@ -977,7 +1135,7 @@
         const rankTitle = reward.title[LANG] || reward.title.th;
         const frameClass = reward.frame === 'legend' ? 'legend' : reward.frame === 'gold' ? 'gold' : '';
         return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${S.settings.stats && reward.frame === 'bronze' ? '#c08a4a' : S.settings.stats && reward.frame === 'silver' ? '#b6c0cf' : S.settings.stats && (reward.frame === 'gold' || reward.frame === 'legend') ? 'var(--gold)' : 'var(--border)'}">
-          ${S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
+          ${isAdminUnlocked() && S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
           <div class="portrait ${S.settings.stats ? frameClass : ''}" style="--avatar-bg:${avatarBg(hero.cls)}">
             ${heroPortraitImg(hero.name, hero.cls, genderOf(hero.name))}
             <span class="class-badge" title="${h(cls[LANG] || cls.th)}">${cls.glyph}</span>
@@ -988,7 +1146,7 @@
               <strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div>
             </div>` : ''}
           </div>
-          <div class="hero-name">${h(hero.name)}</div>
+          <div class="hero-name">${h(hero.name)}<span class="char-id">#${h(ensureCharacterId(hero.name))}</span></div>
           <div class="hero-class-row">
             <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
             ${S.settings.stats ? `<span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>` : ''}
@@ -1323,9 +1481,139 @@
       }));
       _settledTx = []; _overlay = null; SFX.coin(); save(); renderAll(); toast(t('imported_items', { n: items.length }));
     }
+    function renderQuickToggles() {
+      const root = document.getElementById('quick-toggles');
+      if (!root) return;
+      const soundOn = S.settings.sound !== false;
+      const animOn = S.settings.animations !== false;
+      root.innerHTML = `
+        <button class="quick-toggle ${soundOn ? '' : 'off'}" type="button" onclick="quickToggleSetting('sound')" aria-label="${h(t('sound_effects'))}" title="${h(t('sound_effects'))}" aria-pressed="${soundOn}">${soundOn ? '🔊' : '🔇'}</button>
+        <button class="quick-toggle ${animOn ? '' : 'off'}" type="button" onclick="quickToggleSetting('animations')" aria-label="${h(t('animations'))}" title="${h(t('animations'))}" aria-pressed="${animOn}">${animOn ? '✨' : '◌'}</button>`;
+    }
+    function quickToggleSetting(key) {
+      S.settings[key] = !S.settings[key];
+      applySettings();
+      saveNow();
+      renderOverlay();
+      if (key === 'sound' && S.settings.sound) SFX.click();
+    }
     function setTheme(theme) { S.settings.theme = theme === 'dungeon' ? 'dungeon' : 'tavern'; applySettings(); save(); renderAll(false); renderOverlay(); }
     function setAccent(color) { if (ACCENTS.includes(color)) S.settings.accent = color; applySettings(); save(); renderAll(false); renderOverlay(); }
     function toggleSetting(key) { S.settings[key] = !S.settings[key]; applySettings(); save(); renderAll(false); renderOverlay(); if (key === 'sound' && S.settings.sound) SFX.click(); }
+    async function setupAdmin() {
+      const pass = document.getElementById('admin-pass-new')?.value || '';
+      const slug = sanitizeTripSlug(document.getElementById('admin-url-id')?.value || tripId);
+      const canMove = slug !== tripId && canChangeTripUrl();
+      if (pass.length < 4) { toast(t('admin_pass_short')); return; }
+      if (!slug) { toast(t('admin_url_invalid')); return; }
+      S.admin = { passwordHash: adminHash(pass), createdAt: Date.now(), urlLocked: true };
+      sessionStorage.setItem(adminSessionKey(), '1');
+      if (canMove) {
+        tripId = slug;
+        tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+        sessionStorage.setItem(adminSessionKey(), '1');
+        const next = new URL(tripLinkFor(tripId));
+        history.replaceState(null, '', next.pathname + next.search);
+        if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
+        await tripRef.set({ ...S, updatedAt: TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp() });
+        toast(t('admin_url_saved'));
+        renderAll(false);
+        return;
+      }
+      save(); renderOverlay(); toast(t('admin_saved'));
+    }
+    function unlockAdmin() {
+      const pass = document.getElementById('admin-pass')?.value || '';
+      if (adminHash(pass) !== S.admin?.passwordHash) { toast(t('admin_bad_pass')); return; }
+      sessionStorage.setItem(adminSessionKey(), '1');
+      renderOverlay();
+      toast(t('admin_unlocked'));
+    }
+    function lockAdmin() {
+      sessionStorage.removeItem(adminSessionKey());
+      renderOverlay();
+    }
+    function copyAdminLink() {
+      navigator.clipboard.writeText(tripLinkFor()).then(() => toast(t('toast_link_copied')));
+    }
+    async function saveCharacterId(name) {
+      if (!isAdminUnlocked()) return;
+      const el = document.getElementById('char-id-' + hashOf(name));
+      const next = String(el?.value || '').replace(/\D/g, '').slice(0, 4);
+      if (!/^\d{4}$/.test(next)) { toast(t('char_id_invalid')); return; }
+      const old = S.characterIds[name];
+      if (!_characterRegistry[next]) await loadCharacterRegistry([next]);
+      if (old && old !== next && _characterRegistry[old]) {
+        persistCharacterRecord({ ...(_characterRegistry[next] || {}), ..._characterRegistry[old], id: next, updatedAt: Date.now() });
+        deleteCharacterRecord(old);
+      } else {
+        persistCharacterRecord({ ...(_characterRegistry[next] || {}), id: next, name, class: classOf(name), gender: genderOf(name), trips: _characterRegistry[next]?.trips || {}, createdAt: _characterRegistry[next]?.createdAt || Date.now(), updatedAt: Date.now() });
+      }
+      S.characterIds[name] = next;
+      save(); renderAll(false); renderOverlay(); toast(t('char_id_saved'));
+    }
+    function resetCharacterId(name) {
+      if (!isAdminUnlocked()) return;
+      const old = S.characterIds[name];
+      if (old) deleteCharacterRecord(old);
+      S.characterIds[name] = generateCharacterId();
+      save(); renderAll(false); renderOverlay(); toast(t('char_id_reset'));
+    }
+    function adminDeleteHero(name) {
+      if (!isAdminUnlocked()) return;
+      removeParticipant(name);
+      renderOverlay();
+    }
+    function renderAdminPanel() {
+      const link = tripLinkFor();
+      if (!isAdminConfigured()) {
+        return `<div class="settings-section">
+          <div>
+            <div class="settings-label">${t('admin_setup')}</div>
+            <div class="settings-sub">${t('admin_setup_sub')}</div>
+          </div>
+          <div class="admin-box">
+            <div class="field"><label>${t('admin_url')}</label><input id="admin-url-id" class="field-input" value="${h(sanitizeTripSlug(tripId))}" ${canChangeTripUrl() ? '' : 'disabled'}></div>
+            <div class="field"><label>${t('admin_password')}</label><input id="admin-pass-new" class="field-input" type="password" autocomplete="new-password" placeholder="${h(t('admin_password_placeholder'))}"></div>
+            <button class="btn-primary sm" onclick="setupAdmin()">${t('admin_create')}</button>
+          </div>
+        </div>`;
+      }
+      if (!isAdminUnlocked()) {
+        return `<div class="settings-section">
+          <div>
+            <div class="settings-label">${t('admin_controls')}</div>
+            <div class="settings-sub">${t('admin_locked_sub')}</div>
+          </div>
+          <div class="admin-box admin-row">
+            <div class="field"><label>${t('admin_password')}</label><input id="admin-pass" class="field-input" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlockAdmin()"></div>
+            <button class="btn-primary sm" onclick="unlockAdmin()">${t('admin_unlock')}</button>
+          </div>
+        </div>`;
+      }
+      const rows = S.participants.map(name => {
+        const id = ensureCharacterId(name);
+        const rec = _characterRegistry[id] || {};
+        return `<tr>
+          <td>${h(name)}</td>
+          <td><input id="char-id-${hashOf(name)}" class="admin-id-input" maxlength="4" inputmode="numeric" value="${h(id)}"></td>
+          <td>${Math.round(Number(rec.xp) || characterBaseXp(name) || 0)} XP</td>
+          <td>${h(CLASSES[classOf(name)][LANG] || CLASSES[classOf(name)].th)}</td>
+          <td><div class="admin-actions"><button class="btn-ghost xs" onclick="saveCharacterId(${q(name)})">${t('btn_save')}</button><button class="btn-ghost xs" onclick="resetCharacterId(${q(name)})">${t('char_id_new')}</button><button class="btn-ghost xs danger" onclick="adminDeleteHero(${q(name)})">${t('del_title')}</button></div></td>
+        </tr>`;
+      }).join('');
+      return `<div class="settings-section">
+        <div>
+          <div class="settings-label">${t('admin_controls')}</div>
+          <div class="settings-sub">${t('admin_controls_sub')}</div>
+        </div>
+        <div class="admin-box">
+          <div class="field"><label>${t('admin_url')}</label><input class="field-input" value="${h(link)}" readonly></div>
+          <div class="admin-actions"><button class="btn-ghost xs" onclick="copyAdminLink()">🔗 ${t('btn_share')}</button><button class="btn-ghost xs" onclick="lockAdmin()">${t('admin_lock')}</button></div>
+          <table class="admin-table"><thead><tr><th>${t('hero_name_short')}</th><th>${t('character_id')}</th><th>${t('xp')}</th><th>${t('pick_class')}</th><th>${t('admin_actions')}</th></tr></thead><tbody>${rows || `<tr><td colspan="5">${t('no_participants')}</td></tr>`}</tbody></table>
+        </div>
+      </div>`;
+    }
     function renderOverlay() {
       const root = document.getElementById('app-overlays');
       if (!root) return;
@@ -1337,6 +1625,7 @@
             <div class="vc-title">${t('onboarding_title')}</div>
             <div class="vc-sub">${t('onboarding_sub')}</div>
             <button class="btn-gold" style="width:100%;margin-top:18px" onclick="startOnboarding()">＋ ${t('onboarding_start')}</button>
+            <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="_overlay='settings';renderOverlay()">⚙ ${t('admin_setup')}</button>
           </div>
         </div></div>`;
         return;
@@ -1371,6 +1660,8 @@
             <div class="settings-row"><div class="settings-label">${t('accent')}</div><div class="swatches">${ACCENTS.map(color => `<button class="swatch ${S.settings.accent === color ? 'on' : ''}" style="background:${color}" onclick="setAccent('${color}')" aria-label="${color}"></button>`).join('')}</div></div>
             <div class="settings-row"><div><div class="settings-label">${t('game_stats')}</div><div class="settings-sub">HP / LVL / XP</div></div><button class="switch ${S.settings.stats ? 'on' : ''}" onclick="toggleSetting('stats')" aria-pressed="${S.settings.stats}"></button></div>
             <div class="settings-row"><div class="settings-label">${t('sound_effects')}</div><button class="switch ${S.settings.sound ? 'on' : ''}" onclick="toggleSetting('sound')" aria-pressed="${S.settings.sound}"></button></div>
+            <div class="settings-row"><div class="settings-label">${t('animations')}</div><button class="switch ${S.settings.animations !== false ? 'on' : ''}" onclick="toggleSetting('animations')" aria-pressed="${S.settings.animations !== false}"></button></div>
+            ${renderAdminPanel()}
           </div>
         </div></div>`;
         return;
@@ -1390,7 +1681,9 @@
       }
     }
     function renderAll(checkLevels = true) {
+      ensureAllCharacterIds();
       const party = computeParty();
+      syncCharacterRegistry(party);
       if (checkLevels) detectLevelUps(party);
       renderTripName();
       renderParty();
