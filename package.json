@@ -1,0 +1,16 @@
+{
+  "name": "pointy-super-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/static-server.mjs",
+    "test": "npm run test:syntax && npm run test:assets && npm run test:e2e",
+    "test:assets": "node scripts/check-assets.mjs",
+    "test:syntax": "node scripts/check-inline-scripts.mjs",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}

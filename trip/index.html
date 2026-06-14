@@ -525,25 +525,41 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script>
-    firebase.initializeApp({
-      apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
-      authDomain: "pointy-personal-toolkit.firebaseapp.com",
-      projectId: "pointy-personal-toolkit",
-      storageBucket: "pointy-personal-toolkit.firebasestorage.app",
-      messagingSenderId: "901775387853",
-      appId: "1:901775387853:web:030f47acc78c71a5548d84"
-    });
-    const db = firebase.firestore();
-
     const _params = new URLSearchParams(window.location.search);
+    const TEST_MODE = _params.get('test') === '1';
     let tripId = _params.get('id');
     if (!tripId) {
       const lastId = localStorage.getItem('last_trip_id');
       tripId = lastId || makeId();
       history.replaceState(null, '', '?id=' + tripId);
     }
-    localStorage.setItem('last_trip_id', tripId);
-    const tripRef = db.collection('trips').doc(tripId);
+    if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
+    const tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+
+    function cloudTripRef(id) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o",
+        authDomain: "pointy-personal-toolkit.firebaseapp.com",
+        projectId: "pointy-personal-toolkit",
+        storageBucket: "pointy-personal-toolkit.firebasestorage.app",
+        messagingSenderId: "901775387853",
+        appId: "1:901775387853:web:030f47acc78c71a5548d84"
+      });
+      return firebase.firestore().collection('trips').doc(id);
+    }
+    function testTripRef(id) {
+      const key = 'pointy_test_trip_' + id;
+      return {
+        async get() {
+          const raw = sessionStorage.getItem(key);
+          return { exists: !!raw, data: () => raw ? JSON.parse(raw) : null };
+        },
+        async set(data) {
+          const copy = { ...data, updatedAt: Date.now() };
+          sessionStorage.setItem(key, JSON.stringify(copy));
+        }
+      };
+    }
 
     const QUEST_ICONS = ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
     const CLASS_ORDER = ["warrior","wizard","cleric","monk","bard","dragoon","summoner","thief","ranger","alchemist","necromancer","engineer","berserker"];
@@ -831,7 +847,7 @@
       clearTimeout(_saveTimer);
       _saveTimer = setTimeout(async () => {
         try {
-          await tripRef.set({ ...S, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          await tripRef.set({ ...S, updatedAt: TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp() });
           setSaveStatus('saved', t('status_saved'));
         } catch (err) {
           console.error('Save failed', err);
