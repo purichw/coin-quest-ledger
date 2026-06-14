@@ -1,0 +1,316 @@
+(function(root) {
+  const PointyLogic = {};
+
+  PointyLogic.UNIT_GROUPS = [
+    { name: 'volume', base: 'ml', units: { ml: 1, l: 1000, kl: 1000000 } },
+    { name: 'weight', base: 'g', units: { mg: 0.001, g: 1, kg: 1000 } },
+    { name: 'length', base: 'm', units: { mm: 0.001, cm: 0.01, m: 1, km: 1000 } },
+    { name: 'count', base: 'ชิ้น', units: { 'ชิ้น': 1, 'แพ็ค/กล่อง': 1 } }
+  ];
+
+  PointyLogic.UNIT_ALIAS = {
+    'มล.': 'ml', 'มล': 'ml', 'ml.': 'ml',
+    'ลิตร': 'l', 'กรัม': 'g', 'ก.': 'g',
+    'กก.': 'kg', 'กิโลกรัม': 'kg',
+    'เมตร': 'm', 'ซม.': 'cm', 'มม.': 'mm',
+    'หน่วย': 'ชิ้น', 'pcs': 'ชิ้น', 'piece': 'ชิ้น', 'pieces': 'ชิ้น'
+  };
+
+  PointyLogic.CLASS_ORDER = ["warrior","wizard","cleric","monk","bard","dragoon","summoner","thief","ranger","alchemist","necromancer","engineer","berserker"];
+  PointyLogic.CLASSES = {
+    warrior:     { glyph:"⚔️", hue:26,  th:"นักรบ", en:"Warrior" },
+    wizard:      { glyph:"🪄", hue:196, th:"พ่อมด", en:"Wizard" },
+    cleric:      { glyph:"✨", hue:156, th:"นักบวช", en:"Cleric" },
+    monk:        { glyph:"👊", hue:72,  th:"นักพรต", en:"Monk" },
+    bard:        { glyph:"🎻", hue:348, th:"นักดนตรี", en:"Bard" },
+    dragoon:     { glyph:"🔱", hue:256, th:"ทหารมังกร", en:"Dragoon" },
+    summoner:    { glyph:"🐾", hue:238, th:"ผู้อัญเชิญ", en:"Summoner" },
+    thief:       { glyph:"🗡️", hue:214, th:"นักโจร", en:"Thief" },
+    ranger:      { glyph:"🏹", hue:142, th:"นักธนู", en:"Ranger" },
+    alchemist:   { glyph:"⚗️", hue:178, th:"นักเล่นแร่", en:"Alchemist" },
+    necromancer: { glyph:"💀", hue:290, th:"จอมเวทมรณะ", en:"Necromancer" },
+    engineer:    { glyph:"🔧", hue:44,  th:"วิศวกร", en:"Engineer" },
+    berserker:   { glyph:"🪓", hue:8,   th:"นักรบคลั่ง", en:"Berserker" }
+  };
+  PointyLogic.LEVEL_STEP = 600;
+  PointyLogic.SETTLE_BONUS_PAYER = 400;
+  PointyLogic.SETTLE_BONUS_PAYEE = 200;
+  PointyLogic.LEVEL_REWARDS = [
+    { lvl:1, frame:"novice", glyph:"", title:{ th:"มือใหม่", en:"Novice" } },
+    { lvl:2, frame:"bronze", glyph:"🌿", title:{ th:"น่าเชื่อถือ", en:"Trusted" } },
+    { lvl:4, frame:"silver", glyph:"🪙", title:{ th:"ใจบุญ", en:"Generous" } },
+    { lvl:6, frame:"gold", glyph:"⚔️", title:{ th:"ผู้กล้า", en:"Champion" } },
+    { lvl:9, frame:"legend", glyph:"👑", title:{ th:"ตำนาน", en:"Legend" } }
+  ];
+
+  function hashOf(name) {
+    let x = 0;
+    for (const c of String(name || '?')) x = ((x * 31) + c.charCodeAt(0)) | 0;
+    return Math.abs(x);
+  }
+
+  function approxEqual(a, b) {
+    if (a === b) return true;
+    const mag = Math.max(Math.abs(a), Math.abs(b));
+    return mag > 0 && Math.abs(a - b) / mag < 1e-9;
+  }
+
+  function normalizeUnit(unit, unitAlias = PointyLogic.UNIT_ALIAS) {
+    const raw = String(unit || '').trim();
+    return unitAlias[raw] || raw || 'ชิ้น';
+  }
+
+  function groupOf(unit, unitGroups = PointyLogic.UNIT_GROUPS, unitAlias = PointyLogic.UNIT_ALIAS) {
+    const u = normalizeUnit(unit, unitAlias);
+    return unitGroups.find(g => Object.prototype.hasOwnProperty.call(g.units, u)) || null;
+  }
+
+  function groupForCmp(cmp, unitGroups = PointyLogic.UNIT_GROUPS, unitAlias = PointyLogic.UNIT_ALIAS) {
+    return groupOf(cmp.baseUnit || cmp.unit, unitGroups, unitAlias) || unitGroups[3];
+  }
+
+  function normalizedOffer(offer, cmp, opts = {}) {
+    const unitGroups = opts.unitGroups || PointyLogic.UNIT_GROUPS;
+    const unitAlias = opts.unitAlias || PointyLogic.UNIT_ALIAS;
+    const unit = normalizeUnit(offer.unit || cmp.baseUnit, unitAlias);
+    const group = groupForCmp(cmp, unitGroups, unitAlias);
+    const unitGroup = groupOf(unit, unitGroups, unitAlias);
+    if (!unitGroup || unitGroup.name !== group.name) return { valid: false, unit, baseUnit: group.base, qty: 0, pu: Infinity };
+    let factor = group.units[unit] || 1;
+    if (unit === 'แพ็ค/กล่อง') {
+      factor = Number(offer.perPack) || 0;
+      if (factor <= 0) return { valid: false, unit, baseUnit: group.base, qty: 0, pu: Infinity };
+    }
+    const qty = Number(offer.qty) || 0;
+    const price = Number(offer.price) || 0;
+    const buy = Math.max(1, parseInt(offer.buy, 10) || 1);
+    const free = Math.max(0, parseInt(offer.free, 10) || 0);
+    const promoMult = (buy + free) / buy;
+    const normalizedQty = qty * factor * promoMult;
+    return { valid: normalizedQty > 0 && price > 0, unit, baseUnit: group.base, qty: normalizedQty, pu: normalizedQty > 0 ? price / normalizedQty : Infinity, promoMult, buy, free };
+  }
+
+  function normalizeComparison(cmp, opts = {}) {
+    const unitGroups = opts.unitGroups || PointyLogic.UNIT_GROUPS;
+    const unitAlias = opts.unitAlias || PointyLogic.UNIT_ALIAS;
+    const idFactory = opts.idFactory || (() => '');
+    const baseUnit = normalizeUnit(cmp.baseUnit || cmp.unit || 'ชิ้น', unitAlias);
+    const group = groupOf(baseUnit, unitGroups, unitAlias) || unitGroups[3];
+    return {
+      id: cmp.id || idFactory(),
+      name: String(cmp.name || '').trim() || opts.itemFallback || 'Item',
+      icon: cmp.icon || '🛒',
+      baseUnit: group.base,
+      offers: Array.isArray(cmp.offers) ? cmp.offers.map(o => ({
+        id: o.id || idFactory(),
+        merchant: String(o.merchant || opts.merchantFallback || 'Merchant').trim(),
+        price: Number(o.price) || 0,
+        qty: Number(o.qty) || 0,
+        unit: normalizeUnit(o.unit || cmp.unit || group.base, unitAlias),
+        perPack: Number(o.perPack) || 0,
+        buy: Math.max(1, parseInt(o.buy, 10) || 1),
+        free: Math.max(0, parseInt(o.free, 10) || 0)
+      })).filter(o => o.price > 0 && o.qty > 0) : []
+    };
+  }
+
+  function rankOffers(offers, cmp, opts = {}) {
+    if (!offers.length) return [];
+    const perUnit = offer => normalizedOffer(offer, cmp, opts).pu;
+    const sorted = offers.slice().sort((a, b) => perUnit(a) - perUnit(b));
+    const best = perUnit(sorted[0]);
+    const worst = perUnit(sorted[sorted.length - 1]);
+    const allEqual = sorted.length > 1 && approxEqual(best, worst);
+    return sorted.map(o => {
+      const norm = normalizedOffer(o, cmp, opts);
+      const pu = norm.pu;
+      const r = best > 0 ? pu / best : 1;
+      let tier = "common";
+      if (!allEqual && approxEqual(pu, best)) tier = "legendary";
+      else if (r <= 1.12) tier = "epic";
+      else if (r <= 1.32) tier = "rare";
+      return { ...o, norm, pu, tier, savePct: worst > 0 ? Math.round((1 - pu / worst) * 100) : 0, isBest: !allEqual && approxEqual(pu, best), isEqual: allEqual };
+    });
+  }
+
+  function normalizeClass(cls) {
+    const map = { mage: 'wizard', knight: 'warrior', rogue: 'thief', druid: 'summoner' };
+    const id = map[cls] || cls;
+    return PointyLogic.CLASSES[id] ? id : PointyLogic.CLASS_ORDER[hashOf(id) % PointyLogic.CLASS_ORDER.length];
+  }
+
+  function levelFromXp(xp) {
+    const lvl = Math.floor(xp / PointyLogic.LEVEL_STEP) + 1;
+    const into = xp - (lvl - 1) * PointyLogic.LEVEL_STEP;
+    return { lvl, into, need: PointyLogic.LEVEL_STEP, pct: Math.round((into / PointyLogic.LEVEL_STEP) * 100) };
+  }
+
+  function rewardFor(lvl) {
+    let r = PointyLogic.LEVEL_REWARDS[0];
+    PointyLogic.LEVEL_REWARDS.forEach(x => { if (lvl >= x.lvl) r = x; });
+    return r;
+  }
+
+  function hpColor(pct) {
+    if (pct >= 55) return { a: "oklch(0.72 0.16 150)", b: "oklch(0.58 0.16 150)" };
+    if (pct >= 28) return { a: "oklch(0.78 0.15 78)", b: "oklch(0.66 0.15 70)" };
+    return { a: "oklch(0.66 0.2 26)", b: "oklch(0.55 0.2 26)" };
+  }
+
+  function statusOf(hero, labels = {}) {
+    if (hero.bal > 0.5) return { kind: 'guardian', icon: '🛡️', label: labels.guardian || 'Guardian', amt: hero.bal };
+    if (hero.bal < -0.5) return { kind: 'debt', icon: '💸', label: labels.debt || 'Debt', amt: -hero.bal };
+    return { kind: 'even', icon: '⚖️', label: labels.even || 'Even', amt: 0 };
+  }
+
+  function normalizeTripState(data, opts = {}) {
+    const questIcons = opts.questIcons || [];
+    const out = {
+      tripName: data?.tripName || opts.defaultTripName || '',
+      participants: Array.isArray(data?.participants) ? data.participants : [],
+      expenses: Array.isArray(data?.expenses) ? data.expenses : [],
+      budgets: data?.budgets || {},
+      heroClasses: Object.fromEntries(Object.entries(data?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
+      heroGenders: data?.heroGenders || {},
+      settleXp: data?.settleXp || {},
+      settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, ...(data?.settings || {}) }
+    };
+    out.expenses = out.expenses.map(e => {
+      const desc = e.desc || e.name || opts.questFallback || '';
+      return {
+        id: e.id || Date.now() + Math.random(),
+        desc,
+        icon: e.icon || (questIcons.length ? questIcons[hashOf(desc) % questIcons.length] : ''),
+        amount: Number(e.amount) || 0,
+        paidBy: e.paidBy || e.payer || '',
+        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : []),
+        payers: e.payers && typeof e.payers === 'object' ? e.payers : undefined,
+        split: e.split && typeof e.split === 'object' ? e.split : undefined
+      };
+    }).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length);
+    return out;
+  }
+
+  function parseImportItems(text) {
+    return (text || '').split('\n').map(line => {
+      const parts = line.split(/[,\t;]/);
+      const desc = (parts[0] || '').trim();
+      const amount = Number(String(parts[parts.length - 1] || '').replace(/[^0-9.]/g, ''));
+      return desc && amount > 0 ? { desc, amount } : null;
+    }).filter(Boolean);
+  }
+
+  function payerMap(e) {
+    if (e.payers && typeof e.payers === 'object') {
+      const out = {};
+      let sum = 0;
+      Object.entries(e.payers).forEach(([name, value]) => {
+        const n = Number(value) || 0;
+        if (n > 0) { out[name] = n; sum += n; }
+      });
+      if (sum > 0) return out;
+    }
+    return e.paidBy ? { [e.paidBy]: Number(e.amount) || 0 } : {};
+  }
+
+  function splitShares(e, validNames = null) {
+    const parts = (e.sharedBy || []).filter(name => !validNames || validNames.includes(name));
+    const out = {};
+    if (!parts.length) return out;
+    const mode = e.split?.mode || 'equal';
+    const weights = e.split?.weights || {};
+    if (mode === 'exact') {
+      let sum = 0;
+      parts.forEach(name => {
+        out[name] = Math.max(0, Number(weights[name]) || 0);
+        sum += out[name];
+      });
+      const remainder = e.amount - sum;
+      if (Math.abs(remainder) > .5) parts.forEach(name => { out[name] += remainder / parts.length; });
+      return out;
+    }
+    if (mode === 'shares' || mode === 'percent') {
+      const totalWeight = parts.reduce((sum, name) => sum + Math.max(0, Number(weights[name]) || 0), 0);
+      if (totalWeight > 0) {
+        parts.forEach(name => { out[name] = e.amount * (Math.max(0, Number(weights[name]) || 0) / totalWeight); });
+        return out;
+      }
+    }
+    parts.forEach(name => { out[name] = e.amount / parts.length; });
+    return out;
+  }
+
+  function computeParty(state, opts = {}) {
+    const participants = state.participants || [];
+    const expenses = state.expenses || [];
+    const budgets = state.budgets || {};
+    const settleXp = state.settleXp || {};
+    const classOf = opts.classOf || (() => PointyLogic.CLASS_ORDER[0]);
+    const stat = {};
+    participants.forEach(name => { stat[name] = { paid: 0, share: 0, gen: 0, quests: 0 }; });
+    expenses.forEach(e => {
+      const shares = splitShares(e, participants);
+      const parts = Object.keys(shares);
+      if (!parts.length) return;
+      const payers = payerMap(e);
+      Object.entries(payers).forEach(([name, amount]) => {
+        if (!stat[name]) return;
+        stat[name].paid += amount;
+        stat[name].gen += Math.max(0, amount - (shares[name] || 0));
+      });
+      parts.forEach(name => {
+        stat[name].share += shares[name];
+        stat[name].quests += 1;
+      });
+    });
+    return participants.map(name => {
+      const s = stat[name] || { paid: 0, share: 0, gen: 0, quests: 0 };
+      const budget = Number(budgets[name]) || 3000;
+      const remaining = budget - s.share;
+      const hp = Math.max(0, Math.min(100, Math.round((remaining / budget) * 100)));
+      const xp = Math.round(s.gen + (Number(settleXp[name]) || 0));
+      const level = levelFromXp(xp);
+      return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen), quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
+    });
+  }
+
+  function settleUp(party) {
+    const cred = party.filter(p => p.bal > 0.5).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
+    const debt = party.filter(p => p.bal < -0.5).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
+    const out = [];
+    let i = 0, j = 0;
+    while (i < debt.length && j < cred.length) {
+      const amt = Math.min(debt[i].amt, cred[j].amt);
+      if (amt > 0.5) out.push({ from: debt[i].name, to: cred[j].name, amount: amt });
+      debt[i].amt -= amt;
+      cred[j].amt -= amt;
+      if (debt[i].amt < 0.5) i++;
+      if (cred[j].amt < 0.5) j++;
+    }
+    return out;
+  }
+
+  Object.assign(PointyLogic, {
+    hashOf,
+    approxEqual,
+    normalizeUnit,
+    groupOf,
+    groupForCmp,
+    normalizeComparison,
+    normalizedOffer,
+    rankOffers,
+    normalizeClass,
+    levelFromXp,
+    rewardFor,
+    hpColor,
+    statusOf,
+    normalizeTripState,
+    parseImportItems,
+    payerMap,
+    splitShares,
+    computeParty,
+    settleUp
+  });
+
+  root.PointyLogic = PointyLogic;
+})(typeof globalThis !== 'undefined' ? globalThis : window);

@@ -521,6 +521,7 @@
   <div id="app-overlays"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="/shared/pointy-logic.js"></script>
   <script src="/lang.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -562,25 +563,11 @@
     }
 
     const QUEST_ICONS = ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
-    const CLASS_ORDER = ["warrior","wizard","cleric","monk","bard","dragoon","summoner","thief","ranger","alchemist","necromancer","engineer","berserker"];
-    const CLASSES = {
-      warrior:     { glyph:"⚔️", hue:26,  th:"นักรบ", en:"Warrior" },
-      wizard:      { glyph:"🪄", hue:196, th:"พ่อมด", en:"Wizard" },
-      cleric:      { glyph:"✨", hue:156, th:"นักบวช", en:"Cleric" },
-      monk:        { glyph:"👊", hue:72,  th:"นักพรต", en:"Monk" },
-      bard:        { glyph:"🎻", hue:348, th:"นักดนตรี", en:"Bard" },
-      dragoon:     { glyph:"🔱", hue:256, th:"ทหารมังกร", en:"Dragoon" },
-      summoner:    { glyph:"🐾", hue:238, th:"ผู้อัญเชิญ", en:"Summoner" },
-      thief:       { glyph:"🗡️", hue:214, th:"นักโจร", en:"Thief" },
-      ranger:      { glyph:"🏹", hue:142, th:"นักธนู", en:"Ranger" },
-      alchemist:   { glyph:"⚗️", hue:178, th:"นักเล่นแร่", en:"Alchemist" },
-      necromancer: { glyph:"💀", hue:290, th:"จอมเวทมรณะ", en:"Necromancer" },
-      engineer:    { glyph:"🔧", hue:44,  th:"วิศวกร", en:"Engineer" },
-      berserker:   { glyph:"🪓", hue:8,   th:"นักรบคลั่ง", en:"Berserker" }
-    };
-    const LEVEL_STEP = 600;
-    const SETTLE_BONUS_PAYER = 400;
-    const SETTLE_BONUS_PAYEE = 200;
+    const CLASS_ORDER = PointyLogic.CLASS_ORDER;
+    const CLASSES = PointyLogic.CLASSES;
+    const LEVEL_STEP = PointyLogic.LEVEL_STEP;
+    const SETTLE_BONUS_PAYER = PointyLogic.SETTLE_BONUS_PAYER;
+    const SETTLE_BONUS_PAYEE = PointyLogic.SETTLE_BONUS_PAYEE;
     const ACCENTS = ['#2f8f5b','#c79a2e','#d4503f','#6d5ae0','#2a7fb8'];
     const QUEST_TEMPLATES = [
       { id:'beach', icon:'🏖️', th:'ทริปทะเล', en:'Beach Trip', items:[['🏨','ที่พักริมหาด','Beachfront stay',3200],['⛽','ค่าน้ำมัน','Fuel',900],['🦞','ซีฟู้ดมื้อค่ำ','Seafood dinner',1600],['🏄','เช่าอุปกรณ์','Gear rental',700]] },
@@ -588,13 +575,7 @@
       { id:'camp', icon:'🏕️', th:'เข้าป่า/แคมป์', en:'Camping', items:[['⛺','ค่าที่กางเต็นท์','Campsite fee',600],['🪵','ฟืน+แก๊ส','Firewood & gas',350],['🥩','วัตถุดิบปิ้งย่าง','BBQ supplies',1400],['⛽','ค่าน้ำมัน','Fuel',1100]] },
       { id:'party', icon:'🎉', th:'ปาร์ตี้/เลี้ยงสังสรรค์', en:'House Party', items:[['🍕','อาหาร','Food',1500],['🍺','เครื่องดื่ม','Drinks',1800],['🧊','น้ำแข็ง+ของจุกจิก','Ice & snacks',400],['🎁','ของขวัญ','Gift',800]] }
     ];
-    const LEVEL_REWARDS = [
-      { lvl:1, frame:"novice", glyph:"", title:{ th:"มือใหม่", en:"Novice" } },
-      { lvl:2, frame:"bronze", glyph:"🌿", title:{ th:"น่าเชื่อถือ", en:"Trusted" } },
-      { lvl:4, frame:"silver", glyph:"🪙", title:{ th:"ใจบุญ", en:"Generous" } },
-      { lvl:6, frame:"gold", glyph:"⚔️", title:{ th:"ผู้กล้า", en:"Champion" } },
-      { lvl:9, frame:"legend", glyph:"👑", title:{ th:"ตำนาน", en:"Legend" } }
-    ];
+    const LEVEL_REWARDS = PointyLogic.LEVEL_REWARDS;
 
     let S = {
       tripName: t('trip_default_name'),
@@ -621,20 +602,12 @@
     function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
     function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
     function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
-    function hashOf(name) { let x = 0; for (const c of String(name || '?')) x = ((x * 31) + c.charCodeAt(0)) | 0; return Math.abs(x); }
-    function normalizeClass(cls) {
-      const map = { mage: 'wizard', knight: 'warrior', rogue: 'thief', druid: 'summoner' };
-      const id = map[cls] || cls;
-      return CLASSES[id] ? id : CLASS_ORDER[hashOf(id) % CLASS_ORDER.length];
-    }
+    function hashOf(name) { return PointyLogic.hashOf(name); }
+    function normalizeClass(cls) { return PointyLogic.normalizeClass(cls); }
     function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]); }
     function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
     function avatarId(clsId, gender) { return `${normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
     function avatarSrc(clsId, gender) { return `/assets/rpg-portraits/${avatarId(clsId, gender)}.png`; }
-    function avatarBg(clsId) {
-      const h = (CLASSES[normalizeClass(clsId)] || CLASSES.ranger).hue;
-      return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${h}), oklch(0.20 0.045 ${h}) 78%)`;
-    }
     function classColor(clsId) {
       const h = (CLASSES[clsId] || CLASSES.ranger).hue;
       return {
@@ -707,122 +680,23 @@
         <span class="chip-avatar"><img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;align-items:center;justify-content:center">${g}</span></span><span>${h(name)}</span>
       </button>`;
     }
-    function levelFromXp(xp) {
-      const lvl = Math.floor(xp / LEVEL_STEP) + 1;
-      const into = xp - (lvl - 1) * LEVEL_STEP;
-      return { lvl, into, need: LEVEL_STEP, pct: Math.round((into / LEVEL_STEP) * 100) };
-    }
-    function rewardFor(lvl) {
-      let r = LEVEL_REWARDS[0];
-      LEVEL_REWARDS.forEach(x => { if (lvl >= x.lvl) r = x; });
-      return r;
-    }
-    function hpColor(pct) {
-      if (pct >= 55) return { a: "oklch(0.72 0.16 150)", b: "oklch(0.58 0.16 150)" };
-      if (pct >= 28) return { a: "oklch(0.78 0.15 78)", b: "oklch(0.66 0.15 70)" };
-      return { a: "oklch(0.66 0.2 26)", b: "oklch(0.55 0.2 26)" };
-    }
+    function levelFromXp(xp) { return PointyLogic.levelFromXp(xp); }
+    function rewardFor(lvl) { return PointyLogic.rewardFor(lvl); }
+    function hpColor(pct) { return PointyLogic.hpColor(pct); }
     function statusOf(hero) {
-      if (hero.bal > 0.5) return { kind: 'guardian', icon: '🛡️', label: t('st_guardian'), amt: hero.bal };
-      if (hero.bal < -0.5) return { kind: 'debt', icon: '💸', label: t('st_debt'), amt: -hero.bal };
-      return { kind: 'even', icon: '⚖️', label: t('st_even'), amt: 0 };
+      return PointyLogic.statusOf(hero, { guardian: t('st_guardian'), debt: t('st_debt'), even: t('st_even') });
     }
     function normalizeState(data) {
-      const out = {
-        tripName: data?.tripName || t('trip_default_name'),
-        participants: Array.isArray(data?.participants) ? data.participants : [],
-        expenses: Array.isArray(data?.expenses) ? data.expenses : [],
-        budgets: data?.budgets || {},
-        heroClasses: Object.fromEntries(Object.entries(data?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
-        heroGenders: data?.heroGenders || {},
-        settleXp: data?.settleXp || {},
-        settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, ...(data?.settings || {}) }
-      };
-      out.expenses = out.expenses.map(e => ({
-        id: e.id || Date.now() + Math.random(),
-        desc: e.desc || e.name || t('quest_fallback'),
-        icon: e.icon || QUEST_ICONS[hashOf(e.desc || e.name || '') % QUEST_ICONS.length],
-        amount: Number(e.amount) || 0,
-        paidBy: e.paidBy || e.payer || '',
-        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : []),
-        payers: e.payers && typeof e.payers === 'object' ? e.payers : undefined,
-        split: e.split && typeof e.split === 'object' ? e.split : undefined
-      })).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length);
-      return out;
-    }
-    function payerMap(e) {
-      if (e.payers && typeof e.payers === 'object') {
-        const out = {}; let sum = 0;
-        Object.entries(e.payers).forEach(([name, value]) => {
-          const n = Number(value) || 0;
-          if (n > 0) { out[name] = n; sum += n; }
-        });
-        if (sum > 0) return out;
-      }
-      return e.paidBy ? { [e.paidBy]: Number(e.amount) || 0 } : {};
-    }
-    function splitShares(e, validNames = null) {
-      const parts = (e.sharedBy || []).filter(name => !validNames || validNames.includes(name));
-      const out = {};
-      if (!parts.length) return out;
-      const mode = e.split?.mode || 'equal';
-      const weights = e.split?.weights || {};
-      if (mode === 'exact') {
-        let sum = 0;
-        parts.forEach(name => { out[name] = Math.max(0, Number(weights[name]) || 0); sum += out[name]; });
-        const remainder = e.amount - sum;
-        if (Math.abs(remainder) > .5) parts.forEach(name => { out[name] += remainder / parts.length; });
-        return out;
-      }
-      if (mode === 'shares' || mode === 'percent') {
-        const totalWeight = parts.reduce((sum, name) => sum + Math.max(0, Number(weights[name]) || 0), 0);
-        if (totalWeight > 0) {
-          parts.forEach(name => { out[name] = e.amount * (Math.max(0, Number(weights[name]) || 0) / totalWeight); });
-          return out;
-        }
-      }
-      parts.forEach(name => { out[name] = e.amount / parts.length; });
-      return out;
-    }
-    function computeParty() {
-      const stat = {};
-      S.participants.forEach(name => { stat[name] = { paid: 0, share: 0, gen: 0, quests: 0 }; });
-      S.expenses.forEach(e => {
-        const shares = splitShares(e, S.participants);
-        const parts = Object.keys(shares);
-        if (!parts.length) return;
-        const payers = payerMap(e);
-        Object.entries(payers).forEach(([name, amount]) => {
-          if (!stat[name]) return;
-          stat[name].paid += amount;
-          stat[name].gen += Math.max(0, amount - (shares[name] || 0));
-        });
-        parts.forEach(name => { stat[name].share += shares[name]; stat[name].quests += 1; });
-      });
-      return S.participants.map(name => {
-        const s = stat[name] || { paid: 0, share: 0, gen: 0, quests: 0 };
-        const budget = Number(S.budgets[name]) || 3000;
-        const remaining = budget - s.share;
-        const hp = Math.max(0, Math.min(100, Math.round((remaining / budget) * 100)));
-        const xp = Math.round(s.gen + (Number(S.settleXp[name]) || 0));
-        const level = levelFromXp(xp);
-        return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen), quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
+      return PointyLogic.normalizeTripState(data, {
+        defaultTripName: t('trip_default_name'),
+        questFallback: t('quest_fallback'),
+        questIcons: QUEST_ICONS
       });
     }
-    function settleUp(party) {
-      const cred = party.filter(p => p.bal > 0.5).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
-      const debt = party.filter(p => p.bal < -0.5).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
-      const out = [];
-      let i = 0, j = 0;
-      while (i < debt.length && j < cred.length) {
-        const amt = Math.min(debt[i].amt, cred[j].amt);
-        if (amt > 0.5) out.push({ from: debt[i].name, to: cred[j].name, amount: amt });
-        debt[i].amt -= amt; cred[j].amt -= amt;
-        if (debt[i].amt < 0.5) i++;
-        if (cred[j].amt < 0.5) j++;
-      }
-      return out;
-    }
+    function payerMap(e) { return PointyLogic.payerMap(e); }
+    function splitShares(e, validNames = null) { return PointyLogic.splitShares(e, validNames); }
+    function computeParty() { return PointyLogic.computeParty(S, { classOf }); }
+    function settleUp(party) { return PointyLogic.settleUp(party); }
     function detectLevelUps(party) {
       party.forEach(p => {
         const prev = _prevLevels[p.name];
@@ -1433,12 +1307,7 @@
       _settledTx = []; _overlay = null; SFX.coin(); save(); renderAll(); toast(t('imported_items', { n: tp.items.length }));
     }
     function parseImportItems(text) {
-      return (text || '').split('\n').map(line => {
-        const parts = line.split(/[,\t;]/);
-        const desc = (parts[0] || '').trim();
-        const amount = Number(String(parts[parts.length - 1] || '').replace(/[^0-9.]/g, ''));
-        return desc && amount > 0 ? { desc, amount } : null;
-      }).filter(Boolean);
+      return PointyLogic.parseImportItems(text);
     }
     function updateImportCount() {
       const el = document.getElementById('import-count');
