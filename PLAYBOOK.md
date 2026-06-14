@@ -1,5 +1,13 @@
 # Pointy Super App Playbook
 
+## Start Of Work
+
+- Read `Memory.md` first in a new chat or after a long context reset.
+- Check `git status --short --branch` before editing.
+- If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
+- If the user asks to commit or deploy, escalate to Production Patch.
+- Keep `Memory.md` updated before intentionally moving work to a new chat.
+
 ## Change Modes
 
 Use the lightest mode that fits the request. Escalate only when the change touches shared logic, data migration, cloud sync, deployment, or the user explicitly asks.
@@ -27,6 +35,7 @@ Use for normal feature or UX changes that affect a user flow.
 - Read the local implementation and any handoff/source-of-truth files.
 - Preserve the newest user requirements over older Claude/prototype behavior.
 - Run `npm run test:syntax` and a targeted Playwright/e2e check for the affected flow.
+- If layout may change across breakpoints, include tablet/mobile checks; the e2e suite has `chromium`, `tablet`, and `mobile` projects.
 - Commit/deploy only when requested.
 
 Good prompt:
@@ -63,8 +72,10 @@ When implementing from Claude Design:
 
 ## Expense Splitter Notes
 
-- `trip/index.html` is the live Expense Splitter app.
+- `trip/index.html` is the live Expense Splitter app shell and styles.
+- `trip/app.js` owns Expense Splitter behavior, state, rendering, Firebase/test persistence, event delegation, imports/exports, and overlays.
 - `lang.js` is shared across the toolbox; every new UI string needs Thai and English keys.
 - `shared/pointy-logic.js` owns shared calculation and normalization logic.
 - `tests/e2e/pointy-super-app.spec.mjs` covers critical Expense Splitter and price comparison flows.
 - `trip/index.legacy.html` and `index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
+- Keep refactors incremental. The shell and expense entry controls use delegated events, but some dynamic hero/admin/overlay renderers still use inline handlers; migrate those only in focused slices with full `npm test`.
