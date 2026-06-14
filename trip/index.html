@@ -67,7 +67,8 @@
     .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
     .tb-inner { max-width: 980px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .tb-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
-    .tb-logo { font-size: 22px; flex-shrink: 0; }
+    .tb-logo { width: 28px; height: 28px; display: grid; place-items: center; flex-shrink: 0; }
+    .tb-logo img { width: 28px; height: 28px; }
     .tb-nav { display: flex; gap: 6px; min-width: 0; }
     .tb-link { color: var(--topbar-ink); text-decoration: none; opacity: .62; font-size: 14px; padding: 7px 14px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
     .tb-link.active { opacity: 1; background: rgba(255,255,255,.12); }
@@ -76,7 +77,8 @@
     .lang-toggle button.lang-active { opacity: 1; background: var(--accent); color: #fff; }
     .page { max-width: 980px; margin: 0 auto; padding: 26px 20px 60px; }
     .banner { text-align: center; padding: 8px 0 22px; }
-    .banner-crest { font-size: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.2)); }
+    .banner-crest { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.2)); }
+    .banner-crest img { width: 46px; height: 46px; }
     .banner-title { margin: 6px 0 10px; font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--accent); letter-spacing: 0; }
     .campaign-row { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex-wrap: wrap; }
     .camp-label { font-family: var(--font-stat); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); }
@@ -115,7 +117,7 @@
     .hero-remove { position: absolute; top: 7px; right: 7px; z-index: 3; width: 24px; height: 24px; border: 0; border-radius: 8px; color: #fff; background: rgba(0,0,0,.3); opacity: 0; }
     .hero-card:hover .hero-remove { opacity: .88; }
     .hero-remove:hover { background: var(--hp); }
-    .portrait { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 13px; margin-bottom: 10px; overflow: hidden; border: 2px solid var(--frame, var(--border)); background: radial-gradient(125% 92% at 50% 16%, color-mix(in oklab, var(--cc-top), #12100c 18%), color-mix(in oklab, var(--cc-bot), #111 38%) 78%); display: flex; align-items: flex-end; justify-content: center; }
+    .portrait { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 13px; margin-bottom: 10px; overflow: hidden; border: 2px solid var(--frame, var(--border)); background: var(--avatar-bg, radial-gradient(125% 92% at 50% 16%, color-mix(in oklab, var(--cc-top), #12100c 18%), color-mix(in oklab, var(--cc-bot), #111 38%) 78%)); display: flex; align-items: flex-end; justify-content: center; }
     .portrait.gold { box-shadow: 0 0 12px -3px var(--gold), inset 0 0 0 1px color-mix(in oklab, var(--gold), #000 28%); }
     .portrait.legend { animation: legend-glow 2.6s ease-in-out infinite; }
     .portrait-img { position: absolute; left: 0; right: 0; bottom: -1%; margin: 0 auto; width: auto; height: 102%; max-width: none; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 5px 5px rgba(0,0,0,.35)); }
@@ -126,6 +128,9 @@
     .lvl-badge span:first-child { font-family: var(--font-stat); font-size: 8px; letter-spacing: 1px; font-weight: 700; }
     .lvl-badge span:last-child { font-family: var(--font-stat); font-size: 19px; font-weight: 700; line-height: 1; }
     .status-badge { right: 7px; bottom: 7px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; background: var(--panel-2); box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+    .status-badge.guardian { background: color-mix(in oklab, var(--accent), #fff 12%); }
+    .status-badge.debt { background: color-mix(in oklab, var(--hp), #fff 8%); }
+    .status-badge.even { border-color: var(--border-strong); }
     .hero-name { font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.15; }
     .hero-class-row { display: flex; align-items: center; gap: 7px; margin-top: 4px; flex-wrap: wrap; }
     .hero-class { font-size: 12px; color: var(--ink-soft); }
@@ -160,6 +165,11 @@
     .status-chip span:last-child { font-family: var(--font-stat); color: var(--ink); font-size: 13px; font-weight: 700; }
     .levelup { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle, color-mix(in oklab, var(--gold), transparent 30%), transparent 70%); animation: lub-flash 1.6s ease-out forwards; }
     .levelup strong { color: #fff; font-family: var(--font-display); font-size: 19px; text-shadow: 0 2px 8px rgba(0,0,0,.5); animation: lub-pop 1.6s ease-out forwards; }
+    .lub-star { position: absolute; color: #fff; font-size: 20px; text-shadow: 0 0 8px var(--gold); }
+    .lub-star.s1 { top: 18%; left: 22%; animation: lub-fly 1.6s ease-out forwards; }
+    .lub-star.s2 { top: 26%; right: 18%; animation: lub-fly2 1.6s ease-out forwards; }
+    .lub-star.s3 { bottom: 24%; left: 26%; animation: lub-fly3 1.6s ease-out forwards; }
+    .lub-star.s4 { right: 24%; bottom: 20%; animation: lub-fly4 1.6s ease-out forwards; }
     .add-hero { border: 2px dashed var(--border-strong); background: transparent; color: var(--ink-soft); border-radius: 16px; min-height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-weight: 600; }
     .add-hero:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
     .add-hero-form { display: grid; grid-column: span 2; gap: 10px; }
@@ -169,6 +179,9 @@
     .avatar-preview .class-badge { left: 8px; top: 8px; }
     .avatar-preview .portrait-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 52px; }
     .avatar-preview-label { position: absolute; z-index: 2; left: 8px; right: 8px; bottom: 7px; padding: 4px 7px; border-radius: 8px; background: rgba(0,0,0,.48); color: #fff; text-align: center; font-size: 11px; font-weight: 700; backdrop-filter: blur(3px); }
+    .avatar-preview.empty { display: flex; align-items: center; justify-content: center; border-style: dashed; background: var(--panel-2); color: var(--ink-soft); }
+    .avatar-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 18px; text-align: center; font-size: 12px; font-weight: 600; }
+    .avatar-empty span:first-child { font-size: 34px; line-height: 1; opacity: .65; }
     .class-tools { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
     .gender-toggle { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; width: max-content; }
     .gender-btn { width: 36px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 16px; font-weight: 800; }
@@ -191,12 +204,69 @@
     .picker-cell { position: relative; padding: 0; border: 2px solid var(--border); border-radius: 14px; background: var(--panel-in); overflow: hidden; transition: transform .1s, border-color .12s, box-shadow .12s; }
     .picker-cell:hover { transform: translateY(-2px); border-color: var(--border-strong); }
     .picker-cell.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-soft); }
-    .pc-art { position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: radial-gradient(125% 92% at 50% 16%, color-mix(in oklab, var(--cc-top), #12100c 18%), color-mix(in oklab, var(--cc-bot), #111 38%) 78%); }
+    .pc-art { position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: var(--avatar-bg, radial-gradient(125% 92% at 50% 16%, color-mix(in oklab, var(--cc-top), #12100c 18%), color-mix(in oklab, var(--cc-bot), #111 38%) 78%)); }
     .pc-art img { position: absolute; left: 0; right: 0; bottom: -1%; margin: 0 auto; width: auto; height: 102%; max-width: none; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
     .pc-art .portrait-fallback { position: absolute; inset: 0; align-items: center; justify-content: center; }
     .pc-name { color: var(--ink); font-size: 12px; font-weight: 600; padding: 7px 4px; text-align: center; }
     .pc-gender { opacity: .7; margin-right: 3px; }
+    .pc-taken { position: absolute; left: 6px; top: 6px; padding: 2px 6px; border-radius: 6px; background: rgba(0,0,0,.62); color: #fff; font-size: 9px; font-weight: 700; }
     .pc-check { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: #2a1f05; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+    .pc-upload { display: flex; align-items: center; justify-content: center; background: var(--panel-2); color: var(--ink-soft); font-size: 38px; }
+    .confirm-card { width: min(430px, 94vw); max-height: 90vh; overflow: auto; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 20px; box-shadow: 0 24px 60px -20px rgba(0,0,0,.6); padding: 20px; animation: pk-pop .18s ease-out; }
+    .confirm-hero-summary { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 16px; align-items: center; margin: 16px 0; }
+    .confirm-portrait { position: relative; width: 128px; aspect-ratio: 1 / 1; overflow: hidden; border: 2px solid var(--ring); border-radius: 14px; background: radial-gradient(125% 92% at 50% 16%, color-mix(in oklab, var(--top), #12100c 18%), color-mix(in oklab, var(--bot), #111 38%) 78%); }
+    .confirm-portrait .portrait-img { animation: none; }
+    .confirm-name { font-family: var(--font-display); font-size: 23px; font-weight: 600; overflow-wrap: anywhere; }
+    .confirm-class { color: var(--ink-soft); margin-top: 4px; }
+    .confirm-warning { padding: 12px 13px; border: 1.5px solid color-mix(in oklab, var(--gold), var(--border) 45%); border-radius: 11px; background: var(--gold-soft); color: var(--ink); font-size: 13px; line-height: 1.5; }
+    .confirm-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+    .modal-wide { width: min(680px, 96vw); }
+    .tmpl-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .tmpl-card { display: flex; flex-direction: column; padding: 13px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--panel-in); }
+    .tmpl-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .tmpl-icon { width: 42px; height: 42px; display: grid; place-items: center; flex-shrink: 0; border: 1.5px solid var(--gold); border-radius: 11px; background: radial-gradient(120% 120% at 50% 0%, var(--gold-soft), var(--panel)); font-size: 24px; }
+    .tmpl-name { color: var(--ink); font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+    .tmpl-meta { color: var(--ink-soft); font-family: var(--font-stat); font-size: 11px; }
+    .tmpl-items { display: flex; flex: 1; flex-direction: column; gap: 4px; margin-bottom: 11px; }
+    .tmpl-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--border); color: var(--ink-soft); font-size: 12px; }
+    .tmpl-item:last-child { border-bottom: 0; }
+    .tmpl-item span:last-child { color: var(--ink); font-family: var(--font-stat); font-weight: 700; }
+    .import-area { width: 100%; min-height: 150px; resize: vertical; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel-in); color: var(--ink); padding: 12px; font-family: var(--font-stat); font-size: 14px; line-height: 1.6; }
+    .import-area:focus { outline: 0; border-color: var(--accent); }
+    .import-count { margin-top: 8px; color: var(--ink-soft); font: 700 12px var(--font-stat); text-align: right; }
+    .import-actions { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: 14px; flex-wrap: wrap; }
+    .modal-divider { margin: 15px 0; border: 0; border-top: 1px dashed var(--border); }
+    .settings-fab { position: fixed; right: 18px; bottom: 18px; z-index: 45; width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-size: 20px; }
+    .settings-grid { display: grid; gap: 15px; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .settings-label { color: var(--ink); font-weight: 600; }
+    .settings-sub { color: var(--ink-soft); font-size: 11px; }
+    .setting-seg { display: flex; padding: 3px; border-radius: 9px; background: var(--panel-2); }
+    .setting-seg button { border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft); padding: 6px 10px; font-size: 12px; }
+    .setting-seg button.on { background: var(--accent); color: #fff; }
+    .swatches { display: flex; gap: 7px; }
+    .swatch { width: 28px; height: 28px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px var(--border-strong); }
+    .swatch.on { box-shadow: 0 0 0 3px var(--gold); }
+    .switch { position: relative; width: 44px; height: 25px; border: 0; border-radius: 999px; background: var(--border-strong); }
+    .switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; transition: transform .18s; }
+    .switch.on { background: var(--accent); }
+    .switch.on::after { transform: translateX(19px); }
+    .victory-overlay { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; background: rgba(15,10,6,.62); backdrop-filter: blur(4px); }
+    .victory-card { position: relative; z-index: 2; width: min(440px,94vw); padding: 28px 24px 22px; border: 2px solid var(--gold); border-radius: 22px; background: linear-gradient(var(--panel),var(--panel-2)); box-shadow: 0 24px 70px -20px rgba(0,0,0,.7); text-align: center; animation: vc-rise .3s cubic-bezier(.3,1.3,.5,1); }
+    .vc-crown { font-size: 56px; line-height: 1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
+    .vc-title { margin-top: 6px; color: var(--gold); font-family: var(--font-display); font-size: 27px; font-weight: 700; }
+    .vc-sub { margin-top: 4px; color: var(--ink-soft); font-size: 13px; }
+    .vc-recap { display: flex; align-items: stretch; justify-content: center; margin: 20px 0; padding: 14px 8px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--panel-in); }
+    .vc-stat { flex: 1; display: flex; flex-direction: column; padding: 0 10px; }
+    .vc-stat strong { color: var(--ink); font-family: var(--font-stat); font-size: 20px; }
+    .vc-stat span { color: var(--ink-soft); font-size: 10px; font-weight: 600; }
+    .vc-awards { display: flex; flex-direction: column; gap: 9px; margin-bottom: 18px; }
+    .vc-award { display: flex; align-items: center; gap: 11px; padding: 10px 13px; border: 1.5px solid var(--gold); border-radius: 13px; background: linear-gradient(110deg,var(--gold-soft),var(--panel-in) 75%); text-align: left; }
+    .vc-award strong { display: block; font-family: var(--font-display); }
+    .vc-award small { color: var(--ink-soft); }
+    .confetti { position: absolute; inset: 0; pointer-events: none; }
+    .confetti i { position: absolute; top: -16px; width: 9px; height: 14px; border-radius: 2px; animation: cf-fall 2.6s linear infinite; }
+    .foot { margin-top: 28px; color: var(--ink-soft); text-align: center; font-family: var(--font-stat); font-size: 12px; opacity: .7; }
     @keyframes pk-fade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes pk-pop { from { transform: scale(.94) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
     .tools-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
@@ -204,6 +274,29 @@
     .field.grow { flex: 1; }
     .field label, .field-label { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
     .lab-hint { color: var(--ink-soft); font-weight: 500; opacity: .84; }
+    .field-lab-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+    .field-lab-row > label { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+    .mini-toggle { border: 1px solid var(--border-strong); border-radius: 8px; background: var(--panel-in); color: var(--ink-soft); padding: 4px 10px; font-size: 11px; font-weight: 600; }
+    .mini-toggle:hover { border-color: var(--accent); color: var(--accent); }
+    .split-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--panel-2); }
+    .split-seg button { border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft); padding: 5px 10px; font-size: 11px; font-weight: 600; }
+    .split-seg button.on { background: var(--accent); color: #fff; }
+    .split-hint { margin-top: 8px; color: var(--ink-soft); font-family: var(--font-stat); font-size: 12px; }
+    .weight-rows, .payer-amts { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+    .weight-row, .payer-amt-row { display: flex; align-items: center; gap: 9px; }
+    .wr-name { flex: 1; min-width: 0; overflow: hidden; color: var(--ink); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+    .weight-in, .mini-gold { width: 104px; display: flex; align-items: center; padding: 0 9px; border: 1.5px solid var(--border-strong); border-radius: 9px; background: var(--panel-in); }
+    .weight-in:focus-within { border-color: var(--accent); }
+    .mini-gold:focus-within { border-color: var(--gold); }
+    .weight-in input, .mini-gold input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); padding: 7px 2px; font-family: var(--font-stat); font-size: 14px; font-weight: 700; }
+    .weight-in input:focus, .mini-gold input:focus { outline: 0; }
+    .wr-suffix, .mini-gold span { color: var(--ink-soft); font-family: var(--font-stat); font-size: 12px; font-weight: 600; }
+    .mini-gold span { color: var(--gold); }
+    .wr-share { width: 72px; flex-shrink: 0; color: var(--gold); text-align: right; font-family: var(--font-stat); font-size: 13px; font-weight: 700; }
+    .pay-total { padding-top: 2px; text-align: right; font-family: var(--font-stat); font-size: 12px; font-weight: 700; }
+    .pay-total.ok { color: var(--accent); }
+    .pay-total.off { color: var(--hp); }
+    .qr-mode { display: inline-block; margin-left: 7px; padding: 1px 6px; border-radius: 6px; background: var(--panel-2); color: var(--ink-soft); font-size: 9px; vertical-align: middle; }
     .field-input, .field-select { width: 100%; border: 1.5px solid var(--border-strong); border-radius: 11px; padding: 11px 13px; background: var(--panel-in); color: var(--ink); font-size: 15px; }
     .field-input:focus, .field-select:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 82%); }
     .qf-top { display: flex; gap: 11px; align-items: flex-end; margin-bottom: 13px; }
@@ -227,7 +320,7 @@
     .mini-hero-avatar img { position: absolute; left: 50%; top: 0; height: 270%; width: auto; max-width: none; transform: translateX(-50%); object-fit: contain; object-position: top center; }
     .mini-hero-avatar .fallback-glyph { display: none; align-items: center; justify-content: center; }
     @media (prefers-reduced-motion: no-preference) {
-      .portrait-img, .avatar-preview img {
+      .portrait-img, .avatar-preview img, .pc-art img {
         transform-origin: 50% 100%;
         animation: idle-sway 2.9s ease-in-out infinite;
         will-change: transform;
@@ -236,6 +329,8 @@
       .party-grid .hero-card:nth-child(3) .portrait-img { animation-duration: 2.55s; animation-delay: -1.1s; }
       .party-grid .hero-card:nth-child(4) .portrait-img { animation-duration: 3.1s; animation-delay: -.7s; }
       .party-grid .hero-card:nth-child(5) .portrait-img { animation-duration: 2.75s; animation-delay: -1.4s; }
+      .picker-cell:nth-child(3n) .pc-art img { animation-duration: 3.2s; animation-delay: -.6s; }
+      .picker-cell:nth-child(3n+1) .pc-art img { animation-duration: 2.6s; animation-delay: -1.3s; }
     }
     @keyframes idle-sway {
       0%,100% { transform: rotate(-.5deg); }
@@ -297,6 +392,12 @@
     }
     @keyframes lub-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
     @keyframes lub-pop { 0% { transform: scale(.4); opacity: 0; } 25% { transform: scale(1.15); opacity: 1; } 70% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+    @keyframes lub-fly { 0% { transform: translate(0,0) scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-16px,-20px) scale(1.1); opacity: 0; } }
+    @keyframes lub-fly2 { 0% { transform: translate(0,0) scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(16px,-18px) scale(1.1); opacity: 0; } }
+    @keyframes lub-fly3 { 0% { transform: translate(0,0) scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(-14px,18px) scale(1.1); opacity: 0; } }
+    @keyframes lub-fly4 { 0% { transform: translate(0,0) scale(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(16px,16px) scale(1.1); opacity: 0; } }
+    @keyframes vc-rise { from { transform: scale(.9) translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes cf-fall { to { transform: translateY(105vh) rotate(540deg); } }
     @media (max-width: 760px) {
       .tb-inner { padding: 10px 12px; }
       .tb-link { padding: 7px 9px; font-size: 13px; }
@@ -307,11 +408,21 @@
       .avatar-preview { min-height: 220px; }
       .picker { padding: 14px; }
       .picker-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }
+      .tmpl-grid { grid-template-columns: 1fr; }
+      .confirm-card { padding: 16px; }
+      .confirm-hero-summary { grid-template-columns: 100px minmax(0, 1fr); gap: 12px; }
+      .confirm-portrait { width: 100px; }
+      .confirm-actions { flex-direction: column-reverse; }
+      .confirm-actions button { width: 100%; }
       .qf-top { flex-wrap: wrap; }
       .gold-field { width: 100%; }
       .two-col { grid-template-columns: 1fr; }
       .quest-row, .tribute { align-items: flex-start; }
       .quick-amount input { font-size: 46px; }
+      .split-seg { width: 100%; overflow-x: auto; }
+      .split-seg button { flex: 1; white-space: nowrap; }
+      .settings-fab { right: 12px; bottom: 12px; }
+      .vc-recap { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -319,7 +430,7 @@
   <nav class="topbar">
     <div class="tb-inner">
       <div class="tb-left">
-        <span class="tb-logo">🛠️</span>
+        <span class="tb-logo"><img src="/assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>
         <div class="tb-nav">
           <a href="/" class="tb-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
           <a href="/trip/" class="tb-link active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
@@ -334,7 +445,7 @@
 
   <main class="page">
     <section class="banner">
-      <div class="banner-crest">🧾</div>
+      <div class="banner-crest"><img src="/assets/icons/loot-chest.svg" alt="" aria-hidden="true"></div>
       <h1 class="banner-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</h1>
       <div class="campaign-row">
         <span class="camp-label" data-i18n="campaign">เควสปัจจุบัน</span>
@@ -349,7 +460,7 @@
       <div class="banner-actions">
         <span id="save-status"></span>
         <button class="btn-ghost" onclick="newTrip()" data-i18n="new_trip_quest">✚ ออกเดินทางใหม่</button>
-        <button class="btn-gold" onclick="shareTrip()" data-i18n="share_party">🔗 ชวนปาร์ตี้</button>
+        <button class="btn-gold" id="share-btn" onclick="shareTrip()" data-i18n="share_party">🔗 ชวนปาร์ตี้</button>
       </div>
     </section>
 
@@ -362,9 +473,10 @@
     </section>
 
     <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
+    <input type="file" id="custom-avatar-input" accept="image/*" style="display:none" onchange="loadCustomAvatar(this)">
     <div class="tools-row">
-      <button class="btn-tool" onclick="downloadTemplate()" data-i18n="btn_template">📋 Template</button>
-      <button class="btn-tool" onclick="triggerImport()" data-i18n="btn_import">📥 Import Excel</button>
+      <button class="btn-tool" onclick="openTemplateModal()" data-i18n="quest_presets">📋 เควสสำเร็จรูป</button>
+      <button class="btn-tool" onclick="openImportModal()" data-i18n="import_scroll">📥 นำเข้ารายการ</button>
     </div>
 
     <section class="panel" id="entry-section">
@@ -401,9 +513,12 @@
         <div id="settle-body"></div>
       </section>
     </div>
+    <footer class="foot" data-i18n="footer_ledger">Pointy Super App · Party Ledger</footer>
   </main>
 
   <div class="toast" id="toast"></div>
+  <button class="settings-fab" type="button" onclick="openSettings()" aria-label="Settings" title="Settings">⚙</button>
+  <div id="app-overlays"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="/lang.js"></script>
@@ -438,8 +553,8 @@
       cleric:      { glyph:"✨", hue:156, th:"นักบวช", en:"Cleric" },
       monk:        { glyph:"👊", hue:72,  th:"นักพรต", en:"Monk" },
       bard:        { glyph:"🎻", hue:348, th:"นักดนตรี", en:"Bard" },
-      dragoon:     { glyph:"🔱", hue:250, th:"ดรากูน", en:"Dragoon" },
-      summoner:    { glyph:"🐾", hue:228, th:"ผู้อัญเชิญ", en:"Summoner" },
+      dragoon:     { glyph:"🔱", hue:256, th:"ทหารมังกร", en:"Dragoon" },
+      summoner:    { glyph:"🐾", hue:238, th:"ผู้อัญเชิญ", en:"Summoner" },
       thief:       { glyph:"🗡️", hue:214, th:"นักโจร", en:"Thief" },
       ranger:      { glyph:"🏹", hue:142, th:"นักธนู", en:"Ranger" },
       alchemist:   { glyph:"⚗️", hue:178, th:"นักเล่นแร่", en:"Alchemist" },
@@ -450,6 +565,13 @@
     const LEVEL_STEP = 600;
     const SETTLE_BONUS_PAYER = 400;
     const SETTLE_BONUS_PAYEE = 200;
+    const ACCENTS = ['#2f8f5b','#c79a2e','#d4503f','#6d5ae0','#2a7fb8'];
+    const QUEST_TEMPLATES = [
+      { id:'beach', icon:'🏖️', th:'ทริปทะเล', en:'Beach Trip', items:[['🏨','ที่พักริมหาด','Beachfront stay',3200],['⛽','ค่าน้ำมัน','Fuel',900],['🦞','ซีฟู้ดมื้อค่ำ','Seafood dinner',1600],['🏄','เช่าอุปกรณ์','Gear rental',700]] },
+      { id:'city', icon:'🏙️', th:'เที่ยวในเมือง', en:'City Break', items:[['🏨','โรงแรม','Hotel',2800],['🚕','ค่าแท็กซี่','Taxis',480],['🍜','มื้อค่ำ','Dinner',1200],['🎟️','ตั๋วเข้าชม','Tickets',600],['☕','คาเฟ่','Cafe',320]] },
+      { id:'camp', icon:'🏕️', th:'เข้าป่า/แคมป์', en:'Camping', items:[['⛺','ค่าที่กางเต็นท์','Campsite fee',600],['🪵','ฟืน+แก๊ส','Firewood & gas',350],['🥩','วัตถุดิบปิ้งย่าง','BBQ supplies',1400],['⛽','ค่าน้ำมัน','Fuel',1100]] },
+      { id:'party', icon:'🎉', th:'ปาร์ตี้/เลี้ยงสังสรรค์', en:'House Party', items:[['🍕','อาหาร','Food',1500],['🍺','เครื่องดื่ม','Drinks',1800],['🧊','น้ำแข็ง+ของจุกจิก','Ice & snacks',400],['🎁','ของขวัญ','Gift',800]] }
+    ];
     const LEVEL_REWARDS = [
       { lvl:1, frame:"novice", glyph:"", title:{ th:"มือใหม่", en:"Novice" } },
       { lvl:2, frame:"bronze", glyph:"🌿", title:{ th:"น่าเชื่อถือ", en:"Trusted" } },
@@ -466,14 +588,17 @@
       heroClasses: {},
       heroGenders: {},
       settleXp: {},
-      settings: { entry: 'form', settleView: 'list', theme: 'tavern', stats: true }
+      settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true }
     };
-    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = 'warrior', _addHeroGender = 'male', _addHeroName = '', _heroPickerOpen = false, _pickerGender = 'all';
+    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all';
     let _resetEntryDraft = false;
     let _settledTx = [];
     let _celebrateName = null;
     let _celebrateTimer;
     let _prevLevels = {};
+    let _splitMode = 'equal', _payerMode = 'one', _splitWeights = {}, _payerAmounts = {};
+    let _overlay = null, _prevOutstanding = null;
+    let _audioCtx = null;
 
     function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
     function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -502,29 +627,68 @@
         text: `oklch(0.42 0.16 ${h})`
       };
     }
+    function avatarBg(clsId) {
+      const hue = (CLASSES[normalizeClass(clsId)] || CLASSES.ranger).hue;
+      return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
+    }
+    function audioContext() {
+      if (!S.settings.sound) return null;
+      if (!_audioCtx) {
+        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { return null; }
+      }
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+      return _audioCtx;
+    }
+    function tone(freq, delay, duration, type = 'triangle', gain = .12) {
+      const ctx = audioContext();
+      if (!ctx) return;
+      const at = ctx.currentTime + delay;
+      const osc = ctx.createOscillator(), vol = ctx.createGain();
+      osc.type = type; osc.frequency.setValueAtTime(freq, at);
+      vol.gain.setValueAtTime(.0001, at);
+      vol.gain.exponentialRampToValueAtTime(gain, at + .012);
+      vol.gain.exponentialRampToValueAtTime(.0001, at + duration);
+      osc.connect(vol).connect(ctx.destination);
+      osc.start(at); osc.stop(at + duration + .02);
+    }
+    const SFX = {
+      click() { tone(420, 0, .05, 'triangle', .08); },
+      coin() { tone(880, 0, .08, 'square', .12); tone(1318, .06, .12, 'square', .12); },
+      heal() { [523,659,784,1046].forEach((f,i) => tone(f, i*.05, .25, 'sine', .13)); },
+      levelUp() { [523,659,784,1046,1318].forEach((f,i) => tone(f, i*.07, .3, 'triangle', .15)); tone(1568,.42,.4,'sine',.12); },
+      win() { [659,784,988,1318].forEach((f,i) => tone(f, i*.08, .3, 'triangle', .14)); }
+    };
     function colorVars(clsId) {
       const c = classColor(clsId);
       return `--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--cc-soft:${c.soft};--cc:${c.text}`;
     }
     function heroAvatar(name, size = 32, hp = null) {
       const cls = classOf(name), c = classColor(cls), g = CLASSES[cls].glyph;
+      const src = customAvatarData(name) || avatarSrc(cls, genderOf(name));
       return `<span style="position:relative;width:${size}px;height:${size}px;display:inline-flex;flex-shrink:0">
         <span class="mini-hero-avatar" style="width:${size}px;height:${size}px;border-radius:${Math.round(size*.28)}px;border:2px solid ${c.ring};background:${avatarBg(cls)};font-size:${Math.round(size*.48)}px">
-          <img src="${avatarSrc(cls, genderOf(name))}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <span class="fallback-glyph">${g}</span>
         </span>
         ${hp !== null && hp < 100 ? `<span style="position:absolute;left:10%;right:10%;bottom:-3px;height:5px;border-radius:4px;background:var(--hp-bg);overflow:hidden;border:1px solid rgba(0,0,0,.15)"><span style="display:block;height:100%;width:${hp}%;background:var(--hp)"></span></span>` : ''}
       </span>`;
     }
+    function customAvatarKey(name) { return `pointy_custom_avatar_${tripId}_${hashOf(name)}`; }
+    function customAvatarData(name) {
+      try { return localStorage.getItem(customAvatarKey(name)); } catch (_) { return null; }
+    }
     function heroPortraitImg(name, clsId, gender, extra = '') {
       const cls = normalizeClass(clsId);
       const glyph = CLASSES[cls].glyph;
+      const custom = name ? customAvatarData(name) : _addHeroCustom;
+      if (custom) return `<img class="portrait-img ${extra}" src="${custom}" alt="">`;
       return `<img class="portrait-img ${extra}" src="${avatarSrc(cls, gender)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'portrait-fallback',textContent:'${glyph}'}))">`;
     }
     function heroChip(name, active, dim, onClick) {
       const cls = classOf(name), g = CLASSES[cls].glyph;
+      const src = customAvatarData(name) || avatarSrc(cls, genderOf(name));
       return `<button type="button" class="hero-chip ${active ? 'on' : ''} ${dim ? 'dim' : ''}" style="${colorVars(cls)}" onclick="${onClick}">
-        <span class="chip-avatar"><img src="${avatarSrc(cls, genderOf(name))}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;align-items:center;justify-content:center">${g}</span></span><span>${h(name)}</span>
+        <span class="chip-avatar"><img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;align-items:center;justify-content:center">${g}</span></span><span>${h(name)}</span>
       </button>`;
     }
     function levelFromXp(xp) {
@@ -556,7 +720,7 @@
         heroClasses: Object.fromEntries(Object.entries(data?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
         heroGenders: data?.heroGenders || {},
         settleXp: data?.settleXp || {},
-        settings: { entry: 'form', settleView: 'list', theme: 'tavern', stats: true, ...(data?.settings || {}) }
+        settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, ...(data?.settings || {}) }
       };
       out.expenses = out.expenses.map(e => ({
         id: e.id || Date.now() + Math.random(),
@@ -564,22 +728,60 @@
         icon: e.icon || QUEST_ICONS[hashOf(e.desc || e.name || '') % QUEST_ICONS.length],
         amount: Number(e.amount) || 0,
         paidBy: e.paidBy || e.payer || '',
-        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : [])
-      })).filter(e => e.amount > 0 && e.paidBy && e.sharedBy.length);
+        sharedBy: Array.isArray(e.sharedBy) ? e.sharedBy : (Array.isArray(e.participants) ? e.participants : []),
+        payers: e.payers && typeof e.payers === 'object' ? e.payers : undefined,
+        split: e.split && typeof e.split === 'object' ? e.split : undefined
+      })).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length);
+      return out;
+    }
+    function payerMap(e) {
+      if (e.payers && typeof e.payers === 'object') {
+        const out = {}; let sum = 0;
+        Object.entries(e.payers).forEach(([name, value]) => {
+          const n = Number(value) || 0;
+          if (n > 0) { out[name] = n; sum += n; }
+        });
+        if (sum > 0) return out;
+      }
+      return e.paidBy ? { [e.paidBy]: Number(e.amount) || 0 } : {};
+    }
+    function splitShares(e, validNames = null) {
+      const parts = (e.sharedBy || []).filter(name => !validNames || validNames.includes(name));
+      const out = {};
+      if (!parts.length) return out;
+      const mode = e.split?.mode || 'equal';
+      const weights = e.split?.weights || {};
+      if (mode === 'exact') {
+        let sum = 0;
+        parts.forEach(name => { out[name] = Math.max(0, Number(weights[name]) || 0); sum += out[name]; });
+        const remainder = e.amount - sum;
+        if (Math.abs(remainder) > .5) parts.forEach(name => { out[name] += remainder / parts.length; });
+        return out;
+      }
+      if (mode === 'shares' || mode === 'percent') {
+        const totalWeight = parts.reduce((sum, name) => sum + Math.max(0, Number(weights[name]) || 0), 0);
+        if (totalWeight > 0) {
+          parts.forEach(name => { out[name] = e.amount * (Math.max(0, Number(weights[name]) || 0) / totalWeight); });
+          return out;
+        }
+      }
+      parts.forEach(name => { out[name] = e.amount / parts.length; });
       return out;
     }
     function computeParty() {
       const stat = {};
       S.participants.forEach(name => { stat[name] = { paid: 0, share: 0, gen: 0, quests: 0 }; });
       S.expenses.forEach(e => {
-        const parts = e.sharedBy.filter(p => stat[p]);
+        const shares = splitShares(e, S.participants);
+        const parts = Object.keys(shares);
         if (!parts.length) return;
-        const per = e.amount / parts.length;
-        if (stat[e.paidBy]) {
-          stat[e.paidBy].paid += e.amount;
-          stat[e.paidBy].gen += Math.max(0, e.amount - (parts.includes(e.paidBy) ? per : 0));
-        }
-        parts.forEach(p => { stat[p].share += per; stat[p].quests += 1; });
+        const payers = payerMap(e);
+        Object.entries(payers).forEach(([name, amount]) => {
+          if (!stat[name]) return;
+          stat[name].paid += amount;
+          stat[name].gen += Math.max(0, amount - (shares[name] || 0));
+        });
+        parts.forEach(name => { stat[name].share += shares[name]; stat[name].quests += 1; });
       });
       return S.participants.map(name => {
         const s = stat[name] || { paid: 0, share: 0, gen: 0, quests: 0 };
@@ -610,6 +812,7 @@
         const prev = _prevLevels[p.name];
         if (prev !== undefined && p.level.lvl > prev) {
           _celebrateName = p.name;
+          SFX.levelUp();
           clearTimeout(_celebrateTimer);
           _celebrateTimer = setTimeout(() => { _celebrateName = null; renderAll(false); }, 1600);
         }
@@ -636,12 +839,20 @@
         }
       }, 800);
     }
+    function applySettings() {
+      document.body.dataset.theme = S.settings.theme || 'tavern';
+      document.documentElement.style.setProperty('--accent', S.settings.accent || '#2f8f5b');
+    }
     async function load() {
       setSaveStatus('saving', t('status_loading'));
       try {
         const snap = await tripRef.get();
-        if (snap.exists) S = normalizeState(snap.data());
-        document.body.dataset.theme = S.settings.theme || 'tavern';
+        if (snap.exists) {
+          S = normalizeState(snap.data());
+        } else {
+          _overlay = 'onboarding';
+        }
+        applySettings();
         setSaveStatus('saved', t('status_saved'));
       } catch (err) {
         console.error('Load failed', err);
@@ -649,9 +860,17 @@
       }
     }
 
-    function newTrip() { window.open('?id=' + makeId(), '_blank'); }
+    function newTrip() { SFX.click(); window.open('?id=' + makeId(), '_blank'); }
     function shareTrip() {
-      navigator.clipboard.writeText(window.location.href).then(() => toast(t('toast_link_copied')));
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        SFX.click();
+        const btn = document.getElementById('share-btn');
+        if (btn) {
+          btn.textContent = LANG === 'en' ? '✓ Link copied' : '✓ คัดลอกแล้ว';
+          setTimeout(() => { btn.textContent = t('share_party'); }, 1800);
+        }
+        toast(t('toast_link_copied'));
+      });
     }
     function startEditTrip() {
       const d = document.getElementById('trip-name-display');
@@ -675,23 +894,42 @@
     function addParticipant() {
       const el = document.getElementById('new-hero-name');
       const name = (el?.value || _addHeroName).trim();
-      if (!name) return;
+      if (!name || !_addHeroClass || !_addHeroGender) return;
       if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
       S.participants.push(name);
       S.heroClasses[name] = _addHeroClass;
       S.heroGenders[name] = _addHeroGender;
       S.budgets[name] = 3000;
+      if (_addHeroCustom) {
+        try { localStorage.setItem(customAvatarKey(name), _addHeroCustom); } catch (_) {}
+      }
       _addHeroOpen = false;
+      _heroConfirmOpen = false;
       _addHeroName = '';
+      _addHeroClass = null;
+      _addHeroGender = null;
+      _addHeroCustom = null;
+      SFX.click();
       save(); renderAll();
     }
     function removeParticipant(name) {
-      const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name));
+      const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name) || Number(e.payers?.[name]) > 0);
       if (used && !confirm(t('confirm_remove_hero'))) return;
       S.participants = S.participants.filter(p => p !== name);
-      S.expenses = S.expenses.map(e => ({ ...e, sharedBy: e.sharedBy.filter(p => p !== name) }))
-        .filter(e => e.paidBy !== name && e.sharedBy.length > 0);
+      S.expenses = S.expenses.map(e => {
+        const payers = e.payers ? { ...e.payers } : undefined;
+        const weights = e.split?.weights ? { ...e.split.weights } : undefined;
+        if (payers) delete payers[name];
+        if (weights) delete weights[name];
+        return {
+          ...e,
+          payers,
+          split: e.split ? { ...e.split, weights } : undefined,
+          sharedBy: e.sharedBy.filter(p => p !== name)
+        };
+      }).filter(e => e.sharedBy.length > 0 && (e.paidBy !== name || Object.keys(e.payers || {}).length > 0));
       delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.settleXp[name];
+      try { localStorage.removeItem(customAvatarKey(name)); } catch (_) {}
       save(); renderAll();
     }
     function saveBudget(name) {
@@ -701,20 +939,72 @@
     }
     function pickClass(cls) { _addHeroClass = normalizeClass(cls); renderParty(); }
     function pickGender(gender) { _addHeroGender = gender === 'female' ? 'female' : 'male'; renderParty(); }
-    function openAddHero() { _addHeroName = ''; _heroPickerOpen = false; _addHeroOpen = true; renderParty(); setTimeout(() => document.getElementById('new-hero-name')?.focus(), 0); }
+    function openAddHero() {
+      _addHeroName = '';
+      _addHeroClass = null;
+      _addHeroGender = null;
+      _addHeroCustom = null;
+      _heroPickerOpen = false;
+      _heroConfirmOpen = false;
+      _addHeroOpen = true;
+      renderParty();
+      setTimeout(() => document.getElementById('new-hero-name')?.focus(), 0);
+    }
     function openHeroPicker() { _heroPickerOpen = true; renderParty(); }
     function closeHeroPicker() { _heroPickerOpen = false; renderParty(); }
+    function cancelAddHero() {
+      _addHeroName = '';
+      _addHeroClass = null;
+      _addHeroGender = null;
+      _addHeroCustom = null;
+      _heroPickerOpen = false;
+      _heroConfirmOpen = false;
+      _addHeroOpen = false;
+      renderParty();
+    }
+    function requestHeroConfirmation() {
+      const el = document.getElementById('new-hero-name');
+      _addHeroName = (el?.value || _addHeroName).trim();
+      if (!_addHeroName || !_addHeroClass || !_addHeroGender) return;
+      if (S.participants.includes(_addHeroName)) { toast(t('err_duplicate', { name: _addHeroName })); return; }
+      _heroConfirmOpen = true;
+      renderParty();
+    }
+    function closeHeroConfirmation() { _heroConfirmOpen = false; renderParty(); }
     function setPickerGender(gender) { _pickerGender = ['all','female','male'].includes(gender) ? gender : 'all'; renderParty(); }
     function pickHeroVariant(cls, gender) {
       _addHeroClass = normalizeClass(cls);
       _addHeroGender = gender === 'female' ? 'female' : 'male';
+      _addHeroCustom = null;
       _heroPickerOpen = false;
+      SFX.click();
       renderParty();
+    }
+    function chooseCustomAvatar() {
+      if (!_addHeroClass || !_addHeroGender) {
+        toast(t('hero_not_selected'));
+        return;
+      }
+      document.getElementById('custom-avatar-input').value = '';
+      document.getElementById('custom-avatar-input').click();
+    }
+    function loadCustomAvatar(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        _addHeroCustom = String(reader.result || '');
+        _heroPickerOpen = false;
+        SFX.click();
+        renderParty();
+      };
+      reader.readAsDataURL(file);
     }
     function heroPickerModal() {
       if (!_heroPickerOpen) return '';
       const variants = CLASS_ORDER.flatMap(cls => ['female', 'male'].map(gender => ({ cls, gender })))
         .filter(v => _pickerGender === 'all' || v.gender === _pickerGender);
+      const used = new Set(S.participants.map(name => avatarId(classOf(name), genderOf(name))));
       return `<div class="picker-overlay" onclick="closeHeroPicker()">
         <div class="picker" onclick="event.stopPropagation()">
           <div class="picker-head">
@@ -734,14 +1024,52 @@
             const c = classColor(v.cls);
             const selected = _addHeroClass === v.cls && _addHeroGender === v.gender;
             return `<button type="button" class="picker-cell ${selected ? 'on' : ''}" data-class="${v.cls}" data-gender="${v.gender}" onclick="pickHeroVariant('${v.cls}','${v.gender}')">
-              <div class="pc-art" style="--cc-top:${c.top};--cc-bot:${c.bot}">
+              <div class="pc-art" style="--cc-top:${c.top};--cc-bot:${c.bot};--avatar-bg:${avatarBg(v.cls)}">
                 <img src="${avatarSrc(v.cls, v.gender)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <span class="portrait-fallback" style="display:none">${cls.glyph}</span>
               </div>
               <div class="pc-name"><span class="pc-gender">${v.gender === 'female' ? '♀' : '♂'}</span>${h(cls[LANG] || cls.th)}</div>
+              ${used.has(avatarId(v.cls, v.gender)) ? `<div class="pc-taken">${t('in_use')}</div>` : ''}
               ${selected ? '<div class="pc-check">✓</div>' : ''}
             </button>`;
-          }).join('')}</div>
+          }).join('')}
+            <button type="button" class="picker-cell ${_addHeroCustom ? 'on' : ''}" onclick="chooseCustomAvatar()">
+              <div class="pc-art pc-upload">📷</div>
+              <div class="pc-name">${t('upload_photo')}</div>
+              ${_addHeroCustom ? '<div class="pc-check">✓</div>' : ''}
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+    function heroConfirmationModal() {
+      if (!_heroConfirmOpen || !_addHeroClass || !_addHeroGender) return '';
+      const cls = CLASSES[_addHeroClass];
+      const c = classColor(_addHeroClass);
+      return `<div class="picker-overlay" onclick="closeHeroConfirmation()">
+        <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-hero-title" onclick="event.stopPropagation()">
+          <div class="picker-head">
+            <div>
+              <div class="picker-title" id="confirm-hero-title">⚔️ ${t('confirm_hero_title')}</div>
+              <div class="picker-sub">${t('hero_choice_locked')}</div>
+            </div>
+            <button type="button" class="picker-close" onclick="closeHeroConfirmation()" aria-label="${h(t('confirm_hero_back'))}">✕</button>
+          </div>
+          <div class="confirm-hero-summary">
+            <div class="confirm-portrait" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring};background:${avatarBg(_addHeroClass)}">
+              ${heroPortraitImg('', _addHeroClass, _addHeroGender)}
+              <span class="class-badge">${cls.glyph}</span>
+            </div>
+            <div>
+              <div class="confirm-name">${h(_addHeroName)}</div>
+              <div class="confirm-class">${cls.glyph} ${h(cls[LANG] || cls.th)} · ${_addHeroGender === 'female' ? '♀' : '♂'} ${t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male')}</div>
+            </div>
+          </div>
+          <div class="confirm-warning">⚠️ ${t('confirm_hero_warning')}</div>
+          <div class="confirm-actions">
+            <button type="button" class="btn-ghost" onclick="closeHeroConfirmation()">${t('confirm_hero_back')}</button>
+            <button type="button" class="btn-primary sm" onclick="addParticipant()">${t('confirm_hero_final')}</button>
+          </div>
         </div>
       </div>`;
     }
@@ -758,21 +1086,24 @@
         const reward = hero.reward;
         const rankTitle = reward.title[LANG] || reward.title.th;
         const frameClass = reward.frame === 'legend' ? 'legend' : reward.frame === 'gold' ? 'gold' : '';
-        return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${reward.frame === 'bronze' ? '#c08a4a' : reward.frame === 'silver' ? '#b6c0cf' : reward.frame === 'gold' || reward.frame === 'legend' ? 'var(--gold)' : 'var(--border)'}">
+        return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${S.settings.stats && reward.frame === 'bronze' ? '#c08a4a' : S.settings.stats && reward.frame === 'silver' ? '#b6c0cf' : S.settings.stats && (reward.frame === 'gold' || reward.frame === 'legend') ? 'var(--gold)' : 'var(--border)'}">
           ${S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
-          <div class="portrait ${frameClass}">
+          <div class="portrait ${S.settings.stats ? frameClass : ''}" style="--avatar-bg:${avatarBg(hero.cls)}">
             ${heroPortraitImg(hero.name, hero.cls, genderOf(hero.name))}
-            <span class="class-badge">${cls.glyph}</span>
-            <span class="lvl-badge"><span>${t('lvl')}</span><span>${hero.level.lvl}</span></span>
-            <span class="status-badge">${status.icon}</span>
-            ${_celebrateName === hero.name ? `<div class="levelup"><strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div></div>` : ''}
+            <span class="class-badge" title="${h(cls[LANG] || cls.th)}">${cls.glyph}</span>
+            ${S.settings.stats ? `<span class="lvl-badge"><span>${t('lvl')}</span><span>${hero.level.lvl}</span></span>` : ''}
+            <span class="status-badge ${status.kind}" title="${status.kind === 'guardian' ? h(t('guardian_tip')) : status.kind === 'debt' ? h(t('debt_tip')) : ''}">${status.icon}</span>
+            ${_celebrateName === hero.name ? `<div class="levelup">
+              <span class="lub-star s1">✦</span><span class="lub-star s2">✧</span><span class="lub-star s3">★</span><span class="lub-star s4">✦</span>
+              <strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div>
+            </div>` : ''}
           </div>
           <div class="hero-name">${h(hero.name)}</div>
           <div class="hero-class-row">
             <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
-            <span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>
+            ${S.settings.stats ? `<span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>` : ''}
           </div>
-          <div class="bars">
+          ${S.settings.stats ? `<div class="bars">
             <div class="bar-row">
               <span class="bar-lab hp">${t('hp')}</span>
               <span class="bar"><span class="bar-fill" style="width:${hero.hp}%;background:linear-gradient(${hpCol.a},${hpCol.b})"></span></span>
@@ -783,22 +1114,27 @@
               <span class="bar xp-bar"><span class="bar-fill" style="width:${hero.level.pct}%"></span></span>
               <span class="bar-val">${hero.level.into}/${hero.level.need}</span>
             </div>
-          </div>
+          </div>` : ''}
           <div class="hero-foot">
             <div class="mini-stat"><span>💰 ${t('gold')}</span><span>${money(hero.paid)}</span></div>
-            <div class="status-chip ${status.kind}">
+            <div class="status-chip ${status.kind}" title="${status.kind === 'guardian' ? h(t('guardian_tip')) : status.kind === 'debt' ? h(t('debt_tip')) : ''}">
               <span>${status.icon}</span><span><strong>${status.label}</strong>${status.amt > 0 ? `<span>${status.kind === 'guardian' ? '+' : '−'}${money(status.amt)}</span>` : ''}</span>
             </div>
           </div>
         </div>`;
       }).join('');
       const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
-        <input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;document.getElementById('confirm-hero-btn').disabled=!this.value.trim()" onkeydown="if(event.key==='Enter' && this.value.trim())addParticipant()">
+        <input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;document.getElementById('confirm-hero-btn').disabled=!(this.value.trim() && _addHeroClass && _addHeroGender)" onkeydown="if(event.key==='Enter' && this.value.trim() && _addHeroClass && _addHeroGender)requestHeroConfirmation()">
         <div class="hero-builder">
           ${(() => {
+            if (!_addHeroClass || !_addHeroGender) {
+              return `<div class="avatar-preview empty">
+                <div class="avatar-empty"><span>＋</span><span>${t('hero_not_selected')}</span></div>
+              </div>`;
+            }
             const c = classColor(_addHeroClass);
             const cls = CLASSES[_addHeroClass];
-            return `<div class="avatar-preview" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring}">
+            return `<div class="avatar-preview" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring};background:${avatarBg(_addHeroClass)}">
               ${heroPortraitImg('', _addHeroClass, _addHeroGender)}
               <span class="class-badge">${cls.glyph}</span>
               <span class="avatar-preview-label">${h(cls[LANG] || cls.th)} · ${t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male')}</span>
@@ -813,16 +1149,16 @@
               </div>
             </div>
             <button type="button" class="choose-hero-btn" onclick="openHeroPicker()">⚔️ ${t('choose_hero')}</button>
-            <div class="field-label">${CLASSES[_addHeroClass].glyph} ${h(CLASSES[_addHeroClass][LANG] || CLASSES[_addHeroClass].th)} · ${_addHeroGender === 'female' ? '♀' : '♂'}</div>
+            <div class="field-label">${_addHeroClass && _addHeroGender ? `${CLASSES[_addHeroClass].glyph} ${h(CLASSES[_addHeroClass][LANG] || CLASSES[_addHeroClass].th)} · ${_addHeroGender === 'female' ? '♀' : '♂'}` : h(t('hero_not_selected'))}</div>
             <div class="lock-note">${t('hero_choice_locked')}</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button type="button" class="btn-ghost" onclick="_addHeroName='';_addHeroOpen=false;renderParty()">✕</button>
-          <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="addParticipant()" ${_addHeroName.trim() ? '' : 'disabled'}>${t('confirm_hero')}</button>
+          <button type="button" class="btn-ghost" onclick="cancelAddHero()">✕</button>
+          <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${_addHeroName.trim() && _addHeroClass && _addHeroGender ? '' : 'disabled'}>${t('confirm_hero')}</button>
         </div>
       </div>` : `<button class="add-hero" onclick="openAddHero()"><span style="font-size:28px;line-height:1">＋</span><span>${t('add_hero')}</span></button>`;
-      grid.innerHTML = cards + add + heroPickerModal();
+      grid.innerHTML = cards + add + heroPickerModal() + heroConfirmationModal();
     }
     function editBudget(name) {
       const id = 'budget-' + hashOf(name);
@@ -831,25 +1167,61 @@
       setTimeout(() => document.getElementById(id)?.focus(), 0);
     }
 
-    function setEntryMode(mode) { S.settings.entry = mode; save(); renderEntry(); }
+    function captureEntryDraft() {
+      document.querySelectorAll('.weight-value').forEach(el => { _splitWeights[el.dataset.name] = el.value; });
+      document.querySelectorAll('.payer-value').forEach(el => { _payerAmounts[el.dataset.name] = el.value; });
+    }
+    function setEntryMode(mode) { captureEntryDraft(); S.settings.entry = mode; save(); SFX.click(); renderEntry(); }
+    function setSplitMode(mode) { captureEntryDraft(); _splitMode = ['equal','shares','exact','percent'].includes(mode) ? mode : 'equal'; SFX.click(); renderEntry(); }
+    function setPayerMode(mode) {
+      captureEntryDraft();
+      _payerMode = mode === 'multi' ? 'multi' : 'one';
+      if (_payerMode === 'multi' && !Object.values(_payerAmounts).some(v => Number(v) > 0)) {
+        const payer = document.getElementById('exp-payer')?.value || S.participants[0];
+        const amount = document.getElementById('exp-amount')?.value || '';
+        if (payer) _payerAmounts[payer] = amount;
+      }
+      SFX.click(); renderEntry();
+    }
+    function setSinglePayer(name) {
+      document.getElementById('exp-payer').value = name;
+      renderPayerChips();
+    }
+    function renderPayerChips() {
+      const box = document.getElementById('payer-chip-row');
+      const payer = document.getElementById('exp-payer')?.value || S.participants[0];
+      if (box) box.innerHTML = S.participants.map(name => heroChip(name, name === payer, false, `setSinglePayer(${q(name)})`)).join('');
+    }
     function toggleIconPicker() { _iconOpen = !_iconOpen; renderEntry(); }
     function pickExpenseIcon(icon) { document.getElementById('exp-icon-value').value = icon; _iconOpen = false; renderEntry(); }
     function sharedBy() { return Array.from(document.querySelectorAll('.share-cb:checked')).map(cb => cb.value); }
     function toggleShare(name) {
       const cb = document.querySelector(`.share-cb[value="${CSS.escape(name)}"]`);
-      if (cb) { cb.checked = !cb.checked; updateSplitInfo(); renderShareChips(); }
+      if (cb) { cb.checked = !cb.checked; updateSplitInfo(); renderShareChips(); if (_splitMode !== 'equal') renderEntry(); }
     }
     function selectAllShares() {
       const boxes = Array.from(document.querySelectorAll('.share-cb'));
       const all = boxes.every(cb => cb.checked);
       boxes.forEach(cb => cb.checked = !all);
-      updateSplitInfo(); renderShareChips();
+      updateSplitInfo(); renderShareChips(); if (_splitMode !== 'equal') renderEntry();
     }
     function updateSplitInfo() {
       const n = sharedBy().length;
       const amt = parseFloat(document.getElementById('exp-amount')?.value) || 0;
       const info = document.getElementById('split-info');
       if (info) info.textContent = n ? `${n} ${LANG === 'en' ? 'heroes' : 'คน'}${amt > 0 ? ' · ' + money2(amt / n) + ' ' + t('each') : ''}` : '—';
+      const weights = {};
+      document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = Number(el.value) || 0; _splitWeights[el.dataset.name] = el.value; });
+      const shares = splitShares({ amount: amt, sharedBy: sharedBy(), split: _splitMode === 'equal' ? undefined : { mode: _splitMode, weights } }, S.participants);
+      document.querySelectorAll('.wr-share').forEach(el => { el.textContent = money2(shares[el.dataset.name] || 0); });
+      let paid = 0;
+      document.querySelectorAll('.payer-value').forEach(el => { _payerAmounts[el.dataset.name] = el.value; paid += Number(el.value) || 0; });
+      const payTotal = document.getElementById('pay-total');
+      if (payTotal) {
+        const diff = amt - paid;
+        payTotal.className = `pay-total ${Math.abs(diff) <= 1 ? 'ok' : 'off'}`;
+        payTotal.textContent = Math.abs(diff) <= 1 ? `✓ ${money2(paid)}` : `${diff > 0 ? t('short_by') : t('over_by')} ${money2(Math.abs(diff))}`;
+      }
     }
     function renderShareChips() {
       const box = document.getElementById('share-chip-row');
@@ -867,20 +1239,37 @@
       document.getElementById('entry-title').innerHTML = mode === 'quick' ? `⚡ ${t('quick_strike')}` : `📜 ${t('log_encounter')}`;
       const resetDraft = _resetEntryDraft;
       _resetEntryDraft = false;
+      if (resetDraft) { _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {}; }
       const prevDesc = resetDraft ? '' : (document.getElementById('exp-desc')?.value || '');
       const prevAmt = resetDraft ? '' : (document.getElementById('exp-amount')?.value || '');
       const prevIcon = resetDraft ? QUEST_ICONS[0] : (document.getElementById('exp-icon-value')?.value || QUEST_ICONS[0]);
       const prevPayer = resetDraft ? S.participants[0] : (document.getElementById('exp-payer')?.value || S.participants[0]);
       const split = resetDraft ? S.participants.slice() : sharedBy();
-      const payerOptions = S.participants.map(p => `<option value="${h(p)}" ${p === prevPayer ? 'selected' : ''}>${h(p)}</option>`).join('');
       const hiddenShares = S.participants.map(p => `<input type="checkbox" class="share-cb" value="${h(p)}" ${!split.length || split.includes(p) ? 'checked' : ''}>`).join('');
       const iconPicker = `<div class="icon-picker"><button class="icon-btn" onclick="toggleIconPicker()" type="button">${prevIcon}</button>${_iconOpen ? `<div class="icon-pop">${QUEST_ICONS.map(ic => `<button class="icon-opt ${ic === prevIcon ? 'on' : ''}" onclick="pickExpenseIcon('${ic}')" type="button">${ic}</button>`).join('')}</div>` : ''}</div><input type="hidden" id="exp-icon-value" value="${prevIcon}">`;
-      const shareBlock = `<div id="hidden-shares" class="hidden">${hiddenShares}</div><div class="field"><label>${t('split_with')} <span class="lab-hint" id="split-info"></span></label><div class="chip-row" id="share-chip-row"></div></div>`;
+      const payerBlock = `<div class="field">
+        <div class="field-lab-row"><label>${t('who_paid')}</label><button type="button" class="mini-toggle" onclick="setPayerMode('${_payerMode === 'one' ? 'multi' : 'one'}')">${_payerMode === 'one' ? '＋ ' + t('multi_payer') : '↩ ' + t('one_payer')}</button></div>
+        <input type="hidden" id="exp-payer" value="${h(prevPayer)}">
+        ${_payerMode === 'one' ? `<div class="chip-row" id="payer-chip-row"></div>` : `<div class="payer-amts">${S.participants.map(name => `
+          <div class="payer-amt-row">${heroChip(name, Number(_payerAmounts[name]) > 0, !Number(_payerAmounts[name]), 'void(0)')}
+            <div class="mini-gold"><span>฿</span><input class="payer-value" data-name="${h(name)}" type="number" inputmode="decimal" value="${h(_payerAmounts[name] || '')}" placeholder="0" oninput="updateSplitInfo()"></div>
+          </div>`).join('')}<div id="pay-total" class="pay-total"></div></div>`}
+      </div>`;
+      const modeButtons = [['equal','split_equal'],['shares','split_shares'],['exact','split_exact'],['percent','split_percent']]
+        .map(([mode,key]) => `<button type="button" class="${_splitMode === mode ? 'on' : ''}" onclick="setSplitMode('${mode}')">${t(key)}</button>`).join('');
+      const selected = split.length ? split : S.participants.slice();
+      const weightRows = _splitMode === 'equal' ? '' : `<div class="weight-rows">${selected.map(name => {
+        const suffix = _splitMode === 'percent' ? '%' : _splitMode === 'exact' ? '฿' : t('share_label');
+        return `<div class="weight-row">${heroAvatar(name,26)}<span class="wr-name">${h(name)}</span><div class="weight-in"><input class="weight-value" data-name="${h(name)}" type="number" inputmode="decimal" value="${h(_splitWeights[name] || '')}" placeholder="${_splitMode === 'shares' ? '1' : '0'}" oninput="updateSplitInfo()"><span class="wr-suffix">${suffix}</span></div><span class="wr-share" data-name="${h(name)}">${money2(0)}</span></div>`;
+      }).join('')}</div>`;
+      const shareBlock = `<div id="hidden-shares" class="hidden">${hiddenShares}</div><div class="field">
+        <div class="field-lab-row"><label>${t('split_with')} <span class="lab-hint" id="split-info"></span></label><div class="split-seg">${modeButtons}</div></div>
+        <div class="chip-row" id="share-chip-row"></div>${weightRows}
+      </div>`;
       document.getElementById('entry-body').innerHTML = mode === 'quick' ? `
         <div class="quick-amount"><span>฿</span><input id="exp-amount" type="number" inputmode="decimal" value="${h(prevAmt)}" placeholder="0" oninput="updateSplitInfo()"></div>
         <div class="qf-top">${iconPicker}<div class="field grow"><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div></div>
-        <input type="hidden" id="exp-payer" value="${h(prevPayer)}">
-        <div class="field"><label>${t('tap_payer')}</label><div class="quick-payers">${S.participants.map(p => `<button class="quick-payer ${p === prevPayer ? 'on' : ''}" onclick="setQuickPayer(${q(p)})">${heroAvatar(p, p === prevPayer ? 54 : 46)}<span>${h(p)}</span></button>`).join('')}</div></div>
+        ${payerBlock}
         ${shareBlock}
         <button class="btn-primary big" onclick="addExpense()">⚔️ ${t('log_it')}</button>` : `
         <div class="qf-top">
@@ -888,12 +1277,12 @@
           <div class="field grow"><label>${t('quest_name')}</label><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}" onkeydown="if(event.key==='Enter')addExpense()"></div>
           <div class="field gold-field"><label>${t('gold_spent')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="number" inputmode="decimal" value="${h(prevAmt)}" placeholder="0" oninput="updateSplitInfo()" onkeydown="if(event.key==='Enter')addExpense()"></div></div>
         </div>
-        <div class="field"><label>${t('who_paid')}</label><select class="field-select" id="exp-payer">${payerOptions}</select></div>
+        ${payerBlock}
         ${shareBlock}
         <button class="btn-primary big" onclick="addExpense()">⚔️ ${t('add_entry')}</button>`;
-      updateSplitInfo(); renderShareChips();
+      updateSplitInfo(); renderShareChips(); renderPayerChips();
     }
-    function setQuickPayer(name) { document.getElementById('exp-payer').value = name; renderEntry(); }
+    function setQuickPayer(name) { setSinglePayer(name); }
     document.addEventListener('input', e => { if (e.target.id === 'exp-amount') updateSplitInfo(); });
     function addExpense() {
       const desc = document.getElementById('exp-desc').value.trim() || t('quest_fallback');
@@ -902,11 +1291,24 @@
       const shared = sharedBy();
       const icon = document.getElementById('exp-icon-value').value || QUEST_ICONS[0];
       if (!amount || amount <= 0) { toast(t('err_amount')); return; }
-      if (!paidBy) { toast(t('err_payer')); return; }
+      const payers = {};
+      if (_payerMode === 'multi') {
+        document.querySelectorAll('.payer-value').forEach(el => { const n = Number(el.value) || 0; if (n > 0) payers[el.dataset.name] = n; });
+        if (!Object.keys(payers).length) { toast(t('err_payer')); return; }
+      } else if (!paidBy) { toast(t('err_payer')); return; }
       if (!shared.length) { toast(t('err_sharers')); return; }
-      S.expenses.push({ id: Date.now() + Math.random(), desc, icon, amount, paidBy, sharedBy: shared });
+      const weights = {};
+      if (_splitMode !== 'equal') document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = Number(el.value) || 0; });
+      S.expenses.push({
+        id: Date.now() + Math.random(), desc, icon, amount,
+        paidBy: _payerMode === 'multi' ? Object.keys(payers)[0] : paidBy,
+        payers: _payerMode === 'multi' ? payers : undefined,
+        sharedBy: shared,
+        split: _splitMode === 'equal' ? undefined : { mode: _splitMode, weights }
+      });
       _settledTx = [];
       _resetEntryDraft = true;
+      SFX.coin();
       save(); renderAll(); toast(t('success_added'));
     }
     function deleteExpense(id) {
@@ -929,20 +1331,27 @@
       if (!S.expenses.length) { el.innerHTML = `<div class="empty">⚔️ ${t('no_quests')}</div>`; return; }
       const byName = Object.fromEntries(party.map(p => [p.name, p]));
       el.innerHTML = `<div class="quest-rows">${S.expenses.slice().reverse().map(e => {
-        const parts = e.sharedBy.filter(p => byName[p]);
-        const per = parts.length ? e.amount / parts.length : 0;
-        const payer = byName[e.paidBy];
+        const shares = splitShares(e, S.participants);
+        const parts = Object.keys(shares);
+        const payers = Object.keys(payerMap(e)).filter(name => byName[name]);
+        const payer = payers.length === 1 ? byName[payers[0]] : null;
+        const splitMode = e.split?.mode || 'equal';
+        const modeKey = { shares:'split_shares', exact:'split_exact', percent:'split_percent' }[splitMode];
+        const generosityXp = Math.round(Object.entries(payerMap(e)).reduce((sum, [name, paid]) => sum + Math.max(0, paid - (shares[name] || 0)), 0));
+        const splitLabel = splitMode === 'equal' && parts.length
+          ? `${money2(e.amount / parts.length)} ${t('each')}`
+          : parts.map(name => `${h(name)} ${money2(shares[name] || 0)}`).join(' · ');
         return `<div class="quest-row">
           <div class="qr-icon">${h(e.icon || '🍜')}</div>
           <div class="qr-main">
-            <div class="qr-name">${h(e.desc)}</div>
+            <div class="qr-name">${h(e.desc)}${modeKey ? `<span class="qr-mode">${t(modeKey)}</span>` : ''}</div>
             <div class="qr-meta">
-              ${payer ? `<span>${heroAvatar(payer.name, 18)} ${h(payer.name)}</span>` : ''}
+              ${payer ? `<span>${heroAvatar(payer.name, 18)} ${h(payer.name)}</span>` : payers.length > 1 ? `<span>${payers.map(name => CLASSES[classOf(name)].glyph).join('')} ${t('payer_count',{n:payers.length})}</span>` : ''}
               <span>·</span>
-              <span>${parts.map(p => CLASSES[classOf(p)].glyph).join('')} <span style="font-family:var(--font-stat)">${money2(per)} ${t('each')}</span></span>
+              <span>${parts.map(p => CLASSES[classOf(p)].glyph).join('')} <span style="font-family:var(--font-stat)">${splitLabel}</span></span>
             </div>
           </div>
-          <div class="qr-right"><div class="qr-amt">${money(e.amount)}</div><div class="qr-xp">+${Math.round(e.amount)} ${t('xp')}</div></div>
+          <div class="qr-right"><div class="qr-amt">${money(e.amount)}</div>${generosityXp ? `<div class="qr-xp">+${generosityXp} ${t('xp')}</div>` : ''}</div>
           <button class="qr-del" onclick="deleteExpense(${e.id})">×</button>
         </div>`;
       }).join('')}<div class="log-total"><span>${t('party_gold')}</span><strong>${money(total)}</strong></div></div>`;
@@ -952,6 +1361,7 @@
       _settledTx.push(key);
       S.settleXp[from] = (Number(S.settleXp[from]) || 0) + SETTLE_BONUS_PAYER;
       S.settleXp[to] = (Number(S.settleXp[to]) || 0) + SETTLE_BONUS_PAYEE;
+      SFX.heal();
       save(); renderAll();
     }
     function renderSettlement(party) {
@@ -987,6 +1397,113 @@
         </div>`;
       }).join('')}</div>`;
     }
+    function openTemplateModal() { _overlay = 'templates'; SFX.click(); renderOverlay(); }
+    function openImportModal() { _overlay = 'import'; SFX.click(); renderOverlay(); }
+    function openSettings() { _overlay = 'settings'; SFX.click(); renderOverlay(); }
+    function closeOverlay() { _overlay = null; renderOverlay(); }
+    function startOnboarding() {
+      _overlay = null;
+      SFX.click();
+      renderOverlay();
+      openAddHero();
+    }
+    function useTemplate(id) {
+      const tp = QUEST_TEMPLATES.find(x => x.id === id);
+      if (!tp || !S.participants.length) return;
+      const payer = S.participants[0];
+      tp.items.forEach(([icon, th, en, amount], i) => {
+        S.expenses.push({ id: Date.now() + i + Math.random(), desc: LANG === 'en' ? en : th, icon, amount, paidBy: payer, sharedBy: S.participants.slice() });
+      });
+      _settledTx = []; _overlay = null; SFX.coin(); save(); renderAll(); toast(t('imported_items', { n: tp.items.length }));
+    }
+    function parseImportItems(text) {
+      return (text || '').split('\n').map(line => {
+        const parts = line.split(/[,\t;]/);
+        const desc = (parts[0] || '').trim();
+        const amount = Number(String(parts[parts.length - 1] || '').replace(/[^0-9.]/g, ''));
+        return desc && amount > 0 ? { desc, amount } : null;
+      }).filter(Boolean);
+    }
+    function updateImportCount() {
+      const el = document.getElementById('import-count');
+      if (el) el.textContent = t('import_parsed_count', { n: parseImportItems(document.getElementById('import-text')?.value || '').length });
+    }
+    function importTextItems() {
+      const items = parseImportItems(document.getElementById('import-text')?.value || '');
+      if (!items.length || !S.participants.length) return;
+      const payer = S.participants[0];
+      items.forEach((item, i) => S.expenses.push({
+        id: Date.now() + i + Math.random(), desc: item.desc, icon: '📜', amount: item.amount,
+        paidBy: payer, sharedBy: S.participants.slice()
+      }));
+      _settledTx = []; _overlay = null; SFX.coin(); save(); renderAll(); toast(t('imported_items', { n: items.length }));
+    }
+    function setTheme(theme) { S.settings.theme = theme === 'dungeon' ? 'dungeon' : 'tavern'; applySettings(); save(); renderAll(false); renderOverlay(); }
+    function setAccent(color) { if (ACCENTS.includes(color)) S.settings.accent = color; applySettings(); save(); renderAll(false); renderOverlay(); }
+    function toggleSetting(key) { S.settings[key] = !S.settings[key]; applySettings(); save(); renderAll(false); renderOverlay(); if (key === 'sound' && S.settings.sound) SFX.click(); }
+    function renderOverlay() {
+      const root = document.getElementById('app-overlays');
+      if (!root) return;
+      if (!_overlay) { root.innerHTML = ''; return; }
+      if (_overlay === 'onboarding') {
+        root.innerHTML = `<div class="picker-overlay"><div class="picker" onclick="event.stopPropagation()">
+          <div class="victory-card" style="width:100%;box-shadow:none;border:0;background:transparent;padding:14px 8px 8px">
+            <div class="vc-crown">⚔️</div>
+            <div class="vc-title">${t('onboarding_title')}</div>
+            <div class="vc-sub">${t('onboarding_sub')}</div>
+            <button class="btn-gold" style="width:100%;margin-top:18px" onclick="startOnboarding()">＋ ${t('onboarding_start')}</button>
+          </div>
+        </div></div>`;
+        return;
+      }
+      if (_overlay === 'templates') {
+        root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker modal-wide" onclick="event.stopPropagation()">
+          <div class="picker-head"><div><div class="picker-title">📋 ${t('pick_template')}</div></div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
+          <div class="tmpl-grid">${QUEST_TEMPLATES.map(tp => {
+            const total = tp.items.reduce((sum, item) => sum + item[3], 0);
+            return `<div class="tmpl-card"><div class="tmpl-top"><span class="tmpl-icon">${tp.icon}</span><div><div class="tmpl-name">${h(tp[LANG] || tp.th)}</div><div class="tmpl-meta">${tp.items.length} ${LANG === 'en' ? 'quests' : 'เควส'} · ${money(total)}</div></div></div>
+              <div class="tmpl-items">${tp.items.map(item => `<div class="tmpl-item"><span>${item[0]} ${h(LANG === 'en' ? item[2] : item[1])}</span><span>${money(item[3])}</span></div>`).join('')}</div>
+              <button class="btn-primary sm" onclick="useTemplate('${tp.id}')">＋ ${t('use_template')}</button></div>`;
+          }).join('')}</div>
+          <hr class="modal-divider"><button class="btn-ghost" onclick="downloadTemplate()">📥 ${t('download_excel_template')}</button>
+        </div></div>`;
+        return;
+      }
+      if (_overlay === 'import') {
+        root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" onclick="event.stopPropagation()">
+          <div class="picker-head"><div><div class="picker-title">📥 ${t('import_scroll')}</div><div class="picker-sub">${t('import_scroll_hint')}</div></div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
+          <textarea id="import-text" class="import-area" placeholder="${h(t('import_scroll_placeholder'))}" oninput="updateImportCount()"></textarea>
+          <div id="import-count" class="import-count">${t('import_parsed_count', { n: 0 })}</div>
+          <div class="import-actions"><button class="btn-ghost" onclick="closeOverlay();triggerImport()">📊 ${t('import_excel_btn')}</button><button class="btn-primary" onclick="importTextItems()">📥 ${t('import_text_btn')}</button></div>
+        </div></div>`;
+        return;
+      }
+      if (_overlay === 'settings') {
+        root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" onclick="event.stopPropagation()">
+          <div class="picker-head"><div class="picker-title">⚙ ${t('settings')}</div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
+          <div class="settings-grid">
+            <div class="settings-row"><div><div class="settings-label">${t('theme')}</div></div><div class="setting-seg"><button class="${S.settings.theme === 'tavern' ? 'on' : ''}" onclick="setTheme('tavern')">${t('theme_tavern')}</button><button class="${S.settings.theme === 'dungeon' ? 'on' : ''}" onclick="setTheme('dungeon')">${t('theme_dungeon')}</button></div></div>
+            <div class="settings-row"><div class="settings-label">${t('accent')}</div><div class="swatches">${ACCENTS.map(color => `<button class="swatch ${S.settings.accent === color ? 'on' : ''}" style="background:${color}" onclick="setAccent('${color}')" aria-label="${color}"></button>`).join('')}</div></div>
+            <div class="settings-row"><div><div class="settings-label">${t('game_stats')}</div><div class="settings-sub">HP / LVL / XP</div></div><button class="switch ${S.settings.stats ? 'on' : ''}" onclick="toggleSetting('stats')" aria-pressed="${S.settings.stats}"></button></div>
+            <div class="settings-row"><div class="settings-label">${t('sound_effects')}</div><button class="switch ${S.settings.sound ? 'on' : ''}" onclick="toggleSetting('sound')" aria-pressed="${S.settings.sound}"></button></div>
+          </div>
+        </div></div>`;
+        return;
+      }
+      if (_overlay === 'victory') {
+        const party = computeParty();
+        const mvp = party.slice().sort((a,b) => b.gen - a.gen)[0];
+        const settler = party.slice().sort((a,b) => (Number(S.settleXp[b.name])||0) - (Number(S.settleXp[a.name])||0))[0];
+        const total = S.expenses.reduce((sum,e) => sum + e.amount, 0);
+        const colors = ['var(--gold)','var(--accent)','var(--hp)','#6d5ae0','#2a7fb8','#ffe79c'];
+        root.innerHTML = `<div class="victory-overlay" onclick="closeOverlay()"><div class="confetti">${Array.from({length:18},(_,i) => `<i style="left:${5+i*5.2}%;background:${colors[i%colors.length]};animation-delay:${(i%9)*.12}s"></i>`).join('')}</div>
+          <div class="victory-card" onclick="event.stopPropagation()"><div class="vc-crown">🏆</div><div class="vc-title">${t('quest_complete')}</div><div class="vc-sub">${t('quest_complete_sub')}</div>
+          <div class="vc-recap"><div class="vc-stat"><strong>${money(total)}</strong><span>${t('total_spent')}</span></div><div class="vc-stat"><strong>${S.expenses.length}</strong><span>${t('quest_count')}</span></div><div class="vc-stat"><strong>${party.length}</strong><span>${t('party')}</span></div></div>
+          <div class="vc-awards">${mvp?.gen > 0 ? `<div class="vc-award"><span style="font-size:26px">🥇</span>${heroAvatar(mvp.name,46)}<div><strong>${h(mvp.name)}</strong><small>${t('most_generous')} · ${t('fronted')} ${money(mvp.gen)}</small></div></div>` : ''}
+          ${settler && Number(S.settleXp[settler.name]) > 0 && settler.name !== mvp?.name ? `<div class="vc-award"><span style="font-size:26px">🤝</span>${heroAvatar(settler.name,46)}<div><strong>${h(settler.name)}</strong><small>${t('top_settler')}</small></div></div>` : ''}</div>
+          <button class="btn-gold" style="width:100%" onclick="closeOverlay()">⚔️ ${t('view_party')}</button></div></div>`;
+      }
+    }
     function renderAll(checkLevels = true) {
       const party = computeParty();
       if (checkLevels) detectLevelUps(party);
@@ -995,6 +1512,12 @@
       renderEntry();
       renderLog(party);
       renderSettlement(party);
+      const outstanding = settleUp(party).filter(tx => !_settledTx.includes(tx.from + '>' + tx.to)).length;
+      if (_prevOutstanding !== null && _prevOutstanding > 0 && outstanding === 0 && S.expenses.length) {
+        _overlay = 'victory'; SFX.win();
+      }
+      _prevOutstanding = outstanding;
+      renderOverlay();
       translatePage();
     }
 
@@ -1044,7 +1567,15 @@
       ws1.views = [{ state: 'frozen', ySplit: 1 }];
       xlHeaderRow(ws1.addRow(['Quest', 'Gold (฿)', 'Paid By', 'Split With']));
       S.expenses.forEach((e, i) => {
-        const row = ws1.addRow([e.desc, e.amount, e.paidBy, e.sharedBy.join(', ')]);
+        const payers = payerMap(e);
+        const payerText = Object.keys(payers).length > 1
+          ? Object.entries(payers).map(([name, amount]) => `${name}: ${amount.toFixed(2)}`).join('; ')
+          : (Object.keys(payers)[0] || e.paidBy);
+        const shares = splitShares(e);
+        const splitText = (e.split?.mode || 'equal') === 'equal'
+          ? e.sharedBy.join(', ')
+          : Object.entries(shares).map(([name, amount]) => `${name}: ${amount.toFixed(2)}`).join('; ');
+        const row = ws1.addRow([e.desc, e.amount, payerText, splitText]);
         row.getCell(2).numFmt = '#,##0.00';
         row.getCell(2).alignment = { horizontal: 'right' };
         xlDataRow(row, i % 2 === 1);
