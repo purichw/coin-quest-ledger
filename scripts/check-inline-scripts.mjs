@@ -9,6 +9,9 @@ const htmlFiles = [
   'trip/index.html',
   'trip/index.legacy.html',
 ];
+const scriptFiles = [
+  'trip/app.js',
+];
 
 let checked = 0;
 for (const rel of htmlFiles) {
@@ -24,4 +27,11 @@ for (const rel of htmlFiles) {
   });
 }
 
-console.log(`Checked ${checked} inline script(s).`);
+for (const rel of scriptFiles) {
+  const file = path.join(root, rel);
+  if (!fs.existsSync(file)) continue;
+  new vm.Script(fs.readFileSync(file, 'utf8'), { filename: rel });
+  checked += 1;
+}
+
+console.log(`Checked ${checked} browser script(s).`);

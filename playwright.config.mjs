@@ -19,6 +19,15 @@ export default defineConfig({
   workers: 2,
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'tablet',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 820, height: 1180 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
     { name: 'mobile', use: { ...devices['Pixel 5'] } },
   ],
 });
