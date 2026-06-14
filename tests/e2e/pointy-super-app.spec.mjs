@@ -110,6 +110,37 @@ test('expense splitter supports admin URL setup, character IDs, admin unlock, an
   await expect(page.locator('.admin-table')).toContainText('Shane');
 });
 
+test('expense splitter exposes 18 avatar classes and persists archfiend skins', async ({ page }) => {
+  const tripId = await gotoFreshTrip(page, 'avatar-skins');
+  await startAddHero(page);
+  await page.getByPlaceholder('ตั้งชื่อฮีโร่ใหม่').fill('Regent');
+  await page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' }).click();
+
+  await expect(page.locator('.picker-cell[data-class][data-gender="male"]')).toHaveCount(18);
+  await expect(page.locator('.picker-cell[data-class][data-gender="female"]')).toHaveCount(18);
+  await page.locator('.picker-cell[data-class="archfiend"][data-gender="male"]').click();
+  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
+
+  await expect(page.locator('.hc-skin')).toHaveCount(1);
+  await page.locator('.hc-skin').click();
+  await expect(page.locator('.skin-pop')).toContainText('ดั้งเดิม');
+  await expect(page.locator('.skin-pop')).toContainText('ราชันเลือด');
+  await page.locator('.skin-opt', { hasText: 'ราชันเลือด' }).click();
+
+  await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /crimson-regent-male\.png$/);
+  await expect(page.locator('.chip-avatar img').first()).toHaveAttribute('src', /crimson-regent-male\.png$/);
+  const fallback = await page.evaluate(() => window.resolveAvatarFile('archfiend-male', 'bogus'));
+  expect(fallback).toMatch(/archfiend-male\.png$/);
+
+  await page.waitForTimeout(900);
+  const savedSkin = await page.evaluate(id => {
+    const raw = sessionStorage.getItem(`pointy_test_trip_${id}`);
+    return raw ? JSON.parse(raw).heroSkins?.Regent : null;
+  }, tripId);
+  expect(savedSkin).toBe('crimson-regent');
+});
+
 test('expense splitter supports duplicate avatars, multi-payer exact split, settlement XP, and victory', async ({ page }) => {
   await gotoFreshTrip(page, 'expense-math');
   await addWarrior(page, 'Shane');

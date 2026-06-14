@@ -16,7 +16,7 @@
     'หน่วย': 'ชิ้น', 'pcs': 'ชิ้น', 'piece': 'ชิ้น', 'pieces': 'ชิ้น'
   };
 
-  PointyLogic.CLASS_ORDER = ["warrior","wizard","cleric","monk","bard","dragoon","summoner","thief","ranger","alchemist","necromancer","engineer","berserker"];
+  PointyLogic.CLASS_ORDER = ["warrior","wizard","cleric","monk","bard","dragoon","summoner","thief","ranger","alchemist","necromancer","engineer","berserker","archfiend","corsair","reveler","seraph","tiderunner"];
   PointyLogic.CLASSES = {
     warrior:     { glyph:"⚔️", hue:26,  th:"นักรบ", en:"Warrior" },
     wizard:      { glyph:"🪄", hue:196, th:"พ่อมด", en:"Wizard" },
@@ -30,7 +30,12 @@
     alchemist:   { glyph:"⚗️", hue:178, th:"นักเล่นแร่", en:"Alchemist" },
     necromancer: { glyph:"💀", hue:290, th:"จอมเวทมรณะ", en:"Necromancer" },
     engineer:    { glyph:"🔧", hue:44,  th:"วิศวกร", en:"Engineer" },
-    berserker:   { glyph:"🪓", hue:8,   th:"นักรบคลั่ง", en:"Berserker" }
+    berserker:   { glyph:"🪓", hue:8,   th:"นักรบคลั่ง", en:"Berserker" },
+    archfiend:   { glyph:"😈", hue:358, th:"จอมอสูร", en:"Archfiend" },
+    corsair:     { glyph:"🐚", hue:186, th:"โจรสลัด", en:"Corsair" },
+    reveler:     { glyph:"🎭", hue:322, th:"นักรื่นเริง", en:"Reveler" },
+    seraph:      { glyph:"😇", hue:95,  th:"ทูตสวรรค์", en:"Seraph" },
+    tiderunner:  { glyph:"🌊", hue:225, th:"นักแล่นคลื่น", en:"Tiderunner" }
   };
   PointyLogic.LEVEL_STEP = 600;
   PointyLogic.SETTLE_BONUS_PAYER = 400;
@@ -196,6 +201,7 @@
       budgets: c?.budgets || {},
       heroClasses: Object.fromEntries(Object.entries(c?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
       heroGenders: c?.heroGenders || {},
+      heroSkins: c?.heroSkins && typeof c.heroSkins === 'object' ? c.heroSkins : {},
       characterIds: c?.characterIds || {},
       promptpay: c?.promptpay || {},
       settleXp: c?.settleXp || {},
@@ -209,6 +215,7 @@
       budgets: data?.budgets || {},
       heroClasses: Object.fromEntries(Object.entries(data?.heroClasses || {}).map(([name, cls]) => [name, normalizeClass(cls)])),
       heroGenders: data?.heroGenders || {},
+      heroSkins: data?.heroSkins && typeof data.heroSkins === 'object' ? data.heroSkins : {},
       settleXp: data?.settleXp || {},
       characterIds: data?.characterIds || {},
       promptpay: data?.promptpay || {},

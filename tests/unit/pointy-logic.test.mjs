@@ -141,14 +141,34 @@ test('normalizeTripState keeps legacy trip data compatible', () => {
   const state = logic.normalizeTripState({
     participants: ['A'],
     heroClasses: { A: 'mage' },
+    heroSkins: { A: 'crimson-regent' },
     expenses: [{ name: 'Coffee', amount: '120', payer: 'A', participants: ['A'] }]
   }, { defaultTripName: 'Trip', questFallback: 'Quest', questIcons: ['x'] });
 
   assert.equal(state.tripName, 'Trip');
   assert.equal(state.heroClasses.A, 'wizard');
+  assert.equal(state.heroSkins.A, 'crimson-regent');
   assert.equal(state.expenses[0].desc, 'Coffee');
   assert.equal(state.expenses[0].paidBy, 'A');
   assert.deepEqual(plain(state.expenses[0].sharedBy), ['A']);
+});
+
+test('new avatar classes normalize and campaign skins survive migration', () => {
+  assert.equal(logic.CLASS_ORDER.length, 18);
+  assert.equal(logic.normalizeClass('archfiend'), 'archfiend');
+  assert.equal(logic.CLASSES.tiderunner.glyph, '🌊');
+
+  const state = logic.normalizeTripState({
+    campaigns: [{
+      id: 'c1',
+      participants: ['A'],
+      heroClasses: { A: 'archfiend' },
+      heroSkins: { A: 'crimson-regent' }
+    }]
+  }, { defaultTripName: 'Trip' });
+
+  assert.equal(state.campaigns[0].heroClasses.A, 'archfiend');
+  assert.equal(state.campaigns[0].heroSkins.A, 'crimson-regent');
 });
 
 test('parseImportItems reads comma, semicolon, and tab separated rows', () => {

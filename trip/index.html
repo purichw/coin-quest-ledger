@@ -136,6 +136,18 @@
     .status-badge.guardian { background: color-mix(in oklab, var(--accent), #fff 12%); }
     .status-badge.debt { background: color-mix(in oklab, var(--hp), #fff 8%); }
     .status-badge.even { border-color: var(--border-strong); }
+    .hc-skin { position: absolute; left: 41px; bottom: 7px; z-index: 3; width: 28px; height: 28px; border: 0; border-radius: 9px; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 22%)); color: #2a1d04; font-size: 14px; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.4); transition: transform .12s, box-shadow .12s; }
+    .hc-skin:hover, .hc-skin.on { transform: translateY(-1px); box-shadow: 0 0 0 2px var(--gold-soft), 0 2px 6px rgba(0,0,0,.35); }
+    .skin-pop { position: absolute; left: 7px; right: 7px; bottom: 41px; z-index: 5; padding: 9px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); animation: pk-fade .14s ease-out; }
+    .skin-pop-h { margin: 0 2px 7px; color: var(--gold); font-family: var(--font-stat); font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+    .skin-pop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .skin-opt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 5px 4px 6px; border: 1.5px solid var(--border); border-radius: 9px; background: var(--panel-in); color: var(--ink); transition: transform .12s, border-color .12s, box-shadow .12s; }
+    .skin-opt:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+    .skin-opt.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-soft); }
+    .skin-thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 7px; overflow: hidden; background: var(--avatar-bg); }
+    .skin-thumb img { position: absolute; left: 0; right: 0; bottom: -1%; width: auto; height: 102%; max-width: none; margin: 0 auto; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+    .skin-name { width: 100%; overflow: hidden; color: var(--ink); font-size: 10.5px; font-weight: 600; line-height: 1.15; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+    .skin-check { position: absolute; top: 3px; right: 5px; color: var(--gold); font-size: 11px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
     .hero-name { font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.15; }
     .hero-class-row { display: flex; align-items: center; gap: 7px; margin-top: 4px; flex-wrap: wrap; }
     .hero-class { font-size: 12px; color: var(--ink-soft); }
@@ -625,6 +637,11 @@
     const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
     const CLASS_ORDER = PointyLogic.CLASS_ORDER;
     const CLASSES = PointyLogic.CLASSES;
+    const SKIN_DEFS = {
+      'archfiend-male': [
+        { id: 'crimson-regent', res: 'crimson-regent-male', th: 'ราชันเลือด', en: 'Crimson Regent' }
+      ]
+    };
     const LEVEL_STEP = PointyLogic.LEVEL_STEP;
     const SETTLE_BONUS_PAYER = PointyLogic.SETTLE_BONUS_PAYER;
     const SETTLE_BONUS_PAYEE = PointyLogic.SETTLE_BONUS_PAYEE;
@@ -644,6 +661,7 @@
       budgets: {},
       heroClasses: {},
       heroGenders: {},
+      heroSkins: {},
       characterIds: {},
       promptpay: {},
       settleXp: {},
@@ -652,7 +670,7 @@
       admin: { passwordHash: '', createdAt: null, urlLocked: false },
       settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
     };
-    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all';
+    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
     let _resetEntryDraft = false;
     let _settledTx = [];
     let _celebrateName = null;
@@ -840,7 +858,45 @@
     function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]); }
     function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
     function avatarId(clsId, gender) { return `${normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
-    function avatarSrc(clsId, gender) { return `/assets/rpg-portraits/${avatarId(clsId, gender)}.png`; }
+    function portraitFile(res) { return `/assets/rpg-portraits/${res}.png`; }
+    function avatarSrc(clsId, gender, skinId = '') { return resolveAvatarFile(avatarId(clsId, gender), skinId); }
+    function avatarSkins(id) {
+      if (!/^[a-z-]+-(female|male)$/.test(String(id || ''))) return [];
+      return [
+        { id: 'default', res: id, file: portraitFile(id), th: t('skin_default'), en: 'Original', isDefault: true },
+        ...(SKIN_DEFS[id] || []).map(sk => ({ ...sk, file: portraitFile(sk.res), isDefault: false }))
+      ];
+    }
+    function hasSkins(id) { return (SKIN_DEFS[id] || []).length > 0; }
+    function resolveAvatarFile(id, skinId) {
+      const list = avatarSkins(id);
+      const found = skinId && list.find(sk => sk.id === skinId);
+      return (found || list[0] || { file: portraitFile(id) }).file;
+    }
+    function skinOf(name) { return (S.heroSkins && S.heroSkins[name]) || ''; }
+    function resetHeroSkin(name) {
+      if (!name || !S.heroSkins) return;
+      delete S.heroSkins[name];
+    }
+    function setHeroSkin(name, skinId) {
+      const id = avatarId(classOf(name), genderOf(name));
+      const valid = avatarSkins(id).find(sk => sk.id === skinId);
+      S.heroSkins ||= {};
+      if (!valid || valid.isDefault) delete S.heroSkins[name];
+      else S.heroSkins[name] = valid.id;
+      _skinOpen = '';
+      SFX.click();
+      save(); renderAll(false);
+    }
+    function toggleSkinPicker(name) {
+      _skinOpen = _skinOpen === name ? '' : name;
+      SFX.click();
+      renderParty();
+    }
+    window.SKIN_DEFS = SKIN_DEFS;
+    window.avatarSkins = avatarSkins;
+    window.hasSkins = hasSkins;
+    window.resolveAvatarFile = resolveAvatarFile;
     function classColor(clsId) {
       const h = (CLASSES[clsId] || CLASSES.ranger).hue;
       return {
@@ -886,7 +942,7 @@
     }
     function heroAvatar(name, size = 32, hp = null) {
       const cls = classOf(name), c = classColor(cls), g = CLASSES[cls].glyph;
-      const src = customAvatarData(name) || avatarSrc(cls, genderOf(name));
+      const src = customAvatarData(name) || avatarSrc(cls, genderOf(name), skinOf(name));
       return `<span style="position:relative;width:${size}px;height:${size}px;display:inline-flex;flex-shrink:0">
         <span class="mini-hero-avatar" style="width:${size}px;height:${size}px;border-radius:${Math.round(size*.28)}px;border:2px solid ${c.ring};background:${avatarBg(cls)};font-size:${Math.round(size*.48)}px">
           <img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -904,11 +960,11 @@
       const glyph = CLASSES[cls].glyph;
       const custom = name ? customAvatarData(name) : _addHeroCustom;
       if (custom) return `<img class="portrait-img ${extra}" src="${custom}" alt="">`;
-      return `<img class="portrait-img ${extra}" src="${avatarSrc(cls, gender)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'portrait-fallback',textContent:'${glyph}'}))">`;
+      return `<img class="portrait-img ${extra}" src="${avatarSrc(cls, gender, name ? skinOf(name) : '')}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'portrait-fallback',textContent:'${glyph}'}))">`;
     }
     function heroChip(name, active, dim, onClick) {
       const cls = classOf(name), g = CLASSES[cls].glyph;
-      const src = customAvatarData(name) || avatarSrc(cls, genderOf(name));
+      const src = customAvatarData(name) || avatarSrc(cls, genderOf(name), skinOf(name));
       return `<button type="button" class="hero-chip ${active ? 'on' : ''} ${dim ? 'dim' : ''}" style="${colorVars(cls)}" onclick="${onClick}">
         <span class="chip-avatar"><img src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;align-items:center;justify-content:center">${g}</span></span><span>${h(name)}</span>
       </button>`;
@@ -939,6 +995,7 @@
         budgets: { ...S.budgets },
         heroClasses: { ...S.heroClasses },
         heroGenders: { ...S.heroGenders },
+        heroSkins: { ...(S.heroSkins || {}) },
         characterIds: { ...S.characterIds },
         promptpay: { ...(S.promptpay || {}) },
         settleXp: { ...S.settleXp },
@@ -956,6 +1013,7 @@
       S.budgets = { ...(c.budgets || {}) };
       S.heroClasses = { ...(c.heroClasses || {}) };
       S.heroGenders = { ...(c.heroGenders || {}) };
+      S.heroSkins = { ...(c.heroSkins || {}) };
       S.characterIds = { ...(c.characterIds || {}) };
       S.promptpay = { ...(c.promptpay || {}) };
       S.settleXp = { ...(c.settleXp || {}) };
@@ -1068,6 +1126,7 @@
         budgets: { ...S.budgets },
         heroClasses: { ...S.heroClasses },
         heroGenders: { ...S.heroGenders },
+        heroSkins: { ...(S.heroSkins || {}) },
         characterIds: { ...S.characterIds },
         promptpay: { ...(S.promptpay || {}) },
         settleXp: {},
@@ -1145,6 +1204,7 @@
       S.characterIds[name] = generateCharacterId();
       S.heroClasses[name] = _addHeroClass;
       S.heroGenders[name] = _addHeroGender;
+      resetHeroSkin(name);
       S.budgets[name] = 3000;
       if (_addHeroCustom) {
         try { localStorage.setItem(customAvatarKey(name), _addHeroCustom); } catch (_) {}
@@ -1175,7 +1235,7 @@
           sharedBy: e.sharedBy.filter(p => p !== name)
         };
       }).filter(e => e.sharedBy.length > 0 && (e.paidBy !== name || Object.keys(e.payers || {}).length > 0));
-      delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.settleXp[name];
+      delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.heroSkins?.[name]; delete S.settleXp[name];
       delete S.characterIds[name]; delete S.promptpay?.[name];
       try { localStorage.removeItem(customAvatarKey(name)); } catch (_) {}
       save(); renderAll();
@@ -1321,6 +1381,24 @@
         </div>
       </div>`;
     }
+    function skinPickerHtml(hero) {
+      const id = avatarId(hero.cls, genderOf(hero.name));
+      if (customAvatarData(hero.name) || !hasSkins(id)) return '';
+      const active = skinOf(hero.name) || 'default';
+      const skins = avatarSkins(id);
+      return `<button type="button" class="hc-skin ${_skinOpen === hero.name ? 'on' : ''}" onclick="toggleSkinPicker(${q(hero.name)})" title="${h(t('skins'))}" aria-label="${h(t('skins'))}">✨</button>
+        ${_skinOpen === hero.name ? `<div class="skin-pop" onclick="event.stopPropagation()">
+          <div class="skin-pop-h">✨ ${h(t('skins'))}</div>
+          <div class="skin-pop-grid">${skins.map(sk => {
+            const cls = classOf(hero.name);
+            return `<button type="button" class="skin-opt ${active === sk.id ? 'on' : ''}" onclick="setHeroSkin(${q(hero.name)},'${h(sk.id)}')">
+              <span class="skin-thumb" style="--avatar-bg:${avatarBg(cls)}"><img src="${h(resolveAvatarFile(id, sk.id))}" alt="" onerror="this.style.display='none'"></span>
+              <span class="skin-name">${h(sk[LANG] || sk.th || sk.en || sk.id)}</span>
+              ${active === sk.id ? '<span class="skin-check">✓</span>' : ''}
+            </button>`;
+          }).join('')}</div>
+        </div>` : ''}`;
+    }
 
     function renderParty() {
       const party = computeParty();
@@ -1341,6 +1419,7 @@
             <span class="class-badge" title="${h(cls[LANG] || cls.th)}">${cls.glyph}</span>
             ${S.settings.stats ? `<span class="lvl-badge"><span>${t('lvl')}</span><span>${hero.level.lvl}</span></span>` : ''}
             <span class="status-badge ${status.kind}" title="${status.kind === 'guardian' ? h(t('guardian_tip')) : status.kind === 'debt' ? h(t('debt_tip')) : ''}">${status.icon}</span>
+            ${skinPickerHtml(hero)}
             ${_celebrateName === hero.name ? `<div class="levelup">
               <span class="lub-star s1">✦</span><span class="lub-star s2">✧</span><span class="lub-star s3">★</span><span class="lub-star s4">✦</span>
               <strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div>
