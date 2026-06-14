@@ -130,10 +130,21 @@
     .add-cmp:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
     .add-cmp-open { display: flex; flex-direction: column; gap: 10px; }
     .icon-picker { position: relative; flex-shrink: 0; }
-    .icon-btn { width: 46px; height: 46px; border: 1.5px solid var(--border-strong); background: var(--panel-in); font-size: 24px; }
-    .icon-pop { position: absolute; top: 52px; left: 0; z-index: 10; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow); }
-    .icon-opt { width: 38px; height: 38px; background: transparent; font-size: 20px; }
+    .qi { display: block; image-rendering: pixelated; }
+    .qi-emoji { display: inline-flex; align-items: center; justify-content: center; }
+    .cmp-icon .qi, .icon-btn .qi, .icon-opt .qi { margin: 0 auto; }
+    .icon-btn { width: 46px; height: 46px; border: 1.5px solid var(--border-strong); background: var(--panel-in); font-size: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
+    .icon-btn:hover { border-color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 94%); }
+    .icon-pop { position: absolute; top: 52px; left: 0; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 14px; box-shadow: 0 16px 36px -24px rgba(74,54,20,.7); max-height: min(var(--icon-pop-max, 430px), calc(100vh - 96px)); overflow-y: auto; }
+    .icon-picker.drop-up .icon-pop { top: auto; bottom: 52px; }
+    .icon-opt { width: 38px; height: 38px; background: transparent; font-size: 20px; display: flex; align-items: center; justify-content: center; }
     .icon-opt:hover, .icon-opt.on { background: var(--panel-2); }
+    .icon-pop.labeled { grid-template-columns: repeat(3, minmax(78px, 1fr)); width: min(360px, calc(100vw - 40px)); gap: 8px; padding: 10px; }
+    .icon-pop.labeled .icon-opt { width: auto; height: auto; min-height: 104px; flex-direction: column; gap: 7px; padding: 11px 8px 10px; border: 1.5px solid transparent; border-radius: 13px; color: var(--ink); }
+    .icon-pop.labeled .icon-opt:hover { border-color: color-mix(in oklab, var(--accent), transparent 45%); background: color-mix(in oklab, var(--accent), transparent 92%); }
+    .icon-pop.labeled .icon-opt.on { border-color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 90%); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent), transparent 35%); }
+    .io-lab { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.2; text-align: center; }
+    .icon-opt.on .io-lab { color: var(--accent); }
     .empty { padding: 24px; text-align: center; color: var(--ink-soft); font-size: 14px; }
     .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--topbar); color: var(--topbar-ink); padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s; z-index: 50; font-weight: 600; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -189,9 +200,10 @@
 
   <script src="/shared/pointy-logic.js"></script>
   <script src="/lang.js"></script>
+  <script src="/trip/pixicons.jsx"></script>
   <script>
     const STORE_KEY = 'pointy_compare_v2';
-    const ITEM_ICONS = ["🥛","🧴","🍚","🍫","☕","🧻","🥤","🍜","🔋","💊","🧃","🍞"];
+    const ITEM_ICONS = window.ITEM_ICON_IDS || window.ITEM_ICONS || ["🥛","🧴","🍚","🍫","☕","🧻","🥤","🍜","🔋","💊","🧃","🍞"];
     const UNIT_GROUPS = PointyLogic.UNIT_GROUPS;
     const BASE_UNITS = ['ml', 'g', 'm', 'ชิ้น'];
     const UNIT_ALIAS = PointyLogic.UNIT_ALIAS;
@@ -206,6 +218,8 @@
     let draftSlots = {};
     let addOpen = false;
     let iconOpenFor = null;
+    let itemIconDropUp = false;
+    let itemIconMax = 430;
     let draftIcon = ITEM_ICONS[0];
     let toastTimer;
 
@@ -225,6 +239,15 @@
     function uid() { return "x" + Math.random().toString(36).slice(2, 9); }
     function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
+    function itemIconId(value) { return window.migrateItemIcon ? window.migrateItemIcon(value) : (value || ITEM_ICONS[0]); }
+    function itemIconMarkup(value, size = 30, className = '') {
+      const icon = itemIconId(value);
+      return window.questIconSvg ? window.questIconSvg(icon, size, className) : h(icon);
+    }
+    function itemIconLabel(value) {
+      const icon = itemIconId(value);
+      return window.iconLabel ? window.iconLabel(icon, LANG || 'th') : '';
+    }
     function money(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
     function approxEqual(a, b) { return PointyLogic.approxEqual(a, b); }
     function locale() { return LANG === 'th' ? 'th-TH' : 'en-US'; }
@@ -253,14 +276,27 @@
       const key = u => u === 'ชิ้น' ? 'pcs' : u;
       return BASE_UNITS.map(u => `<option value="${h(u)}" ${normalizeUnit(selected) === u ? 'selected' : ''}>${h(t('base_unit_' + key(u)))}</option>`).join('');
     }
+    function toggleItemIconPicker(ev) {
+      const willOpen = iconOpenFor !== 'new';
+      if (willOpen && ev?.currentTarget) {
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const below = window.innerHeight - rect.bottom - 24;
+        const above = rect.top - 24;
+        itemIconDropUp = below < 320 && above > below;
+        itemIconMax = Math.max(260, Math.min(430, itemIconDropUp ? above : below));
+      }
+      iconOpenFor = willOpen ? 'new' : null;
+      render();
+    }
     function normalizeComparison(cmp) {
-      return PointyLogic.normalizeComparison(cmp, {
+      const normalized = PointyLogic.normalizeComparison(cmp, {
         idFactory: uid,
         itemFallback: t('item'),
         merchantFallback: t('merchant'),
         unitGroups: UNIT_GROUPS,
         unitAlias: UNIT_ALIAS
       });
+      return { ...normalized, icon: itemIconId(normalized.icon) };
     }
     function loadState() {
       try {
@@ -301,7 +337,7 @@
       const enough = ranked.length >= 2;
       return `<div class="cmp-card">
         <div class="cmp-head">
-          <span class="cmp-icon">${h(cmp.icon || "🛒")}</span>
+          <span class="cmp-icon">${itemIconMarkup(cmp.icon || ITEM_ICONS[0], 32)}</span>
           <div class="cmp-id"><div class="cmp-name">${h(cmp.name)}</div><div class="cmp-unit">${t('per_unit')} ${h(displayUnit(cmp.baseUnit))}</div></div>
           ${enough && best && best.savePct > 0 ? `<div class="cmp-save"><span class="cs-pct">−${best.savePct}%</span><span class="cs-lab">${t('cheaper_by')}</span></div>` : ''}
           <button class="card-del" onclick="deleteComparison(${q(cmp.id)})">×</button>
@@ -407,7 +443,7 @@
       if (!addOpen) return `<button class="add-cmp" onclick="addOpen=true;render()"><span style="font-size:26px;line-height:1">＋</span><span>${t('add_item')}</span></button>`;
       return `<div class="cmp-card add-cmp-open">
         <div class="add-item-row">
-          <div class="icon-picker"><button class="icon-btn" onclick="iconOpenFor=iconOpenFor==='new'?null:'new';render()">${draftIcon}</button>${iconOpenFor === 'new' ? `<div class="icon-pop">${ITEM_ICONS.map(ic => `<button class="icon-opt ${draftIcon === ic ? 'on' : ''}" onclick="draftIcon='${ic}';iconOpenFor=null;render()">${ic}</button>`).join('')}</div>` : ''}</div>
+          <div class="icon-picker ${itemIconDropUp ? 'drop-up' : ''}" style="--icon-pop-max:${itemIconMax}px"><button class="icon-btn" onclick="toggleItemIconPicker(event)" aria-label="${h(itemIconLabel(draftIcon) || t('item'))}">${itemIconMarkup(draftIcon, 34)}</button>${iconOpenFor === 'new' ? `<div class="icon-pop labeled">${ITEM_ICONS.map(ic => `<button class="icon-opt ${itemIconId(draftIcon) === itemIconId(ic) ? 'on' : ''}" onclick="draftIcon=${q(itemIconId(ic))};iconOpenFor=null;render()" title="${h(itemIconLabel(ic))}">${itemIconMarkup(ic, 36)}<span class="io-lab">${h(itemIconLabel(ic))}</span></button>`).join('')}</div>` : ''}</div>
           <input class="input" id="new-name" placeholder="${h(t('item_name_ph'))}" onkeydown="if(event.key==='Enter')addComparison()">
         </div>
         <div class="add-item-row">
@@ -422,7 +458,7 @@
       const unit = normalizeUnit(document.getElementById('new-unit')?.value);
       if (!name) { toast(t('err_desc')); return; }
       const group = groupOf(unit) || UNIT_GROUPS[0];
-      comparisons.unshift({ id: uid(), name, baseUnit: group.base, icon: draftIcon, offers: [] });
+      comparisons.unshift({ id: uid(), name, baseUnit: group.base, icon: itemIconId(draftIcon), offers: [] });
       addOpen = false; draftIcon = ITEM_ICONS[0]; saveState(); render();
     }
     function deleteComparison(id) {

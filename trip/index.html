@@ -196,9 +196,11 @@
     .avatar-preview .class-badge { left: 8px; top: 8px; }
     .avatar-preview .portrait-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 52px; }
     .avatar-preview-label { position: absolute; z-index: 2; left: 8px; right: 8px; bottom: 7px; padding: 4px 7px; border-radius: 8px; background: rgba(0,0,0,.48); color: #fff; text-align: center; font-size: 11px; font-weight: 700; backdrop-filter: blur(3px); }
-    .avatar-preview.empty { display: flex; align-items: center; justify-content: center; border-style: dashed; background: var(--panel-2); color: var(--ink-soft); }
-    .avatar-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 18px; text-align: center; font-size: 12px; font-weight: 600; }
-    .avatar-empty span:first-child { font-size: 34px; line-height: 1; opacity: .65; }
+    .avatar-preview.empty { border-color: var(--border); border-style: solid; background: var(--panel-in); color: var(--ink-soft); }
+    .hc-choose { position: absolute; inset: 0; width: 100%; height: 100%; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: repeating-linear-gradient(45deg, var(--panel-2), var(--panel-2) 10px, var(--panel) 10px, var(--panel) 20px); color: var(--ink-soft); transition: .15s; }
+    .hc-choose:hover { color: var(--accent); }
+    .hc-choose-q { font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; width: 60px; height: 60px; border-radius: 14px; border: 3px dashed currentColor; display: flex; align-items: center; justify-content: center; }
+    .hc-choose-lab { font-size: 12px; font-weight: 700; white-space: nowrap; }
     .class-tools { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
     .gender-toggle { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; width: max-content; }
     .gender-btn { width: 36px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 16px; font-weight: 800; }
@@ -353,10 +355,23 @@
     .gold-in span { color: var(--gold); font-family: var(--font-stat); font-size: 16px; font-weight: 700; }
     .gold-in input { border: 0; box-shadow: none; background: transparent; padding-left: 6px; font-family: var(--font-stat); font-weight: 700; }
     .icon-picker { position: relative; }
-    .icon-btn { width: 48px; height: 48px; border: 1.5px solid var(--border-strong); background: var(--panel-in); font-size: 24px; }
-    .icon-pop { position: absolute; z-index: 10; top: 54px; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow); }
-    .icon-opt { width: 38px; height: 38px; background: transparent; font-size: 20px; }
+    .qi { display: block; image-rendering: pixelated; }
+    .qi-emoji { display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn .qi, .icon-opt .qi, .qr-icon .qi, .tmpl-icon .qi { margin: 0 auto; }
+    .icon-btn { width: 48px; height: 48px; border: 1.5px solid var(--border-strong); background: var(--panel-in); font-size: 24px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
+    .icon-btn:hover { border-color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 94%); }
+    .icon-pop { position: absolute; z-index: 45; top: 54px; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 14px; box-shadow: 0 16px 36px -24px rgba(74,54,20,.7); max-height: min(var(--icon-pop-max, 430px), calc(100vh - 96px)); overflow-y: auto; }
+    .icon-picker.drop-up .icon-pop { top: auto; bottom: 54px; }
+    .icon-opt { width: 38px; height: 38px; background: transparent; font-size: 20px; display: flex; align-items: center; justify-content: center; }
     .icon-opt:hover, .icon-opt.on { background: var(--panel-2); }
+    .icon-pop.labeled { grid-template-columns: repeat(3, minmax(78px, 1fr)); width: min(540px, calc(100vw - 56px)); gap: 8px; padding: 10px; }
+    .icon-pop.labeled .icon-opt { width: auto; height: auto; min-height: 104px; flex-direction: column; gap: 7px; padding: 11px 8px 10px; border: 1.5px solid transparent; border-radius: 13px; color: var(--ink); }
+    .icon-pop.labeled .icon-opt:hover { border-color: color-mix(in oklab, var(--accent), transparent 45%); background: color-mix(in oklab, var(--accent), transparent 92%); }
+    .icon-pop.labeled .icon-opt.on { border-color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 90%); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent), transparent 35%); }
+    .io-lab { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.2; text-align: center; }
+    .icon-opt.on .io-lab { color: var(--accent); }
+    .ti-label { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+    .ti-label .qi, .ti-label .qi-emoji { flex-shrink: 0; }
     .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .hero-chip { display: inline-flex; align-items: center; gap: 7px; border: 1.5px solid var(--border-strong); background: var(--panel-in); color: var(--ink); border-radius: 999px; padding: 5px 13px 5px 5px; font-size: 14px; font-weight: 600; }
     .hero-chip.dim { opacity: .5; filter: saturate(.45); }
@@ -592,6 +607,7 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="/shared/pointy-logic.js"></script>
   <script src="/lang.js"></script>
+  <script src="/trip/pixicons.jsx"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script>
@@ -633,7 +649,7 @@
       };
     }
 
-    const QUEST_ICONS = ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
+    const QUEST_ICONS = window.QUEST_ICON_IDS || window.QUEST_ICONS || ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
     const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
     const CLASS_ORDER = PointyLogic.CLASS_ORDER;
     const CLASSES = PointyLogic.CLASSES;
@@ -670,7 +686,7 @@
       admin: { passwordHash: '', createdAt: null, urlLocked: false },
       settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
     };
-    let _saveTimer, _toastTimer, _iconOpen = false, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
+    let _saveTimer, _toastTimer, _iconOpen = false, _iconDropUp = false, _iconPickerMax = 430, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
     let _resetEntryDraft = false;
     let _settledTx = [];
     let _celebrateName = null;
@@ -685,6 +701,15 @@
     function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
     function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
+    function questIconId(value) { return window.migrateIcon ? window.migrateIcon(value) : (value || QUEST_ICONS[0]); }
+    function questIconMarkup(value, size = 30, className = '') {
+      const icon = questIconId(value);
+      return window.questIconSvg ? window.questIconSvg(icon, size, className) : h(icon);
+    }
+    function questIconLabel(value) {
+      const icon = questIconId(value);
+      return window.iconLabel ? window.iconLabel(icon, LANG || 'th') : '';
+    }
     function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
     function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
     function ppTLV(tag, value) { const v = String(value); return tag + String(v.length).padStart(2, "0") + v; }
@@ -1456,7 +1481,12 @@
           ${(() => {
             if (!_addHeroClass || !_addHeroGender) {
               return `<div class="avatar-preview empty">
-                <div class="avatar-empty"><span>＋</span><span>${t('hero_not_selected')}</span></div>
+                <button type="button" class="hc-choose" onclick="openHeroPicker()" aria-label="${h(t('tap_choose_hero'))}">
+                  <span class="hc-choose-q">?</span>
+                  <span class="hc-choose-lab">${t('tap_choose_hero')}</span>
+                </button>
+                <span class="class-badge">⚔️</span>
+                <span class="status-badge guardian">🛡️</span>
               </div>`;
             }
             const c = classColor(_addHeroClass);
@@ -1526,8 +1556,19 @@
       const payer = document.getElementById('exp-payer')?.value || S.participants[0];
       if (box) box.innerHTML = S.participants.map(name => heroChip(name, name === payer, false, `setSinglePayer(${q(name)})`)).join('');
     }
-    function toggleIconPicker() { _iconOpen = !_iconOpen; renderEntry(); }
-    function pickExpenseIcon(icon) { document.getElementById('exp-icon-value').value = icon; _iconOpen = false; renderEntry(); }
+    function toggleIconPicker(ev) {
+      const willOpen = !_iconOpen;
+      if (willOpen && ev?.currentTarget) {
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const below = window.innerHeight - rect.bottom - 24;
+        const above = rect.top - 24;
+        _iconDropUp = below < 320 && above > below;
+        _iconPickerMax = Math.max(260, Math.min(430, _iconDropUp ? above : below));
+      }
+      _iconOpen = willOpen;
+      renderEntry();
+    }
+    function pickExpenseIcon(icon) { document.getElementById('exp-icon-value').value = questIconId(icon); _iconOpen = false; renderEntry(); }
     function fileToScaledDataURL(file, maxDim, cb) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -1673,11 +1714,11 @@
       const prevDesc = resetDraft ? '' : (document.getElementById('exp-desc')?.value || '');
       const prevAmt = _splitMode === 'items' ? (lootTotal() ? String(lootTotal()) : '') : (resetDraft ? '' : (document.getElementById('exp-amount')?.value || ''));
       const prevDate = resetDraft ? '' : (document.getElementById('exp-date')?.value || _expenseDate || '');
-      const prevIcon = resetDraft ? QUEST_ICONS[0] : (document.getElementById('exp-icon-value')?.value || QUEST_ICONS[0]);
+      const prevIcon = questIconId(resetDraft ? QUEST_ICONS[0] : (document.getElementById('exp-icon-value')?.value || QUEST_ICONS[0]));
       const prevPayer = resetDraft ? S.participants[0] : (document.getElementById('exp-payer')?.value || S.participants[0]);
       const split = _splitMode === 'items' ? S.participants.slice() : (resetDraft ? S.participants.slice() : sharedBy());
       const hiddenShares = S.participants.map(p => `<input type="checkbox" class="share-cb" value="${h(p)}" ${!split.length || split.includes(p) ? 'checked' : ''}>`).join('');
-      const iconPicker = `<div class="icon-picker"><button class="icon-btn" onclick="toggleIconPicker()" type="button">${prevIcon}</button>${_iconOpen ? `<div class="icon-pop">${QUEST_ICONS.map(ic => `<button class="icon-opt ${ic === prevIcon ? 'on' : ''}" onclick="pickExpenseIcon('${ic}')" type="button">${ic}</button>`).join('')}</div>` : ''}</div><input type="hidden" id="exp-icon-value" value="${prevIcon}">`;
+      const iconPicker = `<div class="icon-picker ${_iconDropUp ? 'drop-up' : ''}" style="--icon-pop-max:${_iconPickerMax}px"><button class="icon-btn" onclick="toggleIconPicker(event)" type="button" aria-label="${h(questIconLabel(prevIcon) || t('quest_name'))}">${questIconMarkup(prevIcon, 34)}</button>${_iconOpen ? `<div class="icon-pop labeled">${QUEST_ICONS.map(ic => `<button class="icon-opt ${questIconId(ic) === prevIcon ? 'on' : ''}" onclick="pickExpenseIcon(${q(ic)})" type="button" title="${h(questIconLabel(ic))}">${questIconMarkup(ic, 36)}<span class="io-lab">${h(questIconLabel(ic))}</span></button>`).join('')}</div>` : ''}</div><input type="hidden" id="exp-icon-value" value="${h(prevIcon)}">`;
       const payerBlock = `<div class="field">
         <div class="field-lab-row"><label>${t('who_paid')}</label><button type="button" class="mini-toggle" onclick="setPayerMode('${_payerMode === 'one' ? 'multi' : 'one'}')">${_payerMode === 'one' ? '＋ ' + t('multi_payer') : '↩ ' + t('one_payer')}</button></div>
         <input type="hidden" id="exp-payer" value="${h(prevPayer)}">
@@ -1733,7 +1774,7 @@
       const amount = _splitMode === 'items' ? cleanItems.reduce((sum, item) => sum + item.amount, 0) : parseFloat(document.getElementById('exp-amount').value);
       const paidBy = document.getElementById('exp-payer').value;
       let shared = sharedBy();
-      const icon = document.getElementById('exp-icon-value').value || QUEST_ICONS[0];
+      const icon = questIconId(document.getElementById('exp-icon-value').value || QUEST_ICONS[0]);
       if (!amount || amount <= 0) { toast(t('err_amount')); return; }
       if (_splitMode === 'items' && !cleanItems.length) { toast(t('err_loot_items')); return; }
       if (_splitMode === 'items') {
@@ -1796,7 +1837,7 @@
           : parts.map(name => `${h(name)} ${money2(shares[name] || 0)}`).join(' · ');
         const dateLabel = e.date ? new Date(e.date).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
         return `<div class="quest-row">
-          <div class="qr-icon">${h(e.icon || '🍜')}</div>
+          <div class="qr-icon">${questIconMarkup(e.icon || QUEST_ICONS[0], 32)}</div>
           <div class="qr-main">
             <div class="qr-name">${h(e.desc)}${modeKey ? `<span class="qr-mode">${t(modeKey)}</span>` : ''}</div>
             <div class="qr-meta">
@@ -1892,7 +1933,7 @@
       if (!tp || !S.participants.length) return;
       const payer = S.participants[0];
       tp.items.forEach(([icon, th, en, amount], i) => {
-        S.expenses.push({ id: Date.now() + i + Math.random(), desc: LANG === 'en' ? en : th, icon, amount, paidBy: payer, sharedBy: S.participants.slice() });
+        S.expenses.push({ id: Date.now() + i + Math.random(), desc: LANG === 'en' ? en : th, icon: questIconId(icon), amount, paidBy: payer, sharedBy: S.participants.slice() });
       });
       _settledTx = []; _overlay = null; SFX.coin(); save(); renderAll(); toast(t('imported_items', { n: tp.items.length }));
     }
@@ -2115,8 +2156,8 @@
           <div class="picker-head"><div><div class="picker-title">📋 ${t('pick_template')}</div></div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
           <div class="tmpl-grid">${QUEST_TEMPLATES.map(tp => {
             const total = tp.items.reduce((sum, item) => sum + item[3], 0);
-            return `<div class="tmpl-card"><div class="tmpl-top"><span class="tmpl-icon">${tp.icon}</span><div><div class="tmpl-name">${h(tp[LANG] || tp.th)}</div><div class="tmpl-meta">${tp.items.length} ${LANG === 'en' ? 'quests' : 'เควส'} · ${money(total)}</div></div></div>
-              <div class="tmpl-items">${tp.items.map(item => `<div class="tmpl-item"><span>${item[0]} ${h(LANG === 'en' ? item[2] : item[1])}</span><span>${money(item[3])}</span></div>`).join('')}</div>
+            return `<div class="tmpl-card"><div class="tmpl-top"><span class="tmpl-icon">${questIconMarkup(tp.icon, 32)}</span><div><div class="tmpl-name">${h(tp[LANG] || tp.th)}</div><div class="tmpl-meta">${tp.items.length} ${LANG === 'en' ? 'quests' : 'เควส'} · ${money(total)}</div></div></div>
+              <div class="tmpl-items">${tp.items.map(item => `<div class="tmpl-item"><span class="ti-label">${questIconMarkup(item[0], 18)} ${h(LANG === 'en' ? item[2] : item[1])}</span><span>${money(item[3])}</span></div>`).join('')}</div>
               <button class="btn-primary sm" onclick="useTemplate('${tp.id}')">＋ ${t('use_template')}</button></div>`;
           }).join('')}</div>
           <hr class="modal-divider"><button class="btn-ghost" onclick="downloadTemplate()">📥 ${t('download_excel_template')}</button>

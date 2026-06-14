@@ -157,6 +157,12 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await expect(page.locator('#party-count')).toHaveText('2');
 
   await page.locator('#exp-desc').fill('Dinner');
+  await page.locator('.qf-top .icon-btn').click();
+  await expect(page.locator('.icon-pop.labeled')).toBeVisible();
+  await expect(page.locator('.icon-opt .qi')).toHaveCount(18);
+  await expect(page.locator('.io-lab', { hasText: 'อาหาร' })).toBeVisible();
+  await page.locator('.icon-opt', { hasText: 'กาแฟ' }).click();
+  await expect(page.locator('.qf-top .icon-btn .qi')).toBeVisible();
   await page.locator('#exp-amount').fill('1000');
   await page.getByRole('button', { name: '✓ ทั้งปาร์ตี้' }).click();
   await page.getByRole('button', { name: 'ระบุเอง' }).click();
@@ -256,6 +262,16 @@ test('price comparison page loads and ranks normalized unit prices', async ({ pa
 
   await expect(page.getByRole('link', { name: 'เปรียบเทียบราคา' })).toBeVisible();
   await expect(page.locator('#cmp-grid')).toBeVisible();
+  await expect(page.locator('.cmp-icon .qi').first()).toBeVisible();
+
+  await page.locator('.add-cmp').scrollIntoViewIfNeeded();
+  await page.locator('.add-cmp').click();
+  await page.locator('.add-cmp-open .icon-btn').click();
+  await expect(page.locator('.icon-pop.labeled')).toBeVisible();
+  await expect(page.locator('.icon-opt .qi')).toHaveCount(12);
+  await expect(page.locator('.io-lab').filter({ hasText: /^นม$/ })).toBeVisible();
+  await page.locator('.icon-opt', { hasText: 'ผงซักฟอก' }).click();
+  await expect(page.locator('.add-cmp-open .icon-btn .qi')).toBeVisible();
 
   const ranked = await page.evaluate(() => {
     const cmp = { baseUnit: 'มล.' };
