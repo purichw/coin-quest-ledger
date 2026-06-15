@@ -126,6 +126,7 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
   await page.locator('.hc-skin').click();
   await expect(page.locator('.skin-pop')).toContainText('ดั้งเดิม');
   await expect(page.locator('.skin-pop')).toContainText('ราชันเลือด');
+  await expect(page.locator('.skin-pop')).toContainText('อาร์คฟีนด์นักว่ายน้ำ');
   await page.locator('.skin-opt', { hasText: 'ราชันเลือด' }).click();
 
   await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /crimson-regent-male\.png$/);
@@ -139,6 +140,11 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
     return raw ? JSON.parse(raw).heroSkins?.Regent : null;
   }, tripId);
   expect(savedSkin).toBe('crimson-regent');
+
+  await page.locator('.hc-skin').click();
+  await page.locator('.skin-opt', { hasText: 'อาร์คฟีนด์นักว่ายน้ำ' }).click();
+  await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /archfiend-swimmer-male\.png$/);
+  await expect(page.locator('.portrait-img').first()).toHaveClass(/portrait-img/);
 });
 
 test('expense splitter supports duplicate avatars, multi-payer exact split, settlement XP, and victory', async ({ page }) => {

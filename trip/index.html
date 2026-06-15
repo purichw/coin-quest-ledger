@@ -138,15 +138,15 @@
     .status-badge.even { border-color: var(--border-strong); }
     .hc-skin { position: absolute; left: 41px; bottom: 7px; z-index: 3; width: 28px; height: 28px; border: 0; border-radius: 9px; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 22%)); color: #2a1d04; font-size: 14px; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.4); transition: transform .12s, box-shadow .12s; }
     .hc-skin:hover, .hc-skin.on { transform: translateY(-1px); box-shadow: 0 0 0 2px var(--gold-soft), 0 2px 6px rgba(0,0,0,.35); }
-    .skin-pop { position: absolute; left: 7px; right: 7px; bottom: 41px; z-index: 5; padding: 9px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); animation: pk-fade .14s ease-out; }
-    .skin-pop-h { margin: 0 2px 7px; color: var(--gold); font-family: var(--font-stat); font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
-    .skin-pop-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-    .skin-opt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; padding: 5px 4px 6px; border: 1.5px solid var(--border); border-radius: 9px; background: var(--panel-in); color: var(--ink); transition: transform .12s, border-color .12s, box-shadow .12s; }
+    .skin-pop { position: absolute; left: 7px; right: 7px; bottom: 41px; z-index: 5; padding: 7px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow); animation: pk-fade .14s ease-out; }
+    .skin-pop-h { margin: 0 2px 6px; color: var(--gold); font-family: var(--font-stat); font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+    .skin-pop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .skin-opt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 4px 3px 5px; border: 1.5px solid var(--border); border-radius: 9px; background: var(--panel-in); color: var(--ink); transition: transform .12s, border-color .12s, box-shadow .12s; }
     .skin-opt:hover { transform: translateY(-1px); border-color: var(--border-strong); }
     .skin-opt.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-soft); }
     .skin-thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 7px; overflow: hidden; background: var(--avatar-bg); }
     .skin-thumb img { position: absolute; left: 0; right: 0; bottom: -1%; width: auto; height: 102%; max-width: none; margin: 0 auto; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
-    .skin-name { width: 100%; overflow: hidden; color: var(--ink); font-size: 10.5px; font-weight: 600; line-height: 1.15; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+    .skin-name { width: 100%; overflow: hidden; color: var(--ink); font-size: 9.5px; font-weight: 600; line-height: 1.1; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
     .skin-check { position: absolute; top: 3px; right: 5px; color: var(--gold); font-size: 11px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
     .hero-name { font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.15; }
     .hero-class-row { display: flex; align-items: center; gap: 7px; margin-top: 4px; flex-wrap: wrap; }

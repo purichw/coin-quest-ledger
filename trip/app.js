@@ -51,7 +51,8 @@ const CLASS_ORDER = PointyLogic.CLASS_ORDER;
 const CLASSES = PointyLogic.CLASSES;
 const SKIN_DEFS = {
   'archfiend-male': [
-    { id: 'crimson-regent', res: 'crimson-regent-male', th: 'ราชันเลือด', en: 'Crimson Regent' }
+    { id: 'crimson-regent', res: 'crimson-regent-male', th: 'ราชันเลือด', en: 'Crimson Regent' },
+    { id: 'archfiend-swimmer', res: 'archfiend-swimmer-male', th: 'อาร์คฟีนด์นักว่ายน้ำ', en: 'Archfiend Swimmer' }
   ]
 };
 const LEVEL_STEP = PointyLogic.LEVEL_STEP;

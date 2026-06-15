@@ -26,6 +26,7 @@ const portraitDir = path.join(process.cwd(), 'assets', 'rpg-portraits');
 const expected = [
   ...classes.flatMap(cls => genders.map(gender => `${cls}-${gender}.png`)),
   'crimson-regent-male.png',
+  'archfiend-swimmer-male.png',
 ];
 const missing = expected.filter(file => !fs.existsSync(path.join(portraitDir, file)));
 
