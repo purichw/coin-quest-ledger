@@ -8,8 +8,8 @@ Last updated: 2026-06-15
 - GitHub: `git@github.com:purichw/Pointy-Super-App.git`
 - Live production URL: `https://pointy-super-app.vercel.app`
 - Vercel project: `pointy-super-app`
-- Current main branch latest known commit: `b717339` (`Refactor trip app shell`)
-- Last known production deployment: `dpl_9MqHYPu77irg3WVwQRxC7dyt6QDA`
+- Current main branch latest known commit: `63cdfee` (`Add admin owned board tracking`)
+- Last known production deployment: `dpl_HKSDCCAQF8SiRUnFv27i7syhxGRU`
 
 ## Start Here In A New Chat
 
@@ -23,6 +23,8 @@ Last updated: 2026-06-15
 
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
+- `admin/index.html`: Phase 1 Super Admin Portal shell, responsive table/modal styling, and Firebase compat script loader.
+- `admin/app.js`: Phase 1 Super Admin Portal behavior for local gate, board/admin/user editing, drafts, publish, restore, and revision logs.
 - `index.html`: live toolbox home and price comparison entry.
 - `lang.js`: shared i18n for Thai and English across the toolbox. Every user-facing string needs both languages.
 - `shared/pointy-logic.js`: shared calculation, normalization, class registry, split logic, price comparison logic.
@@ -58,6 +60,19 @@ The Expense Splitter tab is now RPG/Party Ledger styled. It supports:
 - Multi-payer support.
 - Excel import/export/template via ExcelJS CDN.
 - Compact labeled pixel icon picker for expense categories.
+
+## Admin / Board Ownership
+
+Party Ledger stores admin ownership metadata under `state.admin`:
+
+- `ownerHash`: local hashed identity used to group one Board Admin across multiple boards.
+- `adminId`: visible/admin-editable Board Admin ID.
+- `adminName`: visible/admin-editable Board Admin nickname.
+- `passwordHash`: board unlock password hash. The original password cannot be recovered; it can only be reset by an authorized admin surface.
+
+The trip UI now asks for Board Admin ID and nickname when creating/admin-setting a board, and remembers the creator profile locally for convenience. Same Admin ID can intentionally own multiple boards.
+
+Phase 1 Super Admin Portal lives at `/admin/`. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, and show simple revision logs. Phase 1 gate is local only and is not real security. True "คนนอกเข้าไม่ได้เลย" requires Phase 2 Firebase Auth plus Firestore Security Rules.
 
 ## Pixel Icon Picker
 
@@ -146,6 +161,11 @@ git push origin main
 
 ## Recent Commits
 
+- `63cdfee` Add admin owned board tracking
+- `216ce7b` Add archfiend black red swimmer skin
+- `35c20fc` Add recoverable trip admin setup
+- `6ed387e` Add archfiend swimmer skin
+- `053239f` Update project memory and playbook
 - `b717339` Refactor trip app shell
 - `2554971` Shrink expense icon picker
 - `410654a` Compact pixel icon picker

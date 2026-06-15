@@ -224,6 +224,8 @@
       admin: {
         passwordHash: data?.admin?.passwordHash || '',
         ownerHash: data?.admin?.ownerHash || '',
+        adminId: data?.admin?.adminId || '',
+        adminName: data?.admin?.adminName || '',
         createdAt: data?.admin?.createdAt || null,
         urlLocked: !!data?.admin?.urlLocked
       },

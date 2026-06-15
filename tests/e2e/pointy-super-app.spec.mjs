@@ -63,6 +63,7 @@ test('expense splitter requires explicit hero choice and locks the confirmed cha
   await expect(confirm).toBeDisabled();
 
   await chooseWarriorMale(page);
+  await expect(page.getByText('อัปโหลดรูป')).toHaveCount(0);
   await expect(confirm).toBeEnabled();
   await confirm.click();
 
@@ -349,6 +350,46 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
     return r.left >= p.left - 3 && r.right <= p.right + 3 && r.bottom <= p.bottom + 14;
   }));
   expect(portraitFits).toBe(true);
+});
+
+test('super admin portal saves drafts, publishes board edits, and records revisions', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    sessionStorage.setItem('pointy_test_trip_9001', JSON.stringify({
+      tripName: 'Alpha Board',
+      participants: ['Shane'],
+      characterIds: { Shane: '1111' },
+      expenses: [],
+      admin: { ownerHash: 'owner-a', adminId: 'ADM-ALPHA', adminName: 'Alpha Admin', passwordHash: 'old-hash', urlLocked: true },
+      updatedAt: 100
+    }));
+  });
+  await page.goto('/admin/?test=1');
+  await page.locator('#gate-pass').fill('portal-pass');
+  await page.getByRole('button', { name: 'Set & Unlock' }).click();
+
+  await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
+  await page.locator('input[value="Alpha Board"]').fill('Beta Board');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'ปิด' }).click();
+  await expect(page.evaluate(() => localStorage.getItem('pointy_super_admin_draft_v1'))).resolves.toContain('Beta Board');
+
+  await page.getByRole('button', { name: 'Restore' }).click();
+  await page.getByRole('button', { name: 'ยืนยัน' }).click();
+  await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
+
+  await page.locator('input[value="9001"]').fill('9002');
+  await page.locator('input[value="Alpha Board"]').fill('Gamma Board');
+  await page.getByRole('button', { name: /Publish/ }).click();
+  await page.getByRole('button', { name: 'ยืนยัน' }).click();
+
+  await expect(page.evaluate(() => sessionStorage.getItem('pointy_test_trip_9001'))).resolves.toBeNull();
+  await expect(page.evaluate(() => JSON.parse(sessionStorage.getItem('pointy_test_trip_9002')).tripName)).resolves.toBe('Gamma Board');
+  await page.getByRole('button', { name: 'Version Control' }).click();
+  await expect(page.locator('.rev summary')).toContainText('changes');
+  await page.locator('.rev summary').click();
+  await expect(page.locator('.rev-list')).toContainText('URL 9001');
 });
 
 test('price comparison page loads and ranks normalized unit prices', async ({ page }) => {

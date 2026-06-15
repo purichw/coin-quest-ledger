@@ -51,6 +51,7 @@ function tripRefFor(id) {
 const QUEST_ICONS = window.QUEST_ICON_IDS || window.QUEST_ICONS || ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
 const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
 const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
+const ADMIN_OWNER_PROFILE_KEY = 'pointy_admin_owner_profile_v1';
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
 const CLASSES = PointyLogic.CLASSES;
 const SKIN_DEFS = {
@@ -96,7 +97,7 @@ let _celebrateTimer;
 let _prevLevels = {};
 let _splitMode = 'equal', _payerMode = 'one', _splitWeights = {}, _payerAmounts = {};
 let _lootItems = [], _receiptData = null, _receiptView = null, _expenseDate = '', _tributeTx = null, _tributeEdit = false;
-let _overlay = null, _prevOutstanding = null, _newTripCode = '', _newTripAdminPass = '';
+let _overlay = null, _prevOutstanding = null, _newTripCode = '', _newTripAdminPass = '', _newTripAdminId = '', _newTripAdminName = '';
 let _audioCtx = null;
 let _characterRegistry = {};
 let _ownedBoards = [], _ownedBoardsFor = '', _ownedBoardsLoading = false;
@@ -113,6 +114,19 @@ function adminOwnerToken() {
   const token = makeOwnerToken();
   localStorage.setItem(ADMIN_OWNER_TOKEN_KEY, token);
   return token;
+}
+function makeAdminId() { return 'ADM-' + makeAdminCode(); }
+function adminOwnerProfile() {
+  let profile = {};
+  try { profile = JSON.parse(localStorage.getItem(ADMIN_OWNER_PROFILE_KEY) || '{}') || {}; } catch (_) {}
+  if (!profile.adminId) profile.adminId = makeAdminId();
+  if (!profile.adminName) profile.adminName = '';
+  return profile;
+}
+function saveAdminOwnerProfile(profile) {
+  const next = { adminId: String(profile.adminId || '').trim() || makeAdminId(), adminName: String(profile.adminName || '').trim() };
+  try { localStorage.setItem(ADMIN_OWNER_PROFILE_KEY, JSON.stringify(next)); } catch (_) {}
+  return next;
 }
 function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
@@ -468,7 +482,7 @@ function resetTripRuntime() {
   _resetEntryDraft = true; _settledTx = []; _celebrateName = null; _prevLevels = {};
   _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {};
   _lootItems = []; _receiptData = null; _receiptView = null; _expenseDate = ''; _tributeTx = null; _tributeEdit = false;
-  _prevOutstanding = null; _newTripCode = ''; _newTripAdminPass = '';
+  _prevOutstanding = null; _newTripCode = ''; _newTripAdminPass = ''; _newTripAdminId = ''; _newTripAdminName = '';
 }
 function campaignId() { return `camp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
 function activeCampaign() {
@@ -602,8 +616,11 @@ async function load() {
 }
 
 function newTrip() {
+  const profile = adminOwnerProfile();
   _newTripCode = makeTripCode();
   _newTripAdminPass = makeAdminCode();
+  _newTripAdminId = profile.adminId;
+  _newTripAdminName = profile.adminName;
   _overlay = 'new-trip';
   SFX.click();
   renderOverlay();
@@ -619,8 +636,11 @@ function randomizeNewTripAdminPass() {
 async function confirmNewTrip() {
   const input = document.getElementById('new-trip-code');
   const passInput = document.getElementById('new-trip-admin-pass');
+  const adminIdInput = document.getElementById('new-trip-admin-id');
+  const adminNameInput = document.getElementById('new-trip-admin-name');
   const code = sanitizeTripCode(input?.value || _newTripCode || makeTripCode());
   const adminPass = String(passInput?.value || _newTripAdminPass || '').trim();
+  const profile = saveAdminOwnerProfile({ adminId: adminIdInput?.value || _newTripAdminId, adminName: adminNameInput?.value || _newTripAdminName });
   if (!/^\d{4}$/.test(code)) {
     toast(t('new_trip_code_invalid'));
     return;
@@ -640,6 +660,8 @@ async function confirmNewTrip() {
   S = freshTripState({
     passwordHash: adminHash(adminPass),
     ownerHash: ownerHash(ownerToken),
+    adminId: profile.adminId,
+    adminName: profile.adminName,
     createdAt: Date.now(),
     urlLocked: true
   });
@@ -833,26 +855,6 @@ function pickHeroVariant(cls, gender) {
   SFX.click();
   renderParty();
 }
-function chooseCustomAvatar() {
-  if (!_addHeroClass || !_addHeroGender) {
-    toast(t('hero_not_selected'));
-    return;
-  }
-  document.getElementById('custom-avatar-input').value = '';
-  document.getElementById('custom-avatar-input').click();
-}
-function loadCustomAvatar(input) {
-  const file = input.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    _addHeroCustom = String(reader.result || '');
-    _heroPickerOpen = false;
-    SFX.click();
-    renderParty();
-  };
-  reader.readAsDataURL(file);
-}
 function heroPickerModal() {
   if (!_heroPickerOpen) return '';
   const variants = CLASS_ORDER.flatMap(cls => ['female', 'male'].map(gender => ({ cls, gender })))
@@ -885,13 +887,7 @@ function heroPickerModal() {
           ${used.has(avatarId(v.cls, v.gender)) ? `<div class="pc-taken">${t('in_use')}</div>` : ''}
           ${selected ? '<div class="pc-check">✓</div>' : ''}
         </button>`;
-      }).join('')}
-        <button type="button" class="picker-cell ${_addHeroCustom ? 'on' : ''}" onclick="chooseCustomAvatar()">
-          <div class="pc-art pc-upload">📷</div>
-          <div class="pc-name">${t('upload_photo')}</div>
-          ${_addHeroCustom ? '<div class="pc-check">✓</div>' : ''}
-        </button>
-      </div>
+      }).join('')}</div>
     </div>
   </div>`;
 }
@@ -1374,7 +1370,6 @@ function bindAppShellEvents() {
 
   document.addEventListener('change', event => {
     if (event.target.id === 'import-input') importExcel(event.target);
-    if (event.target.id === 'custom-avatar-input') loadCustomAvatar(event.target);
     if (event.target.id === 'receipt-input') loadReceipt(event.target);
   });
 
@@ -1602,11 +1597,12 @@ function toggleSetting(key) { S.settings[key] = !S.settings[key]; applySettings(
 async function setupAdmin() {
   const pass = document.getElementById('admin-pass-new')?.value || '';
   const slug = sanitizeTripSlug(document.getElementById('admin-url-id')?.value || tripId);
+  const profile = saveAdminOwnerProfile({ adminId: document.getElementById('admin-owner-id')?.value, adminName: document.getElementById('admin-owner-name')?.value });
   const canMove = slug !== tripId && canChangeTripUrl();
   if (pass.length < 4) { toast(t('admin_pass_short')); return; }
   if (!slug) { toast(t('admin_url_invalid')); return; }
   if (canMove && await tripExists(slug)) { toast(t('trip_id_taken', { id: slug })); return; }
-  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), ownerHash: S.admin?.ownerHash || ownerHash(adminOwnerToken()), createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
+  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), ownerHash: S.admin?.ownerHash || ownerHash(adminOwnerToken()), adminId: profile.adminId, adminName: profile.adminName, createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
   sessionStorage.setItem(adminSessionKey(), '1');
   sessionStorage.removeItem(adminLockKey());
   if (canMove) {
@@ -1743,6 +1739,7 @@ function renderOwnedBoards() {
 function renderAdminPanel() {
   const link = tripLinkFor();
   if (!isAdminConfigured()) {
+    const profile = adminOwnerProfile();
     return `<div class="settings-section">
       <div>
         <div class="settings-label">${t('admin_setup')}</div>
@@ -1750,6 +1747,8 @@ function renderAdminPanel() {
       </div>
       <div class="admin-box">
         <div class="field"><label>${t('admin_url')}</label><input id="admin-url-id" class="field-input" value="${h(sanitizeTripSlug(tripId))}" ${canChangeTripUrl() ? '' : 'disabled'}></div>
+        <div class="field"><label>${t('admin_owner_id')}</label><input id="admin-owner-id" class="field-input" value="${h(profile.adminId)}"></div>
+        <div class="field"><label>${t('admin_owner_name')}</label><input id="admin-owner-name" class="field-input" value="${h(profile.adminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}"></div>
         <div class="field"><label>${t('admin_password')}</label><input id="admin-pass-new" class="field-input" type="password" autocomplete="new-password" placeholder="${h(t('admin_password_placeholder'))}"></div>
         <button class="btn-primary sm" onclick="setupAdmin()">${t('admin_create')}</button>
       </div>
@@ -1811,6 +1810,9 @@ function renderOverlay() {
     _newTripCode = code;
     const adminPass = _newTripAdminPass || makeAdminCode();
     _newTripAdminPass = adminPass;
+    const profile = adminOwnerProfile();
+    _newTripAdminId ||= profile.adminId;
+    _newTripAdminName ||= profile.adminName;
     root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" onclick="event.stopPropagation()">
       <div class="picker-head"><div><div class="picker-title">✚ ${t('new_trip_setup')}</div><div class="picker-sub">${t('new_trip_setup_sub')}</div></div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
       <div class="admin-box">
@@ -1820,6 +1822,14 @@ function renderOverlay() {
           <div class="settings-sub">${t('new_trip_code_hint')}</div>
         </div>
         <button class="btn-ghost" type="button" onclick="randomizeNewTripCode()">🎲 ${t('new_trip_random')}</button>
+        <div class="field">
+          <label>${t('admin_owner_id')}</label>
+          <input id="new-trip-admin-id" class="field-input" value="${h(_newTripAdminId)}" oninput="_newTripAdminId=this.value">
+        </div>
+        <div class="field">
+          <label>${t('admin_owner_name')}</label>
+          <input id="new-trip-admin-name" class="field-input" value="${h(_newTripAdminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}" oninput="_newTripAdminName=this.value">
+        </div>
         <div class="field">
           <label>${t('new_trip_admin_pass')}</label>
           <input id="new-trip-admin-pass" class="field-input" autocomplete="new-password" value="${h(adminPass)}" placeholder="${h(t('admin_password_placeholder'))}" oninput="_newTripAdminPass=this.value">

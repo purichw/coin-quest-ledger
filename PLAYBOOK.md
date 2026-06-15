@@ -79,3 +79,10 @@ When implementing from Claude Design:
 - `tests/e2e/pointy-super-app.spec.mjs` covers critical Expense Splitter and price comparison flows.
 - `trip/index.legacy.html` and `index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
 - Keep refactors incremental. The shell and expense entry controls use delegated events, but some dynamic hero/admin/overlay renderers still use inline handlers; migrate those only in focused slices with full `npm test`.
+
+## Admin Portal Notes
+
+- `/admin/` is the Phase 1 Super Admin Portal. Changes here affect admin/persistence behavior, so use Production Patch verification (`npm test`) even if the visible diff looks small.
+- Phase 1 uses a local browser gate only. Do not describe it as real access control; true private admin access needs Firebase Auth and Firestore Security Rules.
+- Save is local draft storage, Restore discards the draft back to the latest published snapshot, and Publish writes board/admin/user changes plus a revision log.
+- Board Admin IDs may intentionally repeat across boards because one admin can own multiple boards. Keep duplicate validation focused on board URLs unless the user asks otherwise.
