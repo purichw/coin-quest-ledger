@@ -110,6 +110,46 @@ test('expense splitter supports admin URL setup, character IDs, admin unlock, an
   await expect(page.locator('.admin-table')).toContainText('Shane');
 });
 
+test('expense splitter starts new trips with a 4 digit URL and creator admin', async ({ page }) => {
+  await gotoFreshTrip(page, 'new-url');
+  await addWarrior(page, 'Shane');
+
+  await page.getByRole('button', { name: /ออกเดินทางใหม่/ }).click();
+  await expect(page.getByText('กำหนด URL เกมเป็นเลข 4 หลัก')).toBeVisible();
+  await expect(page.locator('#new-trip-code')).toHaveValue(/\d{4}/);
+  await expect(page.locator('#new-trip-admin-pass')).toHaveValue(/\d{6}/);
+
+  await page.locator('#new-trip-code').fill('2468');
+  await page.locator('#new-trip-admin-pass').fill('captain-2468');
+  await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
+
+  await expect(page).toHaveURL(/\/trip\/\?id=2468&test=1$/);
+  await expect(page.getByText('รวมปาร์ตี้!')).toBeVisible();
+
+  const admin = await page.evaluate(() => {
+    const raw = sessionStorage.getItem('pointy_test_trip_2468');
+    return raw ? JSON.parse(raw).admin : null;
+  });
+  expect(admin?.passwordHash).toBeTruthy();
+  expect(admin?.ownerHash).toBeTruthy();
+  expect(admin?.urlLocked).toBe(true);
+
+  await page.getByRole('button', { name: /ตั้งค่าแอดมิน/ }).click();
+  await expect(page.locator('.admin-table')).toBeVisible();
+
+  await page.locator('.picker-close').click();
+  await page.evaluate(() => {
+    Object.keys(sessionStorage)
+      .filter(key => key.startsWith('pointy_admin_'))
+      .forEach(key => sessionStorage.removeItem(key));
+  });
+  await page.getByLabel('Settings').click();
+  await expect(page.getByText('ปลดล็อกเพื่อดูและแก้ไขข้อมูลแอดมิน')).toBeVisible();
+  await page.locator('#admin-pass').fill('captain-2468');
+  await page.getByRole('button', { name: 'ปลดล็อก' }).click();
+  await expect(page.locator('.admin-table')).toBeVisible();
+});
+
 test('expense splitter exposes 18 avatar classes and persists archfiend skins', async ({ page }) => {
   const tripId = await gotoFreshTrip(page, 'avatar-skins');
   await startAddHero(page);
@@ -227,12 +267,13 @@ test('expense splitter supports itemized loot split, receipt date, and quest boa
   await page.getByRole('button', { name: /กระดานเควส/ }).click();
   await expect(page.getByText('กระดานเควส').last()).toBeVisible();
   await expect(page.locator('.board-card')).toHaveCount(1);
-  await page.getByRole('button', { name: /เริ่มแคมเปญใหม่/ }).click();
-  await expect(page.locator('#party-count')).toHaveText('2');
-  await expect(page.locator('#expense-count')).toHaveText('0');
-
-  await page.getByRole('button', { name: /กระดานเควส/ }).click();
-  await expect(page.locator('.board-card')).toHaveCount(2);
+  await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
+  await expect(page.getByText('กำหนด URL เกมเป็นเลข 4 หลัก')).toBeVisible();
+  await expect(page.locator('#new-trip-code')).toHaveValue(/\d{4}/);
+  await page.locator('#new-trip-code').fill('1357');
+  await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
+  await expect(page).toHaveURL(/\/trip\/\?id=1357&test=1$/);
+  await expect(page.getByText('รวมปาร์ตี้!')).toBeVisible();
 });
 
 test('expense splitter imports text, switches settings, and avoids mobile overflow', async ({ page }) => {

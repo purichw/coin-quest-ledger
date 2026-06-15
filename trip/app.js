@@ -3,7 +3,7 @@ const TEST_MODE = _params.get('test') === '1';
 let tripId = _params.get('id');
 if (!tripId) {
   const lastId = localStorage.getItem('last_trip_id');
-  tripId = lastId || makeId();
+  tripId = lastId || makeTripCode();
   history.replaceState(null, '', '?id=' + tripId);
 }
 if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
@@ -80,7 +80,7 @@ let S = {
   settleXp: {},
   activeCampaignId: '',
   campaigns: [],
-  admin: { passwordHash: '', createdAt: null, urlLocked: false },
+  admin: { passwordHash: '', ownerHash: '', createdAt: null, urlLocked: false },
   settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
 };
 let _saveTimer, _toastTimer, _iconOpen = false, _iconDropUp = false, _iconPickerMax = 430, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
@@ -91,11 +91,16 @@ let _celebrateTimer;
 let _prevLevels = {};
 let _splitMode = 'equal', _payerMode = 'one', _splitWeights = {}, _payerAmounts = {};
 let _lootItems = [], _receiptData = null, _receiptView = null, _expenseDate = '', _tributeTx = null, _tributeEdit = false;
-let _overlay = null, _prevOutstanding = null;
+let _overlay = null, _prevOutstanding = null, _newTripCode = '', _newTripAdminPass = '';
 let _audioCtx = null;
 let _characterRegistry = {};
 
 function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
+function makeTripCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
+function makeAdminCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
+function makeOwnerToken() {
+  return (window.crypto?.randomUUID?.() || `${makeId()}-${Date.now().toString(36)}`);
+}
 function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
 function questIconId(value) { return window.migrateIcon ? window.migrateIcon(value) : (value || QUEST_ICONS[0]); }
@@ -163,10 +168,17 @@ function qrSvg(text, size = 240) {
 }
 function hashOf(name) { return PointyLogic.hashOf(name); }
 function adminHash(pass) { return String(hashOf(`pointy:${pass || ''}:admin`)); }
+function ownerHash(token) { return String(hashOf(`pointy:${token || ''}:owner`)); }
 function adminSessionKey() { return `pointy_admin_unlocked_${tripId}`; }
-function isAdminConfigured() { return !!S.admin?.passwordHash; }
-function isAdminUnlocked() { return !isAdminConfigured() || sessionStorage.getItem(adminSessionKey()) === '1'; }
+function ownerSessionKey(id = tripId) { return `pointy_admin_owner_${id}`; }
+function hasCreatorAdmin() {
+  const token = sessionStorage.getItem(ownerSessionKey());
+  return !!(token && S.admin?.ownerHash && ownerHash(token) === S.admin.ownerHash);
+}
+function isAdminConfigured() { return !!(S.admin?.passwordHash || S.admin?.ownerHash); }
+function isAdminUnlocked() { return !isAdminConfigured() || sessionStorage.getItem(adminSessionKey()) === '1' || hasCreatorAdmin(); }
 function canChangeTripUrl() { return !S.participants.length && !S.expenses.length && !S.admin?.urlLocked; }
+function sanitizeTripCode(value) { return String(value || '').replace(/\D/g, '').slice(0, 4); }
 function sanitizeTripSlug(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 36);
 }
@@ -404,6 +416,33 @@ function normalizeState(data) {
     questIcons: QUEST_ICONS
   });
 }
+function freshTripState(admin = {}) {
+  return {
+    tripName: t('trip_default_name'),
+    participants: [],
+    expenses: [],
+    budgets: {},
+    heroClasses: {},
+    heroGenders: {},
+    heroSkins: {},
+    characterIds: {},
+    promptpay: {},
+    settleXp: {},
+    activeCampaignId: '',
+    campaigns: [],
+    admin: { passwordHash: '', ownerHash: '', createdAt: null, urlLocked: false, ...admin },
+    settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
+  };
+}
+function resetTripRuntime() {
+  _iconOpen = false; _iconDropUp = false; _iconPickerMax = 430;
+  _addHeroOpen = false; _addHeroClass = null; _addHeroGender = null; _addHeroName = ''; _addHeroCustom = null;
+  _heroPickerOpen = false; _heroConfirmOpen = false; _pickerGender = 'all'; _skinOpen = '';
+  _resetEntryDraft = true; _settledTx = []; _celebrateName = null; _prevLevels = {};
+  _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {};
+  _lootItems = []; _receiptData = null; _receiptView = null; _expenseDate = ''; _tributeTx = null; _tributeEdit = false;
+  _prevOutstanding = null; _newTripCode = ''; _newTripAdminPass = '';
+}
 function campaignId() { return `camp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
 function activeCampaign() {
   return (S.campaigns || []).find(c => c.id === S.activeCampaignId) || null;
@@ -535,7 +574,58 @@ async function load() {
   }
 }
 
-function newTrip() { createCampaign(); }
+function newTrip() {
+  _newTripCode = makeTripCode();
+  _newTripAdminPass = makeAdminCode();
+  _overlay = 'new-trip';
+  SFX.click();
+  renderOverlay();
+}
+function randomizeNewTripCode() {
+  _newTripCode = makeTripCode();
+  renderOverlay();
+}
+function randomizeNewTripAdminPass() {
+  _newTripAdminPass = makeAdminCode();
+  renderOverlay();
+}
+async function confirmNewTrip() {
+  const input = document.getElementById('new-trip-code');
+  const passInput = document.getElementById('new-trip-admin-pass');
+  const code = sanitizeTripCode(input?.value || _newTripCode || makeTripCode());
+  const adminPass = String(passInput?.value || _newTripAdminPass || '').trim();
+  if (!/^\d{4}$/.test(code)) {
+    toast(t('new_trip_code_invalid'));
+    return;
+  }
+  if (adminPass.length < 4) {
+    toast(t('admin_pass_short'));
+    return;
+  }
+  await saveNow();
+  const ownerToken = makeOwnerToken();
+  tripId = code;
+  tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+  S = freshTripState({
+    passwordHash: adminHash(adminPass),
+    ownerHash: ownerHash(ownerToken),
+    createdAt: Date.now(),
+    urlLocked: true
+  });
+  sessionStorage.setItem(ownerSessionKey(tripId), ownerToken);
+  sessionStorage.setItem(adminSessionKey(), '1');
+  if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
+  const next = new URL(tripLinkFor(tripId));
+  history.replaceState(null, '', next.pathname + next.search);
+  resetTripRuntime();
+  ensureCampaignState();
+  applySettings();
+  await TripStore.write(S);
+  setSaveStatus('saved', t('status_saved'));
+  _overlay = 'onboarding';
+  renderAll(false);
+  toast(t('new_trip_created', { id: tripId }));
+}
 function openQuestBoard() { syncActiveCampaign(); _overlay = 'board'; SFX.click(); renderOverlay(); }
 function createCampaign() {
   syncActiveCampaign();
@@ -1482,7 +1572,7 @@ async function setupAdmin() {
   const canMove = slug !== tripId && canChangeTripUrl();
   if (pass.length < 4) { toast(t('admin_pass_short')); return; }
   if (!slug) { toast(t('admin_url_invalid')); return; }
-  S.admin = { passwordHash: adminHash(pass), createdAt: Date.now(), urlLocked: true };
+  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
   sessionStorage.setItem(adminSessionKey(), '1');
   if (canMove) {
     tripId = slug;
@@ -1606,6 +1696,31 @@ function renderOverlay() {
     </div></div>`;
     return;
   }
+  if (_overlay === 'new-trip') {
+    const code = _newTripCode || makeTripCode();
+    _newTripCode = code;
+    const adminPass = _newTripAdminPass || makeAdminCode();
+    _newTripAdminPass = adminPass;
+    root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" onclick="event.stopPropagation()">
+      <div class="picker-head"><div><div class="picker-title">✚ ${t('new_trip_setup')}</div><div class="picker-sub">${t('new_trip_setup_sub')}</div></div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
+      <div class="admin-box">
+        <div class="field">
+          <label>${t('new_trip_code')}</label>
+          <input id="new-trip-code" class="field-input" inputmode="numeric" maxlength="4" value="${h(code)}" placeholder="0000" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4);_newTripCode=this.value">
+          <div class="settings-sub">${t('new_trip_code_hint')}</div>
+        </div>
+        <button class="btn-ghost" type="button" onclick="randomizeNewTripCode()">🎲 ${t('new_trip_random')}</button>
+        <div class="field">
+          <label>${t('new_trip_admin_pass')}</label>
+          <input id="new-trip-admin-pass" class="field-input" autocomplete="new-password" value="${h(adminPass)}" placeholder="${h(t('admin_password_placeholder'))}" oninput="_newTripAdminPass=this.value">
+          <div class="settings-sub">${t('new_trip_admin_hint')}</div>
+        </div>
+        <button class="btn-ghost" type="button" onclick="randomizeNewTripAdminPass()">🎲 ${t('new_trip_admin_random')}</button>
+      </div>
+      <div class="import-actions"><button class="btn-ghost" onclick="closeOverlay()">${t('btn_cancel')}</button><button class="btn-primary" onclick="confirmNewTrip()">✚ ${t('new_trip_start')}</button></div>
+    </div></div>`;
+    return;
+  }
   if (_overlay === 'board') {
     syncActiveCampaign();
     const campaigns = (S.campaigns || []).slice();
@@ -1624,7 +1739,7 @@ function renderOverlay() {
         </div>`;
       }).join('')}</div>
       <hr class="modal-divider">
-      <div class="import-actions"><button class="btn-ghost" onclick="closeOverlay()">${t('btn_cancel')}</button><button class="btn-primary" onclick="createCampaign()">＋ ${t('start_campaign')}</button></div>
+      <div class="import-actions"><button class="btn-ghost" onclick="closeOverlay()">${t('btn_cancel')}</button><button class="btn-primary" onclick="newTrip()">＋ ${t('new_trip_start')}</button></div>
     </div></div>`;
     return;
   }

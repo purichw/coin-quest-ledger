@@ -142,12 +142,14 @@ test('normalizeTripState keeps legacy trip data compatible', () => {
     participants: ['A'],
     heroClasses: { A: 'mage' },
     heroSkins: { A: 'crimson-regent' },
+    admin: { ownerHash: 'creator-token-hash' },
     expenses: [{ name: 'Coffee', amount: '120', payer: 'A', participants: ['A'] }]
   }, { defaultTripName: 'Trip', questFallback: 'Quest', questIcons: ['x'] });
 
   assert.equal(state.tripName, 'Trip');
   assert.equal(state.heroClasses.A, 'wizard');
   assert.equal(state.heroSkins.A, 'crimson-regent');
+  assert.equal(state.admin.ownerHash, 'creator-token-hash');
   assert.equal(state.expenses[0].desc, 'Coffee');
   assert.equal(state.expenses[0].paidBy, 'A');
   assert.deepEqual(plain(state.expenses[0].sharedBy), ['A']);

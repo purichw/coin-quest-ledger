@@ -223,6 +223,7 @@
       campaigns: Array.isArray(data?.campaigns) ? data.campaigns.map(normalizeCampaign) : [],
       admin: {
         passwordHash: data?.admin?.passwordHash || '',
+        ownerHash: data?.admin?.ownerHash || '',
         createdAt: data?.admin?.createdAt || null,
         urlLocked: !!data?.admin?.urlLocked
       },
