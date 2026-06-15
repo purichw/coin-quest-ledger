@@ -75,10 +75,20 @@ test('expense splitter requires explicit hero choice and locks the confirmed cha
 });
 
 test('expense splitter supports admin URL setup, character IDs, admin unlock, and quick toggles', async ({ page }) => {
-  await gotoFreshTrip(page, 'admin-setup');
+  const originalId = await gotoFreshTrip(page, 'admin-setup');
+  const takenSlug = `party-taken-${Math.random().toString(36).slice(2, 8)}`;
   const slug = `party-${Math.random().toString(36).slice(2, 10)}`;
 
+  await page.evaluate(id => {
+    sessionStorage.setItem(`pointy_test_trip_${id}`, JSON.stringify({ tripName: 'Taken trip' }));
+  }, takenSlug);
   await page.getByRole('button', { name: /ตั้งค่าแอดมิน/ }).click();
+  await page.locator('#admin-url-id').fill(takenSlug);
+  await page.locator('#admin-pass-new').fill('hero-pass');
+  await page.getByRole('button', { name: 'สร้างแอดมิน' }).click();
+  await expect(page.getByText(`ID/URL ${takenSlug} ถูกใช้แล้ว`)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/trip/\\?id=${originalId}&test=1$`));
+
   await page.locator('#admin-url-id').fill(slug);
   await page.locator('#admin-pass-new').fill('hero-pass');
   await page.getByRole('button', { name: 'สร้างแอดมิน' }).click();
@@ -99,6 +109,7 @@ test('expense splitter supports admin URL setup, character IDs, admin unlock, an
     Object.keys(sessionStorage)
       .filter(key => key.startsWith('pointy_admin_unlocked_'))
       .forEach(key => sessionStorage.removeItem(key));
+    localStorage.removeItem('pointy_admin_owner_token_v1');
   });
   await expect(page.locator('#party-grid')).toContainText('Shane');
   await expect(page.locator('#party-grid')).toContainText(/#\d{4}/);
@@ -119,15 +130,23 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
   await expect(page.locator('#new-trip-code')).toHaveValue(/\d{4}/);
   await expect(page.locator('#new-trip-admin-pass')).toHaveValue(/\d{6}/);
 
+  await page.evaluate(() => {
+    sessionStorage.setItem('pointy_test_trip_2468', JSON.stringify({ tripName: 'Existing trip' }));
+  });
   await page.locator('#new-trip-code').fill('2468');
   await page.locator('#new-trip-admin-pass').fill('captain-2468');
   await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
+  await expect(page.getByText('ID/URL 2468 ถูกใช้แล้ว')).toBeVisible();
+  await expect(page).not.toHaveURL(/\/trip\/\?id=2468&test=1$/);
 
-  await expect(page).toHaveURL(/\/trip\/\?id=2468&test=1$/);
+  await page.locator('#new-trip-code').fill('2469');
+  await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
+
+  await expect(page).toHaveURL(/\/trip\/\?id=2469&test=1$/);
   await expect(page.getByText('รวมปาร์ตี้!')).toBeVisible();
 
   const admin = await page.evaluate(() => {
-    const raw = sessionStorage.getItem('pointy_test_trip_2468');
+    const raw = sessionStorage.getItem('pointy_test_trip_2469');
     return raw ? JSON.parse(raw).admin : null;
   });
   expect(admin?.passwordHash).toBeTruthy();
@@ -143,14 +162,33 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
   await expect(page.locator('.admin-table')).toBeVisible();
 
   await page.locator('.picker-close').click();
+  await page.getByRole('button', { name: /ออกเดินทางใหม่/ }).click();
+  await page.locator('#new-trip-code').fill('2470');
+  await page.locator('#new-trip-admin-pass').fill('captain-2470');
+  await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
+  await expect(page).toHaveURL(/\/trip\/\?id=2470&test=1$/);
+
+  const secondAdmin = await page.evaluate(() => {
+    const raw = sessionStorage.getItem('pointy_test_trip_2470');
+    return raw ? JSON.parse(raw).admin : null;
+  });
+  expect(secondAdmin?.ownerHash).toBe(admin.ownerHash);
+
+  await page.getByRole('button', { name: /ตั้งค่าแอดมิน/ }).click();
+  await expect(page.locator('.admin-table')).toBeVisible();
+  await expect(page.locator('.owned-board-list')).toContainText('2469');
+  await expect(page.locator('.owned-board-list')).toContainText('2470');
+  await expect(page.locator('.owned-board-list')).toContainText('บอร์ดปัจจุบัน');
+
   await page.evaluate(() => {
     Object.keys(sessionStorage)
       .filter(key => key.startsWith('pointy_admin_'))
       .forEach(key => sessionStorage.removeItem(key));
+    localStorage.removeItem('pointy_admin_owner_token_v1');
   });
-  await page.getByLabel('Settings').click();
+  await page.getByRole('button', { name: 'ล็อกแอดมิน' }).click();
   await expect(page.getByText('ปลดล็อกเพื่อดูและแก้ไขข้อมูลแอดมิน')).toBeVisible();
-  await page.locator('#admin-pass').fill('captain-2468');
+  await page.locator('#admin-pass').fill('captain-2470');
   await page.getByRole('button', { name: 'ปลดล็อก' }).click();
   await expect(page.locator('.admin-table')).toBeVisible();
 });

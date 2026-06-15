@@ -7,7 +7,7 @@ if (!tripId) {
   history.replaceState(null, '', '?id=' + tripId);
 }
 if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
-let tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+let tripRef = tripRefFor(tripId);
 const TripStore = {
   read() {
     return tripRef.get();
@@ -44,9 +44,13 @@ function testTripRef(id) {
     }
   };
 }
+function tripRefFor(id) {
+  return TEST_MODE ? testTripRef(id) : cloudTripRef(id);
+}
 
 const QUEST_ICONS = window.QUEST_ICON_IDS || window.QUEST_ICONS || ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
 const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
+const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
 const CLASSES = PointyLogic.CLASSES;
 const SKIN_DEFS = {
@@ -95,12 +99,20 @@ let _lootItems = [], _receiptData = null, _receiptView = null, _expenseDate = ''
 let _overlay = null, _prevOutstanding = null, _newTripCode = '', _newTripAdminPass = '';
 let _audioCtx = null;
 let _characterRegistry = {};
+let _ownedBoards = [], _ownedBoardsFor = '', _ownedBoardsLoading = false;
 
 function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
 function makeTripCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
 function makeAdminCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 function makeOwnerToken() {
   return (window.crypto?.randomUUID?.() || `${makeId()}-${Date.now().toString(36)}`);
+}
+function adminOwnerToken() {
+  const existing = localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
+  if (existing) return existing;
+  const token = makeOwnerToken();
+  localStorage.setItem(ADMIN_OWNER_TOKEN_KEY, token);
+  return token;
 }
 function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
@@ -170,12 +182,17 @@ function qrSvg(text, size = 240) {
 function hashOf(name) { return PointyLogic.hashOf(name); }
 function adminHash(pass) { return String(hashOf(`pointy:${pass || ''}:admin`)); }
 function ownerHash(token) { return String(hashOf(`pointy:${token || ''}:owner`)); }
+function currentOwnerHash() {
+  const token = localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
+  return token ? ownerHash(token) : '';
+}
 function adminSessionKey() { return `pointy_admin_unlocked_${tripId}`; }
 function adminLockKey() { return `pointy_admin_locked_${tripId}`; }
 function ownerSessionKey(id = tripId) { return `pointy_admin_owner_${id}`; }
 function hasCreatorAdmin() {
-  const token = sessionStorage.getItem(ownerSessionKey());
-  return !!(token && S.admin?.ownerHash && ownerHash(token) === S.admin.ownerHash);
+  if (!S.admin?.ownerHash) return false;
+  const token = sessionStorage.getItem(ownerSessionKey()) || localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
+  return !!(token && ownerHash(token) === S.admin.ownerHash);
 }
 function isAdminConfigured() { return !!(S.admin?.passwordHash || S.admin?.ownerHash); }
 function isAdminUnlocked() {
@@ -194,6 +211,10 @@ function tripLinkFor(id = tripId) {
   if (TEST_MODE) url.searchParams.set('test', '1');
   else url.searchParams.delete('test');
   return url.toString();
+}
+async function tripExists(id) {
+  const snap = await tripRefFor(id).get();
+  return !!snap.exists;
 }
 function readLocalRegistry() {
   try {
@@ -608,10 +629,14 @@ async function confirmNewTrip() {
     toast(t('admin_pass_short'));
     return;
   }
+  if (await tripExists(code)) {
+    toast(t('trip_id_taken', { id: code }));
+    return;
+  }
   await saveNow();
-  const ownerToken = makeOwnerToken();
+  const ownerToken = adminOwnerToken();
   tripId = code;
-  tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+  tripRef = tripRefFor(tripId);
   S = freshTripState({
     passwordHash: adminHash(adminPass),
     ownerHash: ownerHash(ownerToken),
@@ -628,6 +653,7 @@ async function confirmNewTrip() {
   ensureCampaignState();
   applySettings();
   await TripStore.write(S);
+  _ownedBoardsFor = '';
   setSaveStatus('saved', t('status_saved'));
   _overlay = 'onboarding';
   renderAll(false);
@@ -1520,7 +1546,7 @@ function renderSettlement(party) {
 }
 function openTemplateModal() { _overlay = 'templates'; SFX.click(); renderOverlay(); }
 function openImportModal() { _overlay = 'import'; SFX.click(); renderOverlay(); }
-function openSettings() { _overlay = 'settings'; SFX.click(); renderOverlay(); }
+function openSettings() { _overlay = 'settings'; SFX.click(); renderOverlay(); loadOwnedBoards(); }
 function closeOverlay() { _overlay = null; renderOverlay(); }
 function startOnboarding() {
   _overlay = null;
@@ -1579,22 +1605,25 @@ async function setupAdmin() {
   const canMove = slug !== tripId && canChangeTripUrl();
   if (pass.length < 4) { toast(t('admin_pass_short')); return; }
   if (!slug) { toast(t('admin_url_invalid')); return; }
-  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
+  if (canMove && await tripExists(slug)) { toast(t('trip_id_taken', { id: slug })); return; }
+  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), ownerHash: S.admin?.ownerHash || ownerHash(adminOwnerToken()), createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
   sessionStorage.setItem(adminSessionKey(), '1');
   sessionStorage.removeItem(adminLockKey());
   if (canMove) {
     tripId = slug;
-    tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
+    tripRef = tripRefFor(tripId);
     sessionStorage.setItem(adminSessionKey(), '1');
     sessionStorage.removeItem(adminLockKey());
     const next = new URL(tripLinkFor(tripId));
     history.replaceState(null, '', next.pathname + next.search);
     if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
     await tripRef.set({ ...S, updatedAt: TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp() });
+    _ownedBoardsFor = '';
     toast(t('admin_url_saved'));
     renderAll(false);
     return;
   }
+  _ownedBoardsFor = '';
   save(); renderOverlay(); toast(t('admin_saved'));
 }
 function unlockAdmin() {
@@ -1603,6 +1632,7 @@ function unlockAdmin() {
   sessionStorage.setItem(adminSessionKey(), '1');
   sessionStorage.removeItem(adminLockKey());
   renderOverlay();
+  loadOwnedBoards();
   toast(t('admin_unlocked'));
 }
 function lockAdmin() {
@@ -1641,6 +1671,74 @@ function adminDeleteHero(name) {
   if (!isAdminUnlocked()) return;
   removeParticipant(name);
   renderOverlay();
+}
+async function loadOwnedBoards() {
+  const hash = currentOwnerHash();
+  if (!hash || _ownedBoardsLoading || _ownedBoardsFor === hash) return;
+  _ownedBoardsLoading = true;
+  _ownedBoardsFor = hash;
+  _ownedBoards = [];
+  if (_overlay === 'settings') renderOverlay();
+  try {
+    if (TEST_MODE) {
+      _ownedBoards = Object.keys(sessionStorage)
+        .filter(key => key.startsWith('pointy_test_trip_'))
+        .map(key => {
+          try {
+            const id = key.replace('pointy_test_trip_', '');
+            const data = JSON.parse(sessionStorage.getItem(key) || '{}');
+            return data?.admin?.ownerHash === hash ? {
+              id,
+              tripName: data.tripName || t('trip_fallback_name'),
+              participants: Array.isArray(data.participants) ? data.participants.length : 0,
+              expenses: Array.isArray(data.expenses) ? data.expenses.length : 0,
+              updatedAt: Number(data.updatedAt) || Number(data.admin?.createdAt) || 0
+            } : null;
+          } catch (_) {
+            return null;
+          }
+        })
+        .filter(Boolean);
+    } else {
+      const snap = await firebase.firestore().collection('trips').where('admin.ownerHash', '==', hash).limit(30).get();
+      _ownedBoards = snap.docs.map(doc => {
+        const data = doc.data() || {};
+        return {
+          id: doc.id,
+          tripName: data.tripName || t('trip_fallback_name'),
+          participants: Array.isArray(data.participants) ? data.participants.length : 0,
+          expenses: Array.isArray(data.expenses) ? data.expenses.length : 0,
+          updatedAt: Number(data.updatedAt?.toMillis?.() || data.updatedAt || data.admin?.createdAt || 0)
+        };
+      });
+    }
+    _ownedBoards.sort((a, b) => (b.id === tripId) - (a.id === tripId) || (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
+  } catch (err) {
+    console.warn('Owned boards load failed', err);
+    _ownedBoards = [];
+  } finally {
+    _ownedBoardsLoading = false;
+    if (_overlay === 'settings') renderOverlay();
+  }
+}
+function openOwnedBoard(id) {
+  if (!id || id === tripId) return;
+  window.location.href = tripLinkFor(id);
+}
+function renderOwnedBoards() {
+  const items = _ownedBoards.map(board => `<div class="board-card ${board.id === tripId ? 'active' : ''}">
+    <div><div class="board-title">${h(board.tripName || t('trip_fallback_name'))}</div><div class="board-meta">#${h(board.id)} · ${board.participants} ${t('party')} · ${board.expenses} ${t('quest_count')}</div></div>
+    <div class="board-actions">${board.id === tripId ? `<span class="settings-sub">${t('current_board')}</span>` : `<button class="btn-primary sm" onclick="openOwnedBoard(${q(board.id)})">${t('admin_open_board')}</button>`}</div>
+  </div>`).join('');
+  return `<div class="settings-section">
+    <div>
+      <div class="settings-label">${t('admin_boards')}</div>
+      <div class="settings-sub">${t('admin_boards_sub')}</div>
+    </div>
+    <div class="admin-box owned-board-list">
+      ${_ownedBoardsLoading ? `<div class="settings-sub">${t('admin_boards_loading')}</div>` : (items || `<div class="settings-sub">${t('admin_boards_empty')}</div>`)}
+    </div>
+  </div>`;
 }
 function renderAdminPanel() {
   const link = tripLinkFor();
@@ -1690,7 +1788,7 @@ function renderAdminPanel() {
       <div class="admin-actions"><button class="btn-ghost xs" onclick="copyAdminLink()">🔗 ${t('btn_share')}</button><button class="btn-ghost xs" onclick="lockAdmin()">${t('admin_lock')}</button></div>
       <table class="admin-table"><thead><tr><th>${t('hero_name_short')}</th><th>${t('character_id')}</th><th>${t('xp')}</th><th>${t('pick_class')}</th><th>${t('admin_actions')}</th></tr></thead><tbody>${rows || `<tr><td colspan="5">${t('no_participants')}</td></tr>`}</tbody></table>
     </div>
-  </div>`;
+  </div>${renderOwnedBoards()}`;
 }
 function renderOverlay() {
   const root = document.getElementById('app-overlays');
@@ -1703,7 +1801,7 @@ function renderOverlay() {
         <div class="vc-title">${t('onboarding_title')}</div>
         <div class="vc-sub">${t('onboarding_sub')}</div>
         <button class="btn-gold" style="width:100%;margin-top:18px" onclick="startOnboarding()">＋ ${t('onboarding_start')}</button>
-        <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="_overlay='settings';renderOverlay()">⚙ ${t('admin_setup')}</button>
+        <button class="btn-ghost" style="width:100%;margin-top:10px" onclick="openSettings()">⚙ ${t('admin_setup')}</button>
       </div>
     </div></div>`;
     return;
