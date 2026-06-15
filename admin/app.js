@@ -1,8 +1,8 @@
 const TEST_MODE = new URLSearchParams(location.search).get('test') === '1';
-const DRAFT_KEY = 'pointy_super_admin_draft_v1';
-const GATE_KEY = 'pointy_super_admin_gate_hash_v1';
-const GATE_UNLOCK_KEY = 'pointy_super_admin_unlocked_v1';
-const LOCAL_REVISIONS_KEY = 'pointy_super_admin_revisions_v1';
+const DRAFT_KEY = 'pointy_super_admin_draft_v2';
+const GATE_KEY = 'pointy_super_admin_gate_hash_v2';
+const GATE_UNLOCK_KEY = 'pointy_super_admin_unlocked_v2';
+const LOCAL_REVISIONS_KEY = 'pointy_super_admin_revisions_v2';
 
 let published = { boards: [], revisions: [] };
 let draft = { boards: [] };

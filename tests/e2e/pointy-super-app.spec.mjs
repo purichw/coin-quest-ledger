@@ -373,7 +373,7 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
   await page.locator('input[value="Alpha Board"]').fill('Beta Board');
   await page.getByRole('button', { name: 'Save' }).click();
   await page.getByRole('button', { name: 'ปิด' }).click();
-  await expect(page.evaluate(() => localStorage.getItem('pointy_super_admin_draft_v1'))).resolves.toContain('Beta Board');
+  await expect(page.evaluate(() => localStorage.getItem('pointy_super_admin_draft_v2'))).resolves.toContain('Beta Board');
 
   await page.getByRole('button', { name: 'Restore' }).click();
   await page.getByRole('button', { name: 'ยืนยัน' }).click();
