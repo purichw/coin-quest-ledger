@@ -27,6 +27,7 @@ const expected = [
   ...classes.flatMap(cls => genders.map(gender => `${cls}-${gender}.png`)),
   'crimson-regent-male.png',
   'archfiend-swimmer-male.png',
+  'archfiend-swimmer-blackred-male.png',
 ];
 const missing = expected.filter(file => !fs.existsSync(path.join(portraitDir, file)));
 

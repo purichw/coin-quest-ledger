@@ -52,7 +52,8 @@ const CLASSES = PointyLogic.CLASSES;
 const SKIN_DEFS = {
   'archfiend-male': [
     { id: 'crimson-regent', res: 'crimson-regent-male', th: 'ราชันเลือด', en: 'Crimson Regent' },
-    { id: 'archfiend-swimmer', res: 'archfiend-swimmer-male', th: 'อาร์คฟีนด์นักว่ายน้ำ', en: 'Archfiend Swimmer' }
+    { id: 'archfiend-swimmer', res: 'archfiend-swimmer-male', th: 'อาร์คฟีนด์นักว่ายน้ำ', en: 'Archfiend Swimmer' },
+    { id: 'archfiend-swimmer-blackred', res: 'archfiend-swimmer-blackred-male', th: 'อาร์คฟีนด์นักว่ายน้ำดำแดง', en: 'Archfiend Swimmer Black/Red' }
   ]
 };
 const LEVEL_STEP = PointyLogic.LEVEL_STEP;
@@ -170,13 +171,18 @@ function hashOf(name) { return PointyLogic.hashOf(name); }
 function adminHash(pass) { return String(hashOf(`pointy:${pass || ''}:admin`)); }
 function ownerHash(token) { return String(hashOf(`pointy:${token || ''}:owner`)); }
 function adminSessionKey() { return `pointy_admin_unlocked_${tripId}`; }
+function adminLockKey() { return `pointy_admin_locked_${tripId}`; }
 function ownerSessionKey(id = tripId) { return `pointy_admin_owner_${id}`; }
 function hasCreatorAdmin() {
   const token = sessionStorage.getItem(ownerSessionKey());
   return !!(token && S.admin?.ownerHash && ownerHash(token) === S.admin.ownerHash);
 }
 function isAdminConfigured() { return !!(S.admin?.passwordHash || S.admin?.ownerHash); }
-function isAdminUnlocked() { return !isAdminConfigured() || sessionStorage.getItem(adminSessionKey()) === '1' || hasCreatorAdmin(); }
+function isAdminUnlocked() {
+  if (!isAdminConfigured()) return true;
+  if (sessionStorage.getItem(adminLockKey()) === '1') return false;
+  return sessionStorage.getItem(adminSessionKey()) === '1' || hasCreatorAdmin();
+}
 function canChangeTripUrl() { return !S.participants.length && !S.expenses.length && !S.admin?.urlLocked; }
 function sanitizeTripCode(value) { return String(value || '').replace(/\D/g, '').slice(0, 4); }
 function sanitizeTripSlug(value) {
@@ -614,6 +620,7 @@ async function confirmNewTrip() {
   });
   sessionStorage.setItem(ownerSessionKey(tripId), ownerToken);
   sessionStorage.setItem(adminSessionKey(), '1');
+  sessionStorage.removeItem(adminLockKey());
   if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
   const next = new URL(tripLinkFor(tripId));
   history.replaceState(null, '', next.pathname + next.search);
@@ -1574,10 +1581,12 @@ async function setupAdmin() {
   if (!slug) { toast(t('admin_url_invalid')); return; }
   S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
   sessionStorage.setItem(adminSessionKey(), '1');
+  sessionStorage.removeItem(adminLockKey());
   if (canMove) {
     tripId = slug;
     tripRef = TEST_MODE ? testTripRef(tripId) : cloudTripRef(tripId);
     sessionStorage.setItem(adminSessionKey(), '1');
+    sessionStorage.removeItem(adminLockKey());
     const next = new URL(tripLinkFor(tripId));
     history.replaceState(null, '', next.pathname + next.search);
     if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
@@ -1592,12 +1601,15 @@ function unlockAdmin() {
   const pass = document.getElementById('admin-pass')?.value || '';
   if (adminHash(pass) !== S.admin?.passwordHash) { toast(t('admin_bad_pass')); return; }
   sessionStorage.setItem(adminSessionKey(), '1');
+  sessionStorage.removeItem(adminLockKey());
   renderOverlay();
   toast(t('admin_unlocked'));
 }
 function lockAdmin() {
   sessionStorage.removeItem(adminSessionKey());
+  sessionStorage.setItem(adminLockKey(), '1');
   renderOverlay();
+  toast(t('admin_locked'));
 }
 function copyAdminLink() {
   navigator.clipboard.writeText(tripLinkFor()).then(() => toast(t('toast_link_copied')));

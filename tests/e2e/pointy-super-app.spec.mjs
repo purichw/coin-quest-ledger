@@ -136,6 +136,11 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
 
   await page.getByRole('button', { name: /ตั้งค่าแอดมิน/ }).click();
   await expect(page.locator('.admin-table')).toBeVisible();
+  await page.getByRole('button', { name: 'ล็อกแอดมิน' }).click();
+  await expect(page.getByText('ปลดล็อกเพื่อดูและแก้ไขข้อมูลแอดมิน')).toBeVisible();
+  await page.locator('#admin-pass').fill('captain-2468');
+  await page.getByRole('button', { name: 'ปลดล็อก' }).click();
+  await expect(page.locator('.admin-table')).toBeVisible();
 
   await page.locator('.picker-close').click();
   await page.evaluate(() => {
@@ -167,6 +172,7 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
   await expect(page.locator('.skin-pop')).toContainText('ดั้งเดิม');
   await expect(page.locator('.skin-pop')).toContainText('ราชันเลือด');
   await expect(page.locator('.skin-pop')).toContainText('อาร์คฟีนด์นักว่ายน้ำ');
+  await expect(page.locator('.skin-pop')).toContainText('อาร์คฟีนด์นักว่ายน้ำดำแดง');
   await page.locator('.skin-opt', { hasText: 'ราชันเลือด' }).click();
 
   await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /crimson-regent-male\.png$/);
@@ -182,8 +188,12 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
   expect(savedSkin).toBe('crimson-regent');
 
   await page.locator('.hc-skin').click();
-  await page.locator('.skin-opt', { hasText: 'อาร์คฟีนด์นักว่ายน้ำ' }).click();
+  await page.getByRole('button', { name: 'อาร์คฟีนด์นักว่ายน้ำ', exact: true }).click();
   await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /archfiend-swimmer-male\.png$/);
+  await expect(page.locator('.portrait-img').first()).toHaveClass(/portrait-img/);
+  await page.locator('.hc-skin').click();
+  await page.getByRole('button', { name: 'อาร์คฟีนด์นักว่ายน้ำดำแดง', exact: true }).click();
+  await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /archfiend-swimmer-blackred-male\.png$/);
   await expect(page.locator('.portrait-img').first()).toHaveClass(/portrait-img/);
 });
 
