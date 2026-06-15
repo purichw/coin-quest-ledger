@@ -86,3 +86,11 @@ When implementing from Claude Design:
 - Phase 1 uses a local browser gate only. Do not describe it as real access control; true private admin access needs Firebase Auth and Firestore Security Rules.
 - Save is local draft storage, Restore discards the draft back to the latest published snapshot, and Publish writes board/admin/user changes plus a revision log.
 - Board Admin IDs may intentionally repeat across boards because one admin can own multiple boards. Keep duplicate validation focused on board URLs unless the user asks otherwise.
+
+## Character Profile Notes
+
+- `/character/?id=1234` aggregates the `characters` record with every readable trip containing that Character ID.
+- Profile aggregation belongs in `shared/pointy-logic.js`; keep the page renderer focused on loading and presentation.
+- Preserve the four-digit public Character ID links from hero cards and Admin Portal Users.
+- `private=1` only hides monetary values in the rendered profile. It is not authorization or Firestore security.
+- Character Profile, character persistence, or `admin.characterId` changes require full `npm test` and responsive verification.

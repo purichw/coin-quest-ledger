@@ -226,6 +226,12 @@ function tripLinkFor(id = tripId) {
   else url.searchParams.delete('test');
   return url.toString();
 }
+function characterProfileLink(id) {
+  const url = new URL('/character/', window.location.origin);
+  url.searchParams.set('id', id);
+  if (TEST_MODE) url.searchParams.set('test', '1');
+  return url.pathname + url.search;
+}
 async function tripExists(id) {
   const snap = await tripRefFor(id).get();
   return !!snap.exists;
@@ -317,12 +323,14 @@ function characterBaseXp(name) {
 function syncCharacterRegistry(party) {
   party.forEach(hero => {
     const id = ensureCharacterId(hero.name);
+    if (S.admin?.adminName === hero.name && S.admin.characterId !== id) S.admin.characterId = id;
     const rec = _characterRegistry[id] || { id, trips: {}, createdAt: Date.now() };
     const before = JSON.stringify(rec);
     const base = characterBaseXp(hero.name);
     rec.name = hero.name;
     rec.class = hero.cls;
     rec.gender = genderOf(hero.name);
+    rec.skin = skinOf(hero.name);
     rec.trips = { ...(rec.trips || {}), [tripId]: Math.max(0, Math.round(hero.xp - base)) };
     rec.xp = Object.values(rec.trips).reduce((sum, xp) => sum + (Number(xp) || 0), 0);
     rec.updatedAt = Date.now();
@@ -786,6 +794,7 @@ function addParticipant() {
   saveNow(); renderAll();
 }
 function removeParticipant(name) {
+  const removedCharacterId = S.characterIds?.[name] || '';
   const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name) || Number(e.payers?.[name]) > 0);
   if (used && !confirm(t('confirm_remove_hero'))) return;
   S.participants = S.participants.filter(p => p !== name);
@@ -804,6 +813,7 @@ function removeParticipant(name) {
   }).filter(e => e.sharedBy.length > 0 && (e.paidBy !== name || Object.keys(e.payers || {}).length > 0));
   delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.heroSkins?.[name]; delete S.settleXp[name];
   delete S.characterIds[name]; delete S.promptpay?.[name];
+  if (S.admin?.characterId === removedCharacterId) S.admin.characterId = '';
   try { localStorage.removeItem(customAvatarKey(name)); } catch (_) {}
   save(); renderAll();
 }
@@ -966,7 +976,7 @@ function renderParty() {
           <strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div>
         </div>` : ''}
       </div>
-      <div class="hero-name">${h(hero.name)}<span class="char-id">#${h(ensureCharacterId(hero.name))}</span></div>
+      <div class="hero-name">${h(hero.name)}<a class="char-id" href="${h(characterProfileLink(ensureCharacterId(hero.name)))}" title="Character Profile">#${h(ensureCharacterId(hero.name))}</a></div>
       <div class="hero-class-row">
         <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
         ${S.settings.stats ? `<span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>` : ''}
@@ -1602,7 +1612,8 @@ async function setupAdmin() {
   if (pass.length < 4) { toast(t('admin_pass_short')); return; }
   if (!slug) { toast(t('admin_url_invalid')); return; }
   if (canMove && await tripExists(slug)) { toast(t('trip_id_taken', { id: slug })); return; }
-  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), ownerHash: S.admin?.ownerHash || ownerHash(adminOwnerToken()), adminId: profile.adminId, adminName: profile.adminName, createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
+  const adminCharacterName = S.participants.find(name => name === profile.adminName);
+  S.admin = { ...(S.admin || {}), passwordHash: adminHash(pass), ownerHash: S.admin?.ownerHash || ownerHash(adminOwnerToken()), adminId: profile.adminId, adminName: profile.adminName, characterId: adminCharacterName ? ensureCharacterId(adminCharacterName) : (S.admin?.characterId || ''), createdAt: S.admin?.createdAt || Date.now(), urlLocked: true };
   sessionStorage.setItem(adminSessionKey(), '1');
   sessionStorage.removeItem(adminLockKey());
   if (canMove) {
@@ -1651,9 +1662,10 @@ async function saveCharacterId(name) {
     persistCharacterRecord({ ...(_characterRegistry[next] || {}), ..._characterRegistry[old], id: next, updatedAt: Date.now() });
     deleteCharacterRecord(old);
   } else {
-    persistCharacterRecord({ ...(_characterRegistry[next] || {}), id: next, name, class: classOf(name), gender: genderOf(name), trips: _characterRegistry[next]?.trips || {}, createdAt: _characterRegistry[next]?.createdAt || Date.now(), updatedAt: Date.now() });
+    persistCharacterRecord({ ...(_characterRegistry[next] || {}), id: next, name, class: classOf(name), gender: genderOf(name), skin: skinOf(name), trips: _characterRegistry[next]?.trips || {}, createdAt: _characterRegistry[next]?.createdAt || Date.now(), updatedAt: Date.now() });
   }
   S.characterIds[name] = next;
+  if (S.admin?.characterId === old || S.admin?.adminName === name) S.admin.characterId = next;
   save(); renderAll(false); renderOverlay(); toast(t('char_id_saved'));
 }
 function resetCharacterId(name) {
@@ -1661,6 +1673,7 @@ function resetCharacterId(name) {
   const old = S.characterIds[name];
   if (old) deleteCharacterRecord(old);
   S.characterIds[name] = generateCharacterId();
+  if (S.admin?.characterId === old || S.admin?.adminName === name) S.admin.characterId = S.characterIds[name];
   save(); renderAll(false); renderOverlay(); toast(t('char_id_reset'));
 }
 function adminDeleteHero(name) {
@@ -1774,7 +1787,7 @@ function renderAdminPanel() {
       <td><input id="char-id-${hashOf(name)}" class="admin-id-input" maxlength="4" inputmode="numeric" value="${h(id)}"></td>
       <td>${Math.round(Number(rec.xp) || characterBaseXp(name) || 0)} XP</td>
       <td>${h(CLASSES[classOf(name)][LANG] || CLASSES[classOf(name)].th)}</td>
-      <td><div class="admin-actions"><button class="btn-ghost xs" onclick="saveCharacterId(${q(name)})">${t('btn_save')}</button><button class="btn-ghost xs" onclick="resetCharacterId(${q(name)})">${t('char_id_new')}</button><button class="btn-ghost xs danger" onclick="adminDeleteHero(${q(name)})">${t('del_title')}</button></div></td>
+      <td><div class="admin-actions"><a class="btn-ghost xs" href="${h(characterProfileLink(id))}">Profile</a><button class="btn-ghost xs" onclick="saveCharacterId(${q(name)})">${t('btn_save')}</button><button class="btn-ghost xs" onclick="resetCharacterId(${q(name)})">${t('char_id_new')}</button><button class="btn-ghost xs danger" onclick="adminDeleteHero(${q(name)})">${t('del_title')}</button></div></td>
     </tr>`;
   }).join('');
   return `<div class="settings-section">

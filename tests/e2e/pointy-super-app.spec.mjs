@@ -72,6 +72,7 @@ test('expense splitter requires explicit hero choice and locks the confirmed cha
 
   await expect(page.locator('#party-count')).toHaveText('1');
   await expect(page.locator('#party-grid')).toContainText('Shane');
+  await expect(page.locator('.char-id')).toHaveAttribute('href', /\/character\/\?id=\d{4}&test=1/);
   await expect(page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' })).toHaveCount(0);
 });
 
@@ -390,6 +391,49 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
   await expect(page.locator('.rev summary')).toContainText('changes');
   await page.locator('.rev summary').click();
   await expect(page.locator('.rev-list')).toContainText('URL 9001');
+});
+
+test('character profile aggregates boards, shows portrait, and supports privacy mode', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_character_registry_v1', JSON.stringify({
+      '1111': { id: '1111', name: 'Shane', class: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred', xp: 900, createdAt: 100, updatedAt: 300 }
+    }));
+    sessionStorage.setItem('pointy_test_trip_9001', JSON.stringify({
+      tripName: 'Alpha Board',
+      participants: ['Shane', 'Pointy'],
+      characterIds: { Shane: '1111', Pointy: '2222' },
+      heroClasses: { Shane: 'archfiend', Pointy: 'warrior' },
+      heroGenders: { Shane: 'male', Pointy: 'female' },
+      heroSkins: { Shane: 'archfiend-swimmer-blackred' },
+      expenses: [{ id: 1, amount: 1000, paidBy: 'Shane', sharedBy: ['Shane', 'Pointy'] }],
+      settleXp: { Shane: 400 },
+      admin: { adminId: 'ADM-ALPHA', adminName: 'Shane' },
+      updatedAt: 200
+    }));
+  });
+  await page.goto('/character/?id=1111&test=1');
+
+  await expect(page.getByRole('heading', { name: 'Shane' })).toBeVisible();
+  await expect(page.locator('.char-id')).toHaveText('#1111');
+  await expect(page.locator('.portrait-stage img')).toHaveAttribute('src', /archfiend-swimmer-blackred-male\.png/);
+  await expect(page.locator('.grid > .panel').filter({ hasText: 'ประวัติบอร์ด' }).getByRole('link', { name: 'Alpha Board' })).toBeVisible();
+  await expect(page.locator('.badges')).toContainText('แอดมินบอร์ด');
+  await expect(page.locator('.summary')).toContainText('฿1,000');
+
+  await page.getByRole('button', { name: 'ซ่อนยอดเงิน' }).click();
+  await expect(page.locator('body')).toHaveClass(/money-hidden/);
+  await expect(page.getByRole('button', { name: 'แสดงยอดเงิน' })).toBeVisible();
+  await expect(page).toHaveURL(/private=1/);
+  await expect(page.locator('.summary')).toContainText('••••');
+
+  await page.getByRole('button', { name: 'EN' }).click();
+  await expect(page.locator('.brand')).toContainText('Character Profile');
+  await expect(page.locator('.badges')).toContainText('Board Admin');
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(overflow).toBe(false);
 });
 
 test('price comparison page loads and ranks normalized unit prices', async ({ page }) => {

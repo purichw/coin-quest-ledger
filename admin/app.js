@@ -150,6 +150,10 @@ function users() {
     id: b.characterIds[name] || ''
   })));
 }
+function characterProfileLink(id) {
+  const url = `/character/?id=${encodeURIComponent(id || '')}`;
+  return TEST_MODE ? `${url}&test=1` : url;
+}
 
 function addBoard() {
   confirmAction('เพิ่ม Board ใหม่?', 'จะเพิ่ม draft board ใหม่ ยังไม่ publish จนกด Publish', () => {
@@ -282,6 +286,8 @@ function materializeBoard(b) {
   data.participants = b.participants.slice();
   data.characterIds = { ...b.characterIds };
   data.admin = { ...(data.admin || {}), adminId: b.adminId, adminName: b.adminName, ownerHash: b.adminOwnerHash, urlLocked: true };
+  const adminCharacterName = b.participants.find(name => name === b.adminName);
+  if (adminCharacterName) data.admin.characterId = b.characterIds[adminCharacterName] || '';
   if (b.newPassword) data.admin.passwordHash = adminHash(b.newPassword);
   data.updatedAt = Date.now();
   return data;
@@ -324,7 +330,7 @@ function renderUsers() {
       <td>${h(u.board.urlId)}</td>
       <td>${h(u.name)}</td>
       <td><input class="field small" value="${h(u.id)}" maxlength="4" oninput="updateUser(${q(u.board.originalId)},${q(u.name)},this.value)"></td>
-      <td><button class="btn danger" onclick="deleteUser(${q(u.board.originalId)},${q(u.name)})">ลบ</button></td>
+      <td><a class="btn" href="${h(characterProfileLink(u.id))}">Profile</a> <button class="btn danger" onclick="deleteUser(${q(u.board.originalId)},${q(u.name)})">ลบ</button></td>
     </tr>`).join('');
   return panel('Users', `<div class="toolbar"><input class="search" placeholder="ค้นหา user/board" value="${h(query)}" oninput="query=this.value;render()"></div><table><thead><tr><th>Board</th><th>ชื่อ</th><th>ID</th><th></th></tr></thead><tbody>${rows}</tbody></table>`);
 }

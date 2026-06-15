@@ -9,10 +9,12 @@ const htmlFiles = [
   'trip/index.html',
   'trip/index.legacy.html',
   'admin/index.html',
+  'character/index.html',
 ];
 const scriptFiles = [
   'trip/app.js',
   'admin/app.js',
+  'character/app.js',
 ];
 
 let checked = 0;

@@ -8,8 +8,8 @@ Last updated: 2026-06-15
 - GitHub: `git@github.com:purichw/Pointy-Super-App.git`
 - Live production URL: `https://pointy-super-app.vercel.app`
 - Vercel project: `pointy-super-app`
-- Current main branch latest known commit: `63cdfee` (`Add admin owned board tracking`)
-- Last known production deployment: `dpl_HKSDCCAQF8SiRUnFv27i7syhxGRU`
+- Current main branch latest known commit: `9096b38` (`Reset admin portal local slate`)
+- Last known production deployment: `dpl_2zL7rF4WMyA7gb7BiBP2o2iv4hFo`
 
 ## Start Here In A New Chat
 
@@ -25,6 +25,8 @@ Last updated: 2026-06-15
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
 - `admin/index.html`: Phase 1 Super Admin Portal shell, responsive table/modal styling, and Firebase compat script loader.
 - `admin/app.js`: Phase 1 Super Admin Portal behavior for local gate, board/admin/user editing, drafts, publish, restore, and revision logs.
+- `character/index.html`: responsive Character Profile shell and portrait/stats/history layout.
+- `character/app.js`: Character Profile loading, board aggregation, privacy/share mode, i18n, and rendering.
 - `index.html`: live toolbox home and price comparison entry.
 - `lang.js`: shared i18n for Thai and English across the toolbox. Every user-facing string needs both languages.
 - `shared/pointy-logic.js`: shared calculation, normalization, class registry, split logic, price comparison logic.
@@ -73,6 +75,14 @@ Party Ledger stores admin ownership metadata under `state.admin`:
 The trip UI now asks for Board Admin ID and nickname when creating/admin-setting a board, and remembers the creator profile locally for convenience. Same Admin ID can intentionally own multiple boards.
 
 Phase 1 Super Admin Portal lives at `/admin/`. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, and show simple revision logs. Phase 1 gate is local only and is not real security. True "คนนอกเข้าไม่ได้เลย" requires Phase 2 Firebase Auth plus Firestore Security Rules.
+
+## Character Profiles
+
+Character Profile lives at `/character/?id=1234`. The hero card Character ID and Admin Portal Users table link to this page. It combines the `characters/{id}` record with matching `trips` documents and shows portrait/skin, class, level/XP, aggregate spending stats, board history, achievements, admin-owned boards, activity dates, and board links.
+
+Profiles support Thai/English and responsive desktop/tablet/mobile layouts. Money privacy uses `private=1` in the URL and renders monetary values as hidden placeholders, so copied links open in privacy mode. This is display privacy, not database access control.
+
+Board admin ownership can store `admin.characterId`. Party Ledger automatically links it when the admin nickname matches a participant and preserves it when that Character ID changes. Legacy boards still fall back to matching `adminName`.
 
 ## Pixel Icon Picker
 
@@ -161,6 +171,8 @@ git push origin main
 
 ## Recent Commits
 
+- `9096b38` Reset admin portal local slate
+- `f5073c0` Add phase 1 admin portal
 - `63cdfee` Add admin owned board tracking
 - `216ce7b` Add archfiend black red swimmer skin
 - `35c20fc` Add recoverable trip admin setup

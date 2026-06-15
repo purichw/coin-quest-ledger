@@ -226,6 +226,7 @@
         ownerHash: data?.admin?.ownerHash || '',
         adminId: data?.admin?.adminId || '',
         adminName: data?.admin?.adminName || '',
+        characterId: data?.admin?.characterId || '',
         createdAt: data?.admin?.createdAt || null,
         urlLocked: !!data?.admin?.urlLocked
       },
@@ -332,6 +333,118 @@
     });
   }
 
+  function timestampValue(value) {
+    if (!value) return 0;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') return Date.parse(value) || 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.seconds === 'number') return value.seconds * 1000;
+    return 0;
+  }
+
+  function characterNamesForId(state, characterId) {
+    const id = String(characterId || '');
+    if (!id) return [];
+    return (state.participants || []).filter(name => String(state.characterIds?.[name] || '') === id);
+  }
+
+  function buildCharacterProfile(characterId, boards = [], record = {}, opts = {}) {
+    const id = String(characterId || '').trim();
+    const lang = opts.lang || 'th';
+    const boardFallback = opts.boardFallback || 'Untitled board';
+    const names = new Set(record?.name ? [record.name] : []);
+    const totals = { paid: 0, share: 0, fronted: 0, balance: 0, quests: 0, boards: 0, settledBoards: 0, activeBoards: 0, settlementXp: 0 };
+    const boardRows = [];
+    const adminBoards = [];
+    let latest = null;
+
+    boards.forEach(entry => {
+      const boardId = String(entry.id || entry.urlId || '');
+      const state = normalizeTripState(entry.data || entry, { defaultTripName: boardFallback });
+      const matchNames = characterNamesForId(state, id);
+      if (!matchNames.length) return;
+      const updatedAt = timestampValue(entry.updatedAt || entry.data?.updatedAt || state.updatedAt || state.admin?.createdAt);
+      const party = computeParty(state, {
+        classOf: name => normalizeClass(state.heroClasses?.[name] || record?.class || PointyLogic.CLASS_ORDER[hashOf(name) % PointyLogic.CLASS_ORDER.length]),
+        baseXp: () => 0
+      });
+      matchNames.forEach(name => {
+        names.add(name);
+        const hero = party.find(p => p.name === name) || { paid: 0, share: 0, gen: 0, bal: 0, quests: 0, xp: 0, cls: state.heroClasses?.[name] || record?.class };
+        const admin = state.admin || {};
+        const isAdminLinked = String(admin.characterId || '') === id || (admin.adminName && admin.adminName === name);
+        const boardTotal = state.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        const settled = state.expenses.length > 0 && settleUp(party).length === 0;
+        const row = {
+          id: boardId,
+          tripName: state.tripName || boardFallback,
+          url: boardId ? `/trip/?id=${encodeURIComponent(boardId)}` : '',
+          name,
+          class: normalizeClass(state.heroClasses?.[name] || record?.class || hero.cls),
+          gender: state.heroGenders?.[name] || record?.gender || 'male',
+          skin: state.heroSkins?.[name] || record?.skin || '',
+          paid: hero.paid || 0,
+          share: hero.share || 0,
+          fronted: hero.gen || 0,
+          balance: hero.bal || 0,
+          quests: hero.quests || 0,
+          boardTotal,
+          settled,
+          adminId: admin.adminId || '',
+          adminName: admin.adminName || '',
+          isAdminLinked,
+          updatedAt
+        };
+        boardRows.push(row);
+        totals.paid += row.paid;
+        totals.share += row.share;
+        totals.fronted += row.fronted;
+        totals.balance += row.balance;
+        totals.quests += row.quests;
+        totals.settlementXp += Number(state.settleXp?.[name]) || 0;
+        if (isAdminLinked) adminBoards.push(row);
+        if (!latest || row.updatedAt > latest.updatedAt) latest = row;
+      });
+    });
+
+    totals.boards = new Set(boardRows.map(row => row.id)).size;
+    totals.settledBoards = new Set(boardRows.filter(row => row.settled).map(row => row.id)).size;
+    totals.activeBoards = Math.max(0, totals.boards - totals.settledBoards);
+    boardRows.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
+    adminBoards.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
+
+    const totalXp = Math.round(Number(record?.xp) || Object.values(record?.trips || {}).reduce((sum, xp) => sum + (Number(xp) || 0), 0) || totals.fronted + totals.settlementXp);
+    const level = levelFromXp(totalXp);
+    const cls = normalizeClass(record?.class || latest?.class || PointyLogic.CLASS_ORDER[hashOf(id) % PointyLogic.CLASS_ORDER.length]);
+    const gender = record?.gender || latest?.gender || (hashOf(id) % 2 ? 'female' : 'male');
+    const badges = [];
+    if (totals.boards >= 1) badges.push({ id: 'party-member', label: lang === 'en' ? 'Party Member' : 'สมาชิกปาร์ตี้', detail: lang === 'en' ? 'Joined the first board' : 'เข้าร่วมบอร์ดแรกแล้ว' });
+    if (totals.boards >= 5) badges.push({ id: 'veteran', label: lang === 'en' ? 'Veteran Traveler' : 'นักเดินทางรุ่นเก๋า', detail: `${totals.boards} boards` });
+    if (totals.fronted >= 1000) badges.push({ id: 'treasurer', label: lang === 'en' ? 'Treasurer' : 'เหรัญญิก', detail: lang === 'en' ? 'Fronted plenty for the party' : 'ออกเงินแทนปาร์ตี้เยอะมาก' });
+    if (totals.settledBoards >= 1) badges.push({ id: 'debt-slayer', label: lang === 'en' ? 'Debt Slayer' : 'ผู้ปราบหนี้', detail: lang === 'en' ? 'Reached a settled board' : 'เคลียร์บอร์ดสำเร็จแล้ว' });
+    if (adminBoards.length) badges.push({ id: 'board-admin', label: lang === 'en' ? 'Board Admin' : 'แอดมินบอร์ด', detail: `${adminBoards.length} boards` });
+    if (level.lvl >= 5) badges.push({ id: 'high-level', label: lang === 'en' ? 'Seasoned Hero' : 'ฮีโร่ชำนาญศึก', detail: `Level ${level.lvl}` });
+
+    return {
+      id,
+      record: record || {},
+      names: [...names],
+      displayName: record?.name || latest?.name || (id ? `#${id}` : ''),
+      class: cls,
+      gender,
+      skin: record?.skin || latest?.skin || '',
+      xp: totalXp,
+      level,
+      reward: rewardFor(level.lvl),
+      createdAt: timestampValue(record?.createdAt),
+      updatedAt: Math.max(timestampValue(record?.updatedAt), latest?.updatedAt || 0),
+      totals,
+      boards: boardRows,
+      adminBoards,
+      badges
+    };
+  }
+
   function settleUp(party) {
     const cred = party.filter(p => p.bal > 0.5).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
     const debt = party.filter(p => p.bal < -0.5).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
@@ -367,6 +480,7 @@
     payerMap,
     splitShares,
     computeParty,
+    buildCharacterProfile,
     settleUp
   });
 

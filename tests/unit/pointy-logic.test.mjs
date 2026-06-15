@@ -142,7 +142,7 @@ test('normalizeTripState keeps legacy trip data compatible', () => {
     participants: ['A'],
     heroClasses: { A: 'mage' },
     heroSkins: { A: 'crimson-regent' },
-    admin: { ownerHash: 'creator-token-hash', adminId: 'ADM-111111', adminName: 'Pointy' },
+    admin: { ownerHash: 'creator-token-hash', adminId: 'ADM-111111', adminName: 'Pointy', characterId: '1234' },
     expenses: [{ name: 'Coffee', amount: '120', payer: 'A', participants: ['A'] }]
   }, { defaultTripName: 'Trip', questFallback: 'Quest', questIcons: ['x'] });
 
@@ -152,6 +152,7 @@ test('normalizeTripState keeps legacy trip data compatible', () => {
   assert.equal(state.admin.ownerHash, 'creator-token-hash');
   assert.equal(state.admin.adminId, 'ADM-111111');
   assert.equal(state.admin.adminName, 'Pointy');
+  assert.equal(state.admin.characterId, '1234');
   assert.equal(state.expenses[0].desc, 'Coffee');
   assert.equal(state.expenses[0].paidBy, 'A');
   assert.deepEqual(plain(state.expenses[0].sharedBy), ['A']);
@@ -181,4 +182,36 @@ test('parseImportItems reads comma, semicolon, and tab separated rows', () => {
     { desc: 'Taxi', amount: 240 },
     { desc: 'Snack', amount: 35 }
   ]);
+});
+
+test('buildCharacterProfile aggregates board history, money, badges, and admin ownership', () => {
+  const profile = logic.buildCharacterProfile('1111', [{
+    id: '9001',
+    data: {
+      tripName: 'Alpha Board',
+      participants: ['Shane', 'Pointy'],
+      characterIds: { Shane: '1111', Pointy: '2222' },
+      heroClasses: { Shane: 'archfiend', Pointy: 'warrior' },
+      heroGenders: { Shane: 'male' },
+      heroSkins: { Shane: 'archfiend-swimmer-blackred' },
+      expenses: [{ amount: 1000, paidBy: 'Shane', sharedBy: ['Shane', 'Pointy'] }],
+      settleXp: { Shane: 400 },
+      admin: { adminId: 'ADM-ALPHA', adminName: 'Different nickname', characterId: '1111' },
+      updatedAt: 200
+    }
+  }], { id: '1111', name: 'Shane', class: 'archfiend', gender: 'male', xp: 900, createdAt: 100 }, { lang: 'en' });
+
+  assert.equal(profile.displayName, 'Shane');
+  assert.equal(profile.class, 'archfiend');
+  assert.equal(profile.skin, 'archfiend-swimmer-blackred');
+  assert.equal(profile.xp, 900);
+  assert.equal(profile.level.lvl, 2);
+  assert.equal(profile.totals.boards, 1);
+  assert.equal(profile.totals.paid, 1000);
+  assert.equal(profile.totals.share, 500);
+  assert.equal(profile.totals.fronted, 500);
+  assert.equal(profile.totals.balance, 500);
+  assert.equal(profile.adminBoards.length, 1);
+  assert.equal(profile.boards[0].updatedAt, 200);
+  assert.ok(profile.badges.some(b => b.id === 'board-admin'));
 });
