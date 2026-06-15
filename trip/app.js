@@ -96,7 +96,7 @@ let _celebrateName = null;
 let _celebrateTimer;
 let _prevLevels = {};
 let _splitMode = 'equal', _payerMode = 'one', _splitWeights = {}, _payerAmounts = {};
-let _lootItems = [], _receiptData = null, _receiptView = null, _expenseDate = '', _tributeTx = null, _tributeEdit = false;
+let _lootItems = [], _receiptData = null, _receiptView = null, _receiptPickerOpen = false, _expenseDate = '', _tributeTx = null, _tributeEdit = false;
 let _overlay = null, _prevOutstanding = null, _newTripCode = '', _newTripAdminPass = '', _newTripAdminId = '', _newTripAdminName = '';
 let _audioCtx = null;
 let _characterRegistry = {};
@@ -489,7 +489,7 @@ function resetTripRuntime() {
   _heroPickerOpen = false; _heroConfirmOpen = false; _pickerGender = 'all'; _skinOpen = '';
   _resetEntryDraft = true; _settledTx = []; _celebrateName = null; _prevLevels = {};
   _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {};
-  _lootItems = []; _receiptData = null; _receiptView = null; _expenseDate = ''; _tributeTx = null; _tributeEdit = false;
+  _lootItems = []; _receiptData = null; _receiptView = null; _receiptPickerOpen = false; _expenseDate = ''; _tributeTx = null; _tributeEdit = false;
   _prevOutstanding = null; _newTripCode = ''; _newTripAdminPass = ''; _newTripAdminId = ''; _newTripAdminName = '';
 }
 function campaignId() { return `camp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; }
@@ -1112,9 +1112,10 @@ function fileToScaledDataURL(file, maxDim, cb) {
   };
   reader.readAsDataURL(file);
 }
-function pickReceipt() {
-  const input = document.getElementById('receipt-input');
+function pickReceipt(source = 'library') {
+  const input = document.getElementById(source === 'camera' ? 'receipt-camera-input' : 'receipt-library-input');
   input.value = '';
+  _receiptPickerOpen = false;
   input.click();
 }
 function loadReceipt(input) {
@@ -1122,15 +1123,23 @@ function loadReceipt(input) {
   if (!file) return;
   fileToScaledDataURL(file, 1400, data => {
     _receiptData = data;
+    _receiptPickerOpen = false;
     SFX.click();
     renderEntry();
   });
 }
-function removeReceipt() { _receiptData = null; renderEntry(); }
+function toggleReceiptPicker() { _receiptPickerOpen = !_receiptPickerOpen; SFX.click(); renderEntry(); }
+function removeReceipt() { _receiptData = null; _receiptPickerOpen = false; renderEntry(); }
 function openReceipt(data) { _receiptView = data; _overlay = 'receipt'; SFX.click(); renderOverlay(); }
 function renderReceiptField() {
   return `<div class="receipt-row">
-    <button type="button" class="receipt-btn" data-entry-action="pick-receipt">📎 ${t('attach_receipt')}</button>
+    <div class="receipt-picker ${_receiptPickerOpen ? 'open' : ''}">
+      <button type="button" class="receipt-btn" data-entry-action="toggle-receipt-picker" aria-expanded="${_receiptPickerOpen}" aria-haspopup="menu">📎 ${t('attach_receipt')}</button>
+      ${_receiptPickerOpen ? `<div class="receipt-menu" role="menu">
+        <button type="button" role="menuitem" data-entry-action="receipt-camera">📷 ${t('receipt_camera')}</button>
+        <button type="button" role="menuitem" data-entry-action="receipt-library">🖼️ ${t('receipt_library')}</button>
+      </div>` : ''}
+    </div>
     ${_receiptData ? `<span class="receipt-chip"><img class="receipt-thumb" src="${_receiptData}" alt="">${t('receipt_attached')} <button type="button" class="btn-ghost xs" data-entry-action="remove-receipt">×</button></span>` : ''}
   </div>`;
 }
@@ -1236,7 +1245,7 @@ function renderEntry() {
   document.getElementById('entry-title').innerHTML = mode === 'quick' ? `⚡ ${t('quick_strike')}` : `📜 ${t('log_encounter')}`;
   const resetDraft = _resetEntryDraft;
   _resetEntryDraft = false;
-  if (resetDraft) { _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {}; _lootItems = []; _receiptData = null; _expenseDate = ''; }
+  if (resetDraft) { _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {}; _lootItems = []; _receiptData = null; _receiptPickerOpen = false; _expenseDate = ''; }
   const prevDesc = resetDraft ? '' : (document.getElementById('exp-desc')?.value || '');
   const prevAmt = _splitMode === 'items' ? (lootTotal() ? String(lootTotal()) : '') : (resetDraft ? '' : (document.getElementById('exp-amount')?.value || ''));
   const prevDate = resetDraft ? '' : (document.getElementById('exp-date')?.value || _expenseDate || '');
@@ -1292,8 +1301,12 @@ function handleEntryAction(button, event) {
     toggleIconPicker({ currentTarget: button });
   } else if (action === 'pick-icon') {
     pickExpenseIcon(button.dataset.icon);
-  } else if (action === 'pick-receipt') {
-    pickReceipt();
+  } else if (action === 'toggle-receipt-picker') {
+    toggleReceiptPicker();
+  } else if (action === 'receipt-camera') {
+    pickReceipt('camera');
+  } else if (action === 'receipt-library') {
+    pickReceipt('library');
   } else if (action === 'remove-receipt') {
     removeReceipt();
   } else if (action === 'add-loot') {
@@ -1380,7 +1393,7 @@ function bindAppShellEvents() {
 
   document.addEventListener('change', event => {
     if (event.target.id === 'import-input') importExcel(event.target);
-    if (event.target.id === 'receipt-input') loadReceipt(event.target);
+    if (event.target.id === 'receipt-camera-input' || event.target.id === 'receipt-library-input') loadReceipt(event.target);
   });
 
   document.addEventListener('focusout', event => {

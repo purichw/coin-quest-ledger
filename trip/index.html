@@ -339,8 +339,12 @@
     .loot-del { width: 34px; height: 34px; border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--panel); color: var(--ink-soft); font-size: 18px; }
     .loot-del:hover { border-color: var(--hp); color: var(--hp); }
     .receipt-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 2px 0 13px; }
+    .receipt-picker { position: relative; display: inline-flex; }
     .receipt-btn { border: 1.5px solid var(--border-strong); border-radius: 11px; background: var(--panel-in); color: var(--ink); padding: 9px 12px; font-weight: 700; }
     .receipt-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .receipt-menu { position: absolute; left: 0; top: calc(100% + 7px); z-index: 12; min-width: 190px; display: grid; gap: 5px; padding: 7px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); box-shadow: 0 16px 34px -22px rgba(0,0,0,.42); }
+    .receipt-menu button { border: 0; border-radius: 9px; background: transparent; color: var(--ink); padding: 9px 10px; text-align: left; font-weight: 700; }
+    .receipt-menu button:hover { background: var(--panel-2); color: var(--accent); }
     .receipt-chip { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid var(--border); border-radius: 999px; padding: 4px 8px 4px 5px; background: var(--panel-in); color: var(--ink-soft); font-size: 12px; font-weight: 700; }
     .receipt-thumb { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; border: 1.5px solid var(--border-strong); }
     .receipt-mini { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; border: 1.5px solid var(--border-strong); }
@@ -563,7 +567,8 @@
     </section>
 
     <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none">
-    <input type="file" id="receipt-input" accept="image/*" style="display:none">
+    <input type="file" id="receipt-camera-input" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="receipt-library-input" accept="image/*" style="display:none">
     <div class="tools-row">
       <button class="btn-tool" data-action="template-modal" data-i18n="quest_presets">📋 เควสสำเร็จรูป</button>
       <button class="btn-tool" data-action="import-modal" data-i18n="import_scroll">📥 นำเข้ารายการ</button>

@@ -343,6 +343,12 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
   await expect(page.locator('#expense-count')).toHaveText('2');
   await expect(page.locator('#party-total')).toHaveText('฿360');
 
+  await page.getByRole('button', { name: '📎 แนบใบเสร็จ' }).click();
+  await expect(page.getByRole('menuitem', { name: '📷 เปิดกล้อง' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '🖼️ เลือกจากคลัง' })).toBeVisible();
+  await expect(page.locator('#receipt-camera-input')).toHaveAttribute('capture', 'environment');
+  await expect(page.locator('#receipt-library-input')).not.toHaveAttribute('capture');
+
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
   const portraitFits = await page.evaluate(() => [...document.querySelectorAll('.portrait-img')].every(img => {
