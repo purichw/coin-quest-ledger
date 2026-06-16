@@ -359,6 +359,54 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
   expect(portraitFits).toBe(true);
 });
 
+test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', async ({ page }) => {
+  await page.goto('/debt/?test=1');
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
+  await expect(page.locator('.dragon-card')).toHaveCount(4);
+  await expect(page.locator('.dragon-png').first()).toHaveAttribute('src', /assets\/debt-dragons\/card\.png$/);
+
+  await page.getByRole('button', { name: 'สร้าง ID' }).click();
+  await expect(page.locator('.char-id-link')).toHaveText(/#\d{4}/);
+  await page.locator('#slayer-name').fill('Pointy Slayer');
+
+  await page.locator('.dragon-card').first().getByRole('button', { name: /จู่โจม/ }).click();
+  await expect(page.locator('.dc-move')).toHaveCount(3);
+  await page.locator('.dragon-card').first().locator('.dc-move', { hasText: 'สายฟ้า' }).click();
+  await page.locator('.dragon-card').first().locator('input[type="number"]').first().fill('1000');
+  await page.locator('.dragon-card').first().locator('input[type="date"]').fill('2026-06-14');
+  await page.locator('.dragon-card').first().locator('.btn-danger').click();
+  await expect(page.locator('.dragon-card').first()).toContainText('฿57,000');
+  await expect(page.locator('.dragon-card').first()).toContainText('14 มิ.ย.');
+
+  await page.getByRole('button', { name: /ล้มทีละตัว/ }).click();
+  await expect(page.locator('.tactic-opt').nth(1)).toHaveClass(/on/);
+  await page.locator('#power-attack').evaluate(el => {
+    el.value = '1000';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.locator('.forecast-panel')).toContainText('เร็วขึ้น');
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_test_debt_v1')));
+  expect(saved.dragons[0].balance).toBe(57000);
+  expect(saved.dragons[0].log[0].amount).toBe(1000);
+  expect(saved.slayer.characterId).toMatch(/^\d{4}$/);
+
+  const profileHref = await page.locator('.char-id-link').getAttribute('href');
+  await page.goto(profileHref);
+  await expect(page.locator('.portrait-info')).toContainText('Pointy Slayer');
+  await expect(page.locator('.badges')).toContainText('นักล่ามังกร');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/debt/?test=1');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(overflow).toBe(false);
+});
+
 test('super admin portal saves drafts, publishes board edits, and records revisions', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();

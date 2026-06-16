@@ -215,3 +215,45 @@ test('buildCharacterProfile aggregates board history, money, badges, and admin o
   assert.equal(profile.boards[0].updatedAt, 200);
   assert.ok(profile.badges.some(b => b.id === 'board-admin'));
 });
+
+test('Debt Dragon interest math handles compound and simple modes', () => {
+  const compound = { original: 100000, balance: 60000, apr: 12, payment: 6000, interestMode: 'compound' };
+  const simple = { original: 100000, balance: 60000, apr: 12, payment: 6000, interestMode: 'simple' };
+
+  closeTo(logic.monthlyInterest(compound), 600);
+  closeTo(logic.monthlyInterest(simple), 1000);
+  assert.equal(logic.payoffMonths(simple), 12);
+  assert.equal(logic.payoffMonths({ ...simple, payment: 1000 }), Infinity);
+  assert.equal(logic.payoffMonths({ ...compound, payment: 600 }), Infinity);
+});
+
+test('Debt Dragon lair simulation excludes ad-hoc debts and rolls freed payments forward', () => {
+  const dragons = [
+    { id: 'a', original: 12000, balance: 12000, apr: 0, payment: 3000, payMode: 'monthly', interestMode: 'compound' },
+    { id: 'b', original: 12000, balance: 12000, apr: 0, payment: 3000, payMode: 'monthly', interestMode: 'compound' },
+    { id: 'c', original: 5000, balance: 5000, apr: 999, payment: 0, payMode: 'adhoc', interestMode: 'compound' }
+  ];
+
+  const sim = logic.simulateLair(dragons, 'snowball', 0);
+  assert.equal(sim.months, 4);
+  assert.equal(sim.never, false);
+  assert.equal(sim.interest, 0);
+});
+
+test('Debt Dragon strategy target switches between avalanche and snowball', () => {
+  const dragons = [
+    { id: 'small', balance: 1000, apr: 3 },
+    { id: 'hot', balance: 9000, apr: 22 },
+    { id: 'dead', balance: 500, apr: 99, slain: true }
+  ];
+
+  assert.equal(logic.strategyTarget(dragons, 'snowball'), 'small');
+  assert.equal(logic.strategyTarget(dragons, 'avalanche'), 'hot');
+});
+
+test('Debt Dragon XP comes from logged damage and slain bonuses', () => {
+  assert.equal(logic.slayerXpFrom([
+    { log: [{ amount: 3000 }, { amount: 2000 }], slain: false },
+    { log: [{ amount: 1000 }], slain: true }
+  ]), 1100);
+});

@@ -129,7 +129,7 @@ function stat(label, value, moneyValue = false) {
   return `<div class="stat"><span>${h(label)}</span><strong class="${moneyValue ? 'money' : ''}">${moneyValue && hideMoney ? '••••' : h(value)}</strong></div>`;
 }
 function badgeIcon(id) {
-  return { 'party-member':'🧭', veteran:'🏕️', treasurer:'💰', 'debt-slayer':'⚔️', 'board-admin':'🗝️', 'high-level':'👑' }[id] || '✦';
+  return { 'party-member':'🧭', veteran:'🏕️', treasurer:'💰', 'debt-slayer':'⚔️', 'board-admin':'🗝️', 'debt-dragon':'🐉', 'high-level':'👑' }[id] || '✦';
 }
 function badgeCopy(badge, profile) {
   const en = LANG === 'en';
@@ -139,6 +139,7 @@ function badgeCopy(badge, profile) {
     treasurer: [en ? 'Treasurer' : 'เหรัญญิก', en ? 'Fronted plenty for the party' : 'ออกเงินแทนปาร์ตี้เยอะมาก'],
     'debt-slayer': [en ? 'Debt Slayer' : 'ผู้ปราบหนี้', en ? 'Reached a settled board' : 'เคลียร์บอร์ดสำเร็จแล้ว'],
     'board-admin': [en ? 'Board Admin' : 'แอดมินบอร์ด', `${profile.adminBoards.length} ${en ? 'boards' : 'บอร์ด'}`],
+    'debt-dragon': [en ? 'Dragon Slayer' : 'นักล่ามังกร', badge.detail],
     'high-level': [en ? 'Seasoned Hero' : 'ฮีโร่ชำนาญศึก', `Level ${profile.level.lvl}`]
   }[badge.id];
   return copy || [badge.label, badge.detail];

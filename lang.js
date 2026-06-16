@@ -4,6 +4,7 @@ var T = {
   th: {
     nav_compare: 'เปรียบเทียบราคา',
     nav_split: 'แบ่งค่าใช้จ่าย',
+    nav_debt: 'มังกรหนี้',
     // Unit price calc
     title_compare: 'เปรียบเทียบราคาต่อหน่วย',
     subtitle_compare: 'กรอกข้อมูลสินค้าอย่างน้อย 2 รายการ แล้วกดเปรียบเทียบ',
@@ -355,6 +356,7 @@ var T = {
   en: {
     nav_compare: 'Compare Prices',
     nav_split: 'Split Expenses',
+    nav_debt: 'Debt Dragon',
     // Unit price calc
     title_compare: 'Unit Price Comparison',
     subtitle_compare: 'Enter at least 2 products and press Compare',

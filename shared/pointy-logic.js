@@ -47,6 +47,28 @@
     { lvl:6, frame:"gold", glyph:"⚔️", title:{ th:"ผู้กล้า", en:"Champion" } },
     { lvl:9, frame:"legend", glyph:"👑", title:{ th:"ตำนาน", en:"Legend" } }
   ];
+  PointyLogic.DD_XP_DIVISOR = 10;
+  PointyLogic.DD_SLAY_BONUS = 500;
+  PointyLogic.DRAGON_TYPE_ORDER = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
+  PointyLogic.DRAGON_TYPES = {
+    card: { th: 'บัตรเครดิต', en: 'Credit card', glyph: '💳', hue: 255, minPay: 3000 },
+    autoloan: { th: 'สินเชื่อรถยนต์', en: 'Auto loan', glyph: '🚗', hue: 25, minPay: 9600 },
+    student: { th: 'กยศ. เงินกู้เรียน', en: 'Student loan', glyph: '🎓', hue: 230, minPay: 2000 },
+    mortgage: { th: 'สินเชื่อบ้าน', en: 'Mortgage', glyph: '🏠', hue: 150, minPay: 19300 },
+    medical: { th: 'หนี้ค่ารักษา', en: 'Medical debt', glyph: '🏥', hue: 185, minPay: 2500 },
+    tax: { th: 'หนี้ภาษี', en: 'Tax debt', glyph: '🧾', hue: 45, minPay: 3000 },
+    other: { th: 'หนี้อื่น ๆ', en: 'Other debt', glyph: '⛓️', hue: 300, minPay: 0 }
+  };
+  PointyLogic.SEED_DEBT = {
+    slayer: { name: 'Pointy', characterId: '', class: 'dragoon', gender: 'male', skin: '' },
+    dragons: [
+      { id: 'd1', name: { th: 'บัตรเครดิต', en: 'Credit card' }, type: 'card', original: 72000, balance: 58000, apr: 22, payment: 3000, interestMode: 'compound', payMode: 'monthly', log: [], slain: false, slainAt: null },
+      { id: 'd2', name: { th: 'สินเชื่อรถยนต์', en: 'Auto loan' }, type: 'autoloan', original: 540000, balance: 312000, apr: 3.5, payment: 9600, interestMode: 'simple', payMode: 'monthly', log: [], slain: false, slainAt: null },
+      { id: 'd3', name: { th: 'กยศ. เงินกู้เรียน', en: 'Student loan' }, type: 'student', original: 180000, balance: 124000, apr: 1, payment: 2000, interestMode: 'compound', payMode: 'monthly', log: [], slain: false, slainAt: null },
+      { id: 'd4', name: { th: 'ยืมเพื่อน', en: 'Borrowed from a friend' }, type: 'other', original: 8000, balance: 8000, apr: 0, payment: 0, interestMode: 'compound', payMode: 'adhoc', log: [], slain: false, slainAt: null }
+    ],
+    art: {}
+  };
 
   function hashOf(name) {
     let x = 0;
@@ -154,6 +176,136 @@
     let r = PointyLogic.LEVEL_REWARDS[0];
     PointyLogic.LEVEL_REWARDS.forEach(x => { if (lvl >= x.lvl) r = x; });
     return r;
+  }
+
+  function dragonType(id) {
+    return PointyLogic.DRAGON_TYPES[id] || PointyLogic.DRAGON_TYPES.card;
+  }
+
+  function monthlyDebtRate(apr) {
+    return (Number(apr) || 0) / 100 / 12;
+  }
+
+  function monthlyInterest(d) {
+    const rate = monthlyDebtRate(d?.apr);
+    const base = d?.interestMode === 'simple' ? Math.max(0, Number(d?.original) || 0) : Math.max(0, Number(d?.balance) || 0);
+    return base * rate;
+  }
+
+  function payoffMonths(d) {
+    const rate = monthlyDebtRate(d?.apr);
+    const payment = Number(d?.payment) || 0;
+    const balance = Number(d?.balance) || 0;
+    if (balance <= 0) return 0;
+    if (payment <= 0) return Infinity;
+    if (d?.interestMode === 'simple') {
+      const interest = Math.max(0, Number(d?.original) || 0) * rate;
+      if (payment <= interest + 0.0001) return Infinity;
+      return Math.ceil(balance / (payment - interest));
+    }
+    if (rate <= 0) return Math.ceil(balance / payment);
+    if (payment <= balance * rate + 0.0001) return Infinity;
+    return Math.ceil(-Math.log(1 - (balance * rate) / payment) / Math.log(1 + rate));
+  }
+
+  function strategyTarget(dragons, strategy = 'avalanche') {
+    const live = (dragons || []).filter(d => !d.slain && Number(d.balance) > 0.5);
+    if (!live.length) return null;
+    const sorted = live.slice().sort((a, b) => strategy === 'snowball'
+      ? (Number(a.balance) || 0) - (Number(b.balance) || 0)
+      : (Number(b.apr) || 0) - (Number(a.apr) || 0));
+    return sorted[0].id;
+  }
+
+  function simulateLair(dragons, strategy = 'avalanche', extra = 0) {
+    const ds = (dragons || [])
+      .filter(d => !d.slain && Number(d.balance) > 0.5 && d.payMode !== 'adhoc')
+      .map(d => ({
+        balance: Number(d.balance) || 0,
+        apr: Number(d.apr) || 0,
+        payment: Number(d.payment) || 0,
+        original: Number(d.original) || 0,
+        mode: d.interestMode === 'simple' ? 'simple' : 'compound'
+      }));
+    if (!ds.length) return { months: 0, interest: 0, never: false };
+    const cap = 1200;
+    let months = 0;
+    let interest = 0;
+    while (ds.some(d => d.balance > 0.5) && months < cap) {
+      months += 1;
+      let pool = Number(extra) || 0;
+      ds.forEach(d => { if (d.balance <= 0.5) pool += d.payment; });
+      ds.forEach(d => {
+        if (d.balance <= 0.5) return;
+        const charge = (d.mode === 'simple' ? d.original : d.balance) * monthlyDebtRate(d.apr);
+        d.balance += charge;
+        interest += charge;
+      });
+      ds.forEach(d => {
+        if (d.balance <= 0.5) return;
+        d.balance -= Math.min(d.payment, d.balance);
+      });
+      const live = ds.filter(d => d.balance > 0.5);
+      const order = live.sort((a, b) => strategy === 'snowball' ? a.balance - b.balance : b.apr - a.apr);
+      let remainingPool = pool;
+      for (const d of order) {
+        if (remainingPool <= 0) break;
+        const pay = Math.min(remainingPool, d.balance);
+        d.balance -= pay;
+        remainingPool -= pay;
+      }
+    }
+    const never = ds.some(d => d.balance > 0.5);
+    return { months: never ? Infinity : months, interest: Math.round(interest), never };
+  }
+
+  function slayerXpFrom(dragons) {
+    let damage = 0;
+    let slain = 0;
+    (dragons || []).forEach(d => {
+      (d.log || []).forEach(row => { damage += Number(row.amount) || 0; });
+      if (d.slain) slain += 1;
+    });
+    return Math.round(damage / PointyLogic.DD_XP_DIVISOR + slain * PointyLogic.DD_SLAY_BONUS);
+  }
+
+  function normalizeDebtState(data = {}) {
+    const seed = PointyLogic.SEED_DEBT;
+    const slayer = {
+      ...seed.slayer,
+      ...(data.slayer || {})
+    };
+    const dragons = Array.isArray(data.dragons) ? data.dragons : seed.dragons;
+    return {
+      slayer,
+      dragons: dragons.map((d, index) => {
+        const type = PointyLogic.DRAGON_TYPES[d?.type] ? d.type : 'card';
+        const balance = Math.max(0, Number(d?.balance) || 0);
+        const original = Math.max(balance, Number(d?.original) || balance);
+        const payMode = d?.payMode === 'adhoc' ? 'adhoc' : 'monthly';
+        return {
+          id: String(d?.id || `d${index + 1}`),
+          name: typeof d?.name === 'object' ? { th: d.name.th || d.name.en || dragonType(type).th, en: d.name.en || d.name.th || dragonType(type).en } : { th: String(d?.name || dragonType(type).th), en: String(d?.name || dragonType(type).en) },
+          type,
+          original,
+          balance,
+          apr: Math.max(0, Number(d?.apr) || 0),
+          payment: payMode === 'adhoc' ? 0 : Math.max(0, Number(d?.payment) || dragonType(type).minPay || 0),
+          payMode,
+          interestMode: d?.interestMode === 'simple' ? 'simple' : 'compound',
+          log: Array.isArray(d?.log) ? d.log.map(row => ({
+            id: String(row.id || ''),
+            date: String(row.date || ''),
+            amount: Math.max(0, Number(row.amount) || 0),
+            ts: Number(row.ts) || 0,
+            move: row.move || 'projectile'
+          })) : [],
+          slain: !!d?.slain || balance <= 0.5,
+          slainAt: d?.slainAt || null
+        };
+      }),
+      art: data.art && typeof data.art === 'object' ? data.art : {}
+    };
   }
 
   function hpColor(pct) {
@@ -413,7 +565,8 @@
     boardRows.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
     adminBoards.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
 
-    const totalXp = Math.round(Number(record?.xp) || Object.values(record?.trips || {}).reduce((sum, xp) => sum + (Number(xp) || 0), 0) || totals.fronted + totals.settlementXp);
+    const debtXp = Math.round(Number(record?.debtXp) || 0);
+    const totalXp = Math.round(Number(record?.xp) || (Object.values(record?.trips || {}).reduce((sum, xp) => sum + (Number(xp) || 0), 0) + debtXp) || totals.fronted + totals.settlementXp + debtXp);
     const level = levelFromXp(totalXp);
     const cls = normalizeClass(record?.class || latest?.class || PointyLogic.CLASS_ORDER[hashOf(id) % PointyLogic.CLASS_ORDER.length]);
     const gender = record?.gender || latest?.gender || (hashOf(id) % 2 ? 'female' : 'male');
@@ -423,6 +576,7 @@
     if (totals.fronted >= 1000) badges.push({ id: 'treasurer', label: lang === 'en' ? 'Treasurer' : 'เหรัญญิก', detail: lang === 'en' ? 'Fronted plenty for the party' : 'ออกเงินแทนปาร์ตี้เยอะมาก' });
     if (totals.settledBoards >= 1) badges.push({ id: 'debt-slayer', label: lang === 'en' ? 'Debt Slayer' : 'ผู้ปราบหนี้', detail: lang === 'en' ? 'Reached a settled board' : 'เคลียร์บอร์ดสำเร็จแล้ว' });
     if (adminBoards.length) badges.push({ id: 'board-admin', label: lang === 'en' ? 'Board Admin' : 'แอดมินบอร์ด', detail: `${adminBoards.length} boards` });
+    if (debtXp > 0) badges.push({ id: 'debt-dragon', label: lang === 'en' ? 'Dragon Slayer' : 'นักล่ามังกร', detail: `${debtXp} XP` });
     if (level.lvl >= 5) badges.push({ id: 'high-level', label: lang === 'en' ? 'Seasoned Hero' : 'ฮีโร่ชำนาญศึก', detail: `Level ${level.lvl}` });
 
     return {
@@ -481,6 +635,14 @@
     splitShares,
     computeParty,
     buildCharacterProfile,
+    dragonType,
+    monthlyDebtRate,
+    monthlyInterest,
+    payoffMonths,
+    strategyTarget,
+    simulateLair,
+    slayerXpFrom,
+    normalizeDebtState,
     settleUp
   });
 
