@@ -4,6 +4,7 @@
   if (!overlay) return;
 
   if (params.get('test') === '1') {
+    document.documentElement.classList.remove('first-load-boot');
     overlay.remove();
     return;
   }
@@ -29,19 +30,21 @@
   let percentFrame = null;
   let revealTimer = null;
 
-  overlay.innerHTML = [
-    '<div class="first-load-box">',
-    '  <div class="first-load-emblem" aria-hidden="true">',
-    '    <span class="first-load-torch left"></span>',
-    '    <span class="first-load-eye"><span class="first-load-pupil"></span></span>',
-    '    <span class="first-load-torch right"></span>',
-    '    <span class="first-load-tiny">Text</span>',
-    '  </div>',
-    '  <div class="first-load-title">POINTY</div>',
-    '  <div class="first-load-track"><div class="first-load-fill"></div></div>',
-    '  <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>',
-    '</div>'
-  ].join('');
+  if (!overlay.querySelector('.first-load-emblem')) {
+    overlay.innerHTML = [
+      '<div class="first-load-box">',
+      '  <div class="first-load-emblem" aria-hidden="true">',
+      '    <span class="first-load-torch left"></span>',
+      '    <span class="first-load-eye"><span class="first-load-pupil"></span></span>',
+      '    <span class="first-load-torch right"></span>',
+      '    <span class="first-load-tiny">Text</span>',
+      '  </div>',
+      '  <div class="first-load-title">POINTY</div>',
+      '  <div class="first-load-track"><div class="first-load-fill"></div></div>',
+      '  <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>',
+      '</div>'
+    ].join('');
+  }
 
   const pct = overlay.querySelector('[data-first-load-percent]');
 
@@ -69,6 +72,7 @@
     hidden = true;
     if (revealTimer) window.clearTimeout(revealTimer);
     if (percentFrame) window.cancelAnimationFrame(percentFrame);
+    document.documentElement.classList.remove('first-load-boot');
     overlay.remove();
   }
 
@@ -78,6 +82,7 @@
     if (revealTimer) window.clearTimeout(revealTimer);
     if (percentFrame) window.cancelAnimationFrame(percentFrame);
     updatePercent(true);
+    document.documentElement.classList.remove('first-load-boot');
     overlay.classList.add('is-hidden');
     window.setTimeout(() => overlay.remove(), 460);
   }

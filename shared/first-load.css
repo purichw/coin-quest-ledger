@@ -15,7 +15,8 @@
   visibility: hidden;
   transition: opacity .42s ease, visibility .42s ease;
 }
-.first-load.is-active {
+.first-load.is-active,
+html.first-load-boot .first-load {
   opacity: 1;
   pointer-events: auto;
   visibility: visible;
@@ -180,7 +181,8 @@
     0 0 13px rgba(244, 198, 73, .34),
     inset 0 1px 0 rgba(255, 246, 192, .72);
 }
-.first-load.is-active .first-load-fill {
+.first-load.is-active .first-load-fill,
+html.first-load-boot .first-load .first-load-fill {
   animation: first-load-progress 2.45s cubic-bezier(.2, .78, .16, 1) forwards;
 }
 .first-load-meta {

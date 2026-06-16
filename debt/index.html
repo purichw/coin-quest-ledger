@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Coin Quest Ledger — Debt Dragon</title>
   <link rel="icon" href="data:,">
+  <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
@@ -365,9 +366,15 @@
 <body>
   <div class="first-load" data-first-load>
     <div class="first-load-box">
-      <img class="first-load-mark" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="">
-      <div class="first-load-title">Coin Quest Ledger</div>
+      <div class="first-load-emblem" aria-hidden="true">
+        <span class="first-load-torch left"></span>
+        <span class="first-load-eye"><span class="first-load-pupil"></span></span>
+        <span class="first-load-torch right"></span>
+        <span class="first-load-tiny">Text</span>
+      </div>
+      <div class="first-load-title">POINTY</div>
       <div class="first-load-track"><div class="first-load-fill"></div></div>
+      <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
     </div>
   </div>
   <nav class="topbar">
