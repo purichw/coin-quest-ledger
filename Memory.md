@@ -1,15 +1,16 @@
-# Memory: Pointy Super App
+# Memory: Coin Quest
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Project
 
 - Workspace: `/Users/point/toolbox`
-- GitHub: `git@github.com:purichw/Pointy-Super-App.git`
+- GitHub: `git@github.com:purichw/coin-quest.git`
 - Live production URL: `https://pointy-super-app.vercel.app`
-- Vercel project: `pointy-super-app`
-- Current main branch latest known commit: `9096b38` (`Reset admin portal local slate`)
-- Last known production deployment: `dpl_2zL7rF4WMyA7gb7BiBP2o2iv4hFo`
+- Vercel project: `coin-quest`
+- Desired short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
+- Current main branch latest known commit: `955a498` (`Rename app to Coin Quest`)
+- Last known production deployment: `https://coin-quest-7fxvyb3in-purichwc-1517s-projects.vercel.app`
 
 ## Start Here In A New Chat
 
@@ -33,7 +34,7 @@ Last updated: 2026-06-15
 - `trip/pixicons.jsx`: labeled pixel icon registry/renderer/migration helpers.
 - `assets/rpg-portraits/`: current full-body class portrait assets, 18 classes x 2 genders plus skin art.
 - `assets/icons/loot-chest.svg`: app icon.
-- `tests/e2e/pointy-super-app.spec.mjs`: critical browser flows for Expense Splitter and price comparison.
+- `tests/e2e/coin-quest.spec.mjs`: critical browser flows for Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison.
 - `tests/unit/pointy-logic.test.mjs`: unit coverage for calculations and normalization.
 - `PLAYBOOK.md`: workflow rules and change modes.
 - `trip/index.legacy.html` and `index.legacy.html`: inactive legacy snapshots; do not touch unless requested.
