@@ -4,13 +4,41 @@
   z-index: 9999;
   display: grid;
   place-items: center;
+  overflow: hidden;
   background:
-    radial-gradient(820px 380px at 50% -10%, rgba(199, 154, 46, .26), transparent 72%),
-    #2b2113;
-  color: #efe4cc;
+    radial-gradient(920px 560px at 50% 34%, rgba(45, 37, 68, .84), transparent 72%),
+    radial-gradient(720px 420px at 50% 100%, rgba(20, 18, 34, .72), transparent 68%),
+    #11101c;
+  color: #ead15b;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity .42s ease, visibility .42s ease;
+}
+.first-load.is-active {
   opacity: 1;
   pointer-events: auto;
-  transition: opacity .34s ease, visibility .34s ease;
+  visibility: visible;
+}
+.first-load::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 27% 14%, rgba(246, 205, 82, .28) 0 2px, transparent 5px),
+    radial-gradient(circle at 31% 18%, rgba(246, 205, 82, .35) 0 2px, transparent 5px),
+    radial-gradient(circle at 99% 49%, rgba(246, 205, 82, .36) 0 2px, transparent 7px),
+    radial-gradient(circle at 22% 87%, rgba(246, 205, 82, .38) 0 2px, transparent 7px),
+    radial-gradient(circle at 29% 88%, rgba(246, 205, 82, .44) 0 2px, transparent 7px),
+    radial-gradient(circle at 36% 72%, rgba(246, 205, 82, .42) 0 2px, transparent 7px),
+    radial-gradient(circle at 31% 78%, rgba(246, 205, 82, .34) 0 2px, transparent 7px),
+    radial-gradient(circle at 52% 80%, rgba(246, 205, 82, .4) 0 2px, transparent 7px),
+    radial-gradient(circle at 55% 68%, rgba(246, 205, 82, .36) 0 2px, transparent 7px),
+    radial-gradient(circle at 68% 72%, rgba(246, 205, 82, .34) 0 2px, transparent 7px),
+    radial-gradient(circle at 1% 89%, rgba(246, 205, 82, .42) 0 2px, transparent 7px);
+  filter: drop-shadow(0 0 7px rgba(246, 205, 82, .72));
+  opacity: .9;
+  animation: first-load-fireflies 3.1s ease-in-out infinite alternate;
 }
 .first-load.is-hidden {
   opacity: 0;
@@ -18,50 +46,204 @@
   visibility: hidden;
 }
 .first-load-box {
-  width: min(320px, calc(100vw - 48px));
+  position: relative;
+  z-index: 1;
+  width: min(510px, calc(100vw - 44px));
   display: grid;
   justify-items: center;
-  gap: 14px;
+  gap: 0;
+  transform: translateY(8px);
 }
 .first-load-mark {
-  width: 54px;
+  display: none;
+}
+.first-load-emblem {
+  position: relative;
+  width: min(330px, 72vw);
+  height: 118px;
+  margin-bottom: 12px;
+}
+.first-load-torch {
+  position: absolute;
+  top: 30px;
+  width: 16px;
   height: 54px;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 7px 9px rgba(0, 0, 0, .38));
-  animation: first-load-float 1.3s ease-in-out infinite;
+  border-radius: 9px 9px 5px 5px;
+  background: linear-gradient(#6c3f18, #3a2410 76%);
+  box-shadow: 0 11px 18px rgba(0, 0, 0, .42);
+}
+.first-load-torch.left { left: 72px; }
+.first-load-torch.right { right: 72px; }
+.first-load-torch::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 31px;
+  height: 50px;
+  border-radius: 50% 50% 48% 48%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 62%, #fff3a8 0 19%, #ffcf58 37%, #ff8734 62%, rgba(255, 107, 28, .08) 72%, transparent 76%);
+  filter: blur(.15px) drop-shadow(0 0 14px #d47931) drop-shadow(0 0 27px rgba(255, 196, 75, .42));
+  animation: first-load-flame 1.05s ease-in-out infinite alternate;
+}
+.first-load-eye {
+  position: absolute;
+  left: 50%;
+  top: 36px;
+  width: 132px;
+  height: 62px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 25px rgba(255, 154, 56, .2));
+}
+.first-load-eye::before {
+  content: "";
+  position: absolute;
+  inset: 4px 0;
+  clip-path: polygon(0 50%, 22% 12%, 50% 0, 78% 12%, 100% 50%, 78% 88%, 50% 100%, 22% 88%);
+  background: #f0d85d;
+}
+.first-load-eye::after {
+  content: "";
+  position: absolute;
+  inset: 8px 8px;
+  clip-path: polygon(0 50%, 22% 16%, 50% 0, 78% 16%, 100% 50%, 78% 84%, 50% 100%, 22% 84%);
+  background: radial-gradient(circle at 52% 48%, #f7cd67 0 8%, #e46d2e 35%, #812815 62%, #29100a 100%);
+}
+.first-load-pupil {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 13px;
+  width: 20px;
+  height: 51px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: #070306;
+  box-shadow: 0 0 12px rgba(0, 0, 0, .58);
+  animation: first-load-pupil 2.4s ease-in-out infinite;
+}
+.first-load-pupil::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  width: 14px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 241, 190, .82);
+  filter: blur(.3px);
+}
+.first-load-tiny {
+  position: absolute;
+  left: 50%;
+  top: 98px;
+  transform: translateX(-50%);
+  color: rgba(10, 9, 17, .78);
+  font: 500 10px Georgia, serif;
 }
 .first-load-title {
-  font: 700 18px "Mitr", system-ui, sans-serif;
-  letter-spacing: 0;
+  margin-top: 6px;
+  font-family: "Chakra Petch", "Mitr", system-ui, sans-serif;
+  font-size: clamp(34px, 4.2vw, 46px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .21em;
+  text-indent: .21em;
+  color: #f1cf5c;
+  text-shadow:
+    0 3px 0 rgba(117, 74, 33, .48),
+    0 0 14px rgba(234, 191, 66, .46),
+    0 12px 28px rgba(0, 0, 0, .42);
 }
 .first-load-track {
-  width: 100%;
-  height: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(239, 228, 204, .28);
+  width: min(512px, calc(100vw - 72px));
+  height: 28px;
+  margin-top: 52px;
+  padding: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .09);
+  border: 4px solid #282646;
+  background: #151323;
+  box-shadow:
+    inset 0 0 0 2px rgba(117, 102, 174, .58),
+    0 0 0 2px rgba(5, 5, 11, .4),
+    0 10px 22px rgba(0, 0, 0, .38);
 }
 .first-load-fill {
   width: 100%;
   height: 100%;
   transform-origin: left center;
-  transform: scaleX(.08);
+  transform: scaleX(.03);
   border-radius: inherit;
-  background: linear-gradient(90deg, #2f8f5b, #c79a2e);
-  animation: first-load-progress 2.55s cubic-bezier(.22, .72, .22, 1) forwards;
+  background: linear-gradient(90deg, #c99234 0%, #e4b54e 56%, #fff1b0 100%);
+  box-shadow:
+    0 0 13px rgba(244, 198, 73, .34),
+    inset 0 1px 0 rgba(255, 246, 192, .72);
+}
+.first-load.is-active .first-load-fill {
+  animation: first-load-progress 2.45s cubic-bezier(.2, .78, .16, 1) forwards;
+}
+.first-load-meta {
+  width: min(512px, calc(100vw - 72px));
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 16px;
+  color: rgba(205, 196, 232, .72);
+  font: 500 20px/1.2 "IBM Plex Sans Thai", system-ui, sans-serif;
+}
+.first-load-percent {
+  min-width: 58px;
+  text-align: right;
+  color: #f0d45d;
+  font: 700 22px/1 "Chakra Petch", "Mitr", system-ui, sans-serif;
+  text-shadow: 0 0 9px rgba(238, 207, 92, .34);
 }
 @keyframes first-load-progress {
-  0% { transform: scaleX(.08); }
-  62% { transform: scaleX(.76); }
+  0% { transform: scaleX(.03); }
+  54% { transform: scaleX(.68); }
+  82% { transform: scaleX(.92); }
   100% { transform: scaleX(1); }
 }
-@keyframes first-load-float {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-4px) rotate(2deg); }
+@keyframes first-load-fireflies {
+  from { opacity: .72; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(-7px); }
+}
+@keyframes first-load-flame {
+  from { transform: translateX(-50%) scale(.94, 1.02); }
+  to { transform: translateX(-50%) scale(1.06, .96); }
+}
+@keyframes first-load-pupil {
+  0%, 100% { transform: translateX(-50%) scaleY(1); }
+  50% { transform: translateX(-50%) scaleY(1.04); }
+}
+@media (max-width: 560px) {
+  .first-load-box {
+    width: min(360px, calc(100vw - 32px));
+    transform: translateY(0);
+  }
+  .first-load-emblem {
+    width: 260px;
+    height: 104px;
+  }
+  .first-load-torch.left { left: 48px; }
+  .first-load-torch.right { right: 48px; }
+  .first-load-eye {
+    width: 108px;
+    height: 52px;
+  }
+  .first-load-title {
+    font-size: 32px;
+  }
+  .first-load-track {
+    margin-top: 42px;
+  }
+  .first-load-meta {
+    font-size: 16px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .first-load, .first-load-fill, .first-load-mark {
+  .first-load, .first-load::before, .first-load-fill, .first-load-torch::before, .first-load-pupil {
     animation: none;
     transition: none;
   }
