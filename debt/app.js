@@ -79,6 +79,7 @@ function fallback(key) {
     dd_cancel: 'ยกเลิก',
     dd_delete_confirm: 'ปล่อยมังกรตัวนี้ไป? บันทึกการต่อสู้จะหายไป',
     dd_end_month: 'จบเดือน',
+    dd_end_month_date: 'วันที่จบเดือน',
     dd_end_month_sub: 'มังกรพ่นไฟ ดอกเบี้ยงอกเข้าทุกตัว',
     dd_month_passed: 'ดอกเบี้ยงอก!',
     dd_weakening: 'มังกรอ่อนแรง!',
@@ -161,6 +162,7 @@ function fallback(key) {
     dd_cancel: 'Cancel',
     dd_delete_confirm: 'Release this dragon? Its battle log will be lost.',
     dd_end_month: 'End month',
+    dd_end_month_date: 'End-month date',
     dd_end_month_sub: 'Dragons breathe fire. Interest accrues on every one.',
     dd_month_passed: 'Interest accrued!',
     dd_weakening: 'Dragon weakening!',
@@ -211,7 +213,23 @@ function moneyShort(n) {
   if (Math.abs(value) >= 1000000) return '฿' + (value / 1000000).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 1 }) + 'M';
   return money(value);
 }
-function todayISO() { return new Date().toISOString().slice(0, 10); }
+function dateISO(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+function todayISO() { return dateISO(new Date()); }
+function endOfMonthISO(date = new Date()) { return dateISO(new Date(date.getFullYear(), date.getMonth() + 1, 0)); }
+function isoToLocalDate(iso) {
+  const [year, month, day] = String(iso || '').split('-').map(Number);
+  return year && month && day ? new Date(year, month - 1, day) : new Date();
+}
+function nextEndOfMonthISO(iso) {
+  const date = isoToLocalDate(iso);
+  return dateISO(new Date(date.getFullYear(), date.getMonth() + 2, 0));
+}
+function defaultEndMonthISO() {
+  return SETTINGS.lastEndMonthDate ? nextEndOfMonthISO(SETTINGS.lastEndMonthDate) : endOfMonthISO();
+}
 function classLabel(id) { const cls = CLASSES[PointyLogic.normalizeClass(id)] || CLASSES.warrior; return cls[LANG] || cls.th || cls.en; }
 function classColor(clsId) {
   const hue = (CLASSES[PointyLogic.normalizeClass(clsId)] || CLASSES.warrior).hue;
@@ -530,8 +548,13 @@ function renderFx(fx) {
 
 function renderLair() {
   const live = aliveDragons();
+  const endDate = defaultEndMonthISO();
+  const endMonthControls = live.length ? `<div class="end-month-wrap">
+    <input id="end-month-date" class="end-month-date" type="date" value="${h(endDate)}" title="${h(tt('dd_end_month_date'))}">
+    <button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>
+  </div>` : '';
   return `<section class="panel lair-panel">
-    <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2>${live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : ''}</div>
+    <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2>${endMonthControls}</div>
     <div class="lair-grid">${S.dragons.length ? S.dragons.map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
     ${ADD_OPEN ? `<article class="dragon-card"><div class="dc-name">${tt('dd_new')}</div>${renderDragonForm({}, 'add')}</article>` : `<button class="add-dragon" onclick="openAddDragon()"><span style="font-size:28px;line-height:1">＋</span><span>${tt('dd_add')}</span></button>`}</div>
   </section>`;
@@ -666,10 +689,13 @@ function strikeDragon(id) {
 function endMonth() {
   const ids = aliveDragons().map(d => d.id);
   if (!ids.length) return;
+  const date = document.getElementById('end-month-date')?.value || defaultEndMonthISO();
+  SETTINGS.lastEndMonthDate = date;
+  saveSettings();
   BREATHING = ids;
   SFX.roar();
   S.dragons = S.dragons.map(d => d.slain || d.balance <= .5 ? d : { ...d, balance: Number(d.balance) + PointyLogic.monthlyInterest(d) });
-  toast(tt('dd_month_passed'));
+  toast(`${tt('dd_month_passed')} · ${dateShort(date)}`);
   setTimeout(() => { BREATHING = []; renderAll(false); }, 1150);
   renderAll();
 }

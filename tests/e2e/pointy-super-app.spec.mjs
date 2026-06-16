@@ -369,6 +369,13 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
   await expect(page.locator('.dragon-card')).toHaveCount(4);
   await expect(page.locator('.dragon-png').first()).toHaveAttribute('src', /assets\/debt-dragons\/card\.png$/);
+  const defaultEndMonth = await page.evaluate(() => {
+    const d = new Date();
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const local = new Date(end.getTime() - end.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  });
+  await expect(page.locator('#end-month-date')).toHaveValue(defaultEndMonth);
 
   await page.getByRole('button', { name: 'สร้าง ID' }).click();
   await expect(page.locator('.char-id-link')).toHaveText(/#\d{4}/);

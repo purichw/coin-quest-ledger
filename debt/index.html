@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Debt Dragon — มังกรหนี้</title>
+  <title>Coin Quest — Debt Dragon</title>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -248,7 +248,9 @@
     .pa-result { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
     .pa-chip { border: 1px solid color-mix(in oklab, var(--accent), transparent 60%); border-radius: 999px; background: color-mix(in oklab, var(--accent), transparent 88%); color: var(--accent); font: 700 12px var(--font-stat); padding: 5px 11px; }
     .pa-chip.gold { border-color: color-mix(in oklab, var(--gold), transparent 55%); background: var(--gold-soft); color: color-mix(in oklab, var(--gold), #000 22%); }
-    .end-month { border: 1.5px solid color-mix(in oklab, #ff7a3a, var(--border) 40%); background: color-mix(in oklab, #ff7a3a, transparent 90%); color: color-mix(in oklab, #c8431f, var(--ink) 20%); font: 600 13px var(--font-display); padding: 6px 13px; border-radius: 10px; }
+    .end-month-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .end-month-date { width: 132px; min-height: 34px; border: 1.5px solid var(--border); background: var(--panel-in); color: var(--ink); font: 700 12px var(--font-stat); padding: 5px 8px; border-radius: 10px; }
+    .end-month { border: 1.5px solid color-mix(in oklab, #ff7a3a, var(--border) 40%); background: color-mix(in oklab, #ff7a3a, transparent 90%); color: color-mix(in oklab, #c8431f, var(--ink) 20%); font: 600 13px var(--font-display); padding: 7px 13px; border-radius: 10px; white-space: nowrap; }
     .settings-fab { position: fixed; right: 18px; bottom: 18px; z-index: 45; width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-size: 20px; }
     .quick-toggles { position: fixed; right: 14px; top: 72px; z-index: 44; display: flex; flex-direction: column; gap: 8px; }
     .quick-toggle { width: 38px; height: 38px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
@@ -322,6 +324,9 @@
       .dc-main { width: 100%; }
       .df-types { grid-template-columns: repeat(3, 1fr); }
       .df-grid, .debt-side, .slayer-editor, .class-row { grid-template-columns: 1fr; }
+      .lair-panel .panel-head { align-items: stretch; flex-direction: column; }
+      .end-month-wrap { width: 100%; margin-left: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+      .end-month-date { width: 100%; }
       .dc-strike-row { flex-direction: column; }
       .dc-strike-date { min-height: 42px; }
       .settings-row { align-items: stretch; flex-direction: column; }
