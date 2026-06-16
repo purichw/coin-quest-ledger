@@ -1,0 +1,69 @@
+.first-load {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(820px 380px at 50% -10%, rgba(199, 154, 46, .26), transparent 72%),
+    #2b2113;
+  color: #efe4cc;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity .34s ease, visibility .34s ease;
+}
+.first-load.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+.first-load-box {
+  width: min(320px, calc(100vw - 48px));
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+.first-load-mark {
+  width: 54px;
+  height: 54px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 7px 9px rgba(0, 0, 0, .38));
+  animation: first-load-float 1.3s ease-in-out infinite;
+}
+.first-load-title {
+  font: 700 18px "Mitr", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+.first-load-track {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(239, 228, 204, .28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .09);
+}
+.first-load-fill {
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  transform: scaleX(.08);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2f8f5b, #c79a2e);
+  animation: first-load-progress 2.55s cubic-bezier(.22, .72, .22, 1) forwards;
+}
+@keyframes first-load-progress {
+  0% { transform: scaleX(.08); }
+  62% { transform: scaleX(.76); }
+  100% { transform: scaleX(1); }
+}
+@keyframes first-load-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .first-load, .first-load-fill, .first-load-mark {
+    animation: none;
+    transition: none;
+  }
+  .first-load-fill { transform: scaleX(1); }
+}

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/first-load.css">
   <style>
     :root {
       --font-display: "Mitr", system-ui, sans-serif;
@@ -520,10 +521,17 @@
   </style>
 </head>
 <body data-theme="tavern">
+  <div class="first-load" data-first-load>
+    <div class="first-load-box">
+      <img class="first-load-mark" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="">
+      <div class="first-load-title">Coin Quest Ledger</div>
+      <div class="first-load-track"><div class="first-load-fill"></div></div>
+    </div>
+  </div>
   <nav class="topbar">
     <div class="tb-inner">
       <div class="tb-left">
-        <span class="tb-logo"><img src="data:," data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>
+        <span class="tb-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>
         <div class="tb-nav">
           <a href="/" class="tb-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
           <a href="/trip/" class="tb-link active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
@@ -539,7 +547,7 @@
 
   <main class="page">
     <section class="banner">
-      <div class="banner-crest"><img src="data:," data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></div>
+      <div class="banner-crest"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></div>
       <h1 class="banner-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</h1>
       <div class="campaign-row">
         <span class="camp-label" data-i18n="campaign">เควสปัจจุบัน</span>
@@ -547,7 +555,7 @@
         <input id="trip-name-input" class="camp-edit" />
       </div>
       <div class="banner-gold">
-        <img class="loot-logo bg-coin" src="data:," data-asset-src="assets/icons/loot-chest.svg" alt="" width="30" height="30" aria-hidden="true" />
+        <img class="loot-logo bg-coin" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" width="30" height="30" aria-hidden="true" />
         <span class="bg-amt" id="party-total">฿0</span>
         <span class="bg-lab" data-i18n="party_gold">ทองรวมของปาร์ตี้</span>
       </div>
@@ -622,6 +630,7 @@
   <script src="/shared/pointy-logic.js"></script>
   <script src="/shared/cloudinary-assets.js"></script>
   <script src="/shared/asset-urls.js"></script>
+  <script src="/shared/first-load.js"></script>
   <script src="/lang.js"></script>
   <script src="/trip/pixicons.jsx"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
