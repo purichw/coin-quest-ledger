@@ -341,7 +341,8 @@ function normalizeClass(cls) { return PointyLogic.normalizeClass(cls); }
 function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDER[hashOf(name) % CLASS_ORDER.length]); }
 function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
 function avatarId(clsId, gender) { return `${normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
-function portraitFile(res) { return `/assets/rpg-portraits/${res}.png`; }
+function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
+function portraitFile(res) { return assetUrl(`assets/rpg-portraits/${res}.png`); }
 function avatarSrc(clsId, gender, skinId = '') { return resolveAvatarFile(avatarId(clsId, gender), skinId); }
 function avatarSkins(id) {
   if (!/^[a-z-]+-(female|male)$/.test(String(id || ''))) return [];

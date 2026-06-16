@@ -369,13 +369,7 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
   await expect(page.locator('.dragon-card')).toHaveCount(4);
   await expect(page.locator('.dragon-png').first()).toHaveAttribute('src', /assets\/debt-dragons\/card\.png$/);
-  const defaultEndMonth = await page.evaluate(() => {
-    const d = new Date();
-    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    const local = new Date(end.getTime() - end.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
-  });
-  await expect(page.locator('#end-month-date')).toHaveValue(defaultEndMonth);
+  await expect(page.getByRole('button', { name: /ข้ามเดือน/ })).toBeVisible();
 
   await page.getByRole('button', { name: 'สร้าง ID' }).click();
   await expect(page.locator('.char-id-link')).toHaveText(/#\d{4}/);
@@ -389,18 +383,29 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await page.locator('.dragon-card').first().locator('.btn-danger').click();
   await expect(page.locator('.dragon-card').first()).toContainText('฿57,000');
   await expect(page.locator('.dragon-card').first()).toContainText('14 มิ.ย.');
+  await expect(page.locator('.record-panel')).toContainText('฿1,000');
 
+  await page.locator('.dragon-card').first().locator('.dc-log-row').click();
+  await page.locator('.dragon-card').first().locator('.dc-le-amt input').fill('1200');
+  await page.locator('.dragon-card').first().locator('.dc-le-save').click();
+  await expect(page.locator('.dragon-card').first()).toContainText('฿56,800');
+
+  await page.getByRole('button', { name: /โจมตอนนี้/ }).click();
+  await expect(page.locator('.dragon-card').first().locator('.dc-strike-form')).toBeVisible();
+  await page.locator('.dragon-card').first().locator('.btn-ghost').last().click();
   await page.getByRole('button', { name: /ล้มทีละตัว/ }).click();
   await expect(page.locator('.tactic-opt').nth(1)).toHaveClass(/on/);
+  await page.getByRole('button', { name: /ถล่มดอกเบี้ย/ }).click();
   await page.locator('#power-attack').evaluate(el => {
     el.value = '1000';
     el.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await expect(page.locator('.forecast-panel')).toContainText('เร็วขึ้น');
+  await expect(page.locator('.forecast-panel')).toContainText('โจม');
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_test_debt_v1')));
-  expect(saved.dragons[0].balance).toBe(57000);
-  expect(saved.dragons[0].log[0].amount).toBe(1000);
+  expect(saved.dragons[0].balance).toBe(56800);
+  expect(saved.dragons[0].log[0].amount).toBe(1200);
   expect(saved.slayer.characterId).toMatch(/^\d{4}$/);
 
   const profileHref = await page.locator('.char-id-link').getAttribute('href');

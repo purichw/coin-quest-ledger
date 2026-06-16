@@ -523,7 +523,7 @@
   <nav class="topbar">
     <div class="tb-inner">
       <div class="tb-left">
-        <span class="tb-logo"><img src="/assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>
+        <span class="tb-logo"><img src="data:," data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>
         <div class="tb-nav">
           <a href="/" class="tb-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
           <a href="/trip/" class="tb-link active" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
@@ -539,7 +539,7 @@
 
   <main class="page">
     <section class="banner">
-      <div class="banner-crest"><img src="/assets/icons/loot-chest.svg" alt="" aria-hidden="true"></div>
+      <div class="banner-crest"><img src="data:," data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></div>
       <h1 class="banner-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</h1>
       <div class="campaign-row">
         <span class="camp-label" data-i18n="campaign">เควสปัจจุบัน</span>
@@ -547,7 +547,7 @@
         <input id="trip-name-input" class="camp-edit" />
       </div>
       <div class="banner-gold">
-        <img class="loot-logo bg-coin" src="/assets/icons/loot-chest.svg" alt="" width="30" height="30" aria-hidden="true" />
+        <img class="loot-logo bg-coin" src="data:," data-asset-src="assets/icons/loot-chest.svg" alt="" width="30" height="30" aria-hidden="true" />
         <span class="bg-amt" id="party-total">฿0</span>
         <span class="bg-lab" data-i18n="party_gold">ทองรวมของปาร์ตี้</span>
       </div>
@@ -620,6 +620,8 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script src="/shared/pointy-logic.js"></script>
+  <script src="/shared/cloudinary-assets.js"></script>
+  <script src="/shared/asset-urls.js"></script>
   <script src="/lang.js"></script>
   <script src="/trip/pixicons.jsx"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>

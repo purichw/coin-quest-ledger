@@ -1,8 +1,7 @@
 const PARAMS = new URLSearchParams(window.location.search);
 const TEST_MODE = PARAMS.get('test') === '1';
-const STORE_KEY = TEST_MODE ? 'pointy_test_debt_v1' : 'pointy_debt_v1';
+const STORE_KEY = TEST_MODE ? 'pointy_test_debt_v1' : 'pointy_debt_v5';
 const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
-const DRAGON_ASSET_DIR = '/assets/debt-dragons/';
 const ACCENTS = ['#2f8f5b', '#c79a2e', '#d4503f', '#6d5ae0', '#2a7fb8'];
 const CLASSES = PointyLogic.CLASSES;
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
@@ -20,10 +19,13 @@ let S = PointyLogic.normalizeDebtState(loadDebtState());
 let SETTINGS = loadSettings();
 let STRIKE_OPEN = '';
 let EDIT_OPEN = '';
+let EDIT_LOG = {};
 let ADD_OPEN = false;
 let FX = {};
 let BREATHING = [];
 let OVERLAY = '';
+let ACCRUAL_NOTE = null;
+let POWER_EXTRA = 0;
 let flashToken = 0;
 let toastTimer;
 let audioCtx = null;
@@ -47,6 +49,7 @@ function fallback(key) {
     dd_snowball: 'ล้มทีละตัว',
     dd_snowball_sub: 'ฟันยอดน้อยสุดก่อน ปราบได้ไวสุด',
     dd_target: 'เป้าหมายถัดไป',
+    dd_recommended: 'แนะนำ',
     dd_no_target: 'ไม่มีมังกรเหลือแล้ว',
     dd_forecast: 'คำพยากรณ์',
     dd_power_attack: 'พลังจู่โจมพิเศษ',
@@ -57,6 +60,7 @@ function fallback(key) {
     dd_debt_free_by: 'ปลอดหนี้ราว',
     dd_strike: 'จู่โจม',
     dd_hit: 'ฟัน!',
+    dd_confirm_strike: 'ฟัน!',
     dd_payment: 'ทองต่อเดือน',
     dd_apr: 'อัตราดอกเบี้ย/ปี',
     dd_original: 'พลังเต็ม',
@@ -78,10 +82,11 @@ function fallback(key) {
     dd_save: 'บันทึก',
     dd_cancel: 'ยกเลิก',
     dd_delete_confirm: 'ปล่อยมังกรตัวนี้ไป? บันทึกการต่อสู้จะหายไป',
-    dd_end_month: 'จบเดือน',
+    dd_end_month: 'ข้ามเดือน',
     dd_end_month_date: 'วันที่จบเดือน',
-    dd_end_month_sub: 'มังกรพ่นไฟ ดอกเบี้ยงอกเข้าทุกตัว',
+    dd_end_month_sub: 'จำลองเวลาไป 1 เดือน — มังกรพ่นไฟ ดอกเบี้ยงอก',
     dd_month_passed: 'ดอกเบี้ยงอก!',
+    dd_accrued: 'ผ่านไป {n} เดือน · ดอกเบี้ยงอกรวม {amt}',
     dd_weakening: 'มังกรอ่อนแรง!',
     dd_pay_mode: 'การชำระ',
     dd_monthly: 'รายเดือน',
@@ -91,6 +96,11 @@ function fallback(key) {
     dd_compound: 'ทบต้น',
     dd_simple: 'คงที่',
     dd_minpay: 'ขั้นต่ำ/เดือน',
+    dd_due_day: 'ครบกำหนดวันที่',
+    dd_due_suffix: 'ของเดือน',
+    dd_due_today: 'ครบกำหนดวันนี้',
+    dd_due_in: 'ครบกำหนดใน {n} วัน',
+    dd_overdue: 'เลยกำหนด!',
     dd_move_strike: 'ฟัน',
     dd_move_fire: 'ลูกไฟ',
     dd_move_bolt: 'สายฟ้า',
@@ -98,6 +108,16 @@ function fallback(key) {
     dd_character_hint: 'เชื่อมกับโปรไฟล์เดิม หรือสร้าง ID ใหม่จากหน้านี้',
     dd_create_character: 'สร้าง ID',
     dd_open_profile: 'เปิดโปรไฟล์',
+    dd_record: 'สถิตินักล่า',
+    dd_reclaimed_life: 'ทวงคืนทั้งหมด',
+    dd_interest_fed: 'จ่ายดอกเบี้ยไป',
+    dd_biggest_hit: 'โจมแรงสุด',
+    dd_strike_now: 'โจมตอนนี้',
+    dd_apply_target: 'โจม {name} ด้วยยอดรวม',
+    dd_edit_strike: 'แตะเพื่อแก้ไข',
+    dd_delete: 'ลบ',
+    dd_warn_below: 'ยอดจ่ายขั้นต่ำต่ำกว่าดอกเบี้ย — หนี้จะไม่มีวันหมด',
+    dd_warn_orig: 'พลังเต็มน้อยกว่ายอดคงเหลือ — จะปรับขึ้นให้เท่ากัน',
     dd_saved: 'บันทึกแล้ว',
     settings: 'ตั้งค่า',
     theme: 'ธีม',
@@ -130,6 +150,7 @@ function fallback(key) {
     dd_snowball: 'Snowball',
     dd_snowball_sub: 'Smallest balance first, fastest kills',
     dd_target: 'Next target',
+    dd_recommended: 'Recommended',
     dd_no_target: 'No dragons left',
     dd_forecast: 'Forecast',
     dd_power_attack: 'Power Attack',
@@ -140,6 +161,7 @@ function fallback(key) {
     dd_debt_free_by: 'Debt-free around',
     dd_strike: 'Strike',
     dd_hit: 'Hit!',
+    dd_confirm_strike: 'Hit!',
     dd_payment: 'Monthly strike',
     dd_apr: 'Interest rate / yr',
     dd_original: 'Full HP',
@@ -161,10 +183,11 @@ function fallback(key) {
     dd_save: 'Save',
     dd_cancel: 'Cancel',
     dd_delete_confirm: 'Release this dragon? Its battle log will be lost.',
-    dd_end_month: 'End month',
+    dd_end_month: 'Advance month',
     dd_end_month_date: 'End-month date',
-    dd_end_month_sub: 'Dragons breathe fire. Interest accrues on every one.',
+    dd_end_month_sub: 'Simulate one month forward — dragons breathe fire, interest accrues',
     dd_month_passed: 'Interest accrued!',
+    dd_accrued: 'Advanced {n} mo · {amt} interest accrued',
     dd_weakening: 'Dragon weakening!',
     dd_pay_mode: 'Payment',
     dd_monthly: 'Monthly',
@@ -174,6 +197,11 @@ function fallback(key) {
     dd_compound: 'Compound',
     dd_simple: 'Simple',
     dd_minpay: 'min / mo',
+    dd_due_day: 'Due day',
+    dd_due_suffix: 'of mo',
+    dd_due_today: 'Due today',
+    dd_due_in: 'Due in {n}d',
+    dd_overdue: 'Overdue!',
     dd_move_strike: 'Strike',
     dd_move_fire: 'Fireball',
     dd_move_bolt: 'Lightning',
@@ -181,6 +209,16 @@ function fallback(key) {
     dd_character_hint: 'Connect an existing profile or create a new ID here',
     dd_create_character: 'Create ID',
     dd_open_profile: 'Open profile',
+    dd_record: "Slayer's Record",
+    dd_reclaimed_life: 'Total reclaimed',
+    dd_interest_fed: 'Interest fed',
+    dd_biggest_hit: 'Biggest hit',
+    dd_strike_now: 'Strike now',
+    dd_apply_target: 'Strike {name} with the extra',
+    dd_edit_strike: 'Tap to edit',
+    dd_delete: 'Delete',
+    dd_warn_below: 'Monthly strike is below the interest — this dragon never dies',
+    dd_warn_orig: "Full HP is below remaining — it'll be raised to match",
     dd_saved: 'Saved',
     settings: 'Settings',
     theme: 'Theme',
@@ -230,6 +268,69 @@ function nextEndOfMonthISO(iso) {
 function defaultEndMonthISO() {
   return SETTINGS.lastEndMonthDate ? nextEndOfMonthISO(SETTINGS.lastEndMonthDate) : endOfMonthISO();
 }
+function monthsBetween(fromMs, toMs) {
+  if (!fromMs) return 0;
+  const a = new Date(fromMs);
+  const b = new Date(toMs);
+  return Math.max(0, (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()));
+}
+function addMonths(ms, n) {
+  const d = new Date(ms);
+  d.setMonth(d.getMonth() + n);
+  return d.getTime();
+}
+function accrueDragons(dragons, n) {
+  let added = 0;
+  const next = dragons.map(d => {
+    if (d.slain || Number(d.balance) <= .5 || !(Number(d.apr) > 0)) return d;
+    const rate = PointyLogic.monthlyDebtRate(d.apr);
+    const interest = d.interestMode === 'simple'
+      ? Number(d.original) * rate * n
+      : Number(d.balance) * (Math.pow(1 + rate, n) - 1);
+    added += interest;
+    return { ...d, balance: Number(d.balance) + interest };
+  });
+  return { next, added };
+}
+function dayStart(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function dueStatus(d, today = new Date()) {
+  if (d.payMode === 'adhoc' || !d.dueDay || d.slain) return null;
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const paidThisMonth = (d.log || []).some(row => {
+    const t = new Date(row.ts || 0);
+    return t.getFullYear() === y && t.getMonth() === m;
+  });
+  const dimThis = new Date(y, m + 1, 0).getDate();
+  const dueThis = Math.min(Number(d.dueDay) || 0, dimThis);
+  if (!paidThisMonth && today.getDate() > dueThis) return { overdue: true };
+  const dueDate = paidThisMonth
+    ? new Date(y, m + 1, Math.min(Number(d.dueDay) || 1, new Date(y, m + 2, 0).getDate()))
+    : new Date(y, m, dueThis);
+  return { overdue: false, days: Math.round((dayStart(dueDate) - dayStart(today)) / 86400000) };
+}
+function lairRecord(dragons, interestFed) {
+  let reclaimed = 0;
+  let biggest = 0;
+  let strikes = 0;
+  (dragons || []).forEach(d => (d.log || []).forEach(row => {
+    const amount = Number(row.amount) || 0;
+    reclaimed += amount;
+    biggest = Math.max(biggest, amount);
+    strikes += 1;
+  }));
+  return {
+    reclaimed,
+    biggest,
+    strikes,
+    slain: (dragons || []).filter(d => d.slain).length,
+    interestFed: Math.round(Number(interestFed) || 0)
+  };
+}
 function classLabel(id) { const cls = CLASSES[PointyLogic.normalizeClass(id)] || CLASSES.warrior; return cls[LANG] || cls.th || cls.en; }
 function classColor(clsId) {
   const hue = (CLASSES[PointyLogic.normalizeClass(clsId)] || CLASSES.warrior).hue;
@@ -239,7 +340,8 @@ function dragonBg(type) {
   const hue = PointyLogic.dragonType(type).hue;
   return `radial-gradient(125% 92% at 50% 14%, oklch(0.54 0.11 ${hue}), oklch(0.18 0.05 ${hue}) 80%)`;
 }
-function portraitFile(res) { return `/assets/rpg-portraits/${res}.png`; }
+function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
+function portraitFile(res) { return assetUrl(`assets/rpg-portraits/${res}.png`); }
 function avatarId(clsId, gender) { return `${PointyLogic.normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
 function avatarSkins(base) {
   return [
@@ -391,7 +493,7 @@ function toast(msg) {
 
 function renderDragonPortrait(type, opts = {}) {
   const ty = PointyLogic.dragonType(type);
-  const url = S.art?.[type] || `${DRAGON_ASSET_DIR}${type}.png`;
+  const url = S.art?.[type] || assetUrl(`assets/debt-dragons/${type}.png`);
   const classes = ['dragon-medallion'];
   if (opts.face) classes.push('face');
   if (opts.dead) classes.push('dead');
@@ -466,10 +568,14 @@ function renderDragonForm(form = {}, mode = 'add') {
     apr: Number(form.apr ?? 18),
     payment: Number(form.payment) || PointyLogic.dragonType(form.type || 'card').minPay,
     payMode: form.payMode || (PointyLogic.dragonType(form.type || 'card').minPay > 0 ? 'monthly' : 'adhoc'),
-    interestMode: form.interestMode || 'compound'
+    interestMode: form.interestMode || 'compound',
+    dueDay: Number(form.dueDay) || 0
   };
   const prefix = mode === 'edit' ? `edit-${h(form.id)}` : 'new';
   const isAdhoc = d.payMode === 'adhoc';
+  const monthlyInterest = d.apr > 0 ? (d.interestMode === 'simple' ? d.original : d.balance) * PointyLogic.monthlyDebtRate(d.apr) : 0;
+  const belowInterest = !isAdhoc && d.apr > 0 && d.payment > 0 && d.payment <= monthlyInterest;
+  const originalLow = d.original > 0 && d.original < d.balance;
   return `<div class="dragon-form">
     <input id="${prefix}-name" class="df-name" placeholder="${h(tt('dd_name_ph'))}" value="${h(d.name)}">
     <div class="df-types">${DRAGON_ORDER.map(type => `<button type="button" class="df-type ${d.type === type ? 'on' : ''}" onclick="setDragonFormType('${prefix}','${type}')">
@@ -481,7 +587,9 @@ function renderDragonForm(form = {}, mode = 'add') {
       <label class="df-field"><span>${tt('dd_original')}</span><div class="df-num"><span>฿</span><input id="${prefix}-original" type="number" value="${h(d.original)}"></div></label>
       <label class="df-field"><span>${tt('dd_apr')}</span><div class="df-num"><input id="${prefix}-apr" type="number" value="${h(d.apr)}"><span>%</span></div></label>
       <label class="df-field" id="${prefix}-payment-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_payment')} (${tt('dd_minpay')})</span><div class="df-num"><span>฿</span><input id="${prefix}-payment" type="number" value="${h(d.payment)}"></div></label>
+      <label class="df-field" id="${prefix}-due-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_due_day')}</span><div class="df-num"><input id="${prefix}-dueDay" type="number" min="1" max="31" placeholder="—" value="${h(d.dueDay || '')}"><span class="suf">${tt('dd_due_suffix')}</span></div></label>
     </div>
+    ${(belowInterest || originalLow) ? `<div class="df-warns">${belowInterest ? `<div class="df-warn">⚠️ ${tt('dd_warn_below')}</div>` : ''}${originalLow ? `<div class="df-warn">ℹ️ ${tt('dd_warn_orig')}</div>` : ''}</div>` : ''}
     <div class="df-seg"><button type="button" class="${!isAdhoc ? 'on' : ''}" onclick="setPayMode('${prefix}','monthly')">📅 ${tt('dd_monthly')}</button><button type="button" class="${isAdhoc ? 'on' : ''}" onclick="setPayMode('${prefix}','adhoc')">🤝 ${tt('dd_adhoc')}</button></div>
     <input id="${prefix}-payMode" type="hidden" value="${h(d.payMode)}">
     <div class="df-seg"><button type="button" class="${d.interestMode !== 'simple' ? 'on' : ''}" onclick="setInterestMode('${prefix}','compound')">⟳ ${tt('dd_compound')}</button><button type="button" class="${d.interestMode === 'simple' ? 'on' : ''}" onclick="setInterestMode('${prefix}','simple')">▭ ${tt('dd_simple')}</button></div>
@@ -500,6 +608,7 @@ function renderDragonCard(d) {
   const never = !adhoc && !isFinite(months) && !d.slain;
   const target = d.id === targetId();
   const fx = FX[d.id];
+  const due = dueStatus(d);
   const log = (d.log || []).slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 4);
   const flags = `${target ? ' is-target' : ''}${never ? ' is-never' : ''}${d.slain ? ' slain' : ''}`;
   const art = renderDragonPortrait(d.type, { drop: !d.slain, hurt: !!fx, dead: d.slain, suffix: d.id });
@@ -525,8 +634,8 @@ function renderDragonCard(d) {
           ${regen > 0 ? `<span class="pill regen-pill">🔥 +${money(regen)} ${tt('dd_regen')}</span>` : ''}
           ${adhoc ? `<span class="pill">🤝 ${tt('dd_adhoc')}</span>` : `<span class="dc-stat"><span class="dc-stat-k">${tt('dd_payment')}</span><span class="dc-stat-v gold">${money(d.payment)}/${tt('dd_month_short')}</span></span>`}
         </div>
-        <div class="dc-forecast">${adhoc ? `🤝 ${tt('dd_adhoc_note')}` : never ? `<span class="dc-never">⚠️ ${tt('dd_never_warn')}</span>` : `⏳ ${months} ${tt('dd_month_short')} · ${tt('dd_debt_free_by')} ${debtFreeLabel(months)}`}</div>
-        ${log.length ? `<div class="dc-log"><div class="dc-log-h">📜 ${tt('dd_log')}</div><div class="dc-log-rows">${log.map(row => `<span class="dc-log-row"><span>${h(row.date)}</span><span class="dc-log-dmg">−${money(row.amount)}</span></span>`).join('')}</div></div>` : ''}
+        <div class="dc-forecast">${adhoc ? `🤝 ${tt('dd_adhoc_note')}` : never ? `<span class="dc-never">⚠️ ${tt('dd_never_warn')}</span>` : `⏳ ${months} ${tt('dd_month_short')} · ${tt('dd_debt_free_by')} ${debtFreeLabel(months)}`}${due ? (due.overdue ? ` <span class="dc-due overdue">⚠️ ${tt('dd_overdue')}</span>` : ` <span class="dc-due">📅 ${due.days === 0 ? tt('dd_due_today') : tt('dd_due_in', { n: due.days })}</span>`) : ''}</div>
+        ${log.length ? `<div class="dc-log"><div class="dc-log-h">📜 ${tt('dd_log')}</div><div class="dc-log-rows">${log.map(row => renderLogRow(d, row)).join('')}</div></div>` : ''}
         <div class="dc-actions">${STRIKE_OPEN === d.id ? renderStrikeForm(d) : `<button class="dc-strike-btn" onclick="openStrike('${h(d.id)}')">⚔️ ${tt('dd_strike')}</button><button class="dc-edit" title="${tt('dd_edit')}" onclick="openEdit('${h(d.id)}')">✎</button>`}</div>
       </div>
     </div>
@@ -546,13 +655,24 @@ function renderFx(fx) {
   return `<div class="strike-fx">${projectile}<span class="sfx-impact"></span>${coins}<span class="sfx-dmg">−${money(fx.dmg)}</span></div>`;
 }
 
+function renderLogRow(d, row) {
+  const edit = EDIT_LOG[d.id] === row.id;
+  if (!edit) {
+    return `<button type="button" class="dc-log-row" title="${h(tt('dd_edit_strike'))}" onclick="openLogEdit('${h(d.id)}','${h(row.id)}')"><span class="dc-log-date">${h(row.date)}</span><span class="dc-log-dmg">−${money(row.amount)}</span></button>`;
+  }
+  const date = row.ts ? dateISO(new Date(row.ts)) : todayISO();
+  return `<div class="dc-log-edit">
+    <div class="dc-le-amt"><span>฿</span><input id="log-amt-${h(d.id)}-${h(row.id)}" type="number" value="${h(row.amount)}"></div>
+    <input id="log-date-${h(d.id)}-${h(row.id)}" class="dc-le-date" type="date" max="${todayISO()}" value="${h(date)}">
+    <button class="dc-le-save" title="${h(tt('dd_save'))}" onclick="saveLogEdit('${h(d.id)}','${h(row.id)}')">✓</button>
+    <button class="dc-le-del" title="${h(tt('dd_delete'))}" onclick="deleteStrikeLog('${h(d.id)}','${h(row.id)}')">🗑</button>
+    <button class="dc-le-x" onclick="closeLogEdit('${h(d.id)}')">✕</button>
+  </div>`;
+}
+
 function renderLair() {
   const live = aliveDragons();
-  const endDate = defaultEndMonthISO();
-  const endMonthControls = live.length ? `<div class="end-month-wrap">
-    <input id="end-month-date" class="end-month-date" type="date" value="${h(endDate)}" title="${h(tt('dd_end_month_date'))}">
-    <button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>
-  </div>` : '';
+  const endMonthControls = live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : '';
   return `<section class="panel lair-panel">
     <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2>${endMonthControls}</div>
     <div class="lair-grid">${S.dragons.length ? S.dragons.map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
@@ -592,16 +712,17 @@ function renderTacticsPanel() {
       <button class="tactic-opt ${SETTINGS.strategy === 'avalanche' ? 'on' : ''}" onclick="setStrategy('avalanche')"><span class="to-name">🏔️ ${tt('dd_avalanche')}</span><span class="to-sub">${tt('dd_avalanche_sub')}</span></button>
       <button class="tactic-opt ${SETTINGS.strategy === 'snowball' ? 'on' : ''}" onclick="setStrategy('snowball')"><span class="to-name">❄️ ${tt('dd_snowball')}</span><span class="to-sub">${tt('dd_snowball_sub')}</span></button>
     </div>
-    ${target ? `<div class="tt-card">${renderDragonPortrait(target.type, { face: true })}<div><div class="tt-name">${h(dragonName(target))}</div><div class="tt-meta">${h(dragonTypeName(target.type))} · ${money(target.balance)} · ${target.apr}%</div></div></div>` : `<div class="settings-sub" style="padding:12px">${tt('dd_no_target')}</div>`}
+    ${target ? `<div class="tactic-target"><div class="tt-lab">🎯 ${tt('dd_target')} · <span class="tt-rec">${tt('dd_recommended')}</span></div><div class="tt-card">${renderDragonPortrait(target.type, { face: true })}<div><div class="tt-name">${h(dragonName(target))}</div><div class="tt-meta">${h(dragonTypeName(target.type))} · ${money(target.balance)} · ${target.apr}%</div></div></div>${target.payMode !== 'adhoc' ? `<button class="tt-strike" onclick="requestStrike('${h(target.id)}',${Number(target.payment) || 0})">⚔️ ${tt('dd_strike_now')}</button>` : ''}</div>` : `<div class="settings-sub" style="padding:12px">${tt('dd_no_target')}</div>`}
   </section>`;
 }
 
 function renderForecastPanel() {
-  const extra = Number(document.getElementById('power-attack')?.value) || 0;
+  const extra = POWER_EXTRA;
   const base = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, 0);
   const boost = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, extra);
   const monthsSaved = isFinite(base.months) && isFinite(boost.months) ? Math.max(0, base.months - boost.months) : 0;
   const interestSaved = Math.max(0, base.interest - boost.interest);
+  const target = S.dragons.find(d => d.id === targetId() && d.payMode !== 'adhoc');
   if (!aliveDragons().length) return `<section class="panel forecast-panel"><div class="panel-head"><h2 class="panel-title">🔮 ${tt('dd_forecast')}</h2></div><div class="settings-sub">${tt('dd_all_slain')}</div></section>`;
   return `<section class="panel forecast-panel">
     <div class="panel-head"><h2 class="panel-title">🔮 ${tt('dd_forecast')}</h2></div>
@@ -611,9 +732,24 @@ function renderForecastPanel() {
       <div class="fc-stat"><span class="fc-v">${debtFreeLabel(boost.months)}</span><span class="fc-l">${tt('dd_debt_free_by')}</span></div>
     </div>
     <div class="power-attack"><div class="pa-head"><span class="pa-title">💥 ${tt('dd_power_attack')}</span><span class="pa-val">+${money(extra)}/${tt('dd_month_short')}</span></div>
-      <input id="power-attack" class="pa-slider" type="range" min="0" max="10000" step="250" value="${extra}" oninput="renderForecastOnly()">
+      <input id="power-attack" class="pa-slider" type="range" min="0" max="10000" step="250" value="${extra}" oninput="updatePowerAttack(this.value)">
       <div class="pa-sub">${tt('dd_power_sub')}</div>
       ${extra > 0 ? `<div class="pa-result"><span class="pa-chip">⏩ −${monthsSaved} ${tt('dd_month_short')} ${tt('dd_sooner')}</span><span class="pa-chip gold">💰 ${tt('dd_saves')} ${money(interestSaved)}</span></div>` : ''}
+      ${extra > 0 && target ? `<button class="pa-apply" onclick="requestStrike('${h(target.id)}',${(Number(target.payment) || 0) + extra})">⚔️ ${tt('dd_apply_target', { name: dragonName(target) })}</button>` : ''}
+    </div>
+  </section>`;
+}
+
+function renderRecordPanel() {
+  const rec = lairRecord(S.dragons, S.stats?.interest || 0);
+  if (!rec.strikes && !rec.slain) return '';
+  return `<section class="panel record-panel">
+    <div class="panel-head"><h2 class="panel-title">📜 ${tt('dd_record')}</h2></div>
+    <div class="record-grid">
+      <div class="rec-stat"><span class="rec-v gold">${money(rec.reclaimed)}</span><span class="rec-l">${tt('dd_reclaimed_life')}</span></div>
+      <div class="rec-stat"><span class="rec-v fire">${money(rec.interestFed)}</span><span class="rec-l">${tt('dd_interest_fed')}</span></div>
+      <div class="rec-stat"><span class="rec-v">${money(rec.biggest)}</span><span class="rec-l">${tt('dd_biggest_hit')}</span></div>
+      <div class="rec-stat"><span class="rec-v">${rec.slain} 🏆</span><span class="rec-l">${tt('dd_slain_count')}</span></div>
     </div>
   </section>`;
 }
@@ -632,10 +768,11 @@ function renderAll(shouldSave = true) {
   const sim = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, 0);
   document.getElementById('app').innerHTML = `<section class="banner">
     <div class="banner-crest">🐉</div><h1 class="banner-title">${tt('dd_title')}</h1><div class="banner-sub">${tt('dd_sub')}</div>
+    ${ACCRUAL_NOTE ? `<div class="accrual-note">🔥 ${tt('dd_accrued', { n: ACCRUAL_NOTE.n, amt: money(ACCRUAL_NOTE.added) })}</div>` : ''}
     <div class="hoard-bar"><div class="hoard-stat"><span class="hs-icon">🐉</span><span class="hs-val">${moneyShort(totalDebt)}</span><span class="hs-lab">${tt('dd_hoard')}</span></div>
     <div class="hoard-stat"><span class="hs-icon">🏆</span><span class="hs-val">${S.dragons.filter(d => d.slain).length}</span><span class="hs-lab">${tt('dd_slain_count')}</span></div>
     <div class="hoard-stat"><span class="hs-icon">🛡️</span><span class="hs-val">${isFinite(sim.months) ? sim.months : '∞'}</span><span class="hs-lab">${tt('dd_free_in')} · ${tt('dd_months')}</span></div></div>
-  </section><div class="debt-cols">${renderLair()}<aside class="debt-side">${renderSlayerPanel()}${renderTacticsPanel()}<div id="forecast-slot">${renderForecastPanel()}</div></aside></div>${flashToken ? '<div class="debt-flash"></div>' : ''}`;
+  </section><div class="debt-cols">${renderLair()}<aside class="debt-side">${renderSlayerPanel()}${renderTacticsPanel()}<div id="forecast-slot">${renderForecastPanel()}</div>${renderRecordPanel()}</aside></div>${flashToken ? '<div class="debt-flash"></div>' : ''}`;
   renderQuickToggles();
   renderOverlay();
   attachDragonDropHandlers();
@@ -689,13 +826,13 @@ function strikeDragon(id) {
 function endMonth() {
   const ids = aliveDragons().map(d => d.id);
   if (!ids.length) return;
-  const date = document.getElementById('end-month-date')?.value || defaultEndMonthISO();
-  SETTINGS.lastEndMonthDate = date;
-  saveSettings();
   BREATHING = ids;
   SFX.roar();
-  S.dragons = S.dragons.map(d => d.slain || d.balance <= .5 ? d : { ...d, balance: Number(d.balance) + PointyLogic.monthlyInterest(d) });
-  toast(`${tt('dd_month_passed')} · ${dateShort(date)}`);
+  const { next, added } = accrueDragons(S.dragons, 1);
+  S.dragons = next;
+  S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + added };
+  S.lastAccrued = addMonths(Math.max(Number(S.lastAccrued) || Date.now(), Date.now()), 1);
+  toast(`${tt('dd_month_passed')} · ${money(added)}`);
   setTimeout(() => { BREATHING = []; renderAll(false); }, 1150);
   renderAll();
 }
@@ -716,7 +853,8 @@ function formPayload(prefix) {
     apr: Math.max(0, Number(document.getElementById(`${prefix}-apr`)?.value) || 0),
     payment: payMode === 'adhoc' ? 0 : Math.max(0, Number(document.getElementById(`${prefix}-payment`)?.value) || 0),
     payMode,
-    interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound'
+    interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound',
+    dueDay: payMode === 'adhoc' ? 0 : Math.max(0, Math.min(31, parseInt(document.getElementById(`${prefix}-dueDay`)?.value, 10) || 0))
   };
 }
 function addDragon() {
@@ -759,6 +897,8 @@ function setPayMode(prefix, mode) {
   if (el) el.value = mode;
   const wrap = document.getElementById(`${prefix}-payment-wrap`);
   if (wrap) wrap.style.display = mode === 'adhoc' ? 'none' : '';
+  const dueWrap = document.getElementById(`${prefix}-due-wrap`);
+  if (dueWrap) dueWrap.style.display = mode === 'adhoc' ? 'none' : '';
   const group = el?.previousElementSibling;
   if (group) [...group.querySelectorAll('button')].forEach((btn, idx) => btn.classList.toggle('on', (idx === 0 && mode === 'monthly') || (idx === 1 && mode === 'adhoc')));
 }
@@ -774,6 +914,68 @@ function setDragonArt(type, file) {
   const reader = new FileReader();
   reader.onload = () => { S.art = { ...(S.art || {}), [type]: reader.result }; renderAll(); };
   reader.readAsDataURL(file);
+}
+function requestStrike(id, amount) {
+  STRIKE_OPEN = id;
+  EDIT_OPEN = '';
+  SFX.click();
+  renderAll(false);
+  setTimeout(() => {
+    const card = document.querySelector(`[data-dragon-id="${CSS.escape(id)}"]`);
+    if (card) {
+      const y = card.getBoundingClientRect().top + window.scrollY - 90;
+      window.scrollTo({ top: y, behavior: SETTINGS.animations === false ? 'auto' : 'smooth' });
+    }
+    if (amount != null) {
+      const input = document.getElementById(`strike-amt-${id}`);
+      if (input) input.value = Math.round(Number(amount) || 0);
+    }
+  }, 0);
+}
+function updatePowerAttack(value) {
+  POWER_EXTRA = Math.max(0, Number(value) || 0);
+  renderForecastOnly();
+}
+function openLogEdit(id, logId) {
+  EDIT_LOG = { [id]: logId };
+  renderAll(false);
+}
+function closeLogEdit(id) {
+  if (EDIT_LOG[id]) EDIT_LOG = {};
+  renderAll(false);
+}
+function saveLogEdit(id, logId) {
+  const amount = Math.max(0, Number(document.getElementById(`log-amt-${id}-${logId}`)?.value) || 0);
+  const date = document.getElementById(`log-date-${id}-${logId}`)?.value || todayISO();
+  S.dragons = S.dragons.map(d => {
+    if (d.id !== id) return d;
+    const old = (d.log || []).find(row => row.id === logId);
+    if (!old) return d;
+    const delta = amount - (Number(old.amount) || 0);
+    const log = (d.log || []).map(row => row.id === logId ? {
+      ...row,
+      amount,
+      date: dateShort(date),
+      ts: new Date(`${date}T00:00:00`).getTime()
+    } : row);
+    const balance = Math.max(0, Number(d.balance) - delta);
+    const slain = balance <= .5;
+    return { ...d, log, balance, slain, slainAt: slain ? (d.slainAt || Date.now()) : null };
+  });
+  EDIT_LOG = {};
+  renderAll();
+}
+function deleteStrikeLog(id, logId) {
+  S.dragons = S.dragons.map(d => {
+    if (d.id !== id) return d;
+    const old = (d.log || []).find(row => row.id === logId);
+    if (!old) return d;
+    const balance = Number(d.balance) + (Number(old.amount) || 0);
+    const slain = balance <= .5;
+    return { ...d, log: (d.log || []).filter(row => row.id !== logId), balance, slain, slainAt: slain ? d.slainAt : null };
+  });
+  EDIT_LOG = {};
+  renderAll();
 }
 function updateSlayerField(field, value) {
   if (field === 'class') S.slayer.class = PointyLogic.normalizeClass(value);
@@ -833,6 +1035,20 @@ function renderOverlay() {
   </div></div>`;
 }
 
+function reconcileAccrualOnOpen() {
+  const n = monthsBetween(S.lastAccrued, Date.now());
+  if (n <= 0) return;
+  const { next, added } = accrueDragons(S.dragons, n);
+  S.lastAccrued = addMonths(S.lastAccrued || Date.now(), n);
+  if (added <= 0) return;
+  S.dragons = next;
+  S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + added };
+  ACCRUAL_NOTE = { n, added: Math.round(added) };
+  BREATHING = next.filter(d => !d.slain && Number(d.balance) > .5 && Number(d.apr) > 0).map(d => d.id);
+  SFX.roar();
+  setTimeout(() => { BREATHING = []; ACCRUAL_NOTE = null; renderAll(false); }, 5000);
+}
+
 Object.assign(window, {
   renderAll,
   openStrike,
@@ -852,6 +1068,12 @@ Object.assign(window, {
   setInterestMode,
   pickDragonArt,
   setDragonArt,
+  requestStrike,
+  updatePowerAttack,
+  openLogEdit,
+  closeLogEdit,
+  saveLogEdit,
+  deleteStrikeLog,
   updateSlayerField,
   ensureDebtCharacter,
   linkDebtCharacter,
@@ -866,4 +1088,5 @@ Object.assign(window, {
 });
 
 applySettings();
+reconcileAccrualOnOpen();
 renderAll(false);

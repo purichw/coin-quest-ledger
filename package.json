@@ -9,7 +9,8 @@
     "test:assets": "node scripts/check-assets.mjs",
     "test:syntax": "node scripts/check-inline-scripts.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "upload:cloudinary": "node scripts/upload-cloudinary-assets.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2"

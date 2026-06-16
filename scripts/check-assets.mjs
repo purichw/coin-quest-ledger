@@ -22,28 +22,38 @@ const classes = [
   'tiderunner',
 ];
 const genders = ['female', 'male'];
-const portraitDir = path.join(process.cwd(), 'assets', 'rpg-portraits');
-const dragonDir = path.join(process.cwd(), 'assets', 'debt-dragons');
 const expected = [
-  ...classes.flatMap(cls => genders.map(gender => `${cls}-${gender}.png`)),
-  'crimson-regent-male.png',
-  'archfiend-swimmer-male.png',
-  'archfiend-swimmer-blackred-male.png',
+  ...classes.flatMap(cls => genders.map(gender => `assets/rpg-portraits/${cls}-${gender}.png`)),
+  'assets/rpg-portraits/crimson-regent-male.png',
+  'assets/rpg-portraits/archfiend-swimmer-male.png',
+  'assets/rpg-portraits/archfiend-swimmer-blackred-male.png',
+  ...[
+    'card',
+    'autoloan',
+    'student',
+    'mortgage',
+    'medical',
+    'tax',
+    'other',
+  ].map(file => `assets/debt-dragons/${file}.png`),
+  'assets/icons/loot-chest.svg',
 ];
 const dragons = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
-const missing = expected.filter(file => !fs.existsSync(path.join(portraitDir, file)));
+const manifestPath = path.join(process.cwd(), 'shared', 'cloudinary-assets.js');
+const manifestText = fs.existsSync(manifestPath) ? fs.readFileSync(manifestPath, 'utf8') : '';
+const manifestMatch = manifestText.match(/window\.POINTY_CLOUDINARY_ASSETS\s*=\s*(\{[\s\S]*\});?\s*$/);
+const manifest = manifestMatch ? JSON.parse(manifestMatch[1]) : {};
+const missing = expected.filter(file => !manifest[file] || !/^https:\/\/res\.cloudinary\.com\//.test(manifest[file]));
+
 dragons.forEach(file => {
-  if (!fs.existsSync(path.join(dragonDir, `${file}.png`))) missing.push(`assets/debt-dragons/${file}.png`);
+  const key = `assets/debt-dragons/${file}.png`;
+  if (!manifest[key]) missing.push(key);
 });
 
-if (!fs.existsSync(path.join(process.cwd(), 'assets', 'icons', 'loot-chest.svg'))) {
-  missing.push('assets/icons/loot-chest.svg');
-}
-
 if (missing.length) {
-  console.error('Missing required asset(s):');
+  console.error('Missing required Cloudinary asset(s):');
   missing.forEach(file => console.error(`- ${file}`));
   process.exit(1);
 }
 
-console.log(`Checked ${expected.length} RPG portrait/skin assets, ${dragons.length} debt dragon assets, and loot chest icon.`);
+console.log(`Checked ${classes.length * genders.length + 3} RPG portrait/skin assets, ${dragons.length} debt dragon assets, and loot chest icon in Cloudinary manifest.`);

@@ -28,7 +28,8 @@ function avatarBg(clsId) {
   const hue = (CLASSES[PointyLogic.normalizeClass(clsId)] || CLASSES.warrior).hue;
   return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
 }
-function portraitFile(res) { return `/assets/rpg-portraits/${res}.png`; }
+function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
+function portraitFile(res) { return assetUrl(`assets/rpg-portraits/${res}.png`); }
 function avatarId(clsId, gender) { return `${PointyLogic.normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
 function resolveAvatarFile(clsId, gender, skinId = '') {
   const base = avatarId(clsId, gender);

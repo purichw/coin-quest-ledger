@@ -293,6 +293,7 @@
           payment: payMode === 'adhoc' ? 0 : Math.max(0, Number(d?.payment) || dragonType(type).minPay || 0),
           payMode,
           interestMode: d?.interestMode === 'simple' ? 'simple' : 'compound',
+          dueDay: payMode === 'adhoc' ? 0 : Math.max(0, Math.min(31, parseInt(d?.dueDay, 10) || 0)),
           log: Array.isArray(d?.log) ? d.log.map(row => ({
             id: String(row.id || ''),
             date: String(row.date || ''),
@@ -304,7 +305,11 @@
           slainAt: d?.slainAt || null
         };
       }),
-      art: data.art && typeof data.art === 'object' ? data.art : {}
+      art: data.art && typeof data.art === 'object' ? data.art : {},
+      lastAccrued: Number(data.lastAccrued) || Date.now(),
+      stats: data.stats && typeof data.stats === 'object'
+        ? { interest: Math.max(0, Number(data.stats.interest) || 0) }
+        : { interest: 0 }
     };
   }
 
