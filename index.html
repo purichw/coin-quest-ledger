@@ -6,6 +6,7 @@
   <title>Coin Quest Ledger — เปรียบเทียบราคา</title>
   <link rel="icon" href="data:,">
   <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
+  <script>(function(){try{var t=localStorage.getItem("pointy_theme")||((JSON.parse(localStorage.getItem("coin_quest_ui_v1")||"{}")||{}).theme);if(t==="dungeon"||t==="tavern")document.documentElement.setAttribute("data-theme",t)}catch(_){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
@@ -29,9 +30,49 @@
       --gold: #c79320;
       --gold-soft: #efe0b6;
       --hp: #cf4633;
+      --hp-bg: #e7d3c6;
+      --xp: #d39a25;
       --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
       --topbar: #2b2113;
       --topbar-ink: #efe4cc;
+    }
+    [data-theme="tavern"] {
+      --bg: #e7dcc6;
+      --bg-glow: #f0e7d4;
+      --panel: #fbf6ea;
+      --panel-2: #f3e9d4;
+      --panel-in: #fffdf7;
+      --ink: #2f2515;
+      --ink-soft: #87745a;
+      --border: #ddc9a3;
+      --border-strong: #c9ad7c;
+      --gold: #c79320;
+      --gold-soft: #efe0b6;
+      --hp: #cf4633;
+      --hp-bg: #e7d3c6;
+      --xp: #d39a25;
+      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
+      --topbar: #2b2113;
+      --topbar-ink: #efe4cc;
+    }
+    [data-theme="dungeon"] {
+      --bg: #14121f;
+      --bg-glow: #221d36;
+      --panel: #221d33;
+      --panel-2: #2b2542;
+      --panel-in: #1a1628;
+      --ink: #ece8f8;
+      --ink-soft: #a39bc4;
+      --border: #3b3357;
+      --border-strong: #4a4170;
+      --gold: #ecc14e;
+      --gold-soft: #3a3050;
+      --hp: #ff5d70;
+      --hp-bg: #3a2740;
+      --xp: #ecc14e;
+      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
+      --topbar: #0e0c17;
+      --topbar-ink: #d9d2f0;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
@@ -70,7 +111,7 @@
     .cmp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
     .cmp-card { position: relative; background: linear-gradient(var(--panel-in), var(--panel-2)); border: 1.5px solid var(--border); border-radius: 16px; padding: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
     .cmp-head { position: relative; display: flex; align-items: center; gap: 11px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
-    .cmp-icon { flex-shrink: 0; width: 46px; height: 46px; border-radius: 12px; background: var(--panel); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+    .cmp-icon { flex-shrink: 0; width: 48px; height: 48px; border-radius: 13px; background: radial-gradient(120% 120% at 50% 0%, var(--gold-soft), var(--panel)); border: 1.5px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 2px 8px -4px var(--gold); }
     .cmp-id { flex: 1; min-width: 0; }
     .cmp-name { color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
     .cmp-unit { color: var(--ink-soft); font-family: var(--font-stat); font-size: 11px; }
@@ -81,18 +122,37 @@
     .cmp-card:hover .card-del, .offer-row:hover .offer-del { opacity: 1; }
     .card-del:hover, .offer-del:hover { border-color: var(--hp); color: var(--hp); }
     .offer-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 11px; }
-    .offer-row { position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 12px; background: var(--panel); border: 1.5px solid var(--border); transition: .15s; }
-    .offer-row.best { border-color: var(--r-deep); background: linear-gradient(120deg, var(--r-soft), var(--panel)); box-shadow: 0 0 0 1px var(--r-top), 0 6px 18px -10px var(--r-deep); }
+    .challengers-div { display: flex; align-items: center; gap: 8px; margin: 3px 2px 1px; }
+    .challengers-div::before, .challengers-div::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .challengers-div span { color: var(--ink-soft); font-family: var(--font-stat); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+    .offer-row { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 11px; border-radius: 12px; background: var(--panel); border: 1.5px solid var(--border); transition: .15s; }
+    .offer-row.best { margin-top: 9px; padding-top: 16px; border-color: var(--gold); background: linear-gradient(118deg, var(--gold-soft), var(--panel) 70%); box-shadow: 0 0 0 1px var(--gold), 0 8px 22px -12px var(--gold); animation: champ-glow 2.8s ease-in-out infinite; }
+    [data-theme="dungeon"] .offer-row.best { background: linear-gradient(118deg, color-mix(in oklab, var(--gold), var(--panel) 70%), var(--panel) 72%); }
+    @keyframes champ-glow { 0%,100% { box-shadow: 0 0 0 1px var(--gold), 0 8px 22px -14px var(--gold); } 50% { box-shadow: 0 0 0 1px var(--gold), 0 8px 26px -8px var(--gold); } }
+    .champion-ribbon { position: absolute; top: -10px; left: 11px; color: #2a1f05; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 16%)); border: 1px solid color-mix(in oklab, var(--gold), #000 28%); border-radius: 7px; padding: 2px 9px; box-shadow: 0 2px 6px -2px rgba(0,0,0,.4); font-family: var(--font-stat); font-weight: 700; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; }
     .of-rarity { flex-shrink: 0; width: 30px; text-align: center; font-size: 18px; }
     .of-main { flex: 1; min-width: 0; }
     .of-merchant { color: var(--ink); font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
-    .of-detail { color: var(--ink-soft); font-family: var(--font-stat); font-size: 11px; }
+    .of-detail { color: var(--ink-soft); font-family: var(--font-stat); font-size: 11px; margin-bottom: 5px; }
+    .value-bar { height: 7px; border-radius: 5px; background: var(--panel-2); overflow: hidden; border: 1px solid rgba(0,0,0,.07); }
+    .value-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--r-deep), var(--r-top)); transition: width .5s ease; }
+    .offer-row.best .value-fill { background: linear-gradient(90deg, color-mix(in oklab, var(--gold), #000 12%), var(--gold)); }
     .of-right { flex-shrink: 0; text-align: right; }
     .of-pu { color: var(--ink); font-family: var(--font-stat); font-weight: 700; font-size: 16px; }
     .of-unit { color: var(--ink-soft); font-size: 10px; font-weight: 500; }
     .of-tag { margin-top: 1px; font-size: 10px; font-weight: 700; color: var(--r-text); }
     .best-tag { color: var(--r-text); }
+    .offer-row.best .of-pu { color: color-mix(in oklab, var(--gold), #000 30%); }
+    [data-theme="dungeon"] .offer-row.best .of-pu { color: var(--gold); }
     .offer-meta { color: var(--ink-soft); font-family: var(--font-stat); font-size: 10px; margin-top: 1px; }
+    .of-save { color: color-mix(in oklab, var(--gold), #000 30%); font-family: var(--font-stat); font-size: 10px; font-weight: 700; margin-top: 1px; }
+    [data-theme="dungeon"] .of-save { color: var(--gold); }
+    [data-theme="dungeon"] .input,
+    [data-theme="dungeon"] .num,
+    [data-theme="dungeon"] .select {
+      background: var(--panel-in);
+      border-color: var(--border-strong);
+    }
     .offer-builder { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
     .draft-slot { position: relative; border: 1.5px solid var(--border); border-radius: 12px; background: color-mix(in oklab, var(--panel-in), var(--panel-2) 28%); overflow: hidden; }
     .draft-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; border-bottom: 1px solid color-mix(in oklab, var(--border), transparent 35%); color: var(--ink-soft); font-size: 11px; font-weight: 700; }
@@ -357,6 +417,7 @@
       const ranked = rankOffers(cmp.offers || [], cmp);
       const best = ranked.find(o => o.isBest);
       const enough = ranked.length >= 2;
+      const bestPu = best && isFinite(best.pu) ? best.pu : Math.min(...ranked.map(o => o.pu).filter(Number.isFinite));
       return `<div class="cmp-card">
         <div class="cmp-head">
           <span class="cmp-icon">${itemIconMarkup(cmp.icon || ITEM_ICONS[0], 32)}</span>
@@ -364,11 +425,11 @@
           ${enough && best && best.savePct > 0 ? `<div class="cmp-save"><span class="cs-pct">−${best.savePct}%</span><span class="cs-lab">${t('cheaper_by')}</span></div>` : ''}
           <button class="card-del" onclick="deleteComparison(${q(cmp.id)})">×</button>
         </div>
-        ${ranked.length ? `<div class="offer-list">${ranked.map(o => renderOffer(cmp, o, enough)).join('')}</div>` : `<div class="empty">${t('no_offers')}</div>`}
+        ${ranked.length ? `<div class="offer-list">${ranked.map((o, idx) => `${idx === 1 && enough ? `<div class="challengers-div"><span>CHALLENGERS</span></div>` : ''}${renderOffer(cmp, o, enough, bestPu)}`).join('')}</div>` : `<div class="empty">${t('no_offers')}</div>`}
         ${renderOfferBuilder(cmp)}
       </div>`;
     }
-    function renderOffer(cmp, offer, enough) {
+    function renderOffer(cmp, offer, enough, bestPu) {
       const r = RARITY[offer.tier];
       const norm = offer.norm || normalizedOffer(offer, cmp);
       const pack = normalizeUnit(offer.unit) === 'แพ็ค/กล่อง' && offer.perPack ? ` · ${t('pack_short', { n: fmtQty(offer.perPack) })}` : '';
@@ -376,11 +437,14 @@
       const normalized = norm.valid && (!approxEqual(norm.qty, offer.qty) || normalizeUnit(offer.unit) !== norm.baseUnit || offer.free > 0)
         ? `<div class="offer-meta">${t('normalized_to', { qty: fmtQty(norm.qty), unit: displayUnit(norm.baseUnit) })}${pack}${promo}</div>` : '';
       const tag = offer.isEqual ? `<div class="of-tag">${t('badge_equal')}</div>`
+        : enough && offer.isBest && offer.savePct > 0 ? `<div class="of-save">⚔ ${LANG === 'th' ? 'ประหยัด' : 'rescues'} −${offer.savePct}%</div>`
         : enough && offer.isBest ? `<div class="of-tag best-tag">👑 ${t('best_deal')}</div>`
         : `<div class="of-tag">${h(r[LANG] || r.th)}</div>`;
+      const width = offer.isBest ? 100 : (isFinite(bestPu) && bestPu > 0 && isFinite(offer.pu) && offer.pu > 0 ? Math.max(24, Math.min(94, Math.round((bestPu / offer.pu) * 100))) : 44);
       return `<div class="offer-row ${offer.isBest ? 'best' : ''}" style="${rarityStyle(r.hue)}">
+        ${offer.isBest ? `<div class="champion-ribbon">👑 CHAMPION</div>` : ''}
         <div class="of-rarity" title="${h(r[LANG] || r.th)}">${r.glyph}</div>
-        <div class="of-main"><div class="of-merchant">${h(offer.merchant || t('merchant'))}</div><div class="of-detail">${money(offer.price)} · ${fmtQty(offer.qty)} ${h(displayUnit(offer.unit))}</div>${normalized}</div>
+        <div class="of-main"><div class="of-merchant">${h(offer.merchant || t('merchant'))}</div><div class="of-detail">${money(offer.price)} · ${fmtQty(offer.qty)} ${h(displayUnit(offer.unit))}</div><div class="value-bar"><div class="value-fill" style="width:${width}%"></div></div>${normalized}</div>
         <div class="of-right"><div class="of-pu">${fmtUnit(offer.pu)}<span class="of-unit">/${h(displayUnit(norm.baseUnit))}</span></div>${tag}</div>
         <button class="offer-del" onclick="deleteOffer(${q(cmp.id)},${q(offer.id)})">×</button>
       </div>`;

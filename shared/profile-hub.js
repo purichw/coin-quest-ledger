@@ -1,6 +1,7 @@
 (function () {
   const PROFILE_KEY = 'pointy_profile_v1';
   const UI_KEY = 'coin_quest_ui_v1';
+  const THEME_KEY = 'pointy_theme';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
   const PROFILE_STEP = 1200;
   const TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
@@ -406,12 +407,19 @@
     right.querySelector('[data-profile-hub="profile"]').addEventListener('click', showProfile);
   }
   function currentTheme() {
-    return document.body.getAttribute('data-theme') || document.documentElement.getAttribute('data-theme') || readJson(UI_KEY, {}).theme || 'tavern';
+    try {
+      const cached = localStorage.getItem(THEME_KEY);
+      if (cached === 'dungeon' || cached === 'tavern') return cached;
+    } catch (_) {}
+    const uiTheme = readJson(UI_KEY, {}).theme;
+    if (uiTheme === 'dungeon' || uiTheme === 'tavern') return uiTheme;
+    return document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme') || 'tavern';
   }
   function applyTheme(theme) {
     const next = theme === 'dungeon' ? 'dungeon' : 'tavern';
     document.documentElement.setAttribute('data-theme', next);
     document.body.setAttribute('data-theme', next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
     writeJson(UI_KEY, { ...readJson(UI_KEY, {}), theme: next });
     const btn = document.querySelector('[data-profile-hub="theme"]');
     if (btn) {

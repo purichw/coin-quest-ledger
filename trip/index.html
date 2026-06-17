@@ -6,6 +6,7 @@
   <title>Coin Quest Ledger — Party Ledger</title>
   <link rel="icon" href="data:,">
   <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
+  <script>(function(){try{var t=localStorage.getItem("pointy_theme")||((JSON.parse(localStorage.getItem("coin_quest_ui_v1")||"{}")||{}).theme);if(t==="dungeon"||t==="tavern")document.documentElement.setAttribute("data-theme",t)}catch(_){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
@@ -522,7 +523,7 @@
     }
   </style>
 </head>
-<body data-theme="tavern">
+<body>
   <div class="first-load" data-first-load>
     <div class="first-load-box">
       <div class="first-load-emblem" aria-hidden="true">
