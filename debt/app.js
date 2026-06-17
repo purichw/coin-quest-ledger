@@ -82,6 +82,8 @@ function fallback(key) {
     dd_save: 'บันทึก',
     dd_cancel: 'ยกเลิก',
     dd_delete_confirm: 'ปล่อยมังกรตัวนี้ไป? บันทึกการต่อสู้จะหายไป',
+    dd_clear_lair: 'ล้างถ้ำ',
+    dd_clear_lair_confirm: 'ล้างมังกรทุกตัวและสถิติถ้ำนี้? Character ID ของนักล่าจะยังอยู่',
     dd_end_month: 'ข้ามเดือน',
     dd_end_month_date: 'วันที่จบเดือน',
     dd_end_month_sub: 'จำลองเวลาไป 1 เดือน — มังกรพ่นไฟ ดอกเบี้ยงอก',
@@ -183,6 +185,8 @@ function fallback(key) {
     dd_save: 'Save',
     dd_cancel: 'Cancel',
     dd_delete_confirm: 'Release this dragon? Its battle log will be lost.',
+    dd_clear_lair: 'Clear lair',
+    dd_clear_lair_confirm: "Clear every dragon and lair stat? Your Slayer's Character ID will stay.",
     dd_end_month: 'Advance month',
     dd_end_month_date: 'End-month date',
     dd_end_month_sub: 'Simulate one month forward — dragons breathe fire, interest accrues',
@@ -372,6 +376,7 @@ function loadDebtState() {
 function saveDebtState() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (_) {}
   persistSlayerRecord();
+  window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
 }
 function loadSettings() {
   try {
@@ -430,6 +435,10 @@ function ac() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
+function haptic(pattern) {
+  if (!SETTINGS.sound || !navigator.vibrate) return;
+  try { navigator.vibrate(pattern); } catch (_) {}
+}
 function tone(freq, start, dur, type = 'triangle', gain = .14) {
   const c = ac(); if (!c) return;
   const o = c.createOscillator();
@@ -461,13 +470,13 @@ function sweep(f0, f1, start, dur, type = 'sawtooth', gain = .14) {
   o.connect(g).connect(c.destination); o.start(start); o.stop(start + dur + .02);
 }
 const SFX = {
-  click() { const c = ac(); if (c) tone(420, c.currentTime, .05, 'triangle', .08); },
-  clang() { const c = ac(); if (!c) return; const n = c.currentTime; noise(n, .09, .22, 2200); tone(2100, n, .12, 'square', .1); tone(2640, n + .005, .16, 'triangle', .08); },
-  reclaim() { const c = ac(); if (!c) return; const n = c.currentTime; [1046, 1318, 1568, 2093].forEach((f, i) => tone(f, n + i * .04, .1, 'square', .07)); },
-  roar() { const c = ac(); if (!c) return; const n = c.currentTime; sweep(160, 70, n, .55, 'sawtooth', .16); sweep(240, 110, n + .02, .5, 'square', .07); noise(n + .04, .42, .1, 500); },
-  fire() { const c = ac(); if (!c) return; const n = c.currentTime; noise(n, .34, .16, 320); sweep(520, 120, n, .32, 'sawtooth', .13); },
-  zap() { const c = ac(); if (!c) return; const n = c.currentTime; sweep(2400, 600, n, .12, 'square', .1); noise(n, .14, .2, 3000); tone(3600, n + .02, .05, 'square', .08); },
-  win() { const c = ac(); if (!c) return; const n = c.currentTime; [659, 784, 988, 1318].forEach((f, i) => tone(f, n + i * .08, .3, 'triangle', .14)); }
+  click() { haptic(8); const c = ac(); if (c) tone(420, c.currentTime, .05, 'triangle', .08); },
+  clang() { haptic([18, 22, 22]); const c = ac(); if (!c) return; const n = c.currentTime; noise(n, .09, .22, 2200); tone(2100, n, .12, 'square', .1); tone(2640, n + .005, .16, 'triangle', .08); },
+  reclaim() { haptic([10, 24, 12]); const c = ac(); if (!c) return; const n = c.currentTime; [1046, 1318, 1568, 2093].forEach((f, i) => tone(f, n + i * .04, .1, 'square', .07)); },
+  roar() { haptic([26, 34, 44]); const c = ac(); if (!c) return; const n = c.currentTime; sweep(160, 70, n, .55, 'sawtooth', .16); sweep(240, 110, n + .02, .5, 'square', .07); noise(n + .04, .42, .1, 500); },
+  fire() { haptic([20, 30, 18]); const c = ac(); if (!c) return; const n = c.currentTime; noise(n, .34, .16, 320); sweep(520, 120, n, .32, 'sawtooth', .13); },
+  zap() { haptic([8, 18, 8, 18, 14]); const c = ac(); if (!c) return; const n = c.currentTime; sweep(2400, 600, n, .12, 'square', .1); noise(n, .14, .2, 3000); tone(3600, n + .02, .05, 'square', .08); },
+  win() { haptic([18, 36, 18, 36, 26]); const c = ac(); if (!c) return; const n = c.currentTime; [659, 784, 988, 1318].forEach((f, i) => tone(f, n + i * .08, .3, 'triangle', .14)); }
 };
 
 function applySettings() {
@@ -673,8 +682,9 @@ function renderLogRow(d, row) {
 function renderLair() {
   const live = aliveDragons();
   const endMonthControls = live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : '';
+  const clearControls = S.dragons.length ? `<button class="btn-danger sm" onclick="clearLair()">🧹 ${tt('dd_clear_lair')}</button>` : '';
   return `<section class="panel lair-panel">
-    <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2>${endMonthControls}</div>
+    <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2><div class="lair-actions">${endMonthControls}${clearControls}</div></div>
     <div class="lair-grid">${S.dragons.length ? S.dragons.map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
     ${ADD_OPEN ? `<article class="dragon-card"><div class="dc-name">${tt('dd_new')}</div>${renderDragonForm({}, 'add')}</article>` : `<button class="add-dragon" onclick="openAddDragon()"><span style="font-size:28px;line-height:1">＋</span><span>${tt('dd_add')}</span></button>`}</div>
   </section>`;
@@ -878,6 +888,27 @@ function deleteDragon(id) {
   S.dragons = S.dragons.filter(d => d.id !== id);
   renderAll();
 }
+function clearLair() {
+  if (!S.dragons.length || !confirm(tt('dd_clear_lair_confirm'))) return;
+  const slayer = { ...(S.slayer || {}) };
+  S = PointyLogic.normalizeDebtState({
+    slayer,
+    dragons: [],
+    art: {},
+    lastAccrued: Date.now(),
+    stats: { interest: 0 }
+  });
+  STRIKE_OPEN = '';
+  EDIT_OPEN = '';
+  EDIT_LOG = {};
+  ADD_OPEN = false;
+  FX = {};
+  BREATHING = [];
+  ACCRUAL_NOTE = null;
+  POWER_EXTRA = 0;
+  SFX.roar();
+  renderAll();
+}
 function setDragonFormType(prefix, type) {
   const hidden = document.getElementById(`${prefix}-type`);
   if (!hidden) return;
@@ -1063,6 +1094,7 @@ Object.assign(window, {
   addDragon,
   saveDragon,
   deleteDragon,
+  clearLair,
   setDragonFormType,
   setPayMode,
   setInterestMode,

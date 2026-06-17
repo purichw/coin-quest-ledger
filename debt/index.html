@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/first-load.css">
+  <link rel="stylesheet" href="/shared/profile-hub.css">
   <style>
     :root {
       --font-display: "Mitr", system-ui, sans-serif;
@@ -105,8 +106,10 @@
     .btn-ghost.sm { padding: 7px 11px; font-size: 13px; }
     .btn-ghost:hover { background: var(--panel-2); }
     .btn-danger { background: var(--hp); color: #fff; padding: 10px 15px; box-shadow: 0 3px 0 color-mix(in oklab, var(--hp), #000 30%); }
+    .btn-danger.sm { padding: 8px 11px; font-size: 13px; box-shadow: 0 2px 0 color-mix(in oklab, var(--hp), #000 30%); }
     .debt-cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 18px; align-items: start; }
     .debt-side { display: flex; flex-direction: column; }
+    .lair-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     .lair-grid { display: flex; flex-direction: column; gap: 14px; }
     .dragon-card { position: relative; background: linear-gradient(var(--panel-in), var(--panel-2)); border: 1.5px solid var(--border); border-radius: 16px; padding: 15px; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
     .dragon-card.is-target { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 10px 26px -16px var(--gold), inset 0 1px 0 rgba(255,255,255,.4); }
@@ -352,8 +355,7 @@
       .df-types { grid-template-columns: repeat(3, 1fr); }
       .df-grid, .debt-side, .slayer-editor, .class-row { grid-template-columns: 1fr; }
       .lair-panel .panel-head { align-items: stretch; flex-direction: column; }
-      .end-month-wrap { width: 100%; margin-left: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-      .end-month-date { width: 100%; }
+      .lair-actions { width: 100%; display: grid; grid-template-columns: 1fr; }
       .dc-strike-row { flex-direction: column; }
       .dc-strike-date { min-height: 42px; }
       .dc-log-edit { grid-template-columns: 1fr 1fr; }
@@ -404,5 +406,6 @@
   <script src="/shared/first-load.js"></script>
   <script src="/lang.js"></script>
   <script src="/debt/app.js"></script>
+  <script src="/shared/profile-hub.js"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/first-load.css">
+  <link rel="stylesheet" href="/shared/profile-hub.css">
   <style>
     :root {
       --font-display: "Mitr", system-ui, sans-serif;
@@ -330,6 +331,7 @@
     }
     function saveState() {
       try { localStorage.setItem(STORE_KEY, JSON.stringify(comparisons)); } catch (e) {}
+      window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
     }
     function normalizedOffer(offer, cmp) { return PointyLogic.normalizedOffer(offer, cmp, { unitGroups: UNIT_GROUPS, unitAlias: UNIT_ALIAS }); }
     function perUnit(o, cmp) { return normalizedOffer(o, cmp).pu; }
@@ -574,5 +576,6 @@
     translatePage();
     render();
   </script>
+  <script src="/shared/profile-hub.js"></script>
 </body>
 </html>

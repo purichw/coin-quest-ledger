@@ -401,6 +401,10 @@ function audioContext() {
   if (_audioCtx.state === 'suspended') _audioCtx.resume();
   return _audioCtx;
 }
+function haptic(pattern) {
+  if (!S.settings.sound || !navigator.vibrate) return;
+  try { navigator.vibrate(pattern); } catch (_) {}
+}
 function tone(freq, delay, duration, type = 'triangle', gain = .12) {
   const ctx = audioContext();
   if (!ctx) return;
@@ -414,11 +418,11 @@ function tone(freq, delay, duration, type = 'triangle', gain = .12) {
   osc.start(at); osc.stop(at + duration + .02);
 }
 const SFX = {
-  click() { tone(420, 0, .05, 'triangle', .08); },
-  coin() { tone(880, 0, .08, 'square', .12); tone(1318, .06, .12, 'square', .12); },
-  heal() { [523,659,784,1046].forEach((f,i) => tone(f, i*.05, .25, 'sine', .13)); },
-  levelUp() { [523,659,784,1046,1318].forEach((f,i) => tone(f, i*.07, .3, 'triangle', .15)); tone(1568,.42,.4,'sine',.12); },
-  win() { [659,784,988,1318].forEach((f,i) => tone(f, i*.08, .3, 'triangle', .14)); }
+  click() { haptic(8); tone(420, 0, .05, 'triangle', .08); },
+  coin() { haptic([10, 24, 12]); tone(880, 0, .08, 'square', .12); tone(1318, .06, .12, 'square', .12); },
+  heal() { haptic([12, 32, 12]); [523,659,784,1046].forEach((f,i) => tone(f, i*.05, .25, 'sine', .13)); },
+  levelUp() { haptic([16, 28, 16, 40, 22]); [523,659,784,1046,1318].forEach((f,i) => tone(f, i*.07, .3, 'triangle', .15)); tone(1568,.42,.4,'sine',.12); },
+  win() { haptic([18, 36, 18, 36, 26]); [659,784,988,1318].forEach((f,i) => tone(f, i*.08, .3, 'triangle', .14)); }
 };
 function colorVars(clsId) {
   const c = classColor(clsId);
@@ -515,6 +519,39 @@ function snapshotCampaign(extra = {}) {
     ...extra
   };
 }
+function profileCampaignSnapshot(c) {
+  return {
+    id: c.id,
+    tripName: c.tripName,
+    participants: Array.isArray(c.participants) ? c.participants.slice() : [],
+    expenses: Array.isArray(c.expenses) ? c.expenses.slice() : [],
+    budgets: { ...(c.budgets || {}) },
+    heroClasses: { ...(c.heroClasses || {}) },
+    settleXp: { ...(c.settleXp || {}) },
+    createdAt: c.createdAt || null,
+    completedAt: c.completedAt || null
+  };
+}
+function profileSnapshotState() {
+  return {
+    tripName: S.tripName,
+    participants: S.participants.slice(),
+    expenses: S.expenses.slice(),
+    budgets: { ...S.budgets },
+    heroClasses: { ...S.heroClasses },
+    settleXp: { ...S.settleXp },
+    activeCampaignId: S.activeCampaignId,
+    campaigns: (S.campaigns || []).map(profileCampaignSnapshot)
+  };
+}
+window.PointyTripSnapshot = function() {
+  return { id: tripId, data: profileSnapshotState() };
+};
+function cacheProfileSnapshot() {
+  if (window.PointyProfileHub?.updateTripSnapshot) {
+    window.PointyProfileHub.updateTripSnapshot(tripId, profileSnapshotState());
+  }
+}
 function applyCampaign(c) {
   if (!c) return;
   S.activeCampaignId = c.id;
@@ -587,7 +624,9 @@ async function saveNow() {
 async function writeState() {
   try {
     syncActiveCampaign();
+    cacheProfileSnapshot();
     await TripStore.write(S);
+    window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
     setSaveStatus('saved', t('status_saved'));
   } catch (err) {
     console.error('Save failed', err);
@@ -1968,6 +2007,8 @@ function renderOverlay() {
 }
 function renderAll(checkLevels = true) {
   ensureAllCharacterIds();
+  syncActiveCampaign();
+  cacheProfileSnapshot();
   const party = computeParty();
   syncCharacterRegistry(party);
   if (checkLevels) detectLevelUps(party);
@@ -1984,6 +2025,7 @@ function renderAll(checkLevels = true) {
   _prevOutstanding = outstanding;
   renderOverlay();
   translatePage();
+  window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
 }
 
 function toast(msg) {
