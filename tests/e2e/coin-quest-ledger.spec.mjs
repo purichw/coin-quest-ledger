@@ -459,6 +459,68 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
   await expect(page.locator('.rev-list')).toContainText('URL 9001');
 });
 
+test('super admin portal renders relationship views and drill-in details', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    sessionStorage.setItem('pointy_test_trip_9001', JSON.stringify({
+      tripName: 'Alpha Board',
+      participants: ['Shane', 'Mira'],
+      characterIds: { Shane: '1111', Mira: '2222' },
+      expenses: [{ amount: 1200 }],
+      admin: { ownerHash: 'owner-a', adminId: 'ADM-ALPHA', adminName: 'Shane', characterId: '1111', passwordHash: 'old-hash', urlLocked: true },
+      updatedAt: 100
+    }));
+    sessionStorage.setItem('pointy_test_trip_9002', JSON.stringify({
+      boardType: 'debt',
+      tripName: 'Dragon Lair',
+      participants: ['Nok'],
+      characterIds: { Nok: '3333' },
+      dragons: [{ balance: 5000, dueDay: 1 }],
+      admin: { ownerHash: 'owner-b', adminId: 'ADM-DRAGON', adminName: 'Nok', characterId: '3333', passwordHash: 'old-hash', urlLocked: true },
+      updatedAt: 200
+    }));
+  });
+  await page.goto('/admin/?test=1');
+  await page.locator('#gate-pass').fill('portal-pass');
+  await page.getByRole('button', { name: 'Set & Unlock' }).click();
+
+  await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Relationship Map' })).toBeVisible();
+  await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Relationship Map' }).click();
+  await expect(page.locator('.panel')).toContainText('Global User ID');
+  await expect(page.locator('.panel')).toContainText('Admin IDs');
+
+  await page.getByRole('button', { name: 'Dashboard' }).click();
+  await expect(page.locator('.stat-card').first()).toContainText('Boards');
+  await page.getByRole('button', { name: 'B Command' }).click();
+  await expect(page.getByText('Needs Attention')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Boards' }).click();
+  await page.getByRole('button', { name: 'Detail' }).first().click();
+  await expect(page.getByText('Members')).toBeVisible();
+  await expect(page.getByText('Change Log')).toBeVisible();
+  await expect(page.locator('.id-chip.board')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Users' }).click();
+  await page.getByRole('button', { name: 'Detail' }).first().click();
+  await expect(page.getByText('User Profile')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Admin roles' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Board Admins' }).click();
+  await page.getByRole('button', { name: 'Detail' }).first().click();
+  await expect(page.getByText('Admin Detail')).toBeVisible();
+  await expect(page.getByText('Owned Boards')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Audit Log' }).click();
+  await expect(page.getByText('System-wide chronological feed')).toBeVisible();
+  await page.getByRole('button', { name: 'Support Tools' }).click();
+  await expect(page.getByText('Impersonate')).toBeVisible();
+  await expect(page.getByText('Create / invite flows')).toBeVisible();
+});
+
 test('character profile aggregates boards, shows portrait, and supports privacy mode', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
