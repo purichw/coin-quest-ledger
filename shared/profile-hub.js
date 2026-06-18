@@ -196,7 +196,7 @@
     };
     const res = skin && skinMap[skin] ? skinMap[skin] : `${c}-${g}`;
     const path = `assets/rpg-portraits/${res}.png`;
-    if (TEST_MODE || AUTOMATED) return '/' + path;
+    if (TEST_MODE) return '/' + path;
     return window.PointyAssets?.url ? window.PointyAssets.url(path) : '/' + path;
   }
   function avatarMarkup(slayer, sizeClass) {
