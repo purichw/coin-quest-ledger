@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
 ## Project
 
@@ -31,6 +31,7 @@ Last updated: 2026-06-16
 - `index.html`: live toolbox home and price comparison entry.
 - `lang.js`: shared i18n for Thai and English across the toolbox. Every user-facing string needs both languages.
 - `shared/pointy-logic.js`: shared calculation, normalization, class registry, split logic, price comparison logic.
+- `shared/mobile-shell.css` and `shared/mobile-shell.js`: Claude-style native phone shell shared by Home/Compare, Split, Debt Dragon, and Treasury. It injects the hamburger drawer and bottom tab bar at `max-width: 600px`; desktop/tablet topbars remain controlled by each page.
 - `trip/pixicons.jsx`: labeled pixel icon registry/renderer/migration helpers.
 - `assets/rpg-portraits/`: current full-body class portrait assets, 18 classes x 2 genders plus skin art.
 - `assets/icons/loot-chest.svg`: app icon.
@@ -44,6 +45,8 @@ Last updated: 2026-06-16
 The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now split between `trip/index.html` and `trip/app.js`. Firebase Firestore compat SDK is loaded from CDN in `trip/index.html`; app behavior loads from `/trip/app.js`. Trip ID comes from `?id=`; if absent, it can redirect to `localStorage.getItem('last_trip_id')`. Auto-save is debounced at 800ms.
 
 `trip/app.js` owns the shell event delegation and the expense-entry dynamic controls. Some dynamic hero/admin/overlay renderers still use inline handlers; do not rewrite all of them casually unless doing a focused refactor with full tests.
+
+Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
 
 The Expense Splitter tab is now RPG/Party Ledger styled. It supports:
 
@@ -108,15 +111,18 @@ The picker uses `window.QUEST_ICON_IDS` from `trip/pixicons.jsx`; emoji legacy d
 
 ## Claude Design / Handoff Rules
 
-Claude source files in Downloads may be used as visual/interaction reference, but do not edit them directly.
+Claude source files in Downloads are the visual/interaction Holy Grail for the requested surface. Do not edit them directly.
 
 When implementing Claude handoff:
 
-- Treat Claude HTML/source as the visual reference.
+- Treat Claude HTML/source as the primary visual source of truth. The live implementation should be almost pixel-perfect against the supplied Claude design unless the newest user request explicitly says otherwise.
+- Study the supplied HTML/source thoroughly before patching. Match the expected DOM/component structure and CSS class semantics; do not just paste Claude CSS over incompatible markup.
+- If the existing implementation cannot match the Claude design cleanly, rework the implementation structure even if that means replacing a large section. A real rework is preferred over compatibility hacks that cause broken layouts, overflowing fields, or mismatched spacing.
 - Treat the newest user requirement as higher priority if there is a conflict.
 - Port only the relevant UI, asset, interaction, animation, or sound for the requested area.
 - Preserve app functionality, Firebase state shape, i18n, and tests.
 - Before recreating assets or sounds, inspect the supplied Claude HTML/project because assets are often embedded or already present there.
+- Admin Portal specifically must follow Claude Design structure closely (`page-head`, `card`, `stat`, `tbl`, `detail-grid`, `profile-card`, `log-list`, modal patterns). Do not use legacy markup with broad compatibility CSS if it diverges visually.
 
 ## Testing Workflow
 
@@ -126,6 +132,7 @@ Use the lightest verification that fits the requested mode:
 - Standard Safe Patch: `npm run test:syntax` plus targeted Playwright/e2e for the affected flow.
 - Production Patch: full `npm test`.
 - Responsive-sensitive changes should be checked on desktop, tablet, and mobile. Playwright now has projects for `chromium`, `tablet` (`820 x 1180`), and `mobile`.
+- Changes to `shared/mobile-shell.*` require at least Home/Compare, Split, Debt Dragon, and Treasury mobile checks, plus a desktop smoke check to confirm the burger/tab bar remain hidden.
 
 Available commands:
 

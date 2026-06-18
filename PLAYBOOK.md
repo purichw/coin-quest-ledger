@@ -64,7 +64,10 @@ Good prompt:
 
 When implementing from Claude Design:
 
-- Treat Claude HTML/source as the visual and interaction reference.
+- Treat Claude HTML/source as the visual and interaction Holy Grail for the requested surface.
+- Aim for almost pixel-perfect output. Study the HTML/source thoroughly enough to understand its DOM/component structure, spacing model, class semantics, interactions, animations, assets, and sounds before patching.
+- Match the reference structure, not only the reference colors. Do not paste Claude CSS onto incompatible legacy markup and call it done.
+- If legacy implementation blocks a close match, rework the affected surface completely. A larger structural rework is expected when needed; avoid broad compatibility hacks that produce overflow, broken containers, or mismatched layouts.
 - Treat the newest user requirements as higher priority than Claude if they conflict.
 - Port only the relevant UI/asset/interaction surface for the requested area.
 - Keep existing app functionality, data shape, Firebase sync, i18n, and tests intact.
@@ -74,6 +77,7 @@ When implementing from Claude Design:
 
 - `trip/index.html` is the live Expense Splitter app shell and styles.
 - `trip/app.js` owns Expense Splitter behavior, state, rendering, Firebase/test persistence, event delegation, imports/exports, and overlays.
+- `shared/mobile-shell.css` and `shared/mobile-shell.js` provide the Claude native phone shell across Home/Compare, Split, Debt Dragon, and Treasury. They should stay hidden above `600px`; do not duplicate this shell per page unless a page truly needs custom behavior.
 - `lang.js` is shared across the toolbox; every new UI string needs Thai and English keys.
 - `shared/pointy-logic.js` owns shared calculation and normalization logic.
 - `tests/e2e/coin-quest-ledger.spec.mjs` covers critical Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison flows.
@@ -83,6 +87,7 @@ When implementing from Claude Design:
 ## Admin Portal Notes
 
 - `/admin/` is the Phase 1 Super Admin Portal. Changes here affect admin/persistence behavior, so use Production Patch verification (`npm test`) even if the visible diff looks small.
+- Admin Portal design must stay aligned to the supplied Claude Admin Portal HTML. Keep the Claude component vocabulary and layout primitives (`page-head`, `card`, `stat`, `tbl`, `detail-grid`, `profile-card`, `log-list`, modal patterns) rather than restoring legacy `panel`/ad hoc table markup.
 - Phase 1 uses a local browser gate only. Do not describe it as real access control; true private admin access needs Firebase Auth and Firestore Security Rules.
 - Save is local draft storage, Restore discards the draft back to the latest published snapshot, and Publish writes board/admin/user changes plus a revision log.
 - Board Admin IDs may intentionally repeat across boards because one admin can own multiple boards. Keep duplicate validation focused on board URLs unless the user asks otherwise.
@@ -94,3 +99,9 @@ When implementing from Claude Design:
 - Preserve the four-digit public Character ID links from hero cards and Admin Portal Users.
 - `private=1` only hides monetary values in the rendered profile. It is not authorization or Firestore security.
 - Character Profile, character persistence, or `admin.characterId` changes require full `npm test` and responsive verification.
+
+## Responsive Shell Notes
+
+- Claude mobile source expects a hamburger drawer and fixed bottom tab bar at phone width. Keep that behavior centralized in `shared/mobile-shell.*`.
+- Desktop and tablet should retain their current module topbars; verify the mobile shell is `display:none` there.
+- Compare mobile intentionally keeps the visible `Home` back button when active, even though the Claude prototype hides `.tb-back`, because the live app and tests depend on that return path.

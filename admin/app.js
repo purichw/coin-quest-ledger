@@ -217,7 +217,7 @@ function idChip(kind, label, id = label, extra = '') {
   const on = kind === 'char' ? '' : ` onclick="openDetail(${q(kind)},${q(id)})"`;
   const tag = kind === 'board' ? 'Board' : kind === 'admin' ? 'Admin' : kind === 'user' ? 'User' : 'Char';
   const protoKind = kind === 'board' ? 'k-board' : kind === 'admin' ? 'k-admin' : kind === 'user' ? 'k-user' : kind === 'char' ? 'k-char' : safeKind;
-  return `<button type="button" class="id-chip idchip ${safeKind} ${protoKind}"${on}>${tag}<span>${h(label || '-')}</span>${extra}</button>`;
+  return `<button type="button" class="id-chip idchip ${safeKind} ${protoKind}"${on}><span class="ic-ico">${tag}</span><span>${h(label || '-')}</span>${extra}</button>`;
 }
 function openDetail(kind, id) {
   detail = { kind, id };
@@ -399,6 +399,48 @@ function filtered(list, keys) {
   if (!s) return list;
   return list.filter(item => keys.some(key => String(item[key] || '').toLowerCase().includes(s)));
 }
+function pageHead(title, desc, actions = '') {
+  return `<div class="page-head"><div><h1 class="page-title">${h(title)}</h1>${desc ? `<div class="page-desc">${h(desc)}</div>` : ''}</div>${actions ? `<div class="page-head-actions">${actions}</div>` : ''}</div>`;
+}
+function card(title, body, actions = '', extra = '') {
+  return `<section class="panel card ${extra}"><div class="card-head"><h3>${title}</h3>${actions ? `<div class="ch-act">${actions}</div>` : ''}</div><div class="card-pad">${body}</div></section>`;
+}
+function flatCard(body, extra = '') {
+  return `<section class="card card-pad ${extra}">${body}</section>`;
+}
+function statCard(label, value, detail, ico = '◇', tone = 'flat') {
+  return `<div class="stat stat-card"><div class="s-top"><div class="s-label">${h(label)}</div><div class="s-ico">${ico}</div></div><div class="s-val">${value}</div>${detail ? `<div class="s-delta ${tone}">${detail}</div>` : ''}</div>`;
+}
+function searchBox(placeholder) {
+  return `<div class="search"><span class="s-ico">⌕</span><input placeholder="${h(placeholder)}" value="${h(query)}" oninput="query=this.value;render()"></div>`;
+}
+function seg(name, value, items) {
+  return `<div class="seg">${items.map(([key, label]) => `<button type="button" class="${value === key ? 'on' : ''}" onclick="${name}='${key}';render()">${h(label)}</button>`).join('')}</div>`;
+}
+function editInput(value, oninput, opts = {}) {
+  const type = opts.type || 'text';
+  const cls = opts.small ? ' edit-control small' : ' edit-control';
+  const placeholder = opts.placeholder ? ` placeholder="${h(opts.placeholder)}"` : '';
+  const max = opts.max ? ` maxlength="${opts.max}"` : '';
+  return `<div class="field inline-field"><input class="${cls}" type="${type}" value="${h(value)}"${placeholder}${max} oninput="${oninput}"></div>`;
+}
+function formField(label, control, hint = '') {
+  return `<div class="field"><label>${h(label)}</label>${control}${hint ? `<div class="hint">${h(hint)}</div>` : ''}</div>`;
+}
+function table(headers, rows, cls = '') {
+  return `<div class="tbl-wrap"><table class="tbl ${cls}"><thead><tr>${headers.map(x => `<th>${h(x)}</th>`).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${headers.length}" class="muted">No records</td></tr>`}</tbody></table></div>`;
+}
+function quickOpen(items, kind, labelFn) {
+  const buttons = items.slice(0, 4).map(item => `<button class="btn btn-ghost sm" onclick="openDetail('${kind}',${q(item.key || item.originalId || item.userId)})">Detail <span class="muted">${h(labelFn(item))}</span></button>`).join('');
+  return buttons ? `<div class="quick-open wrap-chips">${buttons}</div>` : '';
+}
+function modBadge(type) {
+  const t = type || 'split';
+  return `<span class="badge mod-${t}">${boardTypeIcon({ type:t })} ${boardTypeLabel({ type:t })}</span>`;
+}
+function statusBadge(label, cls = 'active') {
+  return `<span class="badge st-${cls}">${h(label)}</span>`;
+}
 function renderDashboard() {
   const boards = activeBoards();
   const split = boards.filter(b => (b.type || 'split') === 'split').length;
@@ -414,156 +456,155 @@ function renderDashboard() {
   }, { spend: 0, balance: 0, overdue: 0 });
   const attention = boards.filter(b => !b.adminId || !b.adminName || !b.urlId).slice(0, 5);
   const recent = diffBoards().slice(0, 6);
-  const kpis = `<div class="stat-grid">
-    <div class="stat-card"><span>Boards</span><strong>${boards.length}</strong><small>${split} Split · ${debt} Debt · ${treasury} Treasury</small></div>
-    <div class="stat-card"><span>Users / Characters</span><strong>${records.length}</strong><small>${users().length} board links</small></div>
-    <div class="stat-card"><span>Debt Watch</span><strong>${totals.overdue}</strong><small>${fmtMoney(totals.balance)} balance tracked</small></div>
-    <div class="stat-card"><span>Unpublished Changes</span><strong>${diffBoards().length}</strong><small>${dirty ? 'local draft active' : 'published snapshot'}</small></div>
+  const kpis = `<div class="grid g-4 mt16">
+    ${statCard('Boards', boards.length, `${split} Split · ${debt} Debt · ${treasury} Treasury`, '🗂️', 'flat')}
+    ${statCard('Users / Characters', records.length, `${users().length} board links`, '👤', 'flat')}
+    ${statCard('Debt Watch', totals.overdue, `${fmtMoney(totals.balance)} balance tracked`, '🐉', totals.overdue ? 'down' : 'flat')}
+    ${statCard('Unpublished Changes', diffBoards().length, dirty ? 'local draft active' : 'published snapshot', '🧾', dirty ? 'up' : 'flat')}
   </div>`;
-  const quick = `<div class="mini-list">
-    <button class="btn primary" onclick="addBoard()">+ New board</button>
-    <button class="btn" onclick="selectTab('users')">Invite / add user</button>
-    <button class="btn" onclick="selectTab('support')">Support tools</button>
-    <button class="btn warn" onclick="selectTab('revisions')">Version control</button>
+  const quick = `<div class="log-list">
+    <div class="log-item"><div class="log-ico add">＋</div><div class="log-body"><div class="log-text">Create a new board draft</div><div class="log-meta">Not published until Publish</div></div><div class="log-actions"><button class="btn btn-primary sm" onclick="addBoard()">New board</button></div></div>
+    <div class="log-item"><div class="log-ico edit">👤</div><div class="log-body"><div class="log-text">Invite / add user</div><div class="log-meta">Create character links inside a board</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('users')">Open</button></div></div>
+    <div class="log-item"><div class="log-ico slay">🧾</div><div class="log-body"><div class="log-text">Version control</div><div class="log-meta">${diffBoards().length} local changes</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('revisions')">Open</button></div></div>
   </div>`;
-  const feed = recent.length ? recent.map(c => `<div class="mini-row"><span><b>${h(c.area)}</b> <span class="pill">${h(c.action)}</span><br><span class="muted">${h(c.detail)}</span></span></div>`).join('') : '<div class="mini-row muted">No local draft changes yet</div>';
-  const needs = attention.length ? attention.map(b => `<div class="mini-row"><span>${idChip('board', b.urlId, b.originalId)}<br><span class="muted">${!b.adminId ? 'Missing admin ID' : !b.adminName ? 'Missing admin nickname' : 'Missing URL'}</span></span><button class="btn" onclick="openDetail('board',${q(b.originalId)})">Open</button></div>`).join('') : '<div class="mini-row muted">No flagged boards</div>';
+  const feed = recent.length ? `<div class="log-list">${recent.map(c => `<div class="log-item"><div class="log-ico ${String(c.action).toLowerCase().slice(0,3) === 'add' ? 'add' : 'edit'}">✦</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div>` : '<div class="empty"><div class="e-ico">🧾</div><div class="e-t">No local draft changes yet</div><div class="e-d">Edits appear here before publishing.</div></div>';
+  const needs = attention.length ? `<div class="log-list">${attention.map(b => `<div class="log-item"><div class="log-ico fire">!</div><div class="log-body"><div class="log-text">${idChip('board', b.urlId, b.originalId)}</div><div class="log-meta">${!b.adminId ? 'Missing admin ID' : !b.adminName ? 'Missing admin nickname' : 'Missing URL'}</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Open</button></div></div>`).join('')}</div>` : '<div class="empty"><div class="e-ico">✓</div><div class="e-t">No flagged boards</div><div class="e-d">Required admin metadata is present.</div></div>';
   const command = dashMode === 'b'
-    ? `<div class="split-layout"><div>${panel('Needs Attention', needs)}${panel('Recent Activity', feed)}</div><div>${panel('Quick Actions', quick)}</div></div>${kpis}`
-    : `${kpis}<div class="split-layout"><div>${panel('Recent Activity', feed)}</div><div>${panel('Needs Attention', needs)}${panel('Quick Actions', quick)}</div></div>`;
-  return panel('Dashboard', `<div class="toolbar"><div class="sub">Super Admin command center</div><div class="seg"><button class="${dashMode === 'a' ? 'on' : ''}" onclick="dashMode='a';render()">A Cards</button><button class="${dashMode === 'b' ? 'on' : ''}" onclick="dashMode='b';render()">B Command</button></div></div>${command}`);
+    ? `<div class="grid dashboard-grid">${card('Needs Attention', needs)}${card('Quick Actions', quick)}${card('Recent Activity', feed, '', 'wide')}</div>${kpis}`
+    : `${kpis}<div class="grid dashboard-grid mt16">${card('Recent Activity', feed, '', 'wide')}${card('Needs Attention', needs)}${card('Quick Actions', quick)}</div>`;
+  return `${pageHead('Dashboard', 'Super Admin command center', seg('dashMode', dashMode, [['a','A Cards'], ['b','B Command']]))}${command}`;
 }
 function renderRelationshipMap() {
-  return panel('Relationship Map', `<div class="map">
-    <div class="map-node"><b>Global User ID</b><div class="muted">หนึ่ง user ใช้ข้าม Split และ Debt</div></div>
-    <div class="map-arrow">→</div>
-    <div class="map-node"><b>Character IDs</b><div class="muted">EXP/LV อยู่บน Character ไม่ใช่ User</div></div>
-    <div class="map-arrow">→</div>
-    <div class="map-node"><b>Boards</b><div class="muted">Split trip หรือ Debt lair เท่านั้น Compare ไม่ใช่ Board</div></div>
-    <div class="map-node"><b>User as Admin</b><div class="muted">หนึ่ง User มีหลาย Admin ID ได้</div></div>
-    <div class="map-arrow">→</div>
-    <div class="map-node"><b>Admin IDs</b><div class="muted">Admin ID เดียวผูกหลาย Board ได้</div></div>
-    <div class="map-arrow">→</div>
-    <div class="map-node"><b>Owned Boards</b><div class="muted">Super Admin แก้ทุกอย่างได้ผ่าน portal นี้</div></div>
-  </div><div class="section"><h3>Live links</h3>${userRecords().slice(0, 6).map(u => `<div class="mini-row"><span>${idChip('user', u.userId, u.userId)} ${u.chars.map(c => idChip('char', c.id || '-', c.id)).join(' ')} ${u.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</span></div>`).join('') || '<div class="muted">ยังไม่มี user</div>'}</div>`);
+  const cols = [
+    ['Users', 'Global User ID', 'หนึ่ง user ใช้ข้าม Split และ Debt', 'user'],
+    ['Characters', 'Character IDs', 'EXP/LV อยู่บน Character ไม่ใช่ User', 'char'],
+    ['Boards', 'Boards', 'Split trip หรือ Debt lair เท่านั้น Compare ไม่ใช่ Board', 'board'],
+    ['Admins', 'Admin IDs', 'Admin ID เดียวผูกหลาย Board ได้', 'admin'],
+    ['Ownership', 'Owned Boards', 'Super Admin แก้ทุกอย่างได้ผ่าน portal นี้', 'board'],
+  ];
+  const map = `<div class="relmap">${cols.map(([title, name, desc, cls]) => `<div class="rel-col"><div class="rel-col-title">${h(title)}</div><div class="rel-node ${cls}"><div class="rn-top">${h(name)}</div><div class="rn-sub">${h(desc)}</div></div></div>`).join('')}</div>`;
+  const links = userRecords().slice(0, 6).map(u => `<div class="log-item"><div class="log-ico">👤</div><div class="log-body"><div class="log-text">${idChip('user', u.userId, u.userId)} ${h(u.name)}</div><div class="log-meta">${u.chars.map(c => idChip('char', c.id || '-', c.id)).join(' ')} ${u.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</div></div></div>`).join('');
+  return `${pageHead('Relationship Map', 'Board ↔ Admin ↔ User ↔ Character links')}${card('Relationship Map', `${map}<div class="hr"></div><p class="section-label">Live links</p><div class="log-list">${links || '<div class="empty"><div class="e-t">ยังไม่มี user</div></div>'}</div>`)}`;
 }
 function boardRows() {
   return filtered(activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter), ['urlId', 'tripName', 'adminId', 'adminName']).map(b => {
     const st = boardStats(b);
     return `<tr>
-      <td><input class="field small" value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})"></td>
-      <td><span class="badge">${boardTypeIcon(b)} ${boardTypeLabel(b)}</span></td>
-      <td><input class="field" value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})"></td>
-      <td><input class="field small" value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})"></td>
-      <td><input class="field" value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})"></td>
-      <td><input class="field" type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})"></td>
+      <td>${editInput(b.urlId, `updateBoard(${q(b.originalId)},{urlId:this.value.trim()})`, { small:true })}</td>
+      <td>${modBadge(b.type)}</td>
+      <td>${editInput(b.tripName, `updateBoard(${q(b.originalId)},{tripName:this.value})`)}</td>
+      <td>${editInput(b.adminId, `updateBoard(${q(b.originalId)},{adminId:this.value})`, { small:true })}</td>
+      <td>${editInput(b.adminName, `updateBoard(${q(b.originalId)},{adminName:this.value})`)}</td>
+      <td>${editInput('', `updateBoard(${q(b.originalId)},{newPassword:this.value})`, { type:'password', placeholder:'ตั้งรหัสใหม่' })}</td>
       <td><span class="pill">${b.participants.length}</span> <span class="muted">${b.type === 'debt' ? `${st.dragons} dragons` : `${st.expenses} quests`}</span></td>
-      <td><button class="btn" onclick="openDetail('board',${q(b.originalId)})">Detail</button> <button class="btn" onclick="addUser(${q(b.originalId)})">+ User</button> <button class="btn danger" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></td>
+      <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Detail</button><button class="btn btn-ghost sm" onclick="addUser(${q(b.originalId)})">+ User</button><button class="btn btn-danger sm" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></td>
     </tr>`;
   }).join('');
 }
 function renderBoards() {
   if (detail?.kind === 'board') return renderBoardDetail(detail.id);
-  const quick = activeBoards()
-    .filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter)
-    .slice(0, 4)
-    .map(b => `<div class="mini-row"><span>${idChip('board', b.urlId, b.originalId)} <b>${h(b.tripName)}</b><br><span class="muted">${boardTypeIcon(b)} ${boardTypeLabel(b)} · ${b.participants.length} members</span></span><button class="btn" onclick="openDetail('board',${q(b.originalId)})">Detail</button></div>`)
-    .join('');
-  const quickButtons = activeBoards()
-    .filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter)
-    .slice(0, 4)
-    .map(b => `<button class="btn" onclick="openDetail('board',${q(b.originalId)})">Detail</button>`)
-    .join('');
-  return panel('Boards', `<div class="toolbar"><div class="filters"><input class="search" placeholder="ค้นหา board/admin" value="${h(query)}" oninput="query=this.value;render()"><div class="seg">${['all','split','debt','treasury'].map(x => `<button class="${boardFilter === x ? 'on' : ''}" onclick="boardFilter='${x}';render()">${x}</button>`).join('')}</div></div><button class="btn primary" onclick="addBoard()">+ เพิ่ม Board</button></div><div class="actions mt12">${quickButtons}</div><div class="mini-list mt12">${quick}</div><div class="tbl-wrap mt16"><table class="tbl"><thead><tr><th>URL</th><th>Type</th><th>ชื่อ Board</th><th>Admin ID</th><th>ชื่อเล่น Admin</th><th>Reset Password</th><th>Members</th><th></th></tr></thead><tbody>${boardRows()}</tbody></table></div>`);
+  const toolbar = `<div class="toolbar">${searchBox('ค้นหา board/admin')}${seg('boardFilter', boardFilter, [['all','all'],['split','split'],['debt','debt'],['treasury','treasury']])}<button class="btn btn-primary" onclick="addBoard()">+ เพิ่ม Board</button></div>`;
+  const visibleBoards = activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter);
+  return `${pageHead('Boards', 'All created Split, Debt, and Treasury boards')}${toolbar}${quickOpen(visibleBoards, 'board', b => b.urlId)}${card('Boards', table(['URL','Type','ชื่อ Board','Admin ID','ชื่อเล่น Admin','Reset Password','Members',''], boardRows()))}`;
 }
 function renderBoardDetail(id) {
   const b = boardById(id);
-  if (!b) return panel('Board not found', '<button class="btn" onclick="closeDetail()">Back</button>');
+  if (!b) return card('Board not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const st = boardStats(b);
   const ownerUser = adminUserId(b);
-  const changeRows = diffBoards().filter(c => c.detail.includes(b.originalId) || c.detail.includes(b.urlId) || c.detail.includes(b.tripName)).map(c => `<div class="change"><strong>${h(c.area)} <span class="pill">${h(c.action)}</span></strong><span>${h(c.detail)} <button class="btn warn" onclick="restoreBoard(${q(b.originalId)})">Revert board</button></span></div>`).join('') || '<div class="muted">No draft changes for this board</div>';
+  const changeRows = diffBoards().filter(c => c.detail.includes(b.originalId) || c.detail.includes(b.urlId) || c.detail.includes(b.tripName)).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Revert board</button></div></div>`).join('') || '<div class="empty"><div class="e-t">No draft changes for this board</div></div>';
   const members = b.participants.map(name => {
     const charId = b.characterIds[name] || '';
     const uId = userKey(name, charId);
     const role = name === b.adminName ? 'Owner' : b.type === 'debt' ? 'Slayer' : 'Hero';
-    return `<tr><td>${h(name)}</td><td>${idChip('char', charId || '-', charId)}</td><td>${idChip('user', uId, uId)}</td><td><span class="pill">${role}</span></td><td><input class="field small" value="${h(charId)}" maxlength="4" oninput="updateUser(${q(b.originalId)},${q(name)},this.value)"></td><td><button class="btn danger" onclick="deleteUser(${q(b.originalId)},${q(name)})">ลบ</button></td></tr>`;
+    return `<tr><td class="cell-strong">${h(name)}</td><td>${idChip('char', charId || '-', charId)}</td><td>${idChip('user', uId, uId)}</td><td>${statusBadge(role, 'active')}</td><td>${editInput(charId, `updateUser(${q(b.originalId)},${q(name)},this.value)`, { small:true, max:4 })}</td><td class="td-actions"><button class="btn btn-danger sm" onclick="deleteUser(${q(b.originalId)},${q(name)})">ลบ</button></td></tr>`;
   }).join('');
-  return `<div class="crumbs"><button onclick="closeDetail('boards')">Boards</button><span>/</span><span>${h(b.urlId)}</span></div>
-    <section class="panel"><div class="toolbar"><h2>${h(b.tripName)}</h2><div>${idChip('board', b.urlId, b.originalId)} ${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)} ${idChip('user', ownerUser, ownerUser)}</div></div>
-      <div class="detail-grid"><div>
-        <div class="section"><h3>Overview</h3><div class="kv"><b>Type</b><span>${boardTypeIcon(b)} ${boardTypeLabel(b)}</span></div><div class="kv"><b>URL</b><input class="field" value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})"></div><div class="kv"><b>Name</b><input class="field" value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})"></div><div class="kv"><b>Stats</b><span>${b.type === 'debt' ? `${st.dragons} dragons · ${fmtMoney(st.balance)}` : `${st.expenses} quests · ${fmtMoney(st.spend)}`}</span></div></div>
-        <div class="section danger-zone"><h3>Danger Zone</h3><div class="actions"><button class="btn warn" onclick="restoreBoard(${q(b.originalId)})">Restore board</button><button class="btn danger" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div></div>
-      </div><div>
-        <div class="section"><h3>Owner / Admin</h3><div class="kv"><b>Admin ID</b><input class="field" value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})"></div><div class="kv"><b>Nickname</b><input class="field" value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})"></div><div class="kv"><b>Password reset</b><input class="field" type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})"></div></div>
-        <div class="section"><h3>Members</h3><table><thead><tr><th>Name</th><th>Character</th><th>User</th><th>Role</th><th>Edit ID</th><th></th></tr></thead><tbody>${members}</tbody></table><button class="btn" onclick="addUser(${q(b.originalId)})">+ Add user</button></div>
-        <div class="section"><h3>Change Log</h3><div class="rev-list">${changeRows}</div></div>
-        <div class="section"><h3>Board Versions</h3><div class="mini-row"><span>Latest published snapshot</span><button class="btn warn" onclick="restoreBoard(${q(b.originalId)})">Restore</button></div></div>
-      </div></div>
-    </section>`;
+  const overview = `${flatCard(`<div class="profile-card"><div class="profile-ava">${boardTypeIcon(b)}</div><div class="profile-name">${h(b.tripName)}</div><div class="profile-id">${idChip('board', b.urlId, b.originalId)}</div><div class="wrap-chips mt12">${modBadge(b.type)} ${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)} ${idChip('user', ownerUser, ownerUser)}</div></div>`)}
+    ${card('Overview', `<div class="kv"><div class="kv-row"><span class="k">Type</span><span class="v">${boardTypeIcon(b)} ${boardTypeLabel(b)}</span></div><div class="kv-row"><span class="k">Stats</span><span class="v">${b.type === 'debt' ? `${st.dragons} dragons · ${fmtMoney(st.balance)}` : `${st.expenses} quests · ${fmtMoney(st.spend)}`}</span></div></div>`)}
+    <div class="danger-zone mt16"><h4>Danger Zone</h4><div class="page-head-actions mt8"><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Restore board</button><button class="btn btn-danger sm" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div></div>`;
+  const adminForm = `${formField('URL', `<input value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})">`)}${formField('Name', `<input value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})">`)}${formField('Admin ID', `<input value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})">`)}${formField('Password reset', `<input type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})">`)}`;
+  return `<div class="crumbs"><button onclick="closeDetail('boards')">Boards</button><span class="sep">/</span><span class="cur">${h(b.urlId)}</span></div>${pageHead(b.tripName, 'Board detail and admin controls')}<div class="detail-grid"><div>${overview}</div><div class="grid">${card('Owner / Admin', adminForm)}${card('Members', `${table(['Name','Character','User','Role','Edit ID',''], members)}<button class="btn btn-ghost mt12" onclick="addUser(${q(b.originalId)})">+ Add user</button>`)}${card('Change Log', `<div class="log-list">${changeRows}</div>`)}${card('Board Versions', `<div class="between"><span>Latest published snapshot</span><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Restore</button></div>`)}</div></div>`;
 }
 function renderAdmins() {
   if (detail?.kind === 'admin') return renderAdminDetail(detail.id);
   const groups = filtered(adminGroups(), ['adminId', 'adminName', 'key']);
-  const quick = groups.slice(0, 4).map(g => `<div class="mini-row"><span>${idChip('admin', g.adminId || '-', g.key)} <b>${h(g.adminName || '-')}</b><br><span class="muted">${g.boards.length} owned boards</span></span><button class="btn" onclick="openDetail('admin',${q(g.key)})">Detail</button></div>`).join('');
-  const quickButtons = groups.slice(0, 4).map(g => `<button class="btn" onclick="openDetail('admin',${q(g.key)})">Detail</button>`).join('');
   const rows = groups.map(g => `
     <tr>
-      <td><input class="field small" value="${h(g.adminId)}" oninput="updateAdminGroup(${q(g.key)},{adminId:this.value})"></td>
-      <td><input class="field" value="${h(g.adminName)}" oninput="updateAdminGroup(${q(g.key)},{adminName:this.value})"></td>
+      <td>${editInput(g.adminId, `updateAdminGroup(${q(g.key)},{adminId:this.value})`, { small:true })}</td>
+      <td>${editInput(g.adminName, `updateAdminGroup(${q(g.key)},{adminName:this.value})`)}</td>
       <td>${idChip('user', g.boards[0] ? adminUserId(g.boards[0]) : userKey(g.adminName, g.adminId), g.boards[0] ? adminUserId(g.boards[0]) : userKey(g.adminName, g.adminId))}</td>
-      <td class="muted">${h(g.key)}</td>
+      <td class="muted mono">${h(g.key)}</td>
       <td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td>
-      <td><button class="btn" onclick="openDetail('admin',${q(g.key)})">Detail</button></td>
+      <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('admin',${q(g.key)})">Detail</button></td>
     </tr>`).join('');
-  return panel('Board Admins', `<div class="toolbar"><input class="search" placeholder="ค้นหา admin" value="${h(query)}" oninput="query=this.value;render()"><button class="btn" onclick="supportAction('Invite Admin','เลือก user แล้วผูก Admin ID เข้ากับ board')">Invite admin</button></div><div class="actions mt12">${quickButtons}</div><div class="mini-list mt12">${quick}</div><div class="tbl-wrap mt16"><table class="tbl"><thead><tr><th>ID</th><th>ชื่อเล่น</th><th>User</th><th>Owner Hash</th><th>Boards</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`);
+  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards', `<button class="btn btn-ghost" onclick="supportAction('Invite Admin','เลือก user แล้วผูก Admin ID เข้ากับ board')">Invite admin</button>`)}<div class="toolbar">${searchBox('ค้นหา admin')}</div>${quickOpen(groups, 'admin', g => g.adminId || '-')}${card('Board Admins', table(['ID','ชื่อเล่น','User','Owner Hash','Boards',''], rows))}`;
 }
 function renderAdminDetail(key) {
   const g = adminGroupByKey(key);
-  if (!g) return panel('Admin not found', '<button class="btn" onclick="closeDetail()">Back</button>');
+  if (!g) return card('Admin not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const first = g.boards[0];
   const userId = first ? adminUserId(first) : userKey(g.adminName, g.adminId);
-  return `<div class="crumbs"><button onclick="closeDetail('admins')">Admins</button><span>/</span><span>${h(g.adminId || key)}</span></div>${panel('Admin Detail', `<div class="detail-grid"><div class="section"><h3>Identity</h3><div class="kv"><b>Admin ID</b><input class="field" value="${h(g.adminId)}" oninput="updateAdminGroup(${q(g.key)},{adminId:this.value})"></div><div class="kv"><b>Nickname</b><input class="field" value="${h(g.adminName)}" oninput="updateAdminGroup(${q(g.key)},{adminName:this.value})"></div><div class="kv"><b>User</b><span>${idChip('user', userId, userId)}</span></div><div class="kv"><b>Owner hash</b><span class="muted">${h(g.key)}</span></div></div><div class="section"><h3>Owned Boards</h3><table><thead><tr><th>Board</th><th>Name</th><th>Type</th><th></th></tr></thead><tbody>${g.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td>${h(b.tripName)}</td><td>${boardTypeLabel(b)}</td><td><button class="btn" onclick="openDetail('board',${q(b.originalId)})">Open</button></td></tr>`).join('')}</tbody></table></div></div>`)}`;
+  const identity = `${flatCard(`<div class="profile-card"><div class="profile-ava">🛡️</div><div class="profile-name">${h(g.adminName || g.adminId || 'Admin')}</div><div class="profile-id">${idChip('admin', g.adminId || '-', g.key)}</div><div class="mt12">${idChip('user', userId, userId)}</div></div>`)}
+    ${card('Identity', `${formField('Admin ID', `<input value="${h(g.adminId)}" oninput="updateAdminGroup(${q(g.key)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(g.adminName)}" oninput="updateAdminGroup(${q(g.key)},{adminName:this.value})">`)}<div class="kv"><div class="kv-row"><span class="k">Owner hash</span><span class="v mono">${h(g.key)}</span></div></div>`)}`;
+  const owned = g.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Open</button></td></tr>`).join('');
+  return `<div class="crumbs"><button onclick="closeDetail('admins')">Admins</button><span class="sep">/</span><span class="cur">${h(g.adminId || key)}</span></div>${pageHead('Admin Detail', 'Admin identity and board ownership')}<div class="detail-grid"><div>${identity}</div><div>${card('Owned Boards', table(['Board','Name','Type',''], owned))}</div></div>`;
 }
 function renderUsers() {
   if (detail?.kind === 'user') return renderUserDetail(detail.id);
   const records = userRecords().filter(u => !query || `${u.name} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
-  const quick = records.slice(0, 4).map(u => `<div class="mini-row"><span>${idChip('user', u.userId, u.userId)} <b>${h(u.name)}</b><br><span class="muted">${u.chars.length} chars · ${u.boards.length} boards · ${u.adminGroups.length} admin roles</span></span><button class="btn" onclick="openDetail('user',${q(u.userId)})">Detail</button></div>`).join('');
-  const quickButtons = records.slice(0, 4).map(u => `<button class="btn" onclick="openDetail('user',${q(u.userId)})">Detail</button>`).join('');
   const flatRows = users().filter(u => !query || `${u.name} ${u.id} ${u.board.urlId}`.toLowerCase().includes(query.toLowerCase())).map(u => `
     <tr>
       <td>${idChip('board', u.board.urlId, u.board.originalId)}</td>
-      <td>${h(u.name)}</td>
-      <td><input class="field small" value="${h(u.id)}" maxlength="4" oninput="updateUser(${q(u.board.originalId)},${q(u.name)},this.value)"></td>
+      <td class="cell-strong">${h(u.name)}</td>
+      <td>${editInput(u.id, `updateUser(${q(u.board.originalId)},${q(u.name)},this.value)`, { small:true, max:4 })}</td>
       <td>${idChip('user', userKey(u.name, u.id), userKey(u.name, u.id))}</td>
-      <td><a class="btn" href="${h(characterProfileLink(u.id))}">Profile</a> <button class="btn" onclick="openDetail('user',${q(userKey(u.name, u.id))})">Detail</button> <button class="btn danger" onclick="deleteUser(${q(u.board.originalId)},${q(u.name)})">ลบ</button></td>
+      <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.id))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(userKey(u.name, u.id))})">Detail</button><button class="btn btn-danger sm" onclick="deleteUser(${q(u.board.originalId)},${q(u.name)})">ลบ</button></td>
     </tr>`).join('');
-  return panel('Users', `<div class="toolbar"><input class="search" placeholder="ค้นหา user/board" value="${h(query)}" oninput="query=this.value;render()"><button class="btn" onclick="supportAction('Add User','เลือก existing/new user แล้วสร้าง character LV 1 ใน board')">+ Add user</button></div><div class="actions mt12">${quickButtons}</div><div class="mini-list mt12">${quick}</div><div class="tbl-wrap mt16"><table class="tbl"><thead><tr><th>Board</th><th>ชื่อ</th><th>Character ID</th><th>User ID</th><th></th></tr></thead><tbody>${flatRows}</tbody></table></div>`);
+  return `${pageHead('Users', `${records.length} global users · ${users().length} board character links`, `<button class="btn btn-ghost" onclick="supportAction('Add User','เลือก existing/new user แล้วสร้าง character LV 1 ใน board')">+ Add user</button>`)}<div class="toolbar">${searchBox('ค้นหา user/board')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['Board','ชื่อ','Character ID','User ID',''], flatRows))}`;
 }
 function renderUserDetail(id) {
   const u = userById(id);
-  if (!u) return panel('User not found', '<button class="btn" onclick="closeDetail()">Back</button>');
+  if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const renown = userRenown(u);
   const boards = u.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td>${h(b.tripName)}</td><td>${boardTypeLabel(b)}</td><td>${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</td></tr>`).join('');
   const chars = u.chars.map(c => `<tr><td>${idChip('char', c.id || '-', c.id)}</td><td>${h(c.name)}</td><td>${h(c.className)}</td><td>LV ${Math.floor(Number(c.xp || 0) / 1200) + 1} · ${Number(c.xp || 0)} XP</td><td>${idChip('board', boardById(c.boardId)?.urlId || c.boardId, c.boardId)}</td></tr>`).join('');
   const adminRows = u.adminGroups.map(g => `<tr><td>${idChip('admin', g.adminId || '-', g.key)}</td><td class="muted">${h(g.key)}</td><td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td></tr>`).join('');
-  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span>/</span><span>${h(u.userId)}</span></div>${panel('User Profile', `<div class="stat-grid"><div class="stat-card"><span>User ID</span><strong>${h(u.userId)}</strong><small>${h(u.name)}</small></div><div class="stat-card"><span>Overall Level</span><strong>${userLevel(u)}</strong><small>${renown} Renown</small></div><div class="stat-card"><span>Characters</span><strong>${u.chars.length}</strong><small>EXP lives on each character</small></div><div class="stat-card"><span>Admin Roles</span><strong>${u.adminGroups.length}</strong><small>${u.adminGroups.flatMap(g => g.boards).length} owned boards</small></div></div><div class="section"><h3>Characters</h3><table><thead><tr><th>Character</th><th>Name</th><th>Class</th><th>Level / XP</th><th>Boards</th></tr></thead><tbody>${chars}</tbody></table></div><div class="section"><h3>Admin roles</h3><table><thead><tr><th>Admin ID</th><th>Owner hash</th><th>Owned boards</th></tr></thead><tbody>${adminRows || '<tr><td colspan="3" class="muted">No admin roles</td></tr>'}</tbody></table></div><div class="section"><h3>Boards</h3><table><thead><tr><th>Board</th><th>Name</th><th>Type</th><th>Admin</th></tr></thead><tbody>${boards}</tbody></table></div>`)}`;
+  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div><div class="profile-id">${idChip('user', u.userId, u.userId)}</div></div>`);
+  const stats = `<div class="grid g-4">${statCard('User ID', h(u.userId), h(u.name), 'ID')}${statCard('Overall Level', userLevel(u), `${renown} Renown`, 'LV')}${statCard('Characters', u.chars.length, 'EXP lives on each character', '⚔️')}${statCard('Admin Roles', u.adminGroups.length, `${u.adminGroups.flatMap(g => g.boards).length} owned boards`, '🛡️')}</div>`;
+  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.userId)}</span></div>${pageHead('User Profile', 'Global user, character IDs, and admin roles')}<div class="detail-grid"><div>${profile}</div><div class="grid">${stats}${card('Characters', table(['Character','Name','Class','Level / XP','Boards'], chars))}${card('Admin roles', table(['Admin ID','Owner hash','Owned boards'], adminRows))}${card('Boards', table(['Board','Name','Type','Admin'], boards))}</div></div>`;
 }
 function renderAuditLog() {
   const changes = diffBoards().map((c, i) => ({ ...c, id: 'draft-' + i, at: Date.now(), author: 'Local Draft' }));
   const revChanges = (published.revisions || []).flatMap(rev => (rev.changes || []).map((c, i) => ({ ...c, id: `${rev.id || rev.createdAt}-${i}`, at: rev.createdAt, author: rev.author || 'Super Admin' })));
   const all = [...changes, ...revChanges].filter(c => auditFilter === 'all' || String(c.area).toLowerCase().includes(auditFilter));
-  const rows = all.map(c => `<div class="change"><strong>${new Date(c.at || Date.now()).toLocaleString()}<br><span class="pill">${h(c.area)} · ${h(c.action)}</span></strong><span>${h(c.detail)}<br><span class="muted">${h(c.author)}</span></span></div>`).join('');
-  return panel('Audit Log', `<div class="toolbar"><div class="sub">System-wide chronological feed from drafts and published revisions</div><select class="field audit-filter" onchange="auditFilter=this.value;render()">${['all','boards','admins','users'].map(x => `<option value="${x}" ${auditFilter === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div><div class="rev-list">${rows || '<div class="muted">No audit entries yet</div>'}</div>`);
+  const rows = all.map(c => `<div class="log-item"><div class="log-ico edit">✦</div><div class="log-body"><div class="log-text">${h(c.detail)}</div><div class="log-meta"><span>${new Date(c.at || Date.now()).toLocaleString()}</span><span class="dot-sep">•</span><span>${h(c.author)}</span><span class="dot-sep">•</span>${statusBadge(`${c.area} · ${c.action}`, 'active')}</div></div></div>`).join('');
+  const filter = `<div class="field compact-select"><select onchange="auditFilter=this.value;render()">${['all','boards','admins','users'].map(x => `<option value="${x}" ${auditFilter === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>`;
+  return `${pageHead('Audit Log', 'System-wide chronological feed from drafts and published revisions', filter)}${card('Audit Log', `<div class="log-list">${rows || '<div class="empty"><div class="e-t">No audit entries yet</div></div>'}</div>`)}`;
 }
 function renderRevisions() {
   const revs = published.revisions || [];
   const current = diffBoards();
-  return panel('Version Control', `<div class="toolbar"><div class="actions"><button class="btn" onclick="saveDraft()">Save snapshot</button><button class="btn primary" onclick="publishDraft()">Publish now${current.length ? ` (${current.length})` : ''}</button><button class="btn warn" onclick="restoreDraft()">Restore latest</button></div></div>${revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="change"><strong>${h(c.area)} <span class="pill">${h(c.action)}</span></strong><span>${h(c.detail)}</span></div>`).join('')}</div></details>`).join('') || '<div class="muted">ยังไม่มี revision</div>'}`);
+  const body = revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div></details>`).join('') || '<div class="empty"><div class="e-t">ยังไม่มี revision</div></div>';
+  const actions = `<button class="btn btn-ghost" onclick="saveDraft()">Save snapshot</button><button class="btn btn-primary" onclick="publishDraft()">Publish now${current.length ? ` (${current.length})` : ''}</button><button class="btn btn-ghost" onclick="restoreDraft()">Restore latest</button>`;
+  return `${pageHead('Version Control', 'Published revisions and local draft changes', actions)}${card('Recent Revisions', body)}`;
 }
 function renderSupportTools() {
-  return panel('Support Tools', `<div class="stat-grid"><div class="stat-card"><span>Impersonate</span><strong>👁</strong><small>Read-only user view</small><button class="btn" onclick="supportAction('Impersonate','เปิด read-only user view สำหรับ debug')">Open</button></div><div class="stat-card"><span>Reset password</span><strong>🔑</strong><small>Temporary board admin password</small><button class="btn" onclick="supportAction('Reset Password','สร้าง temporary password และ log action')">Reset</button></div><div class="stat-card"><span>Export</span><strong>📦</strong><small>Board/User JSON or CSV</small><button class="btn" onclick="supportAction('Export Data','เตรียม export package สำหรับ support')">Export</button></div><div class="stat-card"><span>Merge</span><strong>🔀</strong><small>Merge duplicate accounts</small><button class="btn warn" onclick="supportAction('Merge Accounts','รวมบัญชีซ้ำพร้อมบันทึก audit')">Merge</button></div></div><div class="section"><h3>Create / invite flows</h3><div class="actions"><button class="btn primary" onclick="addBoard()">New board</button><button class="btn" onclick="supportAction('Invite Admin','เลือก user → nickname → board แล้วเพิ่ม Admin ID')">Invite admin</button><button class="btn" onclick="supportAction('Add User','เพิ่ม existing/new user เข้า board และสร้าง character LV 1')">Add user</button></div></div>`);
+  const tools = `<div class="grid g-4">
+    ${statCard('Read-only view', '👁', 'User perspective debug', 'View')}
+    ${statCard('Reset password', '🔑', 'Temporary board admin password', 'Key')}
+    ${statCard('Export', '📦', 'Board/User JSON or CSV', 'JSON')}
+    ${statCard('Merge', '🔀', 'Merge duplicate accounts', 'Ops')}
+  </div>`;
+  const toolActions = `<div class="log-list">
+    <div class="log-item"><div class="log-ico edit">👁</div><div class="log-body"><div class="log-text">Impersonate</div><div class="log-meta">Open read-only user view for debugging.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Impersonate','เปิด read-only user view สำหรับ debug')">Open</button></div></div>
+    <div class="log-item"><div class="log-ico edit">🔑</div><div class="log-body"><div class="log-text">Reset password</div><div class="log-meta">Create a temporary board admin password.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Reset Password','สร้าง temporary password และ log action')">Reset</button></div></div>
+    <div class="log-item"><div class="log-ico add">📦</div><div class="log-body"><div class="log-text">Export</div><div class="log-meta">Prepare a Board/User data package.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Export Data','เตรียม export package สำหรับ support')">Export</button></div></div>
+    <div class="log-item"><div class="log-ico fire">🔀</div><div class="log-body"><div class="log-text">Merge</div><div class="log-meta">Merge duplicate accounts with audit logging.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Merge Accounts','รวมบัญชีซ้ำพร้อมบันทึก audit')">Merge</button></div></div>
+  </div>`;
+  const flows = `<div class="page-head-actions"><button class="btn btn-primary" onclick="addBoard()">New board</button><button class="btn btn-ghost" onclick="supportAction('Invite Admin','เลือก user → nickname → board แล้วเพิ่ม Admin ID')">Invite admin</button><button class="btn btn-ghost" onclick="supportAction('Add User','เพิ่ม existing/new user เข้า board และสร้าง character LV 1')">Add user</button></div>`;
+  return `${pageHead('Support Tools', 'Operator actions for Phase 1')}${tools}<div class="mt16">${card('Support Actions', toolActions)}</div><div class="mt16">${card('Create / invite flows', flows)}</div>`;
 }
-function panel(title, body) { return `<section class="panel card card-pad"><div class="legacy-card-head"><h2>${title}</h2></div>${body}</section>`; }
+function panel(title, body) { return card(title, body); }
 function renderMain() {
   const body = tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
   const changes = diffBoards().length;
@@ -585,10 +626,10 @@ function renderMain() {
       <div class="tb-right">
         <span class="env-pill"><span class="dot"></span>PHASE 1</span>
         <span id="draft-badge" class="env-pill">${dirty ? 'Draft changed locally' : 'Published version'}</span>
-        <button class="btn" onclick="saveDraft()">Save</button>
-        <button class="btn warn" onclick="restoreDraft()">Restore</button>
-        <button id="publish-btn" class="btn primary" onclick="publishDraft()">Publish ${changes ? `(${changes})` : ''}</button>
-        <button class="btn" onclick="lockGate()">Lock</button>
+        <button class="btn btn-ghost sm" onclick="saveDraft()">Save</button>
+        <button class="btn btn-ghost sm" onclick="restoreDraft()">Restore</button>
+        <button id="publish-btn" class="btn btn-primary sm" onclick="publishDraft()">Publish ${changes ? `(${changes})` : ''}</button>
+        <button class="btn btn-ghost sm" onclick="lockGate()">Lock</button>
         <div class="tb-admin"><div class="who"><b>Super Admin</b><span>LOCAL GATE</span></div><div class="tb-ava">🛡️</div></div>
       </div>
     </header>
@@ -602,16 +643,17 @@ function renderMain() {
   </div>`;
 }
 function renderGate() {
-  document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Coin Quest Ledger admin command center</div><div class="notice">Phase 1 local gate เท่านั้น ยังไม่ใช่ security จริง</div><input id="gate-pass" class="field pin-input" type="password" placeholder="${gateConfigured() ? 'Super Admin local pass' : 'ตั้ง local pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()"><button class="btn primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button></div></div>`;
+  document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Coin Quest Ledger admin command center</div><div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1 local gate เท่านั้น ยังไม่ใช่ security จริง</span></div>${formField('', `<input id="gate-pass" class="pin-input" type="password" placeholder="${gateConfigured() ? 'Super Admin local pass' : 'ตั้ง local pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()">`)}<button class="btn btn-primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button></div></div>`;
 }
 function render() { isUnlocked() ? renderMain() : renderGate(); }
 function showModal(title, body, actions = []) {
   const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="modal"><h2>${h(title)}</h2><div>${h(body)}</div><div class="modal-actions">${actions.map((a, i) => `<button class="btn ${a.primary ? 'primary' : ''} ${a.danger ? 'danger' : ''}" data-i="${i}">${h(a.label || 'ตกลง')}</button>`).join('')}</div></div>`;
+  root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn" data-i="0">×</button></div><div class="modal-body">${h(body)}</div><div class="modal-foot">${actions.map((a, i) => `<button class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'} ${a.danger ? 'btn-danger' : ''}" data-i="${i}">${h(a.label || 'ตกลง')}</button>`).join('')}</div></div>`;
   root.classList.add('show');
   [...root.querySelectorAll('button')].forEach(btn => btn.onclick = () => {
     const fn = actions[Number(btn.dataset.i)]?.onClick;
     root.classList.remove('show');
+    root.innerHTML = '';
     if (fn) fn();
   });
 }
@@ -620,10 +662,10 @@ function confirmAction(title, body, onConfirm) {
 }
 function inputAction(title, body, placeholder, onConfirm) {
   const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="modal"><h2>${h(title)}</h2><div>${h(body)}</div><input id="modal-input" class="field modal-input" placeholder="${h(placeholder)}"><div class="modal-actions"><button class="btn" data-action="cancel">ยกเลิก</button><button class="btn primary" data-action="ok">ยืนยัน</button></div></div>`;
+  root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn" data-action="cancel">×</button></div><div class="modal-body"><p class="muted">${h(body)}</p>${formField(placeholder, `<input id="modal-input" placeholder="${h(placeholder)}">`)}</div><div class="modal-foot"><button class="btn btn-ghost" data-action="cancel">ยกเลิก</button><button class="btn btn-primary" data-action="ok">ยืนยัน</button></div></div>`;
   root.classList.add('show');
   const input = document.getElementById('modal-input');
-  const close = () => root.classList.remove('show');
+  const close = () => { root.classList.remove('show'); root.innerHTML = ''; };
   root.querySelector('[data-action="cancel"]').onclick = close;
   root.querySelector('[data-action="ok"]').onclick = () => {
     const value = input.value.trim();
