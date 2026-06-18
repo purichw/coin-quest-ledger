@@ -12,18 +12,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/first-load.css">
   <style>
-    :root { --bg:#efe9dc; --panel:#fffdf8; --ink:#29241d; --muted:#7a6f60; --line:#d8c8a9; --accent:#2f8f5b; --gold:#c79a2e; --danger:#bd3f32; --soft:#f6f0e4; --font:"IBM Plex Sans Thai",system-ui,sans-serif; --display:"Mitr",system-ui,sans-serif; --mono:"Chakra Petch",monospace; }
+    :root { --bg:#efe9dc; --panel:#fffdf8; --panel-in:#ffffff; --ink:#29241d; --muted:#7a6f60; --line:#d8c8a9; --accent:#2f8f5b; --gold:#c79a2e; --danger:#bd3f32; --soft:#f6f0e4; --topbar:#2b2014; --topbar-ink:#fff8e8; --font:"IBM Plex Sans Thai",system-ui,sans-serif; --display:"Mitr",system-ui,sans-serif; --mono:"Chakra Petch",monospace; }
+    [data-theme="dungeon"] { --bg:#14121f; --panel:#221d33; --panel-in:#1a1628; --ink:#ece8f8; --muted:#a39bc4; --line:#3b3357; --accent:#2f8f5b; --gold:#ecc14e; --danger:#ff5d70; --soft:#2b2542; --topbar:#0e0c17; --topbar-ink:#d9d2f0; }
     * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; color:var(--ink); font-family:var(--font); background:linear-gradient(180deg,#2b2014 0 92px,var(--bg) 92px); }
+    body { margin:0; min-height:100vh; color:var(--ink); font-family:var(--font); background:linear-gradient(180deg,var(--topbar) 0 92px,var(--bg) 92px); }
     button,input { font-family:inherit; }
     button { cursor:pointer; }
     .shell { width:min(1180px,100%); margin:0 auto; padding:24px; }
-    .top { display:flex; justify-content:space-between; gap:16px; align-items:center; min-height:68px; color:#fff8e8; }
+    .top { display:flex; justify-content:space-between; gap:16px; align-items:center; min-height:68px; color:var(--topbar-ink); }
     .brand { display:flex; gap:10px; align-items:center; font-family:var(--display); font-size:22px; font-weight:700; }
     .top-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
     .btn { border:1.5px solid var(--line); border-radius:8px; background:var(--panel); color:var(--ink); padding:9px 12px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
     .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
-    .btn.ghost { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.22); color:#fff8e8; }
+    .btn.ghost { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.22); color:var(--topbar-ink); }
     .hero { margin-top:14px; display:grid; grid-template-columns:330px 1fr; gap:18px; align-items:stretch; }
     .portrait-card,.panel { background:var(--panel); border:1.5px solid var(--line); border-radius:14px; box-shadow:0 18px 45px -32px rgba(0,0,0,.45); }
     .portrait-card { overflow:hidden; display:grid; grid-template-rows:340px auto; }
@@ -37,12 +38,12 @@
     .sub,.muted { color:var(--muted); }
     .hero-main { display:grid; gap:14px; }
     .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-    .stat { border:1px solid var(--line); background:linear-gradient(180deg,#fffaf0,#f7f0e2); border-radius:10px; padding:12px; min-height:82px; }
+    .stat { border:1px solid var(--line); background:linear-gradient(180deg,var(--panel-in),var(--soft)); border-radius:10px; padding:12px; min-height:82px; }
     .stat span { display:block; color:var(--muted); font-size:12px; font-weight:700; }
     .stat strong { display:block; margin-top:4px; font-family:var(--mono); font-size:24px; }
     .xp-panel { padding:16px; }
     .xp-row { display:flex; justify-content:space-between; gap:12px; align-items:center; }
-    .bar { height:14px; border-radius:999px; overflow:hidden; background:#eadfc9; border:1px solid var(--line); margin-top:10px; }
+    .bar { height:14px; border-radius:999px; overflow:hidden; background:var(--soft); border:1px solid var(--line); margin-top:10px; }
     .fill { display:block; height:100%; width:var(--pct); background:linear-gradient(90deg,var(--accent),var(--gold)); }
     .grid { display:grid; grid-template-columns:1.2fr .8fr; gap:18px; margin-top:18px; align-items:start; }
     .panel { padding:16px; }
@@ -52,7 +53,7 @@
     .badge { display:flex; gap:10px; align-items:flex-start; border:1px solid var(--line); border-radius:10px; background:var(--soft); padding:10px; }
     .badge-icon { font-size:22px; }
     .board-list { display:grid; gap:10px; }
-    .board { display:grid; grid-template-columns:1fr auto; gap:10px; border:1px solid var(--line); border-radius:10px; padding:12px; background:white; }
+    .board { display:grid; grid-template-columns:1fr auto; gap:10px; border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--panel-in); }
     .board-title { font-weight:800; }
     .board-meta { color:var(--muted); font-size:13px; margin-top:4px; }
     .board-money { text-align:right; font-family:var(--mono); font-weight:700; }
@@ -61,12 +62,13 @@
     .search-card { margin-top:18px; padding:18px; display:grid; gap:12px; }
     .search-row { display:flex; gap:8px; flex-wrap:wrap; }
     .search-row input { flex:1; min-width:180px; border:1.5px solid var(--line); border-radius:8px; padding:10px 12px; font-family:var(--mono); font-size:18px; }
-    .empty { padding:30px; text-align:center; color:var(--muted); border:1px dashed var(--line); border-radius:12px; background:rgba(255,255,255,.45); }
+    .empty { padding:30px; text-align:center; color:var(--muted); border:1px dashed var(--line); border-radius:12px; background:color-mix(in oklab, var(--panel-in), transparent 35%); }
     @media (max-width: 860px) { .shell { padding:14px; } .hero,.grid { grid-template-columns:1fr; } .summary { grid-template-columns:repeat(2,1fr); } .portrait-card { grid-template-rows:300px auto; } .top { align-items:flex-start; } }
     @media (max-width: 520px) { .top { display:grid; } .top-actions { justify-content:flex-start; } .summary { grid-template-columns:1fr; } .board { grid-template-columns:1fr; } .board-money { text-align:left; } h1 { font-size:28px; } }
   </style>
 </head>
 <body>
+  <script>(function(){try{var t=document.documentElement.getAttribute("data-theme");if(t==="dungeon"||t==="tavern")document.body.setAttribute("data-theme",t)}catch(_){}})();</script>
   <div class="first-load" data-first-load>
     <div class="first-load-box">
       <div class="first-load-emblem" aria-hidden="true">

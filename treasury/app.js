@@ -1,4 +1,6 @@
 const TR_KEY = 'pointy_treasury_v1';
+const THEME_KEY = 'pointy_theme';
+const UI_KEY = 'coin_quest_ui_v1';
 const TR_XP_MONTH = 800;
 const TR_XP_ONTIME = 60;
 const TR_XP_LOG = 8;
@@ -171,6 +173,39 @@ const SEED_TREASURY = {
 let S = loadTreasury();
 let modal = null;
 let toastTimer = null;
+
+function readJsonSetting(key, fallback = {}) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+function writeJsonSetting(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+}
+function normalizeThemeValue(theme) {
+  return theme === 'dungeon' ? 'dungeon' : 'tavern';
+}
+function currentGlobalTheme(fallback = 'tavern') {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'dungeon' || saved === 'tavern') return saved;
+  } catch (_) {}
+  const uiTheme = readJsonSetting(UI_KEY, {}).theme;
+  if (uiTheme === 'dungeon' || uiTheme === 'tavern') return uiTheme;
+  const domTheme = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme');
+  if (domTheme === 'dungeon' || domTheme === 'tavern') return domTheme;
+  return normalizeThemeValue(fallback);
+}
+function setTheme(theme) {
+  const next = normalizeThemeValue(theme);
+  try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+  writeJsonSetting(UI_KEY, { ...readJsonSetting(UI_KEY, {}), theme: next });
+  document.documentElement.setAttribute('data-theme', next);
+  document.body.setAttribute('data-theme', next);
+}
 
 function truid() { return 't' + Math.random().toString(36).slice(2, 9); }
 function lang() { return window.LANG === 'en' ? 'en' : 'th'; }
@@ -497,5 +532,7 @@ window.projectMonth = projectMonth;
 window.monthKey = monthKey;
 window.totalSpent = totalSpent;
 window.catSpent = catSpent;
+window.setTheme = setTheme;
 
+setTheme(currentGlobalTheme('tavern'));
 render();

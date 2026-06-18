@@ -7,6 +7,8 @@ const CLASSES = PointyLogic.CLASSES;
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
 const DRAGON_TYPES = PointyLogic.DRAGON_TYPES;
 const DRAGON_ORDER = PointyLogic.DRAGON_TYPE_ORDER;
+const THEME_KEY = 'pointy_theme';
+const UI_KEY = 'coin_quest_ui_v1';
 const SKIN_DEFS = {
   'archfiend-male': [
     { id: 'crimson-regent', res: 'crimson-regent-male', th: 'ราชันเลือด', en: 'Crimson Regent' },
@@ -14,6 +16,44 @@ const SKIN_DEFS = {
     { id: 'archfiend-swimmer-blackred', res: 'archfiend-swimmer-blackred-male', th: 'อาร์คฟีนด์นักว่ายน้ำดำแดง', en: 'Archfiend Swimmer Black/Red' }
   ]
 };
+
+function readJsonSetting(key, fallback = {}) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+function writeJsonSetting(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+}
+function normalizeThemeValue(theme) {
+  return theme === 'dungeon' ? 'dungeon' : 'tavern';
+}
+function currentGlobalTheme(fallback = 'tavern') {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'dungeon' || saved === 'tavern') return saved;
+  } catch (_) {}
+  const uiTheme = readJsonSetting(UI_KEY, {}).theme;
+  if (uiTheme === 'dungeon' || uiTheme === 'tavern') return uiTheme;
+  const domTheme = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme');
+  if (domTheme === 'dungeon' || domTheme === 'tavern') return domTheme;
+  return normalizeThemeValue(fallback);
+}
+function persistGlobalTheme(theme) {
+  const next = normalizeThemeValue(theme);
+  try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+  writeJsonSetting(UI_KEY, { ...readJsonSetting(UI_KEY, {}), theme: next });
+  return next;
+}
+function applyGlobalTheme(theme) {
+  const next = persistGlobalTheme(theme);
+  document.documentElement.setAttribute('data-theme', next);
+  document.body.setAttribute('data-theme', next);
+  return next;
+}
 
 let S = PointyLogic.normalizeDebtState(loadDebtState());
 let SETTINGS = loadSettings();
@@ -381,7 +421,7 @@ function saveDebtState() {
 function loadSettings() {
   try {
     return {
-      theme: 'tavern',
+      theme: currentGlobalTheme('tavern'),
       accent: '#2f8f5b',
       sound: true,
       animations: true,
@@ -390,7 +430,7 @@ function loadSettings() {
       ...(JSON.parse(localStorage.getItem('pointy_debt_settings_v1') || '{}') || {})
     };
   } catch (_) {
-    return { theme: 'tavern', accent: '#2f8f5b', sound: true, animations: true, battlefx: 'full', strategy: 'avalanche' };
+    return { theme: currentGlobalTheme('tavern'), accent: '#2f8f5b', sound: true, animations: true, battlefx: 'full', strategy: 'avalanche' };
   }
 }
 function saveSettings() {
@@ -480,7 +520,7 @@ const SFX = {
 };
 
 function applySettings() {
-  document.body.setAttribute('data-theme', SETTINGS.theme || 'tavern');
+  SETTINGS.theme = applyGlobalTheme(currentGlobalTheme(SETTINGS.theme || 'tavern'));
   document.body.classList.toggle('no-animations', SETTINGS.animations === false);
   document.documentElement.style.setProperty('--accent', SETTINGS.accent || '#2f8f5b');
 }
@@ -1046,7 +1086,7 @@ function toggleSetting(key) {
   saveSettings();
   renderAll(false);
 }
-function setTheme(theme) { SETTINGS.theme = theme === 'dungeon' ? 'dungeon' : 'tavern'; saveSettings(); renderAll(false); }
+function setTheme(theme) { SETTINGS.theme = applyGlobalTheme(theme); saveSettings(); renderAll(false); }
 function setAccent(color) { if (ACCENTS.includes(color)) SETTINGS.accent = color; saveSettings(); renderAll(false); }
 function setBattleFx(mode) { SETTINGS.battlefx = mode === 'minimal' ? 'minimal' : 'full'; saveSettings(); renderAll(false); }
 function openSettings() { OVERLAY = 'settings'; SFX.click(); renderOverlay(); }

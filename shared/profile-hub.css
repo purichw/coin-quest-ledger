@@ -332,6 +332,53 @@
 .pdb-actions { display: flex; gap: 8px; }
 .pdb-actions .btn-ghost { flex: 1; }
 .pdb-msg { margin-top: 9px; color: var(--accent); text-align: center; font-size: 12px; font-weight: 700; }
+.pd-account {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.pda-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 11px;
+}
+.pda-ava {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--panel-2);
+  font-size: 20px;
+}
+.pda-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.pda-info b {
+  color: var(--ink);
+  font-size: 14px;
+}
+.pda-email {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.pda-uid {
+  color: var(--ink-faint, var(--ink-soft));
+  font-family: var(--font-stat, monospace);
+  font-size: 11px;
+}
+.pda-logout {
+  width: 100%;
+  justify-content: center;
+}
 
 .rem-overlay {
   display: block;

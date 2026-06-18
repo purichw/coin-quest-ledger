@@ -76,7 +76,10 @@
     .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
     .tb-inner { max-width: 1080px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .tb-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .tb-logo { width: 28px; height: 28px; display: grid; place-items: center; flex-shrink: 0; text-decoration: none; }
     .tb-logo img { display: block; width: 28px; height: 28px; }
+    .tb-back { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; border: 0; border-radius: 11px; padding: 7px 16px; background: rgba(255,255,255,.12); color: var(--topbar-ink); font-size: 16px; font-weight: 700; text-decoration: none; }
+    .tb-wordmark { color: var(--topbar-ink); opacity: .86; font-family: var(--font-display); font-weight: 700; font-size: 16px; white-space: nowrap; }
     .tb-nav { display: flex; gap: 6px; min-width: 0; }
     .tb-link { color: var(--topbar-ink); text-decoration: none; opacity: .62; font-size: 14px; padding: 7px 14px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
     .tb-link.active { opacity: 1; background: rgba(255,255,255,.12); }
@@ -384,13 +387,9 @@
   <nav class="topbar">
     <div class="tb-inner">
       <div class="tb-left">
-        <span class="tb-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt=""></span>
-        <div class="tb-nav">
-          <a href="/?view=compare" class="tb-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
-          <a href="/trip/" class="tb-link" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
-          <a href="/debt/" class="tb-link active" data-i18n="nav_debt">มังกรหนี้</a>
-          <a href="/treasury/" class="tb-link" data-i18n="nav_treasury">คลังหลวง</a>
-        </div>
+        <a class="tb-logo" href="/" aria-label="Coin Quest Ledger"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></a>
+        <a class="tb-back show" href="/">← <span data-i18n="home_back">หน้าหลัก</span></a>
+        <span class="tb-wordmark">Coin Quest Ledger</span>
       </div>
       <div class="lang-toggle">
         <button class="lang-btn" data-lang="th" onclick="setLang('th')">TH</button>

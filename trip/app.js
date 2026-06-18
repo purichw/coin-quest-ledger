@@ -72,6 +72,46 @@ const QUEST_TEMPLATES = [
   { id:'party', icon:'🎉', th:'ปาร์ตี้/เลี้ยงสังสรรค์', en:'House Party', items:[['🍕','อาหาร','Food',1500],['🍺','เครื่องดื่ม','Drinks',1800],['🧊','น้ำแข็ง+ของจุกจิก','Ice & snacks',400],['🎁','ของขวัญ','Gift',800]] }
 ];
 const LEVEL_REWARDS = PointyLogic.LEVEL_REWARDS;
+const THEME_KEY = 'pointy_theme';
+const UI_KEY = 'coin_quest_ui_v1';
+
+function readJsonSetting(key, fallback = {}) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+function writeJsonSetting(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
+}
+function normalizeThemeValue(theme) {
+  return theme === 'dungeon' ? 'dungeon' : 'tavern';
+}
+function currentGlobalTheme(fallback = 'tavern') {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'dungeon' || saved === 'tavern') return saved;
+  } catch (_) {}
+  const uiTheme = readJsonSetting(UI_KEY, {}).theme;
+  if (uiTheme === 'dungeon' || uiTheme === 'tavern') return uiTheme;
+  const domTheme = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme');
+  if (domTheme === 'dungeon' || domTheme === 'tavern') return domTheme;
+  return normalizeThemeValue(fallback);
+}
+function persistGlobalTheme(theme) {
+  const next = normalizeThemeValue(theme);
+  try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+  writeJsonSetting(UI_KEY, { ...readJsonSetting(UI_KEY, {}), theme: next });
+  return next;
+}
+function applyGlobalTheme(theme) {
+  const next = persistGlobalTheme(theme);
+  document.documentElement.setAttribute('data-theme', next);
+  document.body.dataset.theme = next;
+  return next;
+}
 
 let S = {
   tripName: t('trip_default_name'),
@@ -634,7 +674,7 @@ async function writeState() {
   }
 }
 function applySettings() {
-  document.body.dataset.theme = S.settings.theme || 'tavern';
+  S.settings.theme = applyGlobalTheme(currentGlobalTheme(S.settings.theme || 'tavern'));
   document.body.classList.toggle('no-animations', S.settings.animations === false);
   document.documentElement.style.setProperty('--accent', S.settings.accent || '#2f8f5b');
   renderQuickToggles();
@@ -1654,7 +1694,7 @@ function quickToggleSetting(key) {
   renderOverlay();
   if (key === 'sound' && S.settings.sound) SFX.click();
 }
-function setTheme(theme) { S.settings.theme = theme === 'dungeon' ? 'dungeon' : 'tavern'; applySettings(); save(); renderAll(false); renderOverlay(); }
+function setTheme(theme) { S.settings.theme = applyGlobalTheme(theme); applySettings(); save(); renderAll(false); renderOverlay(); }
 function setAccent(color) { if (ACCENTS.includes(color)) S.settings.accent = color; applySettings(); save(); renderAll(false); renderOverlay(); }
 function toggleSetting(key) { S.settings[key] = !S.settings[key]; applySettings(); save(); renderAll(false); renderOverlay(); if (key === 'sound' && S.settings.sound) SFX.click(); }
 async function setupAdmin() {

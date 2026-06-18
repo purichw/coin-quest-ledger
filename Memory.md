@@ -8,6 +8,7 @@ Last updated: 2026-06-18
 - GitHub: `git@github.com:purichw/coin-quest-ledger.git`
 - Live production URL: `https://coin-quest-ledger.vercel.app`
 - Vercel project: `coin-quest-ledger`
+- Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
 - Latest production should be verified with `vercel ls` or by curling the live URL after deploy.
@@ -47,6 +48,8 @@ The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now sp
 `trip/app.js` owns the shell event delegation and the expense-entry dynamic controls. Some dynamic hero/admin/overlay renderers still use inline handlers; do not rewrite all of them casually unless doing a focused refactor with full tests.
 
 Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
+
+Theme selection is global across Home, Split, Debt Dragon, and Treasury. The source of truth is `localStorage.pointy_theme`, mirrored into `coin_quest_ui_v1.theme` for shared shell/profile compatibility. Per-board or per-module legacy `settings.theme` values must not override the global theme on route load.
 
 The Expense Splitter tab is now RPG/Party Ledger styled. It supports:
 

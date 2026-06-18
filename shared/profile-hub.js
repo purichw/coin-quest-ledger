@@ -2,6 +2,7 @@
   const PROFILE_KEY = 'pointy_profile_v1';
   const UI_KEY = 'coin_quest_ui_v1';
   const THEME_KEY = 'pointy_theme';
+  const AUTH_KEY = 'pointy_auth_v1';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
   const PROFILE_STEP = 1200;
   const TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
@@ -53,7 +54,9 @@
       tourT4: 'คลังหลวง',
       tourB4: 'ตั้งงบรายเดือน ปกป้องคลังจากรายจ่ายและบิลที่บุกมาทุกเดือน',
       hero: 'Hero',
-      lvl: 'LVL'
+      lvl: 'LVL',
+      signOut: 'ออกจากระบบ',
+      userId: 'User ID'
     },
     en: {
       profile: 'Hero Profile',
@@ -100,7 +103,9 @@
       tourT4: 'Personal Treasury',
       tourB4: 'Set a monthly budget, defend the vault from spending, and tame recurring bills.',
       hero: 'Hero',
-      lvl: 'LVL'
+      lvl: 'LVL',
+      signOut: 'Sign out',
+      userId: 'User ID'
     }
   };
 
@@ -143,6 +148,16 @@
   function loadProfile() { return { ...defaultProfile(), ...readJson(PROFILE_KEY, {}) }; }
   function saveProfile(next) { profile = { ...defaultProfile(), ...next }; writeJson(PROFILE_KEY, profile); return profile; }
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
+  function loadAccount() {
+    const auth = readJson(AUTH_KEY, null);
+    if (auth && auth.email && auth.userId) return auth;
+    return { name: 'Pointy', email: 'pointy@line.me', userId: '3720' };
+  }
+  function signOut() {
+    try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
+    closeOverlay();
+    refresh({ toast: false });
+  }
   function tickStreak() {
     const p = loadProfile();
     const today = ymd(new Date());
@@ -558,6 +573,7 @@
     const reward = rewardFor(context.level.lvl);
     const trophies = evalAchievements(context);
     const got = trophies.filter(t => t.unlocked).length;
+    const account = loadAccount();
     mountOverlay(`<div class="drawer-overlay"><aside class="profile-drawer">
       <div class="pd-head"><div class="pd-title">🏅 ${h(s().profile)}</div><button class="picker-close" type="button" data-close>✕</button></div>
       <div class="pd-scroll">
@@ -578,12 +594,24 @@
         <div class="pd-setting"><span class="pds-k">${currentTheme() === 'dungeon' ? '🌙 ' + h(s().themeDark) : '☀️ ' + h(s().themeLight)}</span><div class="pd-theme-seg"><button class="${currentTheme() === 'tavern' ? 'on' : ''}" data-theme-pick="tavern">☀️</button><button class="${currentTheme() === 'dungeon' ? 'on' : ''}" data-theme-pick="dungeon">🌙</button></div></div>
         <div class="pd-setting"><span class="pds-k">🧭 ${h(s().takeTour)}</span><button class="btn-ghost xs" type="button" data-tour>${h(s().tourNext)} →</button></div>
         <div class="pd-backup"><div class="pdb-h">💾 ${h(s().backup)}</div><div class="pdb-sub">${h(s().backupSub)}</div><div class="pdb-actions"><button class="btn-ghost sm" type="button" data-export>⬇️ ${h(s().exportData)}</button><button class="btn-ghost sm" type="button" data-import>⬆️ ${h(s().importData)}</button><input type="file" accept="application/json,.json" hidden data-file></div><div class="pdb-msg" hidden></div></div>
+        <div class="pd-account">
+          <div class="pda-row">
+            <span class="pda-ava">👤</span>
+            <span class="pda-info">
+              <b>${h(account.name || 'Pointy')}</b>
+              <span class="pda-email">${h(account.email || 'pointy@line.me')}</span>
+              <span class="pda-uid">${h(s().userId)} · ${h(account.userId || '3720')}</span>
+            </span>
+          </div>
+          <button class="btn-ghost sm pda-logout" type="button" data-sign-out>🚪 ${h(s().signOut)}</button>
+        </div>
       </div>
     </aside></div>`);
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
     overlay.querySelectorAll('[data-theme-pick]').forEach(btn => btn.addEventListener('click', () => { setTheme(btn.dataset.themePick); showProfile(); }));
     overlay.querySelector('[data-tour]').addEventListener('click', () => { closeOverlay(); showTour(); });
     overlay.querySelector('[data-export]').addEventListener('click', exportBackup);
+    overlay.querySelector('[data-sign-out]').addEventListener('click', signOut);
     const file = overlay.querySelector('[data-file]');
     const msg = overlay.querySelector('.pdb-msg');
     overlay.querySelector('[data-import]').addEventListener('click', () => file.click());
