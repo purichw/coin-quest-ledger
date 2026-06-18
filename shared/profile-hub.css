@@ -81,6 +81,212 @@
 .pb-lvl i { margin-right: 2px; font-size: 8px; font-style: normal; opacity: .68; }
 .pb-streak { margin-top: 2px; font: 700 10px var(--font-stat, monospace); color: var(--gold); }
 
+body.login-locked {
+  overflow: hidden;
+}
+.login-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  overflow: auto;
+  background: radial-gradient(880px 480px at 50% -10%, color-mix(in oklab, var(--accent), transparent 72%), transparent 74%), var(--bg);
+  color: var(--ink);
+}
+.login-wrap {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px 18px;
+}
+.login-langs {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--panel-2);
+}
+.login-langs button {
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: var(--font-stat, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+}
+.login-langs button.on {
+  background: var(--accent);
+  color: #fff;
+}
+.login-langs .login-theme {
+  font-size: 14px;
+  padding: 5px 9px;
+}
+.login-card {
+  width: 100%;
+  max-width: 392px;
+  padding: 30px 28px 24px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 22px;
+  background: var(--panel);
+  box-shadow: 0 24px 50px -22px rgba(74,54,20,.55);
+  text-align: center;
+}
+.login-crest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 14px;
+  border: 1.5px solid color-mix(in oklab, var(--gold), var(--border) 30%);
+  border-radius: 15px;
+  background: linear-gradient(var(--panel-in), var(--panel-2));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--gold), transparent 78%), 0 5px 9px rgba(0,0,0,.16);
+  color: var(--gold);
+  filter: drop-shadow(0 5px 9px rgba(0,0,0,.16));
+  font-size: 30px;
+}
+.login-title {
+  margin: 2px 0 5px;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 700;
+}
+.login-sub {
+  margin: 0 0 22px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.login-field {
+  display: block;
+  margin-bottom: 14px;
+  text-align: left;
+}
+.login-field > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.login-field input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+.login-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 82%);
+  outline: none;
+}
+.login-err {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--hp-bg, #f4d9d2);
+  color: var(--hp, #cf4633);
+  font-size: 13px;
+  font-weight: 600;
+}
+.login-btn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 13px;
+  border: none;
+  border-radius: 13px;
+  background: var(--accent);
+  box-shadow: 0 3px 0 color-mix(in oklab, var(--accent), #000 28%);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform .08s, box-shadow .08s;
+}
+.login-btn:hover {
+  transform: translateY(-1px);
+}
+.login-btn:active {
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--accent), #000 28%);
+  transform: translateY(1px);
+}
+.login-demo {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-strong);
+}
+.login-demo-h {
+  margin-bottom: 10px;
+  color: var(--ink-faint, var(--ink-soft));
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+.login-demo-list {
+  display: grid;
+  gap: 8px;
+}
+.login-demo-acct {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 10px;
+  padding: 9px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .12s, background .12s;
+}
+.login-demo-acct:hover {
+  border-color: var(--accent);
+  background: var(--panel);
+}
+.login-demo-acct b {
+  grid-row: 1;
+  color: var(--ink);
+  font-size: 14px;
+}
+.login-demo-acct span {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  color: var(--ink-soft);
+  font-family: var(--font-stat, monospace);
+  font-size: 11.5px;
+}
+.login-demo-acct i {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: center;
+  justify-self: end;
+  color: var(--accent);
+  font-family: var(--font-stat, monospace);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+.login-note {
+  margin-top: 16px;
+  color: var(--ink-faint, var(--ink-soft));
+  font-size: 11.5px;
+}
+
 .drawer-overlay, .rem-overlay, .tour-overlay {
   position: fixed;
   inset: 0;

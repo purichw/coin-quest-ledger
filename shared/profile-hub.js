@@ -4,12 +4,35 @@
   const THEME_KEY = 'pointy_theme';
   const AUTH_KEY = 'pointy_auth_v1';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
+  const TEST_FLAG_KEY = 'pointy_test_mode_v1';
   const PROFILE_STEP = 1200;
-  const TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
+  const URL_TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
+  if (URL_TEST_MODE) {
+    try { sessionStorage.setItem(TEST_FLAG_KEY, '1'); } catch (_) {}
+  }
+  const TEST_MODE = URL_TEST_MODE || (() => {
+    try { return sessionStorage.getItem(TEST_FLAG_KEY) === '1'; } catch (_) { return false; }
+  })();
   const AUTOMATED = navigator.webdriver === true;
+  const DUMMY_ACCOUNTS = [
+    { email: 'pointy@line.me', password: 'quest123', userId: '3720', name: 'Pointy', cls: 'Knight' },
+    { email: 'nok.k@line.me', password: 'quest123', userId: '9637', name: 'Nok', cls: 'Archer' },
+    { email: 'bank@line.me', password: 'quest123', userId: '5521', name: 'Bank', cls: 'Rogue' }
+  ];
 
   const STR = {
     th: {
+      loginWelcome: 'ยินดีต้อนรับกลับฮีโร่',
+      loginSub: 'ลงชื่อเข้าสู่บัญชีของคุณ',
+      loginEmail: 'อีเมล (ชื่อผู้ใช้)',
+      loginPassword: 'รหัสผ่าน',
+      loginEnter: 'ผจญภัยต่อ!',
+      loginEmailPlaceholder: 'you@line.me',
+      loginPasswordPlaceholder: '••••••••',
+      loginError: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+      loginEmpty: 'กรอกอีเมลและรหัสผ่าน',
+      loginDemo: 'บัญชีทดลอง - แตะเพื่อกรอกให้อัตโนมัติ',
+      loginNote: 'สาธิตจำลอง - ยังไม่ได้เชื่อมต่อระบบจริง',
       profile: 'โปรไฟล์นักผจญภัย',
       profileSub: 'Renown รวมจาก Compare Prices, Party Ledger, Debt Dragon และคลังหลวง',
       profileLvl: 'เลเวลรวม',
@@ -56,12 +79,21 @@
       hero: 'Hero',
       lvl: 'LVL',
       signOut: 'ออกจากระบบ',
-      signedOutName: 'Guest',
-      signedOutEmail: 'ยังไม่ได้เข้าสู่ระบบ',
       signOutDone: 'ออกจากระบบแล้ว',
       userId: 'User ID'
     },
     en: {
+      loginWelcome: 'Welcome back, hero',
+      loginSub: 'Sign in to your guild account',
+      loginEmail: 'Email (username)',
+      loginPassword: 'Password',
+      loginEnter: 'Enter the realm!',
+      loginEmailPlaceholder: 'you@line.me',
+      loginPasswordPlaceholder: '••••••••',
+      loginError: 'Wrong email or password',
+      loginEmpty: 'Enter an email and password',
+      loginDemo: 'Demo accounts - tap one to autofill',
+      loginNote: 'Mock sign-in - not connected to a real backend yet',
       profile: 'Hero Profile',
       profileSub: 'Renown from Compare Prices, Party Ledger, Debt Dragon, and Personal Treasury',
       profileLvl: 'Overall level',
@@ -108,8 +140,6 @@
       hero: 'Hero',
       lvl: 'LVL',
       signOut: 'Sign out',
-      signedOutName: 'Guest',
-      signedOutEmail: 'Signed out',
       signOutDone: 'Signed out',
       userId: 'User ID'
     }
@@ -141,6 +171,7 @@
   let context = null;
   let reminders = [];
   let overlay = null;
+  let loginGate = null;
   let toastTimer = null;
   let baselineDone = false;
 
@@ -154,17 +185,27 @@
   function loadProfile() { return { ...defaultProfile(), ...readJson(PROFILE_KEY, {}) }; }
   function saveProfile(next) { profile = { ...defaultProfile(), ...next }; writeJson(PROFILE_KEY, profile); return profile; }
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
-  function loadAccount() {
+  function loadAuth() {
     const auth = readJson(AUTH_KEY, null);
-    if (auth?.signedOut) return { name: s().signedOutName, email: s().signedOutEmail, userId: '----', signedOut: true };
-    if (auth && auth.email && auth.userId) return auth;
-    return { name: 'Pointy', email: 'pointy@line.me', userId: '3720' };
+    if (auth && auth.email && auth.userId && !auth.signedOut) return auth;
+    return (TEST_MODE || AUTOMATED) ? DUMMY_ACCOUNTS[0] : null;
+  }
+  function saveAuth(account) {
+    const next = { email: account.email, userId: account.userId, name: account.name };
+    writeJson(AUTH_KEY, next);
+    return next;
+  }
+  function clearAuth() {
+    try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
+  }
+  function loadAccount() {
+    return loadAuth() || { name: 'Guest', email: s().loginSub, userId: '----' };
   }
   function signOut() {
-    try { writeJson(AUTH_KEY, { signedOut: true, signedOutAt: Date.now() }); } catch (_) {}
+    clearAuth();
     closeOverlay();
     refresh({ toast: false });
-    showMiniToast(s().signOutDone);
+    showLoginGate();
   }
   function tickStreak() {
     const p = loadProfile();
@@ -513,6 +554,118 @@
     const pageTheme = currentTheme();
     applyTheme(pageTheme);
   }
+  function setPageLang(next) {
+    const clean = next === 'en' ? 'en' : 'th';
+    if (typeof window.setLang === 'function') window.setLang(clean);
+    else {
+      window.LANG = clean;
+      try { localStorage.setItem('lang', clean); } catch (_) {}
+      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('lang-active', btn.dataset.lang === clean));
+    }
+  }
+  function loginLanguage() {
+    return window.LANG === 'en' ? 'en' : 'th';
+  }
+  function mockUserId(email) {
+    const value = String(email || '');
+    const hash = [...value].reduce((sum, c) => ((sum * 31 + c.charCodeAt(0)) | 0), 7);
+    return 'G-' + (Math.abs(hash) % 9000 + 1000);
+  }
+  function removeLoginGate() {
+    if (loginGate) loginGate.remove();
+    loginGate = null;
+    document.body.classList.remove('login-locked');
+  }
+  function showLoginGate() {
+    if (loadAuth()) {
+      removeLoginGate();
+      return;
+    }
+    const langKey = loginLanguage();
+    const copy = STR[langKey];
+    const theme = currentTheme();
+    if (!loginGate) {
+      loginGate = document.createElement('div');
+      loginGate.className = 'login-gate';
+      document.body.appendChild(loginGate);
+    }
+    document.body.classList.add('login-locked');
+    loginGate.innerHTML = `<div class="login-wrap">
+      <div class="login-langs">
+        <button class="login-theme" type="button" data-login-theme title="${theme === 'dungeon' ? 'Light' : 'Dark'}">${theme === 'dungeon' ? '☀️' : '🌙'}</button>
+        <button type="button" class="${langKey === 'th' ? 'on' : ''}" data-login-lang="th">TH</button>
+        <button type="button" class="${langKey === 'en' ? 'on' : ''}" data-login-lang="en">EN</button>
+      </div>
+      <form class="login-card" data-login-form>
+        <div class="login-crest" aria-hidden="true"><span>🧰</span></div>
+        <h1 class="login-title">${h(copy.loginWelcome)}</h1>
+        <p class="login-sub">${h(copy.loginSub)}</p>
+        <label class="login-field">
+          <span>${h(copy.loginEmail)}</span>
+          <input type="email" autocomplete="username" data-login-email placeholder="${h(copy.loginEmailPlaceholder)}">
+        </label>
+        <label class="login-field">
+          <span>${h(copy.loginPassword)}</span>
+          <input type="password" autocomplete="current-password" data-login-password placeholder="${h(copy.loginPasswordPlaceholder)}">
+        </label>
+        <div class="login-err" data-login-error hidden></div>
+        <button type="submit" class="login-btn">⚔️ ${h(copy.loginEnter)}</button>
+        <div class="login-demo">
+          <div class="login-demo-h">${h(copy.loginDemo)}</div>
+          <div class="login-demo-list">
+            ${DUMMY_ACCOUNTS.map(account => `<button type="button" class="login-demo-acct" data-demo-email="${h(account.email)}" data-demo-password="${h(account.password)}">
+              <b>${h(account.name)}</b><span>${h(account.email)}</span><i>${h(account.cls)} · ID ${h(account.userId)}</i>
+            </button>`).join('')}
+          </div>
+        </div>
+        <div class="login-note">🔒 ${h(copy.loginNote)}</div>
+      </form>
+    </div>`;
+    const email = loginGate.querySelector('[data-login-email]');
+    const password = loginGate.querySelector('[data-login-password]');
+    const error = loginGate.querySelector('[data-login-error]');
+    const setError = text => {
+      error.hidden = !text;
+      error.textContent = text ? `⚠️ ${text}` : '';
+    };
+    loginGate.querySelector('[data-login-form]').addEventListener('submit', event => {
+      event.preventDefault();
+      const em = String(email.value || '').trim();
+      const pw = String(password.value || '');
+      if (!em || !pw) {
+        setError(copy.loginEmpty);
+        return;
+      }
+      const demo = DUMMY_ACCOUNTS.find(account => account.email.toLowerCase() === em.toLowerCase());
+      if (demo) {
+        if (demo.password !== pw) {
+          setError(copy.loginError);
+          return;
+        }
+        saveAuth(demo);
+      } else {
+        saveAuth({ email: em, userId: mockUserId(em), name: em.split('@')[0] || 'Hero' });
+      }
+      removeLoginGate();
+      profile = tickStreak();
+      refresh({ toast: false });
+      if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
+    });
+    loginGate.querySelectorAll('[data-demo-email]').forEach(btn => btn.addEventListener('click', () => {
+      email.value = btn.dataset.demoEmail || '';
+      password.value = btn.dataset.demoPassword || '';
+      setError('');
+      email.focus();
+    }));
+    loginGate.querySelector('[data-login-theme]').addEventListener('click', () => {
+      setTheme(currentTheme() === 'dungeon' ? 'tavern' : 'dungeon');
+      showLoginGate();
+    });
+    loginGate.querySelectorAll('[data-login-lang]').forEach(btn => btn.addEventListener('click', () => {
+      setPageLang(btn.dataset.loginLang);
+      showLoginGate();
+    }));
+  }
 
   function renderTopbar() {
     ensureTopbar();
@@ -693,15 +846,17 @@
     renderTopbar();
   }
   function init() {
-    profile = tickStreak();
     ensureTopbar();
     setupTheme();
+    if (loadAuth()) profile = tickStreak();
+    else profile = loadProfile();
     refresh({ toast: false });
+    showLoginGate();
     window.addEventListener('storage', () => refresh({ toast: false }));
     window.addEventListener('coin-quest-state-changed', () => refresh({ toast: true }));
     window.addEventListener('pointy-treasury-changed', () => refresh({ toast: true }));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
-    if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 650);
+    if (loadAuth() && !TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 650);
   }
 
   window.PointyProfileHub = {
@@ -712,7 +867,9 @@
     evalAchievements,
     showProfile,
     showReminders,
-    showTour
+    showTour,
+    signOut,
+    loadAccount
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

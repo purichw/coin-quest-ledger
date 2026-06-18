@@ -317,6 +317,13 @@
     background: var(--panel-2);
   }
 
+  .mm-logout {
+    justify-content: center;
+    margin-top: 6px;
+    border-color: color-mix(in oklab, var(--hp, #cf4633), var(--border) 35%);
+    color: var(--hp, #cf4633);
+  }
+
   .mm-ic {
     width: 24px;
     text-align: center;

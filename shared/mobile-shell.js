@@ -20,7 +20,8 @@
       theme: 'ธีม',
       lang: 'ภาษา',
       light: 'สว่าง',
-      dark: 'มืด'
+      dark: 'มืด',
+      signOut: 'ออกจากระบบ'
     },
     en: {
       app: 'Coin Quest',
@@ -37,7 +38,8 @@
       theme: 'Theme',
       lang: 'Lang',
       light: 'Light',
-      dark: 'Dark'
+      dark: 'Dark',
+      signOut: 'Sign out'
     }
   };
 
@@ -193,6 +195,7 @@
     const active = activeTabId();
     const theme = currentTheme();
     const t = text();
+    const account = window.PointyProfileHub?.loadAccount?.();
     root.innerHTML = `<div class="mm-overlay">
       <aside class="mm-panel">
         <div class="mm-head">
@@ -200,13 +203,14 @@
           <button class="mm-close" type="button" data-mm-close aria-label="Close">✕</button>
         </div>
         <div class="mm-scroll">
-          <div class="mm-account"><span class="mm-avatar">🧭</span><div><div class="mm-name">${html(t.account)}</div><div class="mm-sub">${html(t.accountSub)}</div></div></div>
+          <div class="mm-account"><span class="mm-avatar">🦸</span><div><div class="mm-name">${html(account?.name || t.account)}</div><div class="mm-sub">${html(account?.email || t.accountSub)}${account?.userId ? ` · ID ${html(account.userId)}` : ''}</div></div></div>
           ${TABS.map(tab => tabDrawerMarkup(tab, active)).join('')}
           <button class="mm-item" type="button" data-mm-action="profile"><span class="mm-ic">🏅</span><span class="mm-lab">${html(t.profile)}</span><span class="mm-arr">›</span></button>
           <button class="mm-item" type="button" data-mm-action="reminders"><span class="mm-ic">🔔</span><span class="mm-lab">${html(t.reminders)}</span><span class="mm-arr">›</span></button>
           ${typeof window.openSettings === 'function' ? `<button class="mm-item" type="button" data-mm-action="settings"><span class="mm-ic">⚙️</span><span class="mm-lab">${html(t.settings)}</span><span class="mm-arr">›</span></button>` : ''}
           <div class="mm-seg-row"><span class="mm-seg-k">${html(t.theme)}</span><span class="mm-seg"><button type="button" class="${theme !== 'dungeon' ? 'on' : ''}" data-mm-theme="tavern">${html(t.light)}</button><button type="button" class="${theme === 'dungeon' ? 'on' : ''}" data-mm-theme="dungeon">${html(t.dark)}</button></span></div>
           <div class="mm-seg-row"><span class="mm-seg-k">${html(t.lang)}</span><span class="mm-seg"><button type="button" class="${currentLang() === 'th' ? 'on' : ''}" data-mm-lang="th">TH</button><button type="button" class="${currentLang() === 'en' ? 'on' : ''}" data-mm-lang="en">EN</button></span></div>
+          <button class="mm-item mm-logout" type="button" data-mm-action="logout"><span class="mm-ic">🚪</span><span class="mm-lab">${html(t.signOut)}</span></button>
         </div>
       </aside>
     </div>`;
@@ -270,6 +274,7 @@
     if (action.dataset.mmAction === 'profile') window.PointyProfileHub?.showProfile?.();
     if (action.dataset.mmAction === 'reminders') window.PointyProfileHub?.showReminders?.();
     if (action.dataset.mmAction === 'settings') window.openSettings?.();
+    if (action.dataset.mmAction === 'logout') window.PointyProfileHub?.signOut?.();
   }
 
   function refresh() {
