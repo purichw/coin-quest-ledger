@@ -513,6 +513,22 @@
 .at-body { display: flex; flex-direction: column; line-height: 1.2; }
 .at-lab { color: var(--gold); font: 800 10px var(--font-stat, monospace); letter-spacing: 1px; text-transform: uppercase; }
 .at-name { color: var(--ink); font-family: var(--font-display); font-weight: 800; font-size: 15px; }
+.profile-mini-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 96;
+  max-width: calc(100vw - 32px);
+  padding: 11px 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 14px 40px -14px rgba(0,0,0,.5);
+  color: var(--ink);
+  font-weight: 800;
+  transform: translateX(-50%);
+  animation: ach-in .28s cubic-bezier(.2,.8,.2,1.1);
+}
 
 [data-theme="dungeon"], body[data-theme="dungeon"] {
   --bg: #14121f;

@@ -56,6 +56,9 @@
       hero: 'Hero',
       lvl: 'LVL',
       signOut: 'ออกจากระบบ',
+      signedOutName: 'Guest',
+      signedOutEmail: 'ยังไม่ได้เข้าสู่ระบบ',
+      signOutDone: 'ออกจากระบบแล้ว',
       userId: 'User ID'
     },
     en: {
@@ -105,6 +108,9 @@
       hero: 'Hero',
       lvl: 'LVL',
       signOut: 'Sign out',
+      signedOutName: 'Guest',
+      signedOutEmail: 'Signed out',
+      signOutDone: 'Signed out',
       userId: 'User ID'
     }
   };
@@ -150,13 +156,15 @@
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
   function loadAccount() {
     const auth = readJson(AUTH_KEY, null);
+    if (auth?.signedOut) return { name: s().signedOutName, email: s().signedOutEmail, userId: '----', signedOut: true };
     if (auth && auth.email && auth.userId) return auth;
     return { name: 'Pointy', email: 'pointy@line.me', userId: '3720' };
   }
   function signOut() {
-    try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
+    try { writeJson(AUTH_KEY, { signedOut: true, signedOutAt: Date.now() }); } catch (_) {}
     closeOverlay();
     refresh({ toast: false });
+    showMiniToast(s().signOutDone);
   }
   function tickStreak() {
     const p = loadProfile();
@@ -538,6 +546,15 @@
     document.body.appendChild(overlay.firstElementChild);
     overlay = document.body.lastElementChild;
   }
+  function showMiniToast(text) {
+    const existing = document.querySelector('.profile-mini-toast');
+    if (existing) existing.remove();
+    const el = document.createElement('div');
+    el.className = 'profile-mini-toast';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2200);
+  }
   function showReminders() {
     const items = reminders.length ? reminders.map(r => `
       <button class="rem-item k-${h(r.kind)}" type="button" data-href="${h(r.href)}">
@@ -603,7 +620,7 @@
               <span class="pda-uid">${h(s().userId)} · ${h(account.userId || '3720')}</span>
             </span>
           </div>
-          <button class="btn-ghost sm pda-logout" type="button" data-sign-out>🚪 ${h(s().signOut)}</button>
+          ${account.signedOut ? '' : `<button class="btn-ghost sm pda-logout" type="button" data-sign-out>🚪 ${h(s().signOut)}</button>`}
         </div>
       </div>
     </aside></div>`);
@@ -611,7 +628,7 @@
     overlay.querySelectorAll('[data-theme-pick]').forEach(btn => btn.addEventListener('click', () => { setTheme(btn.dataset.themePick); showProfile(); }));
     overlay.querySelector('[data-tour]').addEventListener('click', () => { closeOverlay(); showTour(); });
     overlay.querySelector('[data-export]').addEventListener('click', exportBackup);
-    overlay.querySelector('[data-sign-out]').addEventListener('click', signOut);
+    overlay.querySelector('[data-sign-out]')?.addEventListener('click', signOut);
     const file = overlay.querySelector('[data-file]');
     const msg = overlay.querySelector('.pdb-msg');
     overlay.querySelector('[data-import]').addEventListener('click', () => file.click());
