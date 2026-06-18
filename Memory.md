@@ -24,6 +24,7 @@ Last updated: 2026-06-18
 ## Important Files
 
 - `CLAUDE_RECOVERY.md`: recovery pack for rebuilding a lost Claude Design project from repo memory plus downloaded Claude handoff/source files.
+- `claude-recovery/party-ledger-offline.zip`: committed Party Ledger offline Claude canon copy for recovery/reference.
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
 - `admin/index.html`: Phase 1 Super Admin Portal shell, responsive table/modal styling, and Firebase compat script loader.

@@ -56,6 +56,12 @@ Upload the folder contents, or upload the zip created from that folder, into a
 new Claude Project. The two HTML files are intentionally copied into the bundle
 so Claude can inspect the actual design canon directly.
 
+The repo keeps the Party Ledger offline canon as a committed zip copy:
+
+```text
+/Users/point/toolbox/claude-recovery/party-ledger-offline.zip
+```
+
 ## Recovery Prompt
 
 ```text
