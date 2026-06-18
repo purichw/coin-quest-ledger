@@ -1,6 +1,6 @@
 (function () {
   const params = new URLSearchParams(window.location.search || '');
-  const forceLocal = params.get('assets') === 'local' || params.get('test') === '1' || navigator.webdriver === true;
+  const forceLocal = params.get('assets') === 'local' || params.get('test') === '1';
   const manifest = window.POINTY_CLOUDINARY_ASSETS || {};
 
   function normalize(path) {
