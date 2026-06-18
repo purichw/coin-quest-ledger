@@ -51,6 +51,10 @@ It contains:
 - `ADMIN.md`
 - `Party Ledger (offline).html`
 - `Admin Portal (offline).html`
+- `Party Ledger HomeView Reference.zip`
+- `Party Ledger Internals Source.zip`
+- `Party Ledger Resources.zip`
+- `Party Ledger Full Split Reference.zip`
 
 Upload the folder contents, or upload the zip created from that folder, into a
 new Claude Project. The two HTML files are intentionally copied into the bundle
@@ -61,6 +65,23 @@ The repo keeps the Party Ledger offline canon as a committed zip copy:
 ```text
 /Users/point/toolbox/claude-recovery/party-ledger-offline.zip
 ```
+
+The split Party Ledger references are for easier Claude ingestion:
+
+```text
+/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger HomeView Reference.zip
+/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Internals Source.zip
+/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Resources.zip
+/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Full Split Reference.zip
+```
+
+Recommended usage:
+
+- Start with `Party Ledger HomeView Reference.zip` for HomeView/module launcher work.
+- Use `Party Ledger Internals Source.zip` for JSX/CSS/module logic inspection.
+- Add `Party Ledger Resources.zip` only when exact PNG/font assets are needed.
+- Use the full offline canon zip/HTML when checking pixel-perfect behavior or all embedded assets together.
+- Do not omit `sources/sound.jsx`; Party Ledger SFX are WebAudio code there. The offline manifest has no separate `audio/*` files.
 
 ## Recovery Prompt
 
@@ -100,6 +121,20 @@ Before making changes, summarize:
   kept for tests/reference, and `assets/` is ignored by Vercel deploy.
 - Do not write secrets into docs or source. Keep provider secrets in local env
   files or Vercel env vars only.
+
+## Recent Recovery Actions
+
+- Created `CLAUDE_RECOVERY.md` and added it to repo memory.
+- Created `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`.
+- Copied `Party Ledger (offline).html` and `Admin Portal (offline).html` into that bundle.
+- Committed Party Ledger offline canon as `claude-recovery/party-ledger-offline.zip`.
+- Replaced the earlier committed raw HTML with the smaller zip copy.
+- Split Party Ledger into smaller Claude-friendly packages:
+  - HomeView-only reference (~41KB).
+  - Internals/source reference (~175KB), including `sound.jsx`.
+  - Resources reference (~15MB).
+  - Full split reference (~16MB).
+- Verified the split internals zip includes `sound.jsx`; no `audio/*` resources were present in the manifest.
 
 ## Live App Surfaces
 

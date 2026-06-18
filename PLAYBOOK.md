@@ -72,6 +72,20 @@ When implementing from Claude Design:
 - Port only the relevant UI/asset/interaction surface for the requested area.
 - Keep existing app functionality, data shape, Firebase sync, i18n, and tests intact.
 - If Claude includes assets or sounds, check whether they already exist in the supplied HTML/project before recreating them.
+- For Party Ledger specifically, prefer the smaller split reference zips in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/` for initial study, then fall back to the full offline canon when exact all-in-one behavior must be verified.
+- Do not drop `sound.jsx`; the Party Ledger offline bundle stores SFX as WebAudio code there, not as separate `audio/*` files.
+
+## Claude Recovery References
+
+Use these when rebuilding context in a new chat or a new Claude Project:
+
+- Repo recovery doc: `CLAUDE_RECOVERY.md`
+- Committed Party Ledger canon: `claude-recovery/party-ledger-offline.zip`
+- Upload bundle folder: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`
+- Small HomeView package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger HomeView Reference.zip`
+- Small app/source package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Internals Source.zip`
+- Resource package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Resources.zip`
+- Full split package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Full Split Reference.zip`
 
 ## Expense Splitter Notes
 
