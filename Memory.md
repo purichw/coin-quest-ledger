@@ -25,7 +25,7 @@ Last updated: 2026-06-18
 ## Important Files
 
 - `CLAUDE_RECOVERY.md`: recovery pack for rebuilding a lost Claude Design project from repo memory plus downloaded Claude handoff/source files.
-- `claude-recovery/party-ledger-offline.zip`: committed Party Ledger offline Claude canon copy for recovery/reference.
+- Party Ledger offline canon is kept outside Git in the Claude recovery bundle; do not commit large offline zip copies.
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
 - `admin/index.html`: Phase 1 Super Admin Portal shell, responsive table/modal styling, and Firebase compat script loader.
@@ -49,7 +49,7 @@ Last updated: 2026-06-18
 The original Claude Design project was accidentally deleted and Claude said it cannot be directly recovered. The recovery strategy is now:
 
 - Use repo docs plus downloaded handoff files to reconstruct Claude context.
-- Keep the committed Party Ledger canon copy at `claude-recovery/party-ledger-offline.zip`.
+- Keep Party Ledger canon files outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`.
 - Keep the ready-to-upload Claude bundle at `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`.
 - The bundle includes `Party Ledger (offline).html`, `Admin Portal (offline).html`, recovery docs, and split Party Ledger reference zips.
 - The Party Ledger offline HTML is still the visual/interaction Holy Grail, but Claude should usually start with the smaller split zips to avoid swallowing a 20MB file unnecessarily.

@@ -80,7 +80,7 @@ When implementing from Claude Design:
 Use these when rebuilding context in a new chat or a new Claude Project:
 
 - Repo recovery doc: `CLAUDE_RECOVERY.md`
-- Committed Party Ledger canon: `claude-recovery/party-ledger-offline.zip`
+- Party Ledger canon lives outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`; do not commit large offline zip copies.
 - Upload bundle folder: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`
 - Small HomeView package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger HomeView Reference.zip`
 - Small app/source package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Internals Source.zip`
