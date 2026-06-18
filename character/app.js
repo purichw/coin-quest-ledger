@@ -55,6 +55,20 @@ function profileUrl(id = CHARACTER_ID) {
   const url = `/character/?id=${encodeURIComponent(id)}`;
   return TEST_MODE ? `${url}&test=1` : url;
 }
+function readJson(key, fallback = null) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+function profileStore() {
+  return { streak: 0, bestStreak: 0, ...readJson('pointy_profile_v1', {}) };
+}
+function accountStore() {
+  return readJson('pointy_auth_v1', null);
+}
 function localCharacterRegistry() {
   try { return JSON.parse(localStorage.getItem('pointy_character_registry_v1') || '{}') || {}; } catch (_) { return {}; }
 }
@@ -88,18 +102,97 @@ async function loadBoards() {
   const snap = await firebase.firestore().collection('trips').get();
   return snap.docs.map(doc => ({ id: doc.id, data: doc.data() || {} }));
 }
+function copy() {
+  const en = LANG === 'en';
+  return en ? {
+    title: 'Character Profile',
+    back: 'Back',
+    lvl: 'Overall level',
+    renown: 'Renown',
+    streakDays: 'days',
+    streakLab: 'Day streak',
+    best: 'Best',
+    today: 'Checked in today 🔥',
+    stats: '📊 Adventure Stats',
+    trophies: '🏆 Trophy Hall',
+    mPL: 'Party Ledger',
+    mDD: 'Debt Dragon',
+    mPA: 'Price Arena',
+    mTR: 'Treasury',
+    quests: 'Quests',
+    logged: 'Logged',
+    fronted: 'Fronted',
+    settled: 'Quests done',
+    slain: 'Slain',
+    strikes: 'Strikes',
+    reclaimed: 'Reclaimed',
+    live: 'Remaining',
+    showdowns: 'Showdowns',
+    merchants: 'Merchants',
+    deal: 'Best deal',
+    months: 'Months won',
+    tlog: 'Expenses',
+    disc: 'Discipline XP',
+    userId: 'User ID',
+    actions: 'Profile tools'
+  } : {
+    title: 'โปรไฟล์ตัวละคร',
+    back: 'กลับ',
+    lvl: 'เลเวลรวม',
+    renown: 'ชื่อเสียง',
+    streakDays: 'วัน',
+    streakLab: 'สตรีคต่อเนื่อง',
+    best: 'สถิติ',
+    today: 'เข้าเล่นแล้ววันนี้ 🔥',
+    stats: '📊 สถิติการผจญภัย',
+    trophies: '🏆 หอเกียรติยศ',
+    mPL: 'แบ่งค่าใช้จ่าย',
+    mDD: 'มังกรหนี้',
+    mPA: 'เปรียบราคา',
+    mTR: 'คลังหลวง',
+    quests: 'เควส',
+    logged: 'บันทึก',
+    fronted: 'ออกทอง',
+    settled: 'เควสจบ',
+    slain: 'ปราบแล้ว',
+    strikes: 'ฟัน',
+    reclaimed: 'กอบกู้',
+    live: 'เหลือ',
+    showdowns: 'สังเวียน',
+    merchants: 'ร้าน',
+    deal: 'ดีลสูงสุด',
+    months: 'เดือนชนะ',
+    tlog: 'รายจ่าย',
+    disc: 'XP วินัย',
+    userId: 'User ID',
+    actions: 'เครื่องมือโปรไฟล์'
+  };
+}
+function navMarkup() {
+  const c = copy();
+  return `<nav class="cnav">
+    <a class="cback" href="/">&larr; ${h(c.back)}</a>
+    <span class="cnav-title brand">${h(c.title)}</span>
+    <div class="lang">
+      <button type="button" class="${LANG === 'th' ? 'on' : ''}" onclick="setProfileLanguage('th')">TH</button>
+      <button type="button" class="${LANG === 'en' ? 'on' : ''}" onclick="setProfileLanguage('en')">EN</button>
+    </div>
+  </nav>`;
+}
 function renderSearch(message = '') {
-  document.getElementById('app').innerHTML = `<main class="shell">
-    <header class="top"><div class="brand">🎴 ${h(t('profile_title'))}</div><div class="top-actions"><button class="btn ghost" onclick="switchProfileLanguage()">${LANG === 'th' ? 'EN' : 'TH'}</button><a class="btn ghost" href="/trip/">${h(t('profile_back'))}</a></div></header>
-    <section class="panel search-card">
+  document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap">
+    <section class="search-card">
       <h1>${h(t('profile_title'))}</h1>
       <div class="sub">${h(message || t('profile_search_hint'))}</div>
-      <div class="search-row"><input id="profile-id-input" inputmode="numeric" maxlength="4" placeholder="1234" onkeydown="if(event.key==='Enter')openProfileSearch()"><button class="btn primary" onclick="openProfileSearch()">${h(t('profile_open'))}</button></div>
+      <div class="search-row"><input id="profile-id-input" inputmode="numeric" maxlength="4" placeholder="1234" onkeydown="if(event.key==='Enter')openProfileSearch()"><button class="cback" onclick="openProfileSearch()">${h(t('profile_open'))}</button></div>
     </section>
   </main>`;
 }
 function switchProfileLanguage() {
-  LANG = LANG === 'th' ? 'en' : 'th';
+  setProfileLanguage(LANG === 'th' ? 'en' : 'th');
+}
+function setProfileLanguage(next) {
+  LANG = next === 'en' ? 'en' : 'th';
   localStorage.setItem('lang', LANG);
   if (activeProfile) renderProfile(activeProfile);
   else renderSearch();
@@ -126,8 +219,14 @@ function copyProfileLink() {
     setTimeout(() => { if (button) button.textContent = t('profile_copy_link'); }, 1200);
   }).catch(() => {});
 }
-function stat(label, value, moneyValue = false) {
-  return `<div class="stat"><span>${h(label)}</span><strong class="${moneyValue ? 'money' : ''}">${moneyValue && hideMoney ? '••••' : h(value)}</strong></div>`;
+function moneyText(value) {
+  return hideMoney ? '••••' : money(value);
+}
+function stat(n, l, moneyValue = false) {
+  return `<div class="ms"><span class="ms-n ${moneyValue ? 'money' : ''}">${h(moneyValue && hideMoney ? '••••' : n)}</span><span class="ms-l">${h(l)}</span></div>`;
+}
+function ribbon(n, l, moneyValue = false) {
+  return `<div class="rib"><div class="rib-n ${moneyValue ? 'money' : ''}">${h(moneyValue && hideMoney ? '••••' : n)}</div><div class="rib-l">${h(l)}</div></div>`;
 }
 function badgeIcon(id) {
   return { 'party-member':'🧭', veteran:'🏕️', treasurer:'💰', 'debt-slayer':'⚔️', 'board-admin':'🗝️', 'debt-dragon':'🐉', 'high-level':'👑' }[id] || '✦';
@@ -144,6 +243,46 @@ function badgeCopy(badge, profile) {
     'high-level': [en ? 'Seasoned Hero' : 'ฮีโร่ชำนาญศึก', `Level ${profile.level.lvl}`]
   }[badge.id];
   return copy || [badge.label, badge.detail];
+}
+function classColors(clsId) {
+  const hue = (CLASSES[PointyLogic.normalizeClass(clsId)] || CLASSES.warrior).hue || 256;
+  return {
+    top: `oklch(0.60 0.16 ${hue})`,
+    bottom: `oklch(0.33 0.12 ${hue})`,
+    hue
+  };
+}
+function trophyList(profile) {
+  const byId = new Map(profile.badges.map(b => [b.id, b]));
+  const defs = [
+    { id: 'party-member', icon: '🧭', prog: [Math.min(profile.totals.boards, 1), 1], test: () => profile.totals.boards >= 1 },
+    { id: 'veteran', icon: '🏕️', prog: [Math.min(profile.totals.boards, 5), 5], test: () => profile.totals.boards >= 5 },
+    { id: 'treasurer', icon: '💰', prog: [Math.min(Math.round(profile.totals.fronted), 1000), 1000], test: () => profile.totals.fronted >= 1000 },
+    { id: 'debt-slayer', icon: '⚔️', prog: [Math.min(profile.totals.settledBoards, 1), 1], test: () => profile.totals.settledBoards >= 1 },
+    { id: 'board-admin', icon: '🗝️', prog: [Math.min(profile.adminBoards.length, 1), 1], test: () => profile.adminBoards.length > 0 },
+    { id: 'debt-dragon', icon: '🐉', prog: [Math.min(Number(profile.record?.debtXp) || 0, 1), 1], test: () => Number(profile.record?.debtXp) > 0 },
+    { id: 'high-level', icon: '👑', prog: [Math.min(profile.level.lvl, 5), 5], test: () => profile.level.lvl >= 5 }
+  ];
+  return defs.map(def => {
+    const existing = byId.get(def.id) || { id: def.id, detail: '' };
+    const label = badgeCopy(existing, profile);
+    return { ...def, label, unlocked: def.test(), progress: def.prog };
+  });
+}
+function renderTrophies(profile) {
+  const trophies = trophyList(profile);
+  return trophies.map(item => {
+    const pct = item.progress?.[1] ? Math.round((item.progress[0] / item.progress[1]) * 100) : 0;
+    return `<div class="tr ${item.unlocked ? 'got' : 'locked'}">
+      <div class="tr-ic">${h(item.unlocked ? item.icon : '🔒')}</div>
+      <div style="flex:1;min-width:0">
+        <div class="tr-t">${h(item.label[0])}</div>
+        <div class="tr-d">${h(item.label[1])}</div>
+        ${!item.unlocked && item.progress && item.progress[1] > 1 ? `<div class="tr-prog"><i style="width:${pct}%"></i></div>` : ''}
+      </div>
+      ${item.unlocked ? '<span class="tr-check">&#10003;</span>' : ''}
+    </div>`;
+  }).join('');
 }
 function renderBoards(profile) {
   return profile.boards.map(board => `<div class="board">
@@ -170,58 +309,125 @@ function renderAdminBoards(profile) {
 function renderProfile(profile) {
   activeProfile = profile;
   const cls = CLASSES[profile.class] || CLASSES.warrior;
+  const c = copy();
+  const colors = classColors(profile.class);
   const rewardTitle = profile.reward.title?.[LANG] || profile.reward.title?.th || '';
-  const created = profile.createdAt ? dateLabel(profile.createdAt) : '-';
-  const updated = profile.updatedAt ? dateLabel(profile.updatedAt) : '-';
+  const store = profileStore();
+  const account = accountStore();
+  const trophies = trophyList(profile);
+  const got = trophies.filter(item => item.unlocked).length;
+  const debtXp = Number(profile.record?.debtXp) || 0;
   document.body.classList.toggle('money-hidden', hideMoney);
-  document.getElementById('app').innerHTML = `<main class="shell">
-    <header class="top">
-      <div class="brand">🎴 ${h(t('profile_title'))}</div>
-      <div class="top-actions">
-        <button class="btn ghost" onclick="switchProfileLanguage()">${LANG === 'th' ? 'EN' : 'TH'}</button>
-        <button class="btn ghost" onclick="toggleMoney()">${h(hideMoney ? t('profile_show_money') : t('profile_hide_money'))}</button>
-        <button id="copy-profile-btn" class="btn ghost" onclick="copyProfileLink()">${h(t('profile_copy_link'))}</button>
-        <a class="btn ghost" href="/trip/">Party Ledger</a>
+  document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap">
+    <section class="banner" style="background:radial-gradient(125% 100% at 50% 8%, oklch(0.5 0.16 ${colors.hue}), oklch(0.17 0.07 ${colors.hue}) 88%)">
+      <div class="banner-art portrait-stage">
+        <img src="${h(resolveAvatarFile(profile.class, profile.gender, profile.skin))}" alt="${h(profile.displayName)}">
       </div>
-    </header>
-    <section class="hero">
-      <article class="portrait-card">
-        <div class="portrait-stage" style="--avatar-bg:${avatarBg(profile.class)}">
-          <img src="${h(resolveAvatarFile(profile.class, profile.gender, profile.skin))}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'empty',textContent:'${h(cls.glyph)}'}))">
-        </div>
-        <div class="portrait-info">
-          <span class="char-id">#${h(profile.id)}</span>
-          <h1>${h(profile.displayName)}</h1>
-          <div class="sub">${h(cls.glyph)} ${h(classLabel(profile.class))} · ${h(t(profile.gender === 'female' ? 'gender_female' : 'gender_male'))}${profile.skin ? ` · ${h(profile.skin)}` : ''}</div>
-          <div class="sub">${h(t('profile_created'))} ${h(created)} · ${h(t('profile_updated'))} ${h(updated)}</div>
-        </div>
-      </article>
-      <div class="hero-main">
-        <section class="panel xp-panel">
-          <div class="xp-row"><div><h2>Level ${profile.level.lvl}</h2><div class="sub">${h(rewardTitle)} · ${profile.xp.toLocaleString()} XP</div></div><strong>${profile.level.into}/${profile.level.need}</strong></div>
-          <div class="bar"><span class="fill" style="--pct:${profile.level.pct}%"></span></div>
-        </section>
-        <section class="summary">
-          ${stat(t('profile_boards'), profile.totals.boards)}
-          ${stat(t('profile_quests'), profile.totals.quests)}
-          ${stat(t('profile_paid'), money(profile.totals.paid), true)}
-          ${stat(t('profile_share'), money(profile.totals.share), true)}
-          ${stat(t('profile_fronted'), money(profile.totals.fronted), true)}
-          ${stat(t('profile_balance'), `${profile.totals.balance >= 0 ? '+' : '-'}${money(Math.abs(profile.totals.balance))}`, true)}
-          ${stat(t('profile_settled_boards'), profile.totals.settledBoards)}
-          ${stat(t('profile_admin_boards'), profile.adminBoards.length)}
-        </section>
+      <div class="banner-grad"></div>
+      <div class="banner-meta">
+        <h1 class="banner-name">${h(profile.displayName)}</h1>
+        <div class="banner-rank">${h(profile.reward.glyph || '')} ${h(rewardTitle)} &middot; ${h(classLabel(profile.class))}</div>
       </div>
     </section>
+
+    <section class="idcard">
+      <div class="ci-ava">
+        <div class="ci-bg" style="background:linear-gradient(160deg, ${colors.top}, ${colors.bottom})"></div>
+        <img src="${h(resolveAvatarFile(profile.class, profile.gender, profile.skin))}" alt="${h(profile.class)}">
+        <span class="ci-badge">${h(cls.glyph)}</span>
+      </div>
+      <div class="ci-info portrait-info">
+        <div class="ci-name">${h(profile.displayName)}</div>
+        <div class="ci-rank">${h(profile.reward.glyph || '')} ${h(rewardTitle)} &middot; ${h(classLabel(profile.class))}</div>
+        <span class="char-id">#${h(profile.id)}</span>
+        <div class="ci-lvlrow">
+          <span class="ci-lvl-k">${h(c.lvl)}</span>
+          <span class="ci-lvl-n">${profile.level.lvl}</span>
+          <span class="ci-renown">${profile.xp.toLocaleString()} ${h(c.renown)}</span>
+        </div>
+        <div class="ci-bar"><div style="width:${profile.level.pct}%"></div></div>
+      </div>
+    </section>
+
+    <section class="ribbon summary">
+      ${ribbon(profile.level.lvl, c.lvl)}
+      ${ribbon(profile.xp.toLocaleString(), c.renown)}
+      ${ribbon(store.streak || 0, c.streakLab)}
+      ${ribbon(money(profile.totals.paid), t('profile_paid'), true)}
+    </section>
+
+    <section class="streak">
+      <div class="streak-flame">🔥</div>
+      <div>
+        <div class="streak-n">${store.streak || 0} <span>${h(c.streakDays)}</span></div>
+        <div class="streak-l">${h(c.streakLab)} &middot; ${h(c.best)} ${store.bestStreak || 0}</div>
+      </div>
+      <div class="streak-note">${h(c.today)}</div>
+    </section>
+
+    <div class="sec-h">${h(c.stats)}</div>
+    <section class="mods">
+      <div class="mod" style="--mc:#2f9e54">
+        <div class="mod-h">&#9876;&#65039; ${h(c.mPL)}</div>
+        <div class="mod-stats">
+          ${stat(profile.totals.quests, c.quests)}
+          ${stat(moneyText(profile.totals.paid), c.logged, true)}
+          ${stat(moneyText(profile.totals.fronted), c.fronted, true)}
+          ${stat(profile.totals.settledBoards, c.settled)}
+        </div>
+      </div>
+      <div class="mod" style="--mc:#c0492f">
+        <div class="mod-h">&#128009; ${h(c.mDD)}</div>
+        <div class="mod-stats">
+          ${stat(debtXp > 0 ? 1 : 0, c.slain)}
+          ${stat(debtXp, 'XP')}
+          ${stat(moneyText(Math.max(0, debtXp)), c.reclaimed, true)}
+          ${stat(0, c.live)}
+        </div>
+      </div>
+      <div class="mod" style="--mc:#3a6fd0">
+        <div class="mod-h">&#9878;&#65039; ${h(c.mPA)}</div>
+        <div class="mod-stats">
+          ${stat(0, c.showdowns)}
+          ${stat(0, c.merchants)}
+          ${stat('0%', c.deal)}
+        </div>
+      </div>
+      <div class="mod" style="--mc:#caa033">
+        <div class="mod-h">&#127974; ${h(c.mTR)}</div>
+        <div class="mod-stats">
+          ${stat(0, c.months)}
+          ${stat(0, c.tlog)}
+          ${stat(0, c.disc)}
+        </div>
+      </div>
+    </section>
+
+    <div class="sec-h">${h(c.trophies)} <span class="count">${got} / ${trophies.length}</span></div>
+    <section class="trophies badges">${renderTrophies(profile)}</section>
+
+    ${account ? `<section class="acct">
+      <div class="acct-ava">&#128100;</div>
+      <div class="acct-info">
+        <b>${h(account.name || 'Pointy')}</b>
+        <span>${h(account.email || '')}</span>
+        <span>${h(c.userId)} &middot; ${h(account.userId || '')}</span>
+      </div>
+    </section>` : ''}
+
+    <section class="profile-tools" aria-label="${h(c.actions)}">
+      <button class="cback" onclick="toggleMoney()">${h(hideMoney ? t('profile_show_money') : t('profile_hide_money'))}</button>
+      <button id="copy-profile-btn" class="cback" onclick="copyProfileLink()">${h(t('profile_copy_link'))}</button>
+      <a class="cback" href="/trip/">Party Ledger</a>
+    </section>
+
     <section class="grid">
       <section class="panel">
         <div class="panel-head"><h2>${h(t('profile_board_history'))}</h2><span class="muted">${h(t('profile_records', { n: profile.boards.length }))}</span></div>
         <div class="board-list">${profile.boards.length ? renderBoards(profile) : `<div class="empty">${h(t('profile_no_boards'))}</div>`}</div>
       </section>
       <aside class="panel">
-        <div class="panel-head"><h2>${h(t('profile_achievements'))}</h2></div>
-        <div class="badges">${profile.badges.length ? profile.badges.map(b => { const copy = badgeCopy(b, profile); return `<div class="badge"><span class="badge-icon">${badgeIcon(b.id)}</span><div><strong>${h(copy[0])}</strong><div class="muted">${h(copy[1])}</div></div></div>`; }).join('') : `<div class="empty">${h(t('profile_no_badges'))}</div>`}</div>
-        <div class="panel-head" style="margin-top:18px"><h2>${h(t('profile_admin_ownership'))}</h2></div>
+        <div class="panel-head"><h2>${h(t('profile_admin_ownership'))}</h2></div>
         <div class="board-list">${renderAdminBoards(profile)}</div>
       </aside>
     </section>
@@ -229,7 +435,7 @@ function renderProfile(profile) {
 }
 async function boot() {
   if (!CHARACTER_ID || CHARACTER_ID.length !== 4) { renderSearch(); return; }
-  document.getElementById('app').innerHTML = `<main class="shell"><section class="panel search-card"><h1>${h(t('profile_loading'))}</h1><div class="sub">${h(t('profile_loading_sub'))}</div></section></main>`;
+  document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap"><section class="search-card"><h1>${h(t('profile_loading'))}</h1><div class="sub">${h(t('profile_loading_sub'))}</div></section></main>`;
   try {
     const [record, boards] = await Promise.all([loadCharacterRecord(CHARACTER_ID), loadBoards()]);
     const profile = PointyLogic.buildCharacterProfile(CHARACTER_ID, boards, record, { lang: LANG, boardFallback: LANG === 'en' ? 'Untitled board' : 'บอร์ดไม่มีชื่อ' });
