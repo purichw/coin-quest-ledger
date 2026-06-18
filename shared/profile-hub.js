@@ -10,7 +10,7 @@
   const STR = {
     th: {
       profile: 'โปรไฟล์นักผจญภัย',
-      profileSub: 'Renown รวมจาก Compare Prices, Party Ledger และ Debt Dragon',
+      profileSub: 'Renown รวมจาก Compare Prices, Party Ledger, Debt Dragon และคลังหลวง',
       profileLvl: 'เลเวลรวม',
       renown: 'Renown',
       trophies: 'Trophy Hall',
@@ -50,12 +50,14 @@
       tourB2: 'เปลี่ยนหนี้เป็นมังกร ตั้งวันครบกำหนด และฟันทีละงวดจนถ้ำโล่ง',
       tourT3: 'Party Ledger',
       tourB3: 'บันทึกเควส แบ่งค่าใช้จ่าย แนบใบเสร็จ และเคลียร์บรรณาการหลังทริป',
+      tourT4: 'คลังหลวง',
+      tourB4: 'ตั้งงบรายเดือน ปกป้องคลังจากรายจ่ายและบิลที่บุกมาทุกเดือน',
       hero: 'Hero',
       lvl: 'LVL'
     },
     en: {
       profile: 'Hero Profile',
-      profileSub: 'Renown from Compare Prices, Party Ledger, and Debt Dragon',
+      profileSub: 'Renown from Compare Prices, Party Ledger, Debt Dragon, and Personal Treasury',
       profileLvl: 'Overall level',
       renown: 'Renown',
       trophies: 'Trophy Hall',
@@ -95,6 +97,8 @@
       tourB2: 'Turn debts into dragons, track due dates, and strike them down payment by payment.',
       tourT3: 'Party Ledger',
       tourB3: 'Log quests, split expenses, attach receipts, and settle tribute after the trip.',
+      tourT4: 'Personal Treasury',
+      tourB4: 'Set a monthly budget, defend the vault from spending, and tame recurring bills.',
       hero: 'Hero',
       lvl: 'LVL'
     }
@@ -113,6 +117,9 @@
     { id: 'heavy_hit', icon: '💥', th: ['หมัดหนัก', 'ฟันครั้งเดียว ฿20,000+'], en: ['Heavy Hitter', 'A single strike of ฿20,000+'], test: c => c.biggestHit >= 20000 },
     { id: 'deal_hunter', icon: '🔍', th: ['นักล่าดีล', 'ประลองราคา 3 รายการ'], en: ['Deal Hunter', 'Run 3 price showdowns'], test: c => c.showdowns >= 3, prog: c => [Math.min(c.showdowns, 3), 3] },
     { id: 'bargain', icon: '👑', th: ['ดีลในตำนาน', 'เจอดีลที่ประหยัด 40%+'], en: ['Bargain Legend', 'Find a deal saving 40%+'], test: c => c.bestRescue >= 40 },
+    { id: 'vault_keeper', icon: '🏦', th: ['ผู้พิทักษ์คลัง', 'บันทึกรายจ่ายในคลังหลวงครั้งแรก'], en: ['Vault Keeper', 'Log your first treasury expense'], test: c => (c.trLogged || 0) >= 1 },
+    { id: 'under_budget', icon: '🛡️', th: ['คุมงบสำเร็จ', 'ปิดเดือนแบบไม่เกินงบ'], en: ['Under Budget', 'Finish a month under budget'], test: c => (c.monthsWon || 0) >= 1 },
+    { id: 'frugal_legend', icon: '💎', th: ['ตำนานประหยัด', 'คุมงบได้ 3 เดือน'], en: ['Frugal Legend', 'Win 3 budget months'], test: c => (c.monthsWon || 0) >= 3, prog: c => [Math.min(c.monthsWon || 0, 3), 3] },
     { id: 'streak3', icon: '🔥', th: ['มาแรง', 'เข้าเล่นต่อเนื่อง 3 วัน'], en: ['On a Roll', 'A 3-day streak'], test: c => (c.streak || 0) >= 3, prog: c => [Math.min(c.streak || 0, 3), 3] },
     { id: 'streak7', icon: '📅', th: ['ขาประจำ', 'เข้าเล่นต่อเนื่อง 7 วัน'], en: ['Devoted', 'A 7-day streak'], test: c => (c.streak || 0) >= 7, prog: c => [Math.min(c.streak || 0, 7), 7] },
     { id: 'level5', icon: '⭐', th: ['ผู้กล้า', 'ถึงเลเวลรวม 5'], en: ['Rising Hero', 'Reach overall level 5'], test: c => c.level.lvl >= 5, prog: c => [Math.min(c.level.lvl, 5), 5] },
@@ -233,6 +240,31 @@
     const raw = readJson('pointy_compare_v2', readJson('pointy_compare_v1', []));
     return Array.isArray(raw) ? raw : [];
   }
+  function loadTreasury() {
+    const raw = readJson('pointy_treasury_v1', null);
+    if (raw && typeof raw === 'object') return raw;
+    return {};
+  }
+  function monthKey(d) {
+    const x = new Date(d);
+    return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0');
+  }
+  function daysInMonth(d) {
+    const x = new Date(d);
+    return new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+  }
+  function billPaidThisMonth(treasury, billId, mk) {
+    return (treasury.expenses || []).some(e => e.billId === billId && monthKey(e.date) === mk);
+  }
+  function billDueStatus(bill, treasury, today = new Date()) {
+    const mk = treasury.month || monthKey(today);
+    if (monthKey(today) !== mk) return null;
+    const paid = billPaidThisMonth(treasury, bill.id, mk);
+    const dueThis = Math.min(Number(bill.dueDay) || 1, daysInMonth(today));
+    if (paid) return { paid: true, overdue: false, days: dueThis - today.getDate() };
+    if (today.getDate() > dueThis) return { paid: false, overdue: true, days: today.getDate() - dueThis };
+    return { paid: false, overdue: false, days: dueThis - today.getDate() };
+  }
   function computeProfile() {
     let fronted = 0, settleR = 0, quests = 0, completed = 0, maxPartySize = 0, totalLogged = 0;
     tripEntries().forEach(entry => {
@@ -275,7 +307,14 @@
       }
     });
 
-    const renown = Math.round(fronted + settleR + reclaimed / 10 + slain * 500 + quests * 60 + completed * 400 + showdowns * 120);
+    const treasury = loadTreasury();
+    const trStats = treasury.stats || {};
+    const monthsWon = Number(trStats.monthsWon) || 0;
+    const trLogged = Number(trStats.logged) || 0;
+    const trOnTime = Number(trStats.onTime) || 0;
+    const treasuryXp = Math.round(monthsWon * 800 + trOnTime * 60 + trLogged * 8);
+
+    const renown = Math.round(fronted + settleR + reclaimed / 10 + slain * 500 + quests * 60 + completed * 400 + showdowns * 120 + treasuryXp);
     return {
       renown,
       level: profileLevelFromRenown(renown),
@@ -295,6 +334,10 @@
       merchants,
       bestRescue,
       dragonsTotal: dragons.length,
+      monthsWon,
+      trLogged,
+      trOnTime,
+      treasuryXp,
       streak: profile?.streak || 0
     };
   }
@@ -341,6 +384,14 @@
       const name = typeof d.name === 'object' ? (d.name[lang()] || d.name.en || d.name.th) : d.name;
       if (due.overdue) copy.push({ id: 'd' + d.id, kind: 'overdue', icon: '🐉', title: name, sub: s().remOverdue, href: '/debt/' });
       else if (due.days <= 5) copy.push({ id: 'd' + d.id, kind: 'due', icon: '🐉', title: name, sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), href: '/debt/', days: due.days });
+    });
+    const treasury = loadTreasury();
+    (treasury.bills || []).forEach(bill => {
+      const due = billDueStatus(bill, treasury);
+      if (!due || due.paid) return;
+      const name = typeof bill.name === 'object' ? (bill.name[lang()] || bill.name.en || bill.name.th) : bill.name;
+      if (due.overdue) copy.push({ id: 'tb' + bill.id, kind: 'overdue', icon: bill.glyph || '🏦', title: name, sub: s().remOverdue, href: '/treasury/' });
+      else if (due.days <= 5) copy.push({ id: 'tb' + bill.id, kind: 'due', icon: bill.glyph || '🏦', title: name, sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), href: '/treasury/', days: due.days });
     });
     const party = activeParty();
     const txns = window.PointyLogic?.settleUp ? window.PointyLogic.settleUp(party) : [];
@@ -548,7 +599,8 @@
       { ic: '⚔️', bg: 255, t: s().tourT0, b: s().tourB0 },
       { ic: '💸', bg: 150, t: s().tourT1, b: s().tourB1 },
       { ic: '🐉', bg: 25, t: s().tourT2, b: s().tourB2 },
-      { ic: '⚖️', bg: 42, t: s().tourT3, b: s().tourB3 }
+      { ic: '⚖️', bg: 42, t: s().tourT3, b: s().tourB3 },
+      { ic: '🏦', bg: 78, t: s().tourT4, b: s().tourB4 }
     ];
     function render() {
       const st = steps[idx];
@@ -602,6 +654,7 @@
     refresh({ toast: false });
     window.addEventListener('storage', () => refresh({ toast: false }));
     window.addEventListener('coin-quest-state-changed', () => refresh({ toast: true }));
+    window.addEventListener('pointy-treasury-changed', () => refresh({ toast: true }));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
     if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 650);
   }

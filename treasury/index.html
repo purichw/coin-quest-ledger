@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coin Quest Ledger — คลังหลวง</title>
+  <link rel="icon" href="data:,">
+  <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
+  <script>(function(){try{var t=localStorage.getItem("pointy_theme")||((JSON.parse(localStorage.getItem("coin_quest_ui_v1")||"{}")||{}).theme);if(t==="dungeon"||t==="tavern")document.documentElement.setAttribute("data-theme",t)}catch(_){}})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/first-load.css">
+  <link rel="stylesheet" href="/shared/profile-hub.css">
+  <style>
+    :root {
+      --font-display: "Mitr", system-ui, sans-serif;
+      --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
+      --font-stat: "Chakra Petch", monospace;
+      --accent: #c79320;
+      --bg: #e7dcc6;
+      --bg-glow: #f0e7d4;
+      --panel: #fbf6ea;
+      --panel-2: #f3e9d4;
+      --panel-in: #fffdf7;
+      --ink: #2f2515;
+      --ink-soft: #87745a;
+      --border: #ddc9a3;
+      --border-strong: #c9ad7c;
+      --gold: #c79320;
+      --gold-soft: #efe0b6;
+      --hp: #cf4633;
+      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
+      --topbar: #2b2113;
+      --topbar-ink: #efe4cc;
+    }
+    [data-theme="dungeon"] {
+      --bg: #14121f;
+      --bg-glow: #221d36;
+      --panel: #221d33;
+      --panel-2: #2b2542;
+      --panel-in: #1a1628;
+      --ink: #ece8f8;
+      --ink-soft: #a39bc4;
+      --border: #3b3357;
+      --border-strong: #4a4170;
+      --gold: #ecc14e;
+      --gold-soft: #3a3050;
+      --hp: #ff5d70;
+      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
+      --topbar: #0e0c17;
+      --topbar-ink: #d9d2f0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { min-height: 100vh; color: var(--ink); font-family: var(--font-body); background: radial-gradient(1100px 520px at 50% -10%, var(--bg-glow), transparent 72%), var(--bg); -webkit-font-smoothing: antialiased; }
+    button, input, select { font-family: inherit; }
+    button { cursor: pointer; }
+    .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
+    .tb-inner { max-width: 1180px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .tb-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .tb-logo { width: 28px; height: 28px; display: grid; place-items: center; flex-shrink: 0; }
+    .tb-logo img { width: 28px; height: 28px; display: block; }
+    .tb-nav { display: flex; gap: 6px; min-width: 0; }
+    .tb-link { color: var(--topbar-ink); text-decoration: none; opacity: .62; font-size: 14px; padding: 7px 14px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
+    .tb-link.active { opacity: 1; background: rgba(255,255,255,.12); }
+    .lang-toggle { display: flex; background: rgba(255,255,255,.1); border-radius: 9px; padding: 3px; flex-shrink: 0; }
+    .lang-toggle button { border: 0; background: transparent; color: var(--topbar-ink); opacity: .62; padding: 5px 11px; border-radius: 7px; font-family: var(--font-stat); font-weight: 700; font-size: 13px; }
+    .lang-toggle button.lang-active { opacity: 1; background: #2f8f5b; color: #fff; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 26px 20px 64px; }
+    .banner { text-align: center; padding: 8px 0 22px; }
+    .banner-title { margin: 6px 0 10px; color: var(--gold); font-family: var(--font-display); font-size: 38px; font-weight: 800; letter-spacing: 0; }
+    .banner-sub { max-width: 580px; margin: 0 auto; color: var(--ink-soft); font-size: 14px; line-height: 1.55; }
+    .hoard-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px auto 0; max-width: 980px; }
+    .hoard-stat { min-height: 86px; border: 1.5px solid var(--border); border-radius: 16px; background: linear-gradient(var(--panel-in), var(--panel-2)); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+    .hs-icon { font-size: 19px; }
+    .hs-val { color: var(--gold); font-family: var(--font-stat); font-size: 22px; font-weight: 800; }
+    .hs-lab { color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+    .panel { background: var(--panel); border: 1.5px solid var(--border); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .panel-title { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+    .btn-primary, .btn-ghost, .btn-danger, .btn-gold { border-radius: 11px; font-weight: 700; transition: .12s; }
+    .btn-primary { border: 0; background: #2f8f5b; color: #fff; padding: 9px 14px; box-shadow: 0 2px 0 #1d5b3a; }
+    .btn-gold { border: 0; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 14%)); color: #2a1f06; padding: 10px 16px; box-shadow: 0 3px 0 color-mix(in oklab, var(--gold), #000 35%); }
+    .btn-ghost { border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink); padding: 8px 12px; }
+    .btn-danger { border: 1.5px solid color-mix(in oklab, var(--hp), var(--border) 30%); background: color-mix(in oklab, var(--hp), transparent 88%); color: var(--hp); padding: 8px 12px; }
+    .btn-primary.sm, .btn-ghost.sm, .btn-danger.sm { padding: 7px 10px; font-size: 13px; }
+    .vault { display: grid; gap: 10px; margin: 20px auto 0; max-width: 980px; }
+    .vault-head { display: flex; justify-content: space-between; color: var(--ink); font-weight: 800; }
+    .vault-state.breached { color: var(--hp); }
+    .vault-track { height: 18px; border-radius: 999px; background: var(--panel-in); border: 1.5px solid var(--border-strong); overflow: hidden; }
+    .vault-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #cf4633, var(--gold)); transition: width .35s; }
+    .main-grid { display: grid; grid-template-columns: 1.55fr .85fr; gap: 18px; align-items: start; }
+    .ward-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .ward-card { border: 1.5px solid var(--border); background: linear-gradient(var(--panel-in), var(--panel-2)); border-radius: 16px; padding: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
+    .ward-card.breached { border-color: var(--hp); box-shadow: 0 0 0 1px color-mix(in oklab, var(--hp), transparent 45%), var(--shadow); }
+    .ward-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .ward-glyph { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--gold-soft); border: 1.5px solid var(--border-strong); font-size: 22px; }
+    .ward-id { flex: 1; min-width: 0; }
+    .ward-name { color: var(--ink); font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+    .ward-monster { color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+    .ward-bar-track { height: 10px; border-radius: 999px; background: var(--panel); border: 1px solid color-mix(in oklab, var(--border), transparent 30%); overflow: hidden; }
+    .ward-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2f8f5b, var(--gold)); transition: width .35s; }
+    .ward-nums, .ward-status { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--ink-soft); font-family: var(--font-stat); font-weight: 700; }
+    .ward-spent { color: var(--ink); }
+    .ward-spent.over, .ward-tag.breach { color: var(--hp); }
+    .ward-tag.hold { color: #2f8f5b; }
+    .ward-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .log-list, .bill-list, .history-list { display: grid; gap: 9px; }
+    .log-row, .bill-row, .history-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; border: 1.5px solid var(--border); border-radius: 13px; background: var(--panel-in); padding: 9px 10px; }
+    .bill-row.overdue { border-color: var(--hp); }
+    .row-title { color: var(--ink); font-weight: 800; }
+    .row-sub { color: var(--ink-soft); font-size: 12px; }
+    .row-amt { color: var(--gold); font-family: var(--font-stat); font-weight: 800; }
+    .form-grid { display: grid; gap: 10px; }
+    .form-grid.two { grid-template-columns: 1fr 1fr; }
+    .field { display: grid; gap: 5px; color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+    .field input, .field select { width: 100%; border: 1.5px solid var(--border-strong); border-radius: 11px; background: var(--panel-in); color: var(--ink); padding: 10px 11px; font-size: 14px; }
+    .modal-cover { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(20,14,8,.55); backdrop-filter: blur(3px); }
+    .modal { width: min(520px, 96vw); max-height: 90vh; overflow: auto; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 18px; box-shadow: 0 24px 60px -20px rgba(0,0,0,.6); padding: 18px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .modal-title { font-family: var(--font-display); font-size: 20px; font-weight: 800; }
+    .x { border: 0; background: transparent; color: var(--ink-soft); font-size: 22px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(18px); background: var(--topbar); color: var(--topbar-ink); padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s; z-index: 90; font-weight: 800; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @media (max-width: 860px) {
+      .tb-inner { padding: 10px 12px; }
+      .tb-nav { overflow-x: auto; gap: 3px; }
+      .tb-link { padding: 7px 9px; font-size: 13px; }
+      .page { padding: 22px 14px 54px; }
+      .banner-title { font-size: 31px; }
+      .hoard-bar, .main-grid, .ward-grid, .form-grid.two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="first-load" data-first-load>
+    <div class="first-load-box">
+      <div class="first-load-emblem" aria-hidden="true"><span class="first-load-torch left"></span><span class="first-load-eye"><span class="first-load-pupil"></span></span><span class="first-load-torch right"></span><span class="first-load-tiny">Text</span></div>
+      <div class="first-load-title">POINTY</div>
+      <div class="first-load-track"><div class="first-load-fill"></div></div>
+      <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
+    </div>
+  </div>
+
+  <nav class="topbar">
+    <div class="tb-inner">
+      <div class="tb-left">
+        <a class="tb-logo" href="/" aria-label="Home"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></a>
+        <div class="tb-nav">
+          <a href="/?view=compare" class="tb-link" data-i18n="nav_compare">เปรียบเทียบราคา</a>
+          <a href="/trip/" class="tb-link" data-i18n="nav_split">แบ่งค่าใช้จ่าย</a>
+          <a href="/debt/" class="tb-link" data-i18n="nav_debt">มังกรหนี้</a>
+          <a href="/treasury/" class="tb-link active" data-i18n="nav_treasury">คลังหลวง</a>
+        </div>
+      </div>
+      <div class="lang-toggle">
+        <button class="lang-btn" data-lang="th" onclick="setLang('th')">TH</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page" id="app"></main>
+  <div class="toast" id="toast"></div>
+
+  <script src="/shared/pointy-logic.js"></script>
+  <script src="/shared/cloudinary-assets.js"></script>
+  <script src="/shared/asset-urls.js"></script>
+  <script src="/shared/first-load.js"></script>
+  <script src="/lang.js"></script>
+  <script src="/treasury/app.js"></script>
+  <script src="/shared/profile-hub.js"></script>
+</body>
+</html>

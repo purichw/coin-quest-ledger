@@ -160,8 +160,18 @@ function characterProfileLink(id) {
   return TEST_MODE ? `${url}&test=1` : url;
 }
 function activeBoards() { return draft.boards.filter(b => !b.deleted); }
-function boardTypeLabel(b) { return (b.type || 'split') === 'debt' ? 'Debt' : 'Split'; }
-function boardTypeIcon(b) { return (b.type || 'split') === 'debt' ? '🐉' : '📜'; }
+function boardTypeLabel(b) {
+  const type = b.type || 'split';
+  if (type === 'debt') return 'Debt';
+  if (type === 'treasury') return 'Treasury';
+  return 'Split';
+}
+function boardTypeIcon(b) {
+  const type = b.type || 'split';
+  if (type === 'debt') return '🐉';
+  if (type === 'treasury') return '🏦';
+  return '📜';
+}
 function userKey(name, id) { return id || ('U-' + String(hashOf(String(name || 'user'))).slice(-4)); }
 function adminUserId(b) {
   const adminChar = b.data?.admin?.characterId || b.characterIds?.[b.adminName] || '';
@@ -206,7 +216,8 @@ function idChip(kind, label, id = label, extra = '') {
   const safeKind = kind === 'debt' ? 'debt' : kind;
   const on = kind === 'char' ? '' : ` onclick="openDetail(${q(kind)},${q(id)})"`;
   const tag = kind === 'board' ? 'Board' : kind === 'admin' ? 'Admin' : kind === 'user' ? 'User' : 'Char';
-  return `<button type="button" class="id-chip ${safeKind}"${on}>${tag}<span>${h(label || '-')}</span>${extra}</button>`;
+  const protoKind = kind === 'board' ? 'k-board' : kind === 'admin' ? 'k-admin' : kind === 'user' ? 'k-user' : kind === 'char' ? 'k-char' : safeKind;
+  return `<button type="button" class="id-chip idchip ${safeKind} ${protoKind}"${on}>${tag}<span>${h(label || '-')}</span>${extra}</button>`;
 }
 function openDetail(kind, id) {
   detail = { kind, id };
@@ -243,7 +254,8 @@ function supportAction(title, body) {
 function addBoard() {
   confirmAction('เพิ่ม Board ใหม่?', 'จะเพิ่ม draft board ใหม่ ยังไม่ publish จนกด Publish', () => {
     const id = 'new-' + uid().slice(-4);
-    draft.boards.push(normalizeBoard(id, { boardType: boardFilter === 'debt' ? 'debt' : 'split', tripName: 'New Board', participants: [], characterIds: {}, admin: { adminId: 'ADM-' + uid().slice(-6), adminName: '' } }));
+    const type = ['split', 'debt', 'treasury'].includes(boardFilter) ? boardFilter : 'split';
+    draft.boards.push(normalizeBoard(id, { boardType: type, tripName: 'New Board', participants: [], characterIds: {}, admin: { adminId: 'ADM-' + uid().slice(-6), adminName: '' } }));
     draft.boards[draft.boards.length - 1].created = true;
     dirty = true;
     render();
@@ -390,7 +402,8 @@ function filtered(list, keys) {
 function renderDashboard() {
   const boards = activeBoards();
   const split = boards.filter(b => (b.type || 'split') === 'split').length;
-  const debt = boards.length - split;
+  const debt = boards.filter(b => (b.type || 'split') === 'debt').length;
+  const treasury = boards.filter(b => (b.type || 'split') === 'treasury').length;
   const records = userRecords();
   const totals = boards.reduce((acc, b) => {
     const st = boardStats(b);
@@ -402,7 +415,7 @@ function renderDashboard() {
   const attention = boards.filter(b => !b.adminId || !b.adminName || !b.urlId).slice(0, 5);
   const recent = diffBoards().slice(0, 6);
   const kpis = `<div class="stat-grid">
-    <div class="stat-card"><span>Boards</span><strong>${boards.length}</strong><small>${split} Split · ${debt} Debt</small></div>
+    <div class="stat-card"><span>Boards</span><strong>${boards.length}</strong><small>${split} Split · ${debt} Debt · ${treasury} Treasury</small></div>
     <div class="stat-card"><span>Users / Characters</span><strong>${records.length}</strong><small>${users().length} board links</small></div>
     <div class="stat-card"><span>Debt Watch</span><strong>${totals.overdue}</strong><small>${fmtMoney(totals.balance)} balance tracked</small></div>
     <div class="stat-card"><span>Unpublished Changes</span><strong>${diffBoards().length}</strong><small>${dirty ? 'local draft active' : 'published snapshot'}</small></div>
@@ -451,7 +464,17 @@ function boardRows() {
 }
 function renderBoards() {
   if (detail?.kind === 'board') return renderBoardDetail(detail.id);
-  return panel('Boards', `<div class="toolbar"><div class="filters"><input class="search" placeholder="ค้นหา board/admin" value="${h(query)}" oninput="query=this.value;render()"><div class="seg">${['all','split','debt'].map(x => `<button class="${boardFilter === x ? 'on' : ''}" onclick="boardFilter='${x}';render()">${x}</button>`).join('')}</div></div><button class="btn primary" onclick="addBoard()">+ เพิ่ม Board</button></div><table><thead><tr><th>URL</th><th>Type</th><th>ชื่อ Board</th><th>Admin ID</th><th>ชื่อเล่น Admin</th><th>Reset Password</th><th>Members</th><th></th></tr></thead><tbody>${boardRows()}</tbody></table>`);
+  const quick = activeBoards()
+    .filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter)
+    .slice(0, 4)
+    .map(b => `<div class="mini-row"><span>${idChip('board', b.urlId, b.originalId)} <b>${h(b.tripName)}</b><br><span class="muted">${boardTypeIcon(b)} ${boardTypeLabel(b)} · ${b.participants.length} members</span></span><button class="btn" onclick="openDetail('board',${q(b.originalId)})">Detail</button></div>`)
+    .join('');
+  const quickButtons = activeBoards()
+    .filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter)
+    .slice(0, 4)
+    .map(b => `<button class="btn" onclick="openDetail('board',${q(b.originalId)})">Detail</button>`)
+    .join('');
+  return panel('Boards', `<div class="toolbar"><div class="filters"><input class="search" placeholder="ค้นหา board/admin" value="${h(query)}" oninput="query=this.value;render()"><div class="seg">${['all','split','debt','treasury'].map(x => `<button class="${boardFilter === x ? 'on' : ''}" onclick="boardFilter='${x}';render()">${x}</button>`).join('')}</div></div><button class="btn primary" onclick="addBoard()">+ เพิ่ม Board</button></div><div class="actions mt12">${quickButtons}</div><div class="mini-list mt12">${quick}</div><div class="tbl-wrap mt16"><table class="tbl"><thead><tr><th>URL</th><th>Type</th><th>ชื่อ Board</th><th>Admin ID</th><th>ชื่อเล่น Admin</th><th>Reset Password</th><th>Members</th><th></th></tr></thead><tbody>${boardRows()}</tbody></table></div>`);
 }
 function renderBoardDetail(id) {
   const b = boardById(id);
@@ -480,7 +503,10 @@ function renderBoardDetail(id) {
 }
 function renderAdmins() {
   if (detail?.kind === 'admin') return renderAdminDetail(detail.id);
-  const rows = filtered(adminGroups(), ['adminId', 'adminName', 'key']).map(g => `
+  const groups = filtered(adminGroups(), ['adminId', 'adminName', 'key']);
+  const quick = groups.slice(0, 4).map(g => `<div class="mini-row"><span>${idChip('admin', g.adminId || '-', g.key)} <b>${h(g.adminName || '-')}</b><br><span class="muted">${g.boards.length} owned boards</span></span><button class="btn" onclick="openDetail('admin',${q(g.key)})">Detail</button></div>`).join('');
+  const quickButtons = groups.slice(0, 4).map(g => `<button class="btn" onclick="openDetail('admin',${q(g.key)})">Detail</button>`).join('');
+  const rows = groups.map(g => `
     <tr>
       <td><input class="field small" value="${h(g.adminId)}" oninput="updateAdminGroup(${q(g.key)},{adminId:this.value})"></td>
       <td><input class="field" value="${h(g.adminName)}" oninput="updateAdminGroup(${q(g.key)},{adminName:this.value})"></td>
@@ -489,7 +515,7 @@ function renderAdmins() {
       <td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td>
       <td><button class="btn" onclick="openDetail('admin',${q(g.key)})">Detail</button></td>
     </tr>`).join('');
-  return panel('Board Admins', `<div class="toolbar"><input class="search" placeholder="ค้นหา admin" value="${h(query)}" oninput="query=this.value;render()"><button class="btn" onclick="supportAction('Invite Admin','เลือก user แล้วผูก Admin ID เข้ากับ board')">Invite admin</button></div><table><thead><tr><th>ID</th><th>ชื่อเล่น</th><th>User</th><th>Owner Hash</th><th>Boards</th><th></th></tr></thead><tbody>${rows}</tbody></table>`);
+  return panel('Board Admins', `<div class="toolbar"><input class="search" placeholder="ค้นหา admin" value="${h(query)}" oninput="query=this.value;render()"><button class="btn" onclick="supportAction('Invite Admin','เลือก user แล้วผูก Admin ID เข้ากับ board')">Invite admin</button></div><div class="actions mt12">${quickButtons}</div><div class="mini-list mt12">${quick}</div><div class="tbl-wrap mt16"><table class="tbl"><thead><tr><th>ID</th><th>ชื่อเล่น</th><th>User</th><th>Owner Hash</th><th>Boards</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`);
 }
 function renderAdminDetail(key) {
   const g = adminGroupByKey(key);
@@ -500,6 +526,9 @@ function renderAdminDetail(key) {
 }
 function renderUsers() {
   if (detail?.kind === 'user') return renderUserDetail(detail.id);
+  const records = userRecords().filter(u => !query || `${u.name} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
+  const quick = records.slice(0, 4).map(u => `<div class="mini-row"><span>${idChip('user', u.userId, u.userId)} <b>${h(u.name)}</b><br><span class="muted">${u.chars.length} chars · ${u.boards.length} boards · ${u.adminGroups.length} admin roles</span></span><button class="btn" onclick="openDetail('user',${q(u.userId)})">Detail</button></div>`).join('');
+  const quickButtons = records.slice(0, 4).map(u => `<button class="btn" onclick="openDetail('user',${q(u.userId)})">Detail</button>`).join('');
   const flatRows = users().filter(u => !query || `${u.name} ${u.id} ${u.board.urlId}`.toLowerCase().includes(query.toLowerCase())).map(u => `
     <tr>
       <td>${idChip('board', u.board.urlId, u.board.originalId)}</td>
@@ -508,7 +537,7 @@ function renderUsers() {
       <td>${idChip('user', userKey(u.name, u.id), userKey(u.name, u.id))}</td>
       <td><a class="btn" href="${h(characterProfileLink(u.id))}">Profile</a> <button class="btn" onclick="openDetail('user',${q(userKey(u.name, u.id))})">Detail</button> <button class="btn danger" onclick="deleteUser(${q(u.board.originalId)},${q(u.name)})">ลบ</button></td>
     </tr>`).join('');
-  return panel('Users', `<div class="toolbar"><input class="search" placeholder="ค้นหา user/board" value="${h(query)}" oninput="query=this.value;render()"><button class="btn" onclick="supportAction('Add User','เลือก existing/new user แล้วสร้าง character LV 1 ใน board')">+ Add user</button></div><table><thead><tr><th>Board</th><th>ชื่อ</th><th>Character ID</th><th>User ID</th><th></th></tr></thead><tbody>${flatRows}</tbody></table>`);
+  return panel('Users', `<div class="toolbar"><input class="search" placeholder="ค้นหา user/board" value="${h(query)}" oninput="query=this.value;render()"><button class="btn" onclick="supportAction('Add User','เลือก existing/new user แล้วสร้าง character LV 1 ใน board')">+ Add user</button></div><div class="actions mt12">${quickButtons}</div><div class="mini-list mt12">${quick}</div><div class="tbl-wrap mt16"><table class="tbl"><thead><tr><th>Board</th><th>ชื่อ</th><th>Character ID</th><th>User ID</th><th></th></tr></thead><tbody>${flatRows}</tbody></table></div>`);
 }
 function renderUserDetail(id) {
   const u = userById(id);
@@ -534,21 +563,46 @@ function renderRevisions() {
 function renderSupportTools() {
   return panel('Support Tools', `<div class="stat-grid"><div class="stat-card"><span>Impersonate</span><strong>👁</strong><small>Read-only user view</small><button class="btn" onclick="supportAction('Impersonate','เปิด read-only user view สำหรับ debug')">Open</button></div><div class="stat-card"><span>Reset password</span><strong>🔑</strong><small>Temporary board admin password</small><button class="btn" onclick="supportAction('Reset Password','สร้าง temporary password และ log action')">Reset</button></div><div class="stat-card"><span>Export</span><strong>📦</strong><small>Board/User JSON or CSV</small><button class="btn" onclick="supportAction('Export Data','เตรียม export package สำหรับ support')">Export</button></div><div class="stat-card"><span>Merge</span><strong>🔀</strong><small>Merge duplicate accounts</small><button class="btn warn" onclick="supportAction('Merge Accounts','รวมบัญชีซ้ำพร้อมบันทึก audit')">Merge</button></div></div><div class="section"><h3>Create / invite flows</h3><div class="actions"><button class="btn primary" onclick="addBoard()">New board</button><button class="btn" onclick="supportAction('Invite Admin','เลือก user → nickname → board แล้วเพิ่ม Admin ID')">Invite admin</button><button class="btn" onclick="supportAction('Add User','เพิ่ม existing/new user เข้า board และสร้าง character LV 1')">Add user</button></div></div>`);
 }
-function panel(title, body) { return `<section class="panel"><div class="toolbar"><h2>${title}</h2></div>${body}</section>`; }
+function panel(title, body) { return `<section class="panel card card-pad"><div class="legacy-card-head"><h2>${title}</h2></div>${body}</section>`; }
 function renderMain() {
   const body = tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
   const changes = diffBoards().length;
-  const nav = [
-    ['dashboard', 'Dashboard'], ['map', 'Relationship Map'], ['boards', 'Boards'], ['users', 'Users'], ['admins', 'Board Admins'], ['audit', 'Audit Log'], ['revisions', 'Version Control'], ['support', 'Support Tools']
-  ].map(([key, label]) => `<button class="${tab === key ? 'on' : ''}" onclick="selectTab('${key}')"><span>${label}</span>${key === 'revisions' && changes ? `<b>${changes}</b>` : ''}</button>`).join('');
-  document.getElementById('app').innerHTML = `<div class="shell">
-    <div class="top"><div><h1>Admin Portal</h1><div class="sub">Super Admin console · Board ↔ Admin ↔ User ↔ Character</div></div><div class="actions"><span id="draft-badge" class="badge">${dirty ? 'Draft changed locally' : 'Published version'}</span><button class="btn" onclick="saveDraft()">Save</button><button class="btn warn" onclick="restoreDraft()">Restore</button><button id="publish-btn" class="btn primary" onclick="publishDraft()">Publish ${changes ? `(${changes})` : ''}</button><button class="btn" onclick="lockGate()">Lock</button></div></div>
-    <div class="notice">Phase 1: local gate ยังไม่ใช่ security จริง ห้ามถือว่าเป็นการกันคนนอกจนกว่าจะมี Firebase Auth และ Security Rules</div>
-    <div class="grid"><aside class="side"><div class="nav">${nav}</div><div class="stats"><div class="stat"><strong>${activeBoards().length}</strong>Boards</div><div class="stat"><strong>${adminGroups().length}</strong>Admins</div><div class="stat"><strong>${userRecords().length}</strong>Global users</div><div class="stat"><strong>${users().length}</strong>Character links</div></div></aside>${body}</div>
+  const groups = [
+    ['Overview', [['dashboard', 'Dashboard', '📊'], ['map', 'Relationship Map', '🕸️']]],
+    ['Manage', [['boards', 'Boards', '🗂️'], ['users', 'Users', '👤'], ['admins', 'Board Admins', '🛡️']]],
+    ['Ops', [['audit', 'Audit Log', '📜'], ['revisions', 'Version Control', '🧾'], ['support', 'Support Tools', '🧰']]]
+  ];
+  const nav = groups.map(([label, items]) => `
+    <div class="nav-group-label">${label}</div>
+    ${items.map(([key, text, ico]) => `<button class="nav-item ${tab === key ? 'active on' : ''}" onclick="selectTab('${key}')"><span class="ni-ico">${ico}</span><span>${text}</span>${key === 'revisions' && changes ? `<span class="ni-badge">${changes}</span>` : ''}</button>`).join('')}
+  `).join('');
+  document.getElementById('app').innerHTML = `<div class="app">
+    <header class="topbar">
+      <div class="tb-brand">
+        <div class="tb-crest">⚔️</div>
+        <div><div class="tb-title">Super Admin Portal</div><div class="tb-sub">Coin Quest Ledger · Board ↔ Admin ↔ User ↔ Character</div></div>
+      </div>
+      <div class="tb-right">
+        <span class="env-pill"><span class="dot"></span>PHASE 1</span>
+        <span id="draft-badge" class="env-pill">${dirty ? 'Draft changed locally' : 'Published version'}</span>
+        <button class="btn" onclick="saveDraft()">Save</button>
+        <button class="btn warn" onclick="restoreDraft()">Restore</button>
+        <button id="publish-btn" class="btn primary" onclick="publishDraft()">Publish ${changes ? `(${changes})` : ''}</button>
+        <button class="btn" onclick="lockGate()">Lock</button>
+        <div class="tb-admin"><div class="who"><b>Super Admin</b><span>LOCAL GATE</span></div><div class="tb-ava">🛡️</div></div>
+      </div>
+    </header>
+    <div class="shell">
+      <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${userRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
+      <main class="main">
+        <div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1: local gate ยังไม่ใช่ security จริง ห้ามถือว่าเป็นการกันคนนอกจนกว่าจะมี Firebase Auth และ Security Rules</span></div>
+        ${body}
+      </main>
+    </div>
   </div>`;
 }
 function renderGate() {
-  document.getElementById('app').innerHTML = `<div class="gate"><div class="panel"><h1>Admin Portal</h1><div class="notice">Phase 1 local gate เท่านั้น ยังไม่ใช่ security จริง</div><input id="gate-pass" class="field" type="password" placeholder="${gateConfigured() ? 'Super Admin local pass' : 'ตั้ง local pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()"><button class="btn primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button></div></div>`;
+  document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Coin Quest Ledger admin command center</div><div class="notice">Phase 1 local gate เท่านั้น ยังไม่ใช่ security จริง</div><input id="gate-pass" class="field pin-input" type="password" placeholder="${gateConfigured() ? 'Super Admin local pass' : 'ตั้ง local pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()"><button class="btn primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button></div></div>`;
 }
 function render() { isUnlocked() ? renderMain() : renderGate(); }
 function showModal(title, body, actions = []) {

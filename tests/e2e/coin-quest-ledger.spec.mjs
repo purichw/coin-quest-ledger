@@ -566,9 +566,9 @@ test('character profile aggregates boards, shows portrait, and supports privacy 
 
 test('price comparison page loads and ranks normalized unit prices', async ({ page }) => {
   await page.addInitScript(() => localStorage.clear());
-  await page.goto('/');
+  await page.goto('/?view=compare&test=1');
 
-  await expect(page.getByRole('link', { name: 'เปรียบเทียบราคา' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /หน้าหลัก|Home/ })).toBeVisible();
   await expect(page.locator('#cmp-grid')).toBeVisible();
   await expect(page.locator('.cmp-icon .qi').first()).toBeVisible();
 
@@ -592,6 +592,41 @@ test('price comparison page loads and ranks normalized unit prices', async ({ pa
   expect(ranked[0].merchant).toBe('A');
   expect(ranked[0].isBest).toBe(true);
   expect(ranked[0].pu).toBeLessThan(ranked[1].pu);
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(overflow).toBe(false);
+});
+
+test('home view opens user modules and treasury logs expenses', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto('/?test=1');
+
+  await expect(page.getByRole('heading', { name: 'Coin Quest Ledger' })).toBeVisible();
+  await expect(page.locator('[data-home-card="compare"]')).toBeVisible();
+  await expect(page.locator('[data-home-card="treasury"]')).toBeVisible();
+
+  await page.locator('[data-home-card="compare"]').click();
+  await expect(page).toHaveURL(/view=compare/);
+  await expect(page.locator('#cmp-grid')).toBeVisible();
+  await page.getByRole('button', { name: /หน้าหลัก|Home/ }).click();
+  await expect(page.locator('[data-home-card="split"]')).toBeVisible();
+
+  await page.locator('[data-home-card="treasury"]').click();
+  await expect(page).toHaveURL(/\/treasury\/$/);
+  await expect(page.getByRole('heading', { name: /คลังหลวง|Personal Treasury/ })).toBeVisible();
+  await expect(page.getByText(/พยากรณ์สิ้นเดือน|Month forecast/)).toBeVisible();
+
+  await page.getByRole('button', { name: /บันทึกรายจ่าย|Log an expense/ }).first().click();
+  await page.locator('#expense-amount').fill('123');
+  await page.locator('#expense-note').fill('E2E snack');
+  await page.getByRole('button', { name: /ลงบันทึก|Log it/ }).click();
+  await expect(page.locator('#toast')).toContainText(/บันทึกแล้ว|Logged/);
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_treasury_v1') || '{}'));
+  expect(saved.expenses.some(e => e.note === 'E2E snack' && e.amount === 123)).toBe(true);
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
