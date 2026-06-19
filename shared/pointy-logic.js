@@ -519,8 +519,13 @@
       const boardId = String(entry.id || entry.urlId || '');
       const state = normalizeTripState(entry.data || entry, { defaultTripName: boardFallback });
       const matchNames = characterNamesForId(state, id);
+      const admin = state.admin || {};
+      if (!matchNames.length && String(admin.characterId || '') === id) {
+        matchNames.push(admin.adminName || record?.name || id);
+      }
       if (!matchNames.length) return;
       const updatedAt = timestampValue(entry.updatedAt || entry.data?.updatedAt || state.updatedAt || state.admin?.createdAt);
+      const createdAt = timestampValue(entry.createdAt || entry.data?.createdAt || state.createdAt || state.admin?.createdAt);
       const party = computeParty(state, {
         classOf: name => normalizeClass(state.heroClasses?.[name] || record?.class || PointyLogic.CLASS_ORDER[hashOf(name) % PointyLogic.CLASS_ORDER.length]),
         baseXp: () => 0
@@ -528,7 +533,6 @@
       matchNames.forEach(name => {
         names.add(name);
         const hero = party.find(p => p.name === name) || { paid: 0, share: 0, gen: 0, bal: 0, quests: 0, xp: 0, cls: state.heroClasses?.[name] || record?.class };
-        const admin = state.admin || {};
         const isAdminLinked = String(admin.characterId || '') === id || (admin.adminName && admin.adminName === name);
         const boardTotal = state.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
         const settled = state.expenses.length > 0 && settleUp(party).length === 0;
@@ -550,6 +554,9 @@
           adminId: admin.adminId || '',
           adminName: admin.adminName || '',
           isAdminLinked,
+          archived: !!(state.archived || entry.data?.archived || entry.archived),
+          members: (state.participants || []).length,
+          createdAt,
           updatedAt
         };
         boardRows.push(row);

@@ -15,10 +15,10 @@ Current user instruction: do not use `CLAUDE_RECOVERY.md` unless explicitly re-e
 | Home / module launcher | `index.html` | `Party Ledger HomeView Reference.zip` | Home view layout, launcher cards, mobile handoff details | Use split zip first. |
 | Party Ledger / Split | `trip/index.html`, `trip/app.js`, `trip/pixicons.jsx` | `Party Ledger Internals Source.zip`, `Party Ledger Full Split Reference.zip`, `Party Ledger (offline).html` | Party UI, interactions, animation, category icons, SFX | SFX are WebAudio in `sound.jsx`; do not drop it. |
 | Party assets | `assets/rpg-portraits/`, `assets/icons/` | `Party Ledger Resources.zip` | Extracted PNG/font resources | Keep large resources outside Git unless intentionally adding optimized assets. |
-| Character Profile | `character/index.html`, `character/app.js` | `/Users/point/Downloads/Character Profile (standalone).html` | Character banner, ID card, mobile responsive layout, trophies/account presentation | Includes mobile CSS. Does not mention side panel/profile drawer route wiring. |
+| Character Profile | `character/index.html`, `character/app.js` | `/Users/point/Downloads/Character Profile (standalone) (1).html`, `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`, `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md` | Character banner, ID card, mobile responsive layout, trophies/account presentation, User ID, My Boards | Latest handoff includes side-panel full-profile route. |
 | Admin Portal | `admin/index.html`, `admin/app.js`, `admin/admin.css` | `/Users/point/Downloads/admin/` and `ADMIN.md` | Admin layout vocabulary, tables, detail panels, modals, relationship views | Phase 1 live gate is local only, not real security. |
 | Shared mobile shell | `shared/mobile-shell.js`, `shared/mobile-shell.css` | Party Ledger/HomeView mobile references | Phone drawer and bottom tabs | Keep centralized; hidden above `600px`. |
-| Profile/Login | `shared/profile-hub.js`, `shared/profile-hub.css` | Live implementation plus Claude visual direction | Mock login, profile drawer, logout, backup/restore | Real auth is future roadmap work. |
+| Profile/Login | `shared/profile-hub.js`, `shared/profile-hub.css` | Latest `CLAUDE.md` / `HANDOFF.md` plus live implementation | Mock Sign In/Sign Up, Character Creation, profile drawer, My Boards, logout, backup/restore | Real auth is future roadmap work. Mobile profile entry is through hamburger drawer. |
 
 ## Party Ledger Recovery Bundle
 
@@ -49,7 +49,10 @@ Workflow:
 Source:
 
 ```text
-/Users/point/Downloads/Character Profile (standalone).html
+/Users/point/Downloads/Character Profile (standalone) (1).html
+/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html
+/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md
+/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md
 ```
 
 Known facts:
@@ -59,11 +62,13 @@ Known facts:
 - It has Character-specific responsive layout: `cnav`, `wrap`, `banner`, `idcard`, `ribbon`, `mods`, `trophies`, `acct`.
 - It reads `pointy_auth_v1` for account display.
 - It has a back link to `index.html` in the standalone reference.
-- It does not contain `Side Panel`, `drawer`, `profile drawer`, `hamburger`, `mobile-shell`, or direct route wiring from a profile side panel.
+- The newest `CLAUDE.md` / `HANDOFF.md` says `party-ledger/character.html` is linked from the Hero Profile side panel's full-profile button and includes a User ID chip plus My Boards section.
 
-Live integration decision:
+Live implementation:
 
-- If Character Profile should be opened from Side Panel/Profile Drawer, implement that in `shared/profile-hub.*` or shared shell intentionally. Do not claim Claude specified that route.
+- `shared/profile-hub.*` now implements the full-profile link from the profile drawer.
+- Mobile access goes through the shared hamburger drawer's Profile item.
+- `/character/` now includes My Boards actions in the live static implementation.
 
 ## Admin Reference Notes
 

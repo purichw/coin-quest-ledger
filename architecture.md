@@ -16,7 +16,7 @@ Companion docs:
 
 ## Runtime Model
 
-- Source root: `/Users/point/toolbox`
+- Source root: `/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox`
 - Production: `https://coin-quest-ledger.vercel.app`
 - Hosting: Vercel static deployment
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
@@ -76,7 +76,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 - `shared/pointy-logic.js`: shared data normalization, split math, price math, class registry, character profile aggregation.
 - `lang.js`: Thai/English shared labels.
-- `shared/profile-hub.js` / `.css`: mock login gate, topbar profile badge, profile drawer, theme/language helpers, backup/restore, sign out.
+- `shared/profile-hub.js` / `.css`: mock Sign In/Sign Up gate, local account registry, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury.
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.
@@ -87,12 +87,12 @@ Shared modules are browser globals. Keep additions conservative and compatible w
 
 Current product model has separate identities:
 
-- User ID: account/person identity. Mock login currently stores this in `localStorage.pointy_auth_v1`.
+- User ID: account/person identity. Mock login currently stores this in `localStorage.pointy_auth_v1`; local signups are stored in `localStorage.pointy_accounts_v1`.
 - Character ID: playable hero identity, four digits, stored in trip participant maps and `characters/{id}`.
 - Admin ID: Board Admin identity, can own multiple boards and intentionally repeat across boards.
 - Board ID / Trip ID: four-digit route/document ID for a board.
 
-One user can have many characters and many admin IDs. One admin ID can own many boards. Do not globally de-dupe Admin IDs unless the user changes the requirement.
+The latest Claude loop implemented in the live static app treats one mock account as having one active character. The broader product model can still evolve toward multiple characters per user later. One user can still have many admin IDs. One admin ID can own many boards. Do not globally de-dupe Admin IDs unless the user changes the requirement.
 
 ## Persistence
 
@@ -106,7 +106,8 @@ Local/test mode:
 
 - `sessionStorage.pointy_test_trip_*`: test trip fixtures.
 - `localStorage.pointy_character_registry_v1`: local character registry/cache.
-- `localStorage.pointy_auth_v1`: mock login account.
+- `localStorage.pointy_auth_v1`: current mock login account, including the selected/created character.
+- `localStorage.pointy_accounts_v1`: local Sign Up registry so newly created accounts can sign in again.
 - `localStorage.pointy_theme`: global theme source of truth.
 - `localStorage.coin_quest_ui_v1.theme`: compatibility mirror for older/shared UI.
 - Module-specific local stores exist for Debt Dragon, Treasury, Price Arena, drafts, and settings.
@@ -120,7 +121,7 @@ See `data-contracts.md` for the practical shape of `trips`, `characters`, `admin
 Claude Design remains the Holy Grail for requested visual ports:
 
 - Party Ledger canon and split references live outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`.
-- Character Profile source currently came from `/Users/point/Downloads/Character Profile (standalone).html`.
+- Current Character/Profile loop references came from `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`, `/Users/point/Downloads/Character Profile (standalone) (1).html`, and `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`.
 - Admin Portal handoff notes are in `ADMIN.md`; Admin reference files are under `/Users/point/Downloads/admin/`.
 
 `CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction. Do not use it unless the user explicitly re-enables it.

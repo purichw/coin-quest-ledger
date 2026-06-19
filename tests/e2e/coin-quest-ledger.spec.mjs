@@ -564,6 +564,51 @@ test('character profile aggregates boards, shows portrait, and supports privacy 
   expect(overflow).toBe(false);
 });
 
+test('profile hub completes character creation and links to the full character profile', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (location.pathname !== '/') return;
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      email: 'fresh@line.me',
+      userId: '4444',
+      name: 'Fresh'
+    }));
+  });
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toBeVisible();
+  await page.locator('[data-char-class="ranger"]').click();
+  await page.locator('[data-char-gender="female"]').click();
+  await page.locator('[data-char-name]').fill('Fresh Ranger');
+  await page.getByRole('button', { name: /เริ่มผจญภัย|Begin the adventure/ }).click();
+
+  await expect(page.locator('.login-gate')).toHaveCount(0);
+  const auth = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1') || '{}'));
+  expect(auth.character).toMatchObject({ id: '4444', name: 'Fresh Ranger', class: 'ranger', gender: 'female' });
+  const registry = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_character_registry_v1') || '{}'));
+  expect(registry['4444']).toMatchObject({ name: 'Fresh Ranger', class: 'ranger', gender: 'female' });
+
+  const profileBadge = page.locator('[data-profile-hub="profile"]');
+  if (await profileBadge.isVisible().catch(() => false)) {
+    await profileBadge.click();
+  } else {
+    await page.locator('.tb-burger').click();
+    await page.locator('[data-mm-action="profile"]').click();
+  }
+  await expect(page.locator('.profile-drawer')).toBeVisible();
+  await expect(page.locator('.profile-drawer')).toContainText('Fresh Ranger');
+  await expect(page.locator('.pd-fullprofile')).toHaveAttribute('href', /\/character\/\?id=4444/);
+  await expect(page.locator('.pd-boards')).toBeVisible();
+
+  await page.locator('.pd-fullprofile').click();
+  await expect(page).toHaveURL(/\/character\/\?id=4444/);
+  await expect(page.getByRole('heading', { name: 'Fresh Ranger' })).toBeVisible();
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(overflow).toBe(false);
+});
+
 test('price comparison page loads and ranks normalized unit prices', async ({ page }) => {
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/?view=compare&test=1');

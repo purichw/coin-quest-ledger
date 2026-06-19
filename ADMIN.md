@@ -10,7 +10,8 @@ rediscover the model, screens, and styling from scratch.
 
 These files are a Claude-style Admin Portal prototype/reference, not yet the live
 production implementation in this repo. The current live app remains the static
-no-build Coin Quest Ledger app in `/Users/point/toolbox`.
+no-build Coin Quest Ledger app in
+`/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox`.
 
 ## Source Files
 
@@ -67,8 +68,8 @@ The live app is still static HTML/CSS/JS with no build step. The current Admin
 Portal in the repo lives at:
 
 ```text
-/Users/point/toolbox/admin/index.html
-/Users/point/toolbox/admin/app.js
+/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox/admin/index.html
+/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox/admin/app.js
 ```
 
 The prototype is React/Babel JSX. Before porting, choose one path:
@@ -495,7 +496,7 @@ Save / Publish / Restore requirements from user:
 Run full regression for Admin work:
 
 ```bash
-cd /Users/point/toolbox
+cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox"
 npm test
 ```
 

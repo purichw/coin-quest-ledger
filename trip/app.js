@@ -567,6 +567,9 @@ function profileCampaignSnapshot(c) {
     expenses: Array.isArray(c.expenses) ? c.expenses.slice() : [],
     budgets: { ...(c.budgets || {}) },
     heroClasses: { ...(c.heroClasses || {}) },
+    heroGenders: { ...(c.heroGenders || {}) },
+    heroSkins: { ...(c.heroSkins || {}) },
+    characterIds: { ...(c.characterIds || {}) },
     settleXp: { ...(c.settleXp || {}) },
     createdAt: c.createdAt || null,
     completedAt: c.completedAt || null
@@ -579,7 +582,11 @@ function profileSnapshotState() {
     expenses: S.expenses.slice(),
     budgets: { ...S.budgets },
     heroClasses: { ...S.heroClasses },
+    heroGenders: { ...S.heroGenders },
+    heroSkins: { ...(S.heroSkins || {}) },
+    characterIds: { ...S.characterIds },
     settleXp: { ...S.settleXp },
+    admin: { ...(S.admin || {}) },
     activeCampaignId: S.activeCampaignId,
     campaigns: (S.campaigns || []).map(profileCampaignSnapshot)
   };

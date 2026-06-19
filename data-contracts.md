@@ -201,7 +201,15 @@ Mock login account. This is not secure auth.
 {
   email: string,
   userId: string,
-  name: string
+  name: string,
+  character?: {
+    id: characterId,
+    name: string,
+    class: classId,
+    cls: classId,
+    gender: "male" | "female",
+    skin: skinId
+  }
 }
 ```
 
@@ -211,7 +219,27 @@ Current demo accounts:
 - `nok.k@line.me` / `quest123` / User ID `9637`
 - `bank@line.me` / `quest123` / User ID `5521`
 
-Open decision: mapping from User ID to one or many Character IDs is not final.
+The current Claude loop implemented in `shared/profile-hub.*` is one mock account = one active character. Accounts without `character` are routed through Character Creation, and the character is mirrored into `pointy_character_registry_v1`.
+
+### `pointy_accounts_v1`
+
+Local Sign Up registry. This is convenience persistence, not secure auth.
+
+```js
+Array<{
+  email: string,
+  password: string,
+  userId: string,
+  name: string,
+  character: pointy_auth_v1.character | null
+}>
+```
+
+Rules:
+
+- Demo accounts are built in; Sign Up-created accounts live here so they can sign in again.
+- Passwords are mock/local plaintext for the prototype only. Do not treat this as production auth.
+- When Character Creation finishes, both `pointy_auth_v1.character` and the matching `pointy_accounts_v1[].character` are updated.
 
 ### `pointy_character_registry_v1`
 

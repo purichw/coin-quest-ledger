@@ -133,6 +133,21 @@
     .board-title a{text-decoration:none;}
     .board-meta{color:var(--muted);font-size:13px;margin-top:4px;}
     .board-money{text-align:right;font-family:'Chakra Petch',sans-serif;font-weight:700;}
+    .my-board{display:grid;grid-template-columns:1fr;gap:11px;}
+    .my-board.arch{opacity:.72;}
+    .bd-top{display:flex;align-items:center;gap:11px;min-width:0;}
+    .bd-crest{width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;border-radius:12px;background:rgba(226,214,190,.58);border:1px solid var(--line);}
+    .bd-main{min-width:0;flex:1;}
+    .bd-status{padding:4px 10px;border-radius:999px;background:rgba(47,158,84,.12);color:var(--green);font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:800;white-space:nowrap;}
+    .bd-status.arch{background:rgba(132,118,88,.14);color:var(--muted);}
+    .bd-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .bd-meta div{padding:9px 10px;border-radius:11px;background:rgba(236,229,213,.52);}
+    .bd-meta span{display:block;color:var(--muted);font-size:11px;}
+    .bd-meta b{display:block;margin-top:2px;font-family:'Chakra Petch',sans-serif;font-size:12px;color:var(--ink);}
+    .bd-actions{display:flex;gap:8px;flex-wrap:wrap;}
+    .bd-actions .btn{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:rgba(255,253,248,.82);color:var(--ink);font-weight:800;text-decoration:none;}
+    .bd-actions .btn.danger{color:var(--danger);}
+    .bd-locknote{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.45;}
     .pos{color:var(--green);}
     .neg{color:var(--danger);}
     .empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px;background:rgba(255,253,248,.52);}
@@ -176,6 +191,11 @@
       .acct{padding:15px 16px;}
       .board{grid-template-columns:1fr;}
       .board-money{text-align:left;}
+      .bd-top{align-items:flex-start;}
+      .bd-status{margin-left:auto;}
+      .bd-meta{grid-template-columns:1fr;}
+      .bd-actions{display:grid;grid-template-columns:1fr;}
+      .bd-actions .btn{text-align:center;}
     }
     @media(max-width:360px){
       .ribbon{gap:7px;}

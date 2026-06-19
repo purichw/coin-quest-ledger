@@ -15,6 +15,7 @@ Done recently:
 - Sign out fixed so logout returns to the mock login gate.
 - Claude Character Profile design ported to `/character/`.
 - Character banner animation and chip spacing tuned, committed, pushed, and deployed.
+- Latest Claude profile loop partially ported into the static app: Sign In/Sign Up tabs, local account registry, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, and Character Profile My Boards actions.
 - Production domain verified at `https://coin-quest-ledger.vercel.app`.
 
 Known constraints:
@@ -29,8 +30,8 @@ Known constraints:
 
 - `CLAUDE_RECOVERY.md` is ignored/deprecated for now by current user instruction.
 - Character Profile route remains `/character/?id=####`.
-- Character Profile standalone reference does not specify Side Panel/Profile Drawer entry; that link is a live integration decision.
-- Mock User ID `3720` currently opens a useful Character Profile at `/character/?id=3720`, but the final User-to-Character mapping is undecided.
+- The latest Claude handoff specifies a profile side panel full-profile entry; the live shared profile drawer now links to `/character/?id=####`.
+- Current mock loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`.
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
 - Phase 1 Admin and mock login are local/browser gates only, not real security.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
@@ -57,15 +58,15 @@ Goal: make User Profile, Side Panel profile, and Character Profile feel like one
 
 Near-term work:
 
-- Add an explicit Character Profile entry point from the profile drawer/side panel when the logged-in user has a Character ID.
-- Decide the canonical account-to-character mapping for mock account `3720`.
+- Continue refining the explicit Character Profile entry point from the profile drawer/side panel.
+- Preserve the current one-account-one-character mock mapping unless the user asks for multiple characters.
 - Keep `/character/?id=####` as the shareable public route.
 - Preserve privacy link behavior with `private=1`.
 - Verify desktop/tablet/mobile after any profile drawer changes.
 
 Open decisions:
 
-- Does one mock User ID default to one selected Character ID, or should the profile drawer list multiple characters?
+- Future product decision: stay one character per user or add multiple characters per user after real auth exists.
 - Should the Character Profile account card deep-link back to User Profile once real auth exists?
 
 ## Phase 2 - Mobile Design Parity

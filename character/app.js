@@ -134,7 +134,20 @@ function copy() {
     tlog: 'Expenses',
     disc: 'Discipline XP',
     userId: 'User ID',
-    actions: 'Profile tools'
+    actions: 'Profile tools',
+    myBoards: 'My Boards',
+    boardsSub: 'Boards you administer',
+    code: 'Code',
+    created: 'Created',
+    updated: 'Updated',
+    members: 'Members',
+    copyInvite: 'Copy invite',
+    copied: 'Copied!',
+    archive: 'Archive',
+    restore: 'Restore',
+    active: 'Active',
+    archived: 'Archived',
+    cantDelete: 'Only a Super Admin can delete a board permanently.'
   } : {
     title: 'โปรไฟล์ตัวละคร',
     back: 'กลับ',
@@ -165,7 +178,20 @@ function copy() {
     tlog: 'รายจ่าย',
     disc: 'XP วินัย',
     userId: 'User ID',
-    actions: 'เครื่องมือโปรไฟล์'
+    actions: 'เครื่องมือโปรไฟล์',
+    myBoards: 'บอร์ดของฉัน',
+    boardsSub: 'บอร์ดที่คุณเป็นแอดมิน',
+    code: 'รหัส',
+    created: 'สร้างเมื่อ',
+    updated: 'อัปเดต',
+    members: 'สมาชิก',
+    copyInvite: 'คัดลอกคำเชิญ',
+    copied: 'คัดลอกแล้ว!',
+    archive: 'เก็บเข้าคลัง',
+    restore: 'นำกลับมา',
+    active: 'ใช้งานอยู่',
+    archived: 'เก็บคลังแล้ว',
+    cantDelete: 'ลบถาวรได้เฉพาะผู้ดูแลระบบ (Super Admin)'
   };
 }
 function navMarkup() {
@@ -218,6 +244,32 @@ function copyProfileLink() {
     button.textContent = t('profile_copied');
     setTimeout(() => { if (button) button.textContent = t('profile_copy_link'); }, 1200);
   }).catch(() => {});
+}
+function boardInviteUrl(id) {
+  return `${location.origin}${tripUrl(id)}`;
+}
+function copyBoardInvite(id) {
+  navigator.clipboard?.writeText(boardInviteUrl(id)).then(() => {
+    const button = document.querySelector(`[data-board-copy="${CSS.escape(String(id))}"]`);
+    if (!button) return;
+    const old = button.textContent;
+    button.textContent = copy().copied;
+    setTimeout(() => { if (button) button.textContent = old; }, 1200);
+  }).catch(() => {});
+}
+async function setBoardArchived(id, archived) {
+  if (TEST_MODE) {
+    const key = `pointy_test_trip_${id}`;
+    const data = readJson(key, null);
+    if (data) {
+      sessionStorage.setItem(key, JSON.stringify({ ...data, archived: !!archived, updatedAt: Date.now() }));
+    }
+    boot();
+    return;
+  }
+  initFirebase();
+  await firebase.firestore().collection('trips').doc(String(id)).set({ archived: !!archived, updatedAt: Date.now() }, { merge: true });
+  boot();
 }
 function moneyText(value) {
   return hideMoney ? '••••' : money(value);
@@ -297,13 +349,27 @@ function renderBoards(profile) {
   </div>`).join('');
 }
 function renderAdminBoards(profile) {
+  const c = copy();
   if (!profile.adminBoards.length) return `<div class="empty">${h(t('profile_no_admin_boards'))}</div>`;
-  return profile.adminBoards.map(board => `<div class="board">
-    <div>
-      <div class="board-title"><a href="${h(tripUrl(board.id))}">${h(board.tripName)}</a></div>
-      <div class="board-meta">Admin ID ${h(board.adminId || '-')} · ${h(board.adminName || '-')} · #${h(board.id)}</div>
+  return profile.adminBoards.map(board => `<div class="board my-board ${board.archived ? 'arch' : ''}">
+    <div class="bd-top">
+      <div class="bd-crest">${board.archived ? '🗄️' : '🏕️'}</div>
+      <div class="bd-main">
+        <div class="board-title"><a href="${h(tripUrl(board.id))}">${h(board.tripName)}</a></div>
+        <div class="board-meta">${h(c.code)} ${h(board.id)} · Admin ID ${h(board.adminId || '-')} · ${h(board.adminName || '-')}</div>
+      </div>
+      <span class="bd-status ${board.archived ? 'arch' : ''}">${h(board.archived ? c.archived : c.active)}</span>
     </div>
-    <a class="btn" href="${h(tripUrl(board.id))}">${h(t('profile_open_board'))}</a>
+    <div class="bd-meta">
+      <div><span>${h(c.created)}</span><b>${h(dateLabel(board.createdAt))}</b></div>
+      <div><span>${h(c.updated)}</span><b>${h(dateLabel(board.updatedAt))}</b></div>
+      <div><span>${h(c.members)}</span><b>${Number(board.members) || 0}</b></div>
+    </div>
+    <div class="bd-actions">
+      <a class="btn" href="${h(tripUrl(board.id))}">${h(t('profile_open_board'))}</a>
+      <button class="btn" type="button" data-board-copy="${h(board.id)}" onclick="copyBoardInvite('${h(board.id)}')">🔗 ${h(c.copyInvite)}</button>
+      <button class="btn ${board.archived ? '' : 'danger'}" type="button" onclick="setBoardArchived('${h(board.id)}', ${board.archived ? 'false' : 'true'})">${board.archived ? '♻️ ' + h(c.restore) : '🗄️ ' + h(c.archive)}</button>
+    </div>
   </div>`).join('');
 }
 function renderProfile(profile) {
@@ -427,8 +493,9 @@ function renderProfile(profile) {
         <div class="board-list">${profile.boards.length ? renderBoards(profile) : `<div class="empty">${h(t('profile_no_boards'))}</div>`}</div>
       </section>
       <aside class="panel">
-        <div class="panel-head"><h2>${h(t('profile_admin_ownership'))}</h2></div>
+        <div class="panel-head"><h2>🗺️ ${h(c.myBoards)}</h2><span class="muted">${h(c.boardsSub)}</span></div>
         <div class="board-list">${renderAdminBoards(profile)}</div>
+        ${profile.adminBoards.length ? `<div class="bd-locknote">🔒 ${h(c.cantDelete)}</div>` : ''}
       </aside>
     </section>
   </main>`;

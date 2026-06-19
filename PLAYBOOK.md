@@ -117,7 +117,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - Small app/source package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Internals Source.zip`
 - Resource package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Resources.zip`
 - Full split package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Full Split Reference.zip`
-- Character Profile source: `/Users/point/Downloads/Character Profile (standalone).html`
+- Current Character/Profile sources: `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`, `/Users/point/Downloads/Character Profile (standalone) (1).html`, and `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`
 
 ## Expense Splitter Notes
 
@@ -144,6 +144,8 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - Profile aggregation belongs in `shared/pointy-logic.js`; keep the page renderer focused on loading and presentation.
 - Preserve the four-digit public Character ID links from hero cards and Admin Portal Users.
 - `private=1` only hides monetary values in the rendered profile. It is not authorization or Firestore security.
+- The shared profile drawer now has the canonical full-profile entry for the active mock account character. On phone width, open it through the shared hamburger drawer's Profile item.
+- Current mock auth loop is one account = one active character: Sign Up creates a local account in `pointy_accounts_v1`, auth records without `character` go through Character Creation, and the character is mirrored to `pointy_character_registry_v1`.
 - Character Profile, character persistence, or `admin.characterId` changes require full `npm test` and responsive verification.
 
 ## Responsive Shell Notes

@@ -3,7 +3,10 @@
   const UI_KEY = 'coin_quest_ui_v1';
   const THEME_KEY = 'pointy_theme';
   const AUTH_KEY = 'pointy_auth_v1';
+  const ACCOUNTS_KEY = 'pointy_accounts_v1';
+  const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
+  const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const TEST_FLAG_KEY = 'pointy_test_mode_v1';
   const PROFILE_STEP = 1200;
   const URL_TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
@@ -15,9 +18,9 @@
   })();
   const AUTOMATED = navigator.webdriver === true;
   const DUMMY_ACCOUNTS = [
-    { email: 'pointy@line.me', password: 'quest123', userId: '3720', name: 'Pointy', cls: 'Knight' },
-    { email: 'nok.k@line.me', password: 'quest123', userId: '9637', name: 'Nok', cls: 'Archer' },
-    { email: 'bank@line.me', password: 'quest123', userId: '5521', name: 'Bank', cls: 'Rogue' }
+    { email: 'pointy@line.me', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
+    { email: 'nok.k@line.me', password: 'quest123', userId: '9637', name: 'Nok', character: { id: '9637', name: 'Nok', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' } },
+    { email: 'bank@line.me', password: 'quest123', userId: '5521', name: 'Bank', character: { id: '5521', name: 'Bank', class: 'thief', cls: 'thief', gender: 'male', skin: '' } }
   ];
 
   const STR = {
@@ -33,6 +36,28 @@
       loginEmpty: 'กรอกอีเมลและรหัสผ่าน',
       loginDemo: 'บัญชีทดลอง - แตะเพื่อกรอกให้อัตโนมัติ',
       loginNote: 'สาธิตจำลอง - ยังไม่ได้เชื่อมต่อระบบจริง',
+      loginSignIn: 'เข้าสู่ระบบ',
+      loginSignUp: 'สมัครใหม่',
+      signupWelcome: 'ร่วมกิลด์นักผจญภัย',
+      signupSub: 'สร้างบัญชีและรับ User ID 4 หลัก',
+      signupName: 'ชื่อที่แสดง',
+      signupNamePlaceholder: 'ชื่อของคุณ',
+      signupConfirm: 'ยืนยันรหัสผ่าน',
+      signupCreate: 'สร้างบัญชี',
+      signupTaken: 'อีเมลนี้ถูกใช้แล้ว',
+      signupNameMissing: 'กรอกชื่อที่แสดง',
+      signupPasswordShort: 'รหัสผ่านอย่างน้อย 6 ตัว',
+      signupPasswordMismatch: 'รหัสผ่านไม่ตรงกัน',
+      charTitle: 'สร้างตัวละครของคุณ',
+      charSub: 'หนึ่งบัญชี = หนึ่งตัวละครในรอบนี้ เลือกฮีโร่ที่เป็นตัวคุณ',
+      charName: 'ชื่อตัวละคร',
+      charCreate: 'เริ่มผจญภัย!',
+      yourUserId: 'User ID ของคุณ',
+      myBoards: 'บอร์ดของฉัน',
+      myBoardsSub: 'บอร์ดที่คุณเป็นแอดมินหรือผูกกับตัวละครนี้',
+      noBoards: 'ยังไม่มีบอร์ดที่คุณดูแล',
+      openBoard: 'เปิดบอร์ด',
+      viewFullProfile: 'ดูโปรไฟล์เต็ม',
       profile: 'โปรไฟล์นักผจญภัย',
       profileSub: 'Renown รวมจาก Compare Prices, Party Ledger, Debt Dragon และคลังหลวง',
       profileLvl: 'เลเวลรวม',
@@ -94,6 +119,28 @@
       loginEmpty: 'Enter an email and password',
       loginDemo: 'Demo accounts - tap one to autofill',
       loginNote: 'Mock sign-in - not connected to a real backend yet',
+      loginSignIn: 'Sign In',
+      loginSignUp: 'Sign Up',
+      signupWelcome: 'Join the adventure',
+      signupSub: 'Create an account and receive a 4-digit User ID',
+      signupName: 'Display name',
+      signupNamePlaceholder: 'Your name',
+      signupConfirm: 'Confirm password',
+      signupCreate: 'Create account',
+      signupTaken: 'That email is already registered',
+      signupNameMissing: 'Enter a display name',
+      signupPasswordShort: 'Password must be 6+ characters',
+      signupPasswordMismatch: 'Passwords do not match',
+      charTitle: 'Create your character',
+      charSub: 'One account = one character for this loop. Pick the hero that feels like you.',
+      charName: 'Character name',
+      charCreate: 'Begin the adventure!',
+      yourUserId: 'Your User ID',
+      myBoards: 'My Boards',
+      myBoardsSub: 'Boards you administer or own with this character',
+      noBoards: 'No boards you admin yet',
+      openBoard: 'Open board',
+      viewFullProfile: 'View full profile',
       profile: 'Hero Profile',
       profileSub: 'Renown from Compare Prices, Party Ledger, Debt Dragon, and Personal Treasury',
       profileLvl: 'Overall level',
@@ -172,6 +219,7 @@
   let reminders = [];
   let overlay = null;
   let loginGate = null;
+  let loginMode = 'in';
   let toastTimer = null;
   let baselineDone = false;
 
@@ -180,6 +228,49 @@
   function h(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function readJson(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (_) { return fallback; } }
   function writeJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {} }
+  function genId4() { return String(Math.floor(1000 + Math.random() * 9000)); }
+  function loadAccounts() {
+    const accounts = readJson(ACCOUNTS_KEY, []);
+    return Array.isArray(accounts) ? accounts : [];
+  }
+  function saveAccounts(accounts) {
+    writeJson(ACCOUNTS_KEY, Array.isArray(accounts) ? accounts : []);
+  }
+  function allAccounts() {
+    return [...DUMMY_ACCOUNTS, ...loadAccounts()];
+  }
+  function normalizeAccount(account) {
+    if (!account) return null;
+    const character = account.character ? normalizeCharacter(account.character, account) : null;
+    return { email: account.email, userId: String(account.userId || genId4()).slice(0, 4), name: account.name || String(account.email || '').split('@')[0] || 'Hero', character };
+  }
+  function normalizeCharacter(character, account = {}) {
+    if (!character) return null;
+    const cls = window.PointyLogic?.normalizeClass ? window.PointyLogic.normalizeClass(character.class || character.cls || 'warrior') : (character.class || character.cls || 'warrior');
+    const gender = character.gender === 'female' ? 'female' : 'male';
+    const id = String(character.id || account.userId || genId4()).replace(/\D/g, '').slice(0, 4) || genId4();
+    return { id, name: character.name || account.name || 'Hero', class: cls, cls, gender, skin: character.skin || '' };
+  }
+  function persistCharacter(character) {
+    const rec = normalizeCharacter(character);
+    if (!rec?.id) return rec;
+    const registry = readJson(CHARACTER_REGISTRY_KEY, {}) || {};
+    registry[rec.id] = { ...(registry[rec.id] || {}), id: rec.id, name: rec.name, class: rec.class, gender: rec.gender, skin: rec.skin, updatedAt: Date.now(), createdAt: registry[rec.id]?.createdAt || Date.now() };
+    writeJson(CHARACTER_REGISTRY_KEY, registry);
+    return rec;
+  }
+  function ownerHash(token) {
+    const hash = window.PointyLogic?.hashOf ? window.PointyLogic.hashOf(`pointy:${token || ''}:owner`) : 0;
+    return String(hash);
+  }
+  function currentOwnerHash() {
+    try {
+      const token = localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
+      return token ? ownerHash(token) : '';
+    } catch (_) {
+      return '';
+    }
+  }
   function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function defaultProfile() { return { lastVisit: null, streak: 0, bestStreak: 0, seen: [], tourSeen: false }; }
   function loadProfile() { return { ...defaultProfile(), ...readJson(PROFILE_KEY, {}) }; }
@@ -187,11 +278,12 @@
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
   function loadAuth() {
     const auth = readJson(AUTH_KEY, null);
-    if (auth && auth.email && auth.userId && !auth.signedOut) return auth;
-    return (TEST_MODE || AUTOMATED) ? DUMMY_ACCOUNTS[0] : null;
+    if (auth && auth.email && auth.userId && !auth.signedOut) return normalizeAccount(auth);
+    return (TEST_MODE || AUTOMATED) ? normalizeAccount(DUMMY_ACCOUNTS[0]) : null;
   }
   function saveAuth(account) {
-    const next = { email: account.email, userId: account.userId, name: account.name };
+    const next = normalizeAccount(account);
+    if (next?.character) next.character = persistCharacter({ ...next.character, id: next.character.id || next.userId });
     writeJson(AUTH_KEY, next);
     return next;
   }
@@ -200,6 +292,9 @@
   }
   function loadAccount() {
     return loadAuth() || { name: 'Guest', email: s().loginSub, userId: '----' };
+  }
+  function accountCharacter(account = loadAccount()) {
+    return normalizeCharacter(account?.character, account) || { id: account?.userId || '3720', name: account?.name || 'Hero', class: 'dragoon', cls: 'dragoon', gender: 'male', skin: '' };
   }
   function signOut() {
     clearAuth();
@@ -278,6 +373,46 @@
       if (!out.some(x => x.id === id)) out.push({ id, data: cache[id].data || cache[id] });
     });
     return out;
+  }
+  function timestampValue(value) {
+    if (!value) return 0;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') return Date.parse(value) || 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.seconds === 'number') return value.seconds * 1000;
+    return 0;
+  }
+  function boardName(data) {
+    const name = data?.tripName || '';
+    if (typeof name === 'object') return name[lang()] || name.th || name.en || s().profile;
+    return name || (lang() === 'en' ? 'Untitled board' : 'บอร์ดไม่มีชื่อ');
+  }
+  function profileBoardRows(account = loadAccount()) {
+    const character = accountCharacter(account);
+    const ownerHashValue = currentOwnerHash();
+    return tripEntries().map(entry => {
+      const data = entry.data || {};
+      const admin = data.admin || {};
+      const participantName = Object.keys(data.characterIds || {}).find(name => String(data.characterIds?.[name]) === String(character.id || account.userId));
+      const isAdmin = String(admin.characterId || '') === String(character.id || account.userId)
+        || (admin.adminName && (admin.adminName === account.name || admin.adminName === character.name))
+        || (ownerHashValue && admin.ownerHash === ownerHashValue);
+      if (!isAdmin) return null;
+      const id = String(entry.id || data.id || '');
+      const participants = Array.isArray(data.participants) ? data.participants.length : 0;
+      const expenses = Array.isArray(data.expenses) ? data.expenses.length : 0;
+      return {
+        id,
+        name: boardName(data),
+        participants,
+        expenses,
+        participantName,
+        adminId: admin.adminId || '',
+        archived: !!data.archived,
+        updatedAt: timestampValue(entry.updatedAt || data.updatedAt || admin.createdAt),
+        href: id ? `/trip/?id=${encodeURIComponent(id)}${TEST_MODE ? '&test=1' : ''}` : '/trip/'
+      };
+    }).filter(Boolean).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
   }
   function campaignsFromTrip(data) {
     const state = data || {};
@@ -569,7 +704,7 @@
   function mockUserId(email) {
     const value = String(email || '');
     const hash = [...value].reduce((sum, c) => ((sum * 31 + c.charCodeAt(0)) | 0), 7);
-    return 'G-' + (Math.abs(hash) % 9000 + 1000);
+    return String(Math.abs(hash) % 9000 + 1000);
   }
   function removeLoginGate() {
     if (loginGate) loginGate.remove();
@@ -577,13 +712,19 @@
     document.body.classList.remove('login-locked');
   }
   function showLoginGate() {
-    if (loadAuth()) {
+    const existingAuth = loadAuth();
+    if (existingAuth?.character) {
       removeLoginGate();
+      return;
+    }
+    if (existingAuth && !existingAuth.character) {
+      showCharacterCreation(existingAuth);
       return;
     }
     const langKey = loginLanguage();
     const copy = STR[langKey];
     const theme = currentTheme();
+    const isSignup = loginMode === 'up';
     if (!loginGate) {
       loginGate = document.createElement('div');
       loginGate.className = 'login-gate';
@@ -598,31 +739,45 @@
       </div>
       <form class="login-card" data-login-form>
         <div class="login-crest" aria-hidden="true"><span>🧰</span></div>
-        <h1 class="login-title">${h(copy.loginWelcome)}</h1>
-        <p class="login-sub">${h(copy.loginSub)}</p>
+        <div class="login-tabs" role="tablist">
+          <button type="button" class="${!isSignup ? 'on' : ''}" data-login-tab="in">${h(copy.loginSignIn)}</button>
+          <button type="button" class="${isSignup ? 'on' : ''}" data-login-tab="up">${h(copy.loginSignUp)}</button>
+        </div>
+        <h1 class="login-title">${h(isSignup ? copy.signupWelcome : copy.loginWelcome)}</h1>
+        <p class="login-sub">${h(isSignup ? copy.signupSub : copy.loginSub)}</p>
+        ${isSignup ? `<label class="login-field">
+          <span>${h(copy.signupName)}</span>
+          <input type="text" autocomplete="name" data-login-name placeholder="${h(copy.signupNamePlaceholder)}">
+        </label>` : ''}
         <label class="login-field">
           <span>${h(copy.loginEmail)}</span>
           <input type="email" autocomplete="username" data-login-email placeholder="${h(copy.loginEmailPlaceholder)}">
         </label>
         <label class="login-field">
           <span>${h(copy.loginPassword)}</span>
-          <input type="password" autocomplete="current-password" data-login-password placeholder="${h(copy.loginPasswordPlaceholder)}">
+          <input type="password" autocomplete="${isSignup ? 'new-password' : 'current-password'}" data-login-password placeholder="${h(copy.loginPasswordPlaceholder)}">
         </label>
+        ${isSignup ? `<label class="login-field">
+          <span>${h(copy.signupConfirm)}</span>
+          <input type="password" autocomplete="new-password" data-login-password2 placeholder="${h(copy.loginPasswordPlaceholder)}">
+        </label>` : ''}
         <div class="login-err" data-login-error hidden></div>
-        <button type="submit" class="login-btn">⚔️ ${h(copy.loginEnter)}</button>
-        <div class="login-demo">
+        <button type="submit" class="login-btn">${isSignup ? '✨ ' + h(copy.signupCreate) : '⚔️ ' + h(copy.loginEnter)}</button>
+        ${!isSignup ? `<div class="login-demo">
           <div class="login-demo-h">${h(copy.loginDemo)}</div>
           <div class="login-demo-list">
             ${DUMMY_ACCOUNTS.map(account => `<button type="button" class="login-demo-acct" data-demo-email="${h(account.email)}" data-demo-password="${h(account.password)}">
-              <b>${h(account.name)}</b><span>${h(account.email)}</span><i>${h(account.cls)} · ID ${h(account.userId)}</i>
+              <b>${h(account.name)}</b><span>${h(account.email)}</span><i>${h(classLabel(account.character?.class || account.character?.cls))} · ID ${h(account.userId)}</i>
             </button>`).join('')}
           </div>
-        </div>
+        </div>` : ''}
         <div class="login-note">🔒 ${h(copy.loginNote)}</div>
       </form>
     </div>`;
+    const name = loginGate.querySelector('[data-login-name]');
     const email = loginGate.querySelector('[data-login-email]');
     const password = loginGate.querySelector('[data-login-password]');
+    const password2 = loginGate.querySelector('[data-login-password2]');
     const error = loginGate.querySelector('[data-login-error]');
     const setError = text => {
       error.hidden = !text;
@@ -632,19 +787,39 @@
       event.preventDefault();
       const em = String(email.value || '').trim();
       const pw = String(password.value || '');
+      if (isSignup) {
+        const display = String(name?.value || '').trim();
+        const pw2 = String(password2?.value || '');
+        if (!display) { setError(copy.signupNameMissing); return; }
+        if (!em || !pw) { setError(copy.loginEmpty); return; }
+        if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
+        if (pw !== pw2) { setError(copy.signupPasswordMismatch); return; }
+        if (allAccounts().some(account => account.email.toLowerCase() === em.toLowerCase())) { setError(copy.signupTaken); return; }
+        const account = { email: em, password: pw, userId: genId4(), name: display, character: null };
+        saveAccounts([...loadAccounts(), account]);
+        saveAuth(account);
+        showCharacterCreation(account);
+        return;
+      }
       if (!em || !pw) {
         setError(copy.loginEmpty);
         return;
       }
-      const demo = DUMMY_ACCOUNTS.find(account => account.email.toLowerCase() === em.toLowerCase());
-      if (demo) {
-        if (demo.password !== pw) {
+      const account = allAccounts().find(item => item.email.toLowerCase() === em.toLowerCase());
+      if (account) {
+        if (account.password !== pw) {
           setError(copy.loginError);
           return;
         }
-        saveAuth(demo);
+        const next = saveAuth(account);
+        if (!next.character) {
+          showCharacterCreation(next);
+          return;
+        }
       } else {
-        saveAuth({ email: em, userId: mockUserId(em), name: em.split('@')[0] || 'Hero' });
+        const next = saveAuth({ email: em, userId: mockUserId(em), name: em.split('@')[0] || 'Hero', character: null });
+        showCharacterCreation(next);
+        return;
       }
       removeLoginGate();
       profile = tickStreak();
@@ -657,6 +832,10 @@
       setError('');
       email.focus();
     }));
+    loginGate.querySelectorAll('[data-login-tab]').forEach(btn => btn.addEventListener('click', () => {
+      loginMode = btn.dataset.loginTab === 'up' ? 'up' : 'in';
+      showLoginGate();
+    }));
     loginGate.querySelector('[data-login-theme]').addEventListener('click', () => {
       setTheme(currentTheme() === 'dungeon' ? 'tavern' : 'dungeon');
       showLoginGate();
@@ -665,6 +844,86 @@
       setPageLang(btn.dataset.loginLang);
       showLoginGate();
     }));
+  }
+
+  function classLabel(id) {
+    const meta = classMeta(id || 'warrior');
+    return meta[loginLanguage()] || meta.th || meta.en || id;
+  }
+
+  function showCharacterCreation(account) {
+    const base = normalizeAccount(account) || loadAccount();
+    const langKey = loginLanguage();
+    const copy = STR[langKey];
+    const classes = window.PointyLogic?.CLASS_ORDER || ['warrior', 'wizard', 'cleric', 'monk', 'bard', 'dragoon', 'summoner', 'thief', 'ranger', 'alchemist', 'necromancer', 'engineer', 'berserker', 'archfiend'];
+    let pickedClass = 'dragoon';
+    let pickedGender = 'male';
+    if (!loginGate) {
+      loginGate = document.createElement('div');
+      loginGate.className = 'login-gate';
+      document.body.appendChild(loginGate);
+    }
+    document.body.classList.add('login-locked');
+    const render = () => {
+      loginGate.innerHTML = `<div class="login-wrap">
+        <div class="login-langs">
+          <button type="button" class="${langKey === 'th' ? 'on' : ''}" data-login-lang="th">TH</button>
+          <button type="button" class="${langKey === 'en' ? 'on' : ''}" data-login-lang="en">EN</button>
+        </div>
+        <form class="login-card cc-card" data-char-form>
+          <div class="login-crest" aria-hidden="true"><span>⚔️</span></div>
+          <h1 class="login-title">${h(copy.charTitle)}</h1>
+          <p class="login-sub">${h(copy.charSub)}</p>
+          <div class="cc-uid">${h(copy.yourUserId)} · <b>${h(base.userId)}</b></div>
+          <label class="login-field">
+            <span>${h(copy.charName)}</span>
+            <input type="text" autocomplete="nickname" data-char-name value="${h(base.name || '')}" placeholder="${h(copy.signupNamePlaceholder)}">
+          </label>
+          <div class="cc-genders" role="group" aria-label="Gender">
+            <button type="button" class="${pickedGender === 'male' ? 'on' : ''}" data-char-gender="male">♂</button>
+            <button type="button" class="${pickedGender === 'female' ? 'on' : ''}" data-char-gender="female">♀</button>
+          </div>
+          <div class="cc-grid">
+            ${classes.map(id => {
+              const meta = classMeta(id);
+              return `<button type="button" class="cc-class ${pickedClass === id ? 'on' : ''}" data-char-class="${h(id)}">
+                <span>${h(meta.glyph || '⚔️')}</span><b>${h(meta[langKey] || meta.th || meta.en || id)}</b>
+              </button>`;
+            }).join('')}
+          </div>
+          <button type="submit" class="login-btn">⚔️ ${h(copy.charCreate)}</button>
+        </form>
+      </div>`;
+      loginGate.querySelector('[data-char-form]').addEventListener('submit', event => {
+        event.preventDefault();
+        const charName = String(loginGate.querySelector('[data-char-name]')?.value || '').trim() || base.name || 'Hero';
+        const character = persistCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' });
+        const next = saveAuth({ ...base, character });
+        const accounts = loadAccounts();
+        const idx = accounts.findIndex(item => item.email.toLowerCase() === String(base.email || '').toLowerCase());
+        if (idx >= 0) {
+          accounts[idx] = { ...accounts[idx], name: next.name, userId: next.userId, character };
+          saveAccounts(accounts);
+        }
+        removeLoginGate();
+        profile = tickStreak();
+        refresh({ toast: false });
+        if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
+      });
+      loginGate.querySelectorAll('[data-char-class]').forEach(btn => btn.addEventListener('click', () => {
+        pickedClass = btn.dataset.charClass || pickedClass;
+        render();
+      }));
+      loginGate.querySelectorAll('[data-char-gender]').forEach(btn => btn.addEventListener('click', () => {
+        pickedGender = btn.dataset.charGender === 'female' ? 'female' : 'male';
+        render();
+      }));
+      loginGate.querySelectorAll('[data-login-lang]').forEach(btn => btn.addEventListener('click', () => {
+        setPageLang(btn.dataset.loginLang);
+        showCharacterCreation(base);
+      }));
+    };
+    render();
   }
 
   function renderTopbar() {
@@ -678,7 +937,7 @@
       theme.title = ct === 'dungeon' ? s().themeLight : s().themeDark;
     }
     if (btn && context) {
-      const slayer = loadDebt().slayer || {};
+      const slayer = accountCharacter(loadAccount()) || loadDebt().slayer || {};
       btn.setAttribute('aria-label', s().profile);
       btn.title = s().profile;
       btn.innerHTML = `${avatarMarkup(slayer, 'pb-ava')}<span class="pb-meta"><span class="pb-lvl"><i>${h(s().lvl)}</i>${context.level.lvl}</span>${profile.streak > 0 ? `<span class="pb-streak">🔥 ${profile.streak}</span>` : ''}</span>`;
@@ -738,12 +997,21 @@
     }).join('');
   }
   function showProfile() {
-    const slayer = loadDebt().slayer || {};
+    const account = loadAccount();
+    const slayer = accountCharacter(account) || loadDebt().slayer || {};
     const cls = classMeta(slayer.class || 'dragoon');
     const reward = rewardFor(context.level.lvl);
     const trophies = evalAchievements(context);
     const got = trophies.filter(t => t.unlocked).length;
-    const account = loadAccount();
+    const boards = profileBoardRows(account);
+    const profileHref = `/character/?id=${encodeURIComponent(slayer.id || account.userId || '3720')}${(TEST_MODE || AUTOMATED) ? '&test=1' : ''}`;
+    const boardCards = boards.length ? boards.map(board => `<div class="pd-board ${board.archived ? 'arch' : ''}">
+      <a class="pd-board-main" href="${h(board.href)}">
+        <span class="pdb-crest">${board.archived ? '🗄️' : '🏕️'}</span>
+        <span class="pdb-body"><b>${h(board.name)}</b><i>#${h(board.id)} · ${board.participants} ${lang() === 'en' ? 'members' : 'คน'} · ${board.expenses} ${lang() === 'en' ? 'quests' : 'เควส'}</i></span>
+        <span class="pdb-status">${h(s().openBoard)} →</span>
+      </a>
+    </div>`).join('') : `<div class="pd-noboards">${h(s().noBoards)}</div>`;
     mountOverlay(`<div class="drawer-overlay"><aside class="profile-drawer">
       <div class="pd-head"><div class="pd-title">🏅 ${h(s().profile)}</div><button class="picker-close" type="button" data-close>✕</button></div>
       <div class="pd-scroll">
@@ -754,19 +1022,23 @@
             <div class="pd-rank rank-${h(reward.frame)}">${h(reward.glyph || '')} ${h(reward.title?.[lang()] || reward.title?.en || '')} · ${h(cls[lang()] || cls.en)}</div>
             <div class="pd-lvlrow"><span class="pd-lvl-k">${h(s().profileLvl)}</span><span class="pd-lvl-n">${context.level.lvl}</span><span class="pd-renown">${money(context.renown).replace('฿', '')} ${h(s().renown)}</span></div>
             <div class="pd-bar"><div style="width:${context.level.pct}%"></div></div>
+            <a class="pd-fullprofile" href="${h(profileHref)}">${h(s().viewFullProfile)} →</a>
           </div>
         </div>
         <div class="pd-sub">${h(s().profileSub)}</div>
         <div class="pd-streak"><div class="pds-flame">🔥</div><div class="pds-main"><div class="pds-n">${profile.streak} <span>${h(s().streakDays)}</span></div><div class="pds-lab">${h(s().streakLab)} · ${h(s().bestStreak)} ${profile.bestStreak || 0}</div></div><div class="pds-note">${h(s().streakToday)}</div></div>
         <div class="pd-section-h">🏆 ${h(s().trophies)} <span class="pd-count">${got} / ${trophies.length}</span></div>
         <div class="trophy-grid">${trophyMarkup()}</div>
+        <div class="pd-section-h">🗺️ ${h(s().myBoards)} <span class="pd-count">${boards.length}</span></div>
+        <div class="pd-boardhint">${h(s().myBoardsSub)}</div>
+        <div class="pd-boards">${boardCards}</div>
         <div class="pd-section-h">⚙️ ${h(s().settings)}</div>
         <div class="pd-setting"><span class="pds-k">${currentTheme() === 'dungeon' ? '🌙 ' + h(s().themeDark) : '☀️ ' + h(s().themeLight)}</span><div class="pd-theme-seg"><button class="${currentTheme() === 'tavern' ? 'on' : ''}" data-theme-pick="tavern">☀️</button><button class="${currentTheme() === 'dungeon' ? 'on' : ''}" data-theme-pick="dungeon">🌙</button></div></div>
         <div class="pd-setting"><span class="pds-k">🧭 ${h(s().takeTour)}</span><button class="btn-ghost xs" type="button" data-tour>${h(s().tourNext)} →</button></div>
         <div class="pd-backup"><div class="pdb-h">💾 ${h(s().backup)}</div><div class="pdb-sub">${h(s().backupSub)}</div><div class="pdb-actions"><button class="btn-ghost sm" type="button" data-export>⬇️ ${h(s().exportData)}</button><button class="btn-ghost sm" type="button" data-import>⬆️ ${h(s().importData)}</button><input type="file" accept="application/json,.json" hidden data-file></div><div class="pdb-msg" hidden></div></div>
         <div class="pd-account">
           <div class="pda-row">
-            <span class="pda-ava">👤</span>
+            ${avatarMarkup(slayer, 'pda-ava')}
             <span class="pda-info">
               <b>${h(account.name || 'Pointy')}</b>
               <span class="pda-email">${h(account.email || 'pointy@line.me')}</span>

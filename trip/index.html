@@ -406,8 +406,8 @@
       .picker-cell:nth-child(3n+1) .pc-art img { animation-duration: 2.6s; animation-delay: -1.3s; }
     }
     @keyframes idle-sway {
-      0%,100% { transform: rotate(-.5deg); }
-      50% { transform: rotate(.6deg) scaleY(1.006); }
+      0%,100% { transform: translateY(0) scaleX(1); }
+      50% { transform: translateY(-1px) scaleY(1.006); }
     }
     .chip-all { border: 1.5px dashed var(--border-strong); background: transparent; color: var(--ink-soft); padding: 6px 14px; }
     .seg { display: flex; background: var(--panel-2); border-radius: 9px; padding: 3px; }
