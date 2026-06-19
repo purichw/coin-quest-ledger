@@ -76,6 +76,8 @@ Current Claude handoff/reference sources:
 - `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`
 - `/Users/point/Downloads/Character Profile (standalone) (1).html`
 - `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`
+- `/Users/point/Downloads/Coin Quest Ledger/admin/`
+- `/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html`
 - The latest Claude handoff now specifies the profile side panel full-profile entry, Sign In/Sign Up tabs, one-time Character Creation, User ID display, and My Boards surfaces.
 
 ## Current App Shape
@@ -120,7 +122,7 @@ Party Ledger stores admin ownership metadata under `state.admin`:
 
 The trip UI now asks for Board Admin ID and nickname when creating/admin-setting a board, and remembers the creator profile locally for convenience. Same Admin ID can intentionally own multiple boards.
 
-Phase 1 Super Admin Portal lives at `/admin/`. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, and show simple revision logs. Phase 1 gate is local only and is not real security. True "คนนอกเข้าไม่ได้เลย" requires Phase 2 Firebase Auth plus Firestore Security Rules.
+Phase 1 Super Admin Portal lives at `/admin/`. It now follows the newer Claude Admin source set for Dashboard, Relationship Map, Boards, Users, Board Admins, Audit Log, Version Control, Support Tools, tabs, modal shells, and responsive table behavior. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/active character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, and show revision/audit logs. Phase 1 gate is local only and is not real security. True "คนนอกเข้าไม่ได้เลย" requires Phase 2 Firebase Auth plus Firestore Security Rules.
 
 ## Character Profiles
 

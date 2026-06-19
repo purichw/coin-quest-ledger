@@ -17,6 +17,7 @@ Done recently:
 - Character banner animation and chip spacing tuned, committed, pushed, and deployed.
 - Latest Claude profile loop partially ported into the static app: Sign In/Sign Up tabs, local account registry, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, and Character Profile My Boards actions.
 - Leveling canon v0 established in `leveling-canon.md` and centralized in `shared/pointy-logic.js` before reward recalibration.
+- Newer Claude Admin source set workback started: Relationship Map, Board Detail tabs/scroll layout, Users/User Detail, Audit Log, Version Control, Support Tools, modal shells, and desktop/tablet/mobile Admin E2E coverage are aligned with the current static implementation.
 - Production domain verified at `https://coin-quest-ledger.vercel.app`.
 
 Known constraints:
@@ -35,6 +36,7 @@ Known constraints:
 - Current mock loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`.
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
 - Phase 1 Admin and mock login are local/browser gates only, not real security.
+- Admin source of truth is currently `/Users/point/Downloads/Coin Quest Ledger/admin/`; older admin copy that allows many Characters per User is overridden by the current one-account-one-active-character canon.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
 - Character XP and Profile Renown are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromRenown()`.
 
@@ -117,7 +119,7 @@ Work:
 
 - Continue aligning `/admin/` with Claude Admin Portal structure when the user asks for Admin work.
 - Keep draft/restore/publish semantics clear.
-- Improve board/user/admin relationship views.
+- Deepen board/user/admin relationship views only where the newer source or user request adds behavior beyond the current workback.
 - Add safer password reset and board ownership workflows after real auth exists.
 - Add audit trail details for meaningful admin actions.
 

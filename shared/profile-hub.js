@@ -48,9 +48,16 @@
       signupPasswordShort: 'รหัสผ่านอย่างน้อย 6 ตัว',
       signupPasswordMismatch: 'รหัสผ่านไม่ตรงกัน',
       charTitle: 'สร้างตัวละครของคุณ',
-      charSub: 'หนึ่งบัญชี = หนึ่งตัวละครในรอบนี้ เลือกฮีโร่ที่เป็นตัวคุณ',
+      charSub: 'หนึ่งบัญชี = หนึ่งตัวละคร — เลือกฮีโร่ที่เป็นตัวคุณ',
       charName: 'ชื่อตัวละคร',
       charCreate: 'เริ่มผจญภัย!',
+      charNamePlaceholder: 'ตั้งชื่อฮีโร่',
+      tapToChoose: 'แตะเลือกฮีโร่',
+      chooseHero: 'เลือกฮีโร่ของคุณ',
+      chooseHeroSub: 'แตะเพื่อเลือกตัวละคร',
+      allHeroes: 'ทั้งหมด',
+      female: 'หญิง',
+      male: 'ชาย',
       yourUserId: 'User ID ของคุณ',
       myBoards: 'บอร์ดของฉัน',
       myBoardsSub: 'บอร์ดที่คุณเป็นแอดมินหรือผูกกับตัวละครนี้',
@@ -131,9 +138,16 @@
       signupPasswordShort: 'Password must be 6+ characters',
       signupPasswordMismatch: 'Passwords do not match',
       charTitle: 'Create your character',
-      charSub: 'One account = one character for this loop. Pick the hero that feels like you.',
+      charSub: "One account = one character - pick the hero that's you",
       charName: 'Character name',
       charCreate: 'Begin the adventure!',
+      charNamePlaceholder: 'Name your hero',
+      tapToChoose: 'Tap to choose your hero',
+      chooseHero: 'Choose your hero',
+      chooseHeroSub: 'Pick the character that represents you',
+      allHeroes: 'All',
+      female: 'Female',
+      male: 'Male',
       yourUserId: 'Your User ID',
       myBoards: 'My Boards',
       myBoardsSub: 'Boards you administer or own with this character',
@@ -347,6 +361,19 @@
     const gender = slayer?.gender === 'female' ? 'female' : 'male';
     const src = avatarFile(cls.id, gender, slayer?.skin || '');
     return `<span class="${sizeClass}" style="--avatar-bg:${avatarBg(cls.id)}"><img src="${h(src)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="pd-q" style="display:none">${h(cls.glyph)}</span></span>`;
+  }
+  function heroOptions() {
+    const order = window.PointyLogic?.CLASS_ORDER || ['warrior', 'wizard', 'cleric', 'monk', 'bard', 'dragoon', 'summoner', 'thief', 'ranger', 'alchemist', 'necromancer', 'engineer', 'berserker', 'archfiend', 'corsair', 'reveler', 'seraph', 'tiderunner'];
+    const sorted = order.slice().sort((a, b) => String(classMeta(a).en || a).localeCompare(String(classMeta(b).en || b)));
+    return sorted.flatMap(cls => ['female', 'male'].map(gender => ({ cls, gender })));
+  }
+  function heroPickerArt(cls, gender) {
+    const meta = classMeta(cls);
+    const src = avatarFile(meta.id, gender, '');
+    return `<div class="pc-art" style="--avatar-bg:${avatarBg(meta.id)}">
+      <img src="${h(src)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+      <span class="pd-q pc-fallback" style="display:none">${h(meta.glyph || '⚔️')}</span>
+    </div>`;
   }
 
   function currentTripState() {
@@ -852,11 +879,12 @@
 
   function showCharacterCreation(account) {
     const base = normalizeAccount(account) || loadAccount();
-    const langKey = loginLanguage();
-    const copy = STR[langKey];
-    const classes = window.PointyLogic?.CLASS_ORDER || ['warrior', 'wizard', 'cleric', 'monk', 'bard', 'dragoon', 'summoner', 'thief', 'ranger', 'alchemist', 'necromancer', 'engineer', 'berserker', 'archfiend'];
-    let pickedClass = 'dragoon';
-    let pickedGender = 'male';
+    let langKey = loginLanguage();
+    let copy = STR[langKey];
+    let pickedClass = '';
+    let pickedGender = '';
+    let pickerOpen = false;
+    let pickerGender = 'all';
     if (!loginGate) {
       loginGate = document.createElement('div');
       loginGate.className = 'login-gate';
@@ -864,37 +892,75 @@
     }
     document.body.classList.add('login-locked');
     const render = () => {
+      langKey = loginLanguage();
+      copy = STR[langKey];
+      const nameInputValue = loginGate.querySelector('[data-char-name]')?.value;
+      if (nameInputValue !== undefined) base.name = nameInputValue;
       loginGate.innerHTML = `<div class="login-wrap">
         <div class="login-langs">
           <button type="button" class="${langKey === 'th' ? 'on' : ''}" data-login-lang="th">TH</button>
           <button type="button" class="${langKey === 'en' ? 'on' : ''}" data-login-lang="en">EN</button>
         </div>
-        <form class="login-card cc-card" data-char-form>
-          <div class="login-crest" aria-hidden="true"><span>⚔️</span></div>
+          <form class="login-card cc-card" data-char-form>
+          <div class="login-crest" aria-hidden="true"><img src="/assets/icons/loot-chest.svg" alt=""></div>
           <h1 class="login-title">${h(copy.charTitle)}</h1>
           <p class="login-sub">${h(copy.charSub)}</p>
           <div class="cc-uid">${h(copy.yourUserId)} · <b>${h(base.userId)}</b></div>
+
+          <div class="cc-hero">
+            <button type="button" class="cc-portrait ${pickedClass ? 'has' : ''}" data-char-open-picker aria-label="${h(copy.tapToChoose)}">
+              ${pickedClass
+                ? `<span class="cc-picked" style="--avatar-bg:${avatarBg(pickedClass)}"><img src="${h(avatarFile(pickedClass, pickedGender, ''))}" alt=""><span class="pd-q" style="display:none">${h(classMeta(pickedClass).glyph)}</span></span>`
+                : `<span class="cc-q"><span class="cc-q-mark">?</span><span class="cc-q-lab">${h(copy.tapToChoose)}</span></span>`}
+            </button>
+            ${pickedClass ? `<div class="cc-cls">${h(classMeta(pickedClass).glyph || '')} ${h(classLabel(pickedClass))}</div>` : ''}
+          </div>
+
           <label class="login-field">
             <span>${h(copy.charName)}</span>
-            <input type="text" autocomplete="nickname" data-char-name value="${h(base.name || '')}" placeholder="${h(copy.signupNamePlaceholder)}">
+            <input type="text" autocomplete="nickname" data-char-name value="${h(base.name || '')}" placeholder="${h(copy.charNamePlaceholder)}">
           </label>
-          <div class="cc-genders" role="group" aria-label="Gender">
-            <button type="button" class="${pickedGender === 'male' ? 'on' : ''}" data-char-gender="male">♂</button>
-            <button type="button" class="${pickedGender === 'female' ? 'on' : ''}" data-char-gender="female">♀</button>
-          </div>
-          <div class="cc-grid">
-            ${classes.map(id => {
-              const meta = classMeta(id);
-              return `<button type="button" class="cc-class ${pickedClass === id ? 'on' : ''}" data-char-class="${h(id)}">
-                <span>${h(meta.glyph || '⚔️')}</span><b>${h(meta[langKey] || meta.th || meta.en || id)}</b>
-              </button>`;
-            }).join('')}
-          </div>
-          <button type="submit" class="login-btn">⚔️ ${h(copy.charCreate)}</button>
+          <button type="submit" class="login-btn" ${pickedClass ? '' : 'disabled'}>⚔️ ${h(copy.charCreate)}</button>
         </form>
+        ${pickerOpen ? renderPicker() : ''}
       </div>`;
+      function renderPicker() {
+        const options = heroOptions().filter(opt => pickerGender === 'all' || opt.gender === pickerGender);
+        return `<div class="picker-overlay" data-picker-close>
+          <div class="picker" role="dialog" aria-modal="true" aria-label="${h(copy.chooseHero)}" data-picker-dialog>
+            <div class="picker-head">
+              <div>
+                <div class="picker-title">⚔️ ${h(copy.chooseHero)}</div>
+                <div class="picker-sub">${h(copy.chooseHeroSub)}</div>
+              </div>
+              <button type="button" class="picker-close" data-picker-close aria-label="Close">×</button>
+            </div>
+            <div class="picker-filter" role="group" aria-label="Hero filter">
+              <button type="button" class="${pickerGender === 'all' ? 'on' : ''}" data-picker-gender="all">${h(copy.allHeroes)}</button>
+              <button type="button" class="${pickerGender === 'female' ? 'on' : ''}" data-picker-gender="female">♀ ${h(copy.female)}</button>
+              <button type="button" class="${pickerGender === 'male' ? 'on' : ''}" data-picker-gender="male">♂ ${h(copy.male)}</button>
+            </div>
+            <div class="picker-grid">
+              ${options.map(opt => {
+                const meta = classMeta(opt.cls);
+                const on = pickedClass === opt.cls && pickedGender === opt.gender;
+                return `<button type="button" class="picker-cell ${on ? 'on' : ''}" data-char-class="${h(opt.cls)}" data-char-gender="${h(opt.gender)}">
+                  ${heroPickerArt(opt.cls, opt.gender)}
+                  <div class="pc-name"><span class="pc-gender">${opt.gender === 'female' ? '♀' : '♂'}</span>${h(meta[langKey] || meta.th || meta.en || opt.cls)}</div>
+                  ${on ? '<div class="pc-check">✓</div>' : ''}
+                </button>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>`;
+      }
       loginGate.querySelector('[data-char-form]').addEventListener('submit', event => {
         event.preventDefault();
+        if (!pickedClass || !pickedGender) {
+          pickerOpen = true;
+          render();
+          return;
+        }
         const charName = String(loginGate.querySelector('[data-char-name]')?.value || '').trim() || base.name || 'Hero';
         const character = persistCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' });
         const next = saveAuth({ ...base, character });
@@ -909,17 +975,28 @@
         refresh({ toast: false });
         if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
       });
-      loginGate.querySelectorAll('[data-char-class]').forEach(btn => btn.addEventListener('click', () => {
+      loginGate.querySelector('[data-char-open-picker]')?.addEventListener('click', () => {
+        pickerOpen = true;
+        render();
+      });
+      loginGate.querySelectorAll('[data-char-class][data-char-gender]').forEach(btn => btn.addEventListener('click', () => {
         pickedClass = btn.dataset.charClass || pickedClass;
+        pickedGender = btn.dataset.charGender === 'female' ? 'female' : 'male';
+        pickerOpen = false;
         render();
       }));
-      loginGate.querySelectorAll('[data-char-gender]').forEach(btn => btn.addEventListener('click', () => {
-        pickedGender = btn.dataset.charGender === 'female' ? 'female' : 'male';
+      loginGate.querySelectorAll('[data-picker-gender]').forEach(btn => btn.addEventListener('click', () => {
+        pickerGender = ['all', 'female', 'male'].includes(btn.dataset.pickerGender) ? btn.dataset.pickerGender : 'all';
+        render();
+      }));
+      loginGate.querySelectorAll('[data-picker-close]').forEach(el => el.addEventListener('click', event => {
+        if (event.target.closest('[data-picker-dialog]') && !event.target.matches('.picker-close')) return;
+        pickerOpen = false;
         render();
       }));
       loginGate.querySelectorAll('[data-login-lang]').forEach(btn => btn.addEventListener('click', () => {
         setPageLang(btn.dataset.loginLang);
-        showCharacterCreation(base);
+        render();
       }));
     };
     render();

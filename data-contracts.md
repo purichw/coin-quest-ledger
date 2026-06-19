@@ -325,6 +325,11 @@ Treasury uses local module storage in `treasury/app.js`. Keep it local-first unt
 
 The Admin Portal stores local drafts and local test revisions in browser storage before publish. Draft data should never be treated as published truth.
 
+The current Admin UI derives Users and active Characters from board data and the
+character registry, then displays one active Character per User ID to match the
+current player/auth canon. Do not reintroduce admin-only multi-character user
+state unless the product model changes first.
+
 ## Session Storage Contracts
 
 ### `pointy_test_trip_{id}`

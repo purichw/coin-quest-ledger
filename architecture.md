@@ -70,7 +70,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 - Files: `admin/index.html`, `admin/app.js`, `admin/admin.css`
 - Route: `/admin/`
-- Phase 1 admin tool for listing/editing boards, users, Board Admin metadata, passwords, drafts, publishing, and revision logs.
+- Phase 1 admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, and relationship views.
 - Gate is local browser state only. Real private admin access requires Firebase Auth and Firestore Security Rules.
 
 ## Shared Modules
@@ -123,7 +123,7 @@ Claude Design remains the Holy Grail for requested visual ports:
 
 - Party Ledger canon and split references live outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`.
 - Current Character/Profile loop references came from `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`, `/Users/point/Downloads/Character Profile (standalone) (1).html`, and `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`.
-- Admin Portal handoff notes are in `ADMIN.md`; Admin reference files are under `/Users/point/Downloads/admin/`.
+- Admin Portal handoff notes are in `ADMIN.md`; the newest Admin reference files are under `/Users/point/Downloads/Coin Quest Ledger/admin/`, with related standalone HTML at `/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html`.
 
 `CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction. Do not use it unless the user explicitly re-enables it.
 

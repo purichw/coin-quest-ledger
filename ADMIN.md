@@ -1,24 +1,25 @@
 # ADMIN.md - Admin Portal Handoff Notes
 
-Last updated: 2026-06-17
+Last updated: 2026-06-19
 
 ## Purpose
 
-This file preserves the current understanding of the Admin Portal handoff files in
-`/Users/point/Downloads/admin/` so the next implementation pass does not need to
-rediscover the model, screens, and styling from scratch.
+This file preserves the current understanding of the newest Admin Portal handoff
+files in `/Users/point/Downloads/Coin Quest Ledger/admin/` so the next
+implementation pass does not need to rediscover the model, screens, and styling
+from scratch.
 
-These files are a Claude-style Admin Portal prototype/reference, not yet the live
-production implementation in this repo. The current live app remains the static
-no-build Coin Quest Ledger app in
-`/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox`.
+These files are a Claude-style Admin Portal prototype/reference. The live app is
+still the static no-build Coin Quest Ledger repo, but the current `/admin/`
+implementation has now been workback-ported toward the newer source set for
+People, Boards, Ops, relationship views, and modal flows.
 
 ## Source Files
 
-Reference folder:
+Current reference folder:
 
 ```text
-/Users/point/Downloads/admin/
+/Users/point/Downloads/Coin Quest Ledger/admin/
 ```
 
 Files studied:
@@ -35,7 +36,17 @@ screens-people.jsx
 ui.jsx
 ```
 
-Offline load order from `Admin Portal.html`:
+Standalone HTML/reference context:
+
+```text
+/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html
+```
+
+The newer `.jsx` source files are the more actionable source of truth than the
+older broken/offline HTML. Work back from the source files when the standalone
+export is stale or damaged.
+
+Offline/source load order:
 
 ```text
 admin.css
@@ -53,8 +64,9 @@ app.jsx
 
 ## Handoff Rule
 
-- Treat the newest files in `/Users/point/Downloads/admin/` as the Admin Portal
-  reference until a newer offline Admin Portal HTML/source set is supplied.
+- Treat the newest files in `/Users/point/Downloads/Coin Quest Ledger/admin/` as
+  the Admin Portal reference until a newer offline Admin Portal HTML/source set
+  is supplied.
 - For this project, newer `.jsx` handoff files should replace older handoff
   files when the user explicitly says to use the new version.
 - Do not edit the Downloads reference files directly.
@@ -72,10 +84,8 @@ Portal in the repo lives at:
 /Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox/admin/app.js
 ```
 
-The prototype is React/Babel JSX. Before porting, choose one path:
-
-1. Port the prototype faithfully into the existing static admin implementation.
-2. Add a React/Babel admin island for `/admin/`, if that tradeoff is acceptable.
+The prototype is React/Babel JSX. Current direction is to port it faithfully into
+the existing static admin implementation instead of adding a new React island.
 
 The existing repo already has tests around Admin Portal behavior. Any Admin
 Portal implementation work should use Production Patch verification, meaning
@@ -99,7 +109,8 @@ Do not describe the Phase 1 local gate as secure access control.
 Core identities:
 
 - `User ID`: global person/account identity across the app.
-- `Character ID`: playable hero identity. One User can have many Characters.
+- `Character ID`: playable hero identity. Current player/auth canon is one
+  active Character per User ID.
 - `Admin ID`: Board Admin identity. One User can have many Admin IDs.
 - `Board`: one managed workspace owned by an Admin ID.
 
@@ -107,7 +118,8 @@ Important rules:
 
 - One User ID can appear across Split Expenses, Debt Dragon, Treasury, and
   Character Profile.
-- One User ID can hold multiple Character IDs.
+- Current player/auth canon: one User ID has one active Character. Multiple
+  characters per user is a future product decision, not the current live loop.
 - Each Character has its own class, level, XP, and board history.
 - The same Character can gain progress from multiple modules.
 - Admin Portal displays levels from the shared leveling canon: Character rows use `PointyLogic.levelFromXp()` and overall/user rows use `PointyLogic.levelFromRenown()`. Do not add admin-only level thresholds.
@@ -274,7 +286,7 @@ Defined in `screens-overview.jsx`.
 
 `RelationshipMap`:
 
-- Shows relationship from User to Characters to Boards.
+- Shows relationship from User to active Character to Boards.
 - Shows Admin ID relationship to owned boards.
 - Documents the intended ID model visually.
 
@@ -282,6 +294,8 @@ Prototype mismatch to remember:
 
 - Relationship copy says Board is Split or Debt in some places.
 - Current prototype seed also includes Treasury boards.
+- Older prototype copy allowed many Characters per User. The live canon now says
+  one active Character per User ID until the user explicitly changes that model.
 - User previously reminded that Compare Prices exists, but Compare Prices should
   not become a Board unless explicitly requested.
 
@@ -327,14 +341,14 @@ Defined in `screens-people.jsx`.
 `UsersList`:
 
 - Search users.
-- Table shows User ID, display name, characters, board count, renown, admin
+- Table shows User ID, display name, active character, board count, renown, admin
   role, and status.
 
 `UserDetail`:
 
 - Identity card.
 - Tabs:
-  - characters
+  - character
   - boards
   - admin roles
   - activity
@@ -453,21 +467,18 @@ Common UI:
 
 ## Existing Live Admin Gaps vs Prototype
 
-The current live Admin Portal is not yet the full prototype.
+The current live Admin Portal now covers the major newer-source structure for
+Dashboard, Relationship Map, Boards, Users, Board Admins, Audit Log, Version
+Control, Support Tools, tabs, modal shells, and mobile/tablet table behavior.
+It is still static/no-build and should continue to preserve live persistence.
 
 Likely gaps to close later:
 
-- Full sidebar/topbar shell fidelity.
-- Dashboard cards/command layout.
-- Relationship Map.
-- Board filters including treasury.
-- Board detail tabs and scroll view.
-- Full changelog diff UI.
-- Board version restore UI.
-- User detail character tabs.
-- Admin detail ownership view.
-- Support tools modals.
 - Rich toasts and confirmations.
+- More exact modal microcopy/confirmation behavior from a future fresh standalone
+  export.
+- Deeper board version restore semantics beyond the current revision model.
+- Richer audit diff payloads.
 - Full responsive parity with prototype.
 - Real backend-backed permissions.
 

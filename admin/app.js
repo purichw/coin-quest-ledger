@@ -13,6 +13,9 @@ let boardFilter = 'all';
 let auditFilter = 'all';
 let dashMode = 'a';
 let dirty = false;
+let userDetailTab = 'chars';
+let boardDetailTab = 'overview';
+let boardDetailView = 'tabbed';
 
 function initFirebase() {
   if (TEST_MODE || firebase.apps.length) return;
@@ -188,9 +191,20 @@ function userRecords() {
       if (!map.has(key)) map.set(key, { userId: key, name, chars: [], boards: [], adminGroups: [] });
       const u = map.get(key);
       if (!u.boards.some(x => x.originalId === b.originalId)) u.boards.push(b);
-      if (!u.chars.some(c => c.id === charId && c.boardId === b.originalId)) {
-        u.chars.push({ id: charId, name, className: b.data?.heroClasses?.[name] || 'hero', xp: b.data?.characterXp?.[charId] || 0, boardId: b.originalId });
+      let ch = u.chars.find(c => c.id === charId);
+      if (!ch) {
+        ch = {
+          id: charId,
+          name,
+          className: b.data?.heroClasses?.[name] || 'hero',
+          xp: Number(b.data?.characterXp?.[charId] || b.data?.settleXp?.[name] || 0),
+          boards: [],
+          boardId: b.originalId
+        };
+        u.chars.push(ch);
       }
+      if (!ch.boards.includes(b.originalId)) ch.boards.push(b.originalId);
+      ch.xp = Math.max(ch.xp, Number(b.data?.characterXp?.[charId] || b.data?.settleXp?.[name] || 0));
     });
   });
   adminGroups().forEach(g => {
@@ -203,6 +217,9 @@ function userRecords() {
 }
 function userById(id) { return userRecords().find(u => u.userId === id); }
 function adminGroupByKey(key) { return adminGroups().find(g => g.key === key); }
+function charById(id) {
+  return userRecords().flatMap(u => u.chars.map(c => ({ ...c, userId: u.userId, userName: u.name }))).find(c => c.id === id);
+}
 function boardStats(b) {
   const expenses = Array.isArray(b.data?.expenses) ? b.data.expenses : [];
   const dragons = Array.isArray(b.data?.dragons) ? b.data.dragons : [];
@@ -402,7 +419,7 @@ function filtered(list, keys) {
   return list.filter(item => keys.some(key => String(item[key] || '').toLowerCase().includes(s)));
 }
 function pageHead(title, desc, actions = '') {
-  return `<div class="page-head"><div><h1 class="page-title">${h(title)}</h1>${desc ? `<div class="page-desc">${h(desc)}</div>` : ''}</div>${actions ? `<div class="page-head-actions">${actions}</div>` : ''}</div>`;
+  return `<div class="page-head"><div><h1 class="page-title">${h(title)}</h1>${desc ? `<div class="page-desc">${desc}</div>` : ''}</div>${actions ? `<div class="page-head-actions">${actions}</div>` : ''}</div>`;
 }
 function card(title, body, actions = '', extra = '') {
   return `<section class="panel card ${extra}"><div class="card-head"><h3>${title}</h3>${actions ? `<div class="ch-act">${actions}</div>` : ''}</div><div class="card-pad">${body}</div></section>`;
@@ -443,6 +460,63 @@ function modBadge(type) {
 function statusBadge(label, cls = 'active') {
   return `<span class="badge st-${cls}">${h(label)}</span>`;
 }
+function statusForBoard(b) { return b.deleted ? 'deleted' : b.data?.status || (b.deleted ? 'archived' : 'active'); }
+function statusBadgeFor(value) {
+  const key = String(value || 'active').toLowerCase();
+  const cls = key === 'flagged' ? 'flagged' : key === 'archived' ? 'archived' : key === 'locked' ? 'locked' : 'active';
+  return `<span class="badge st-${cls}">${h(value || 'active')}</span>`;
+}
+function levelBadge(level) {
+  return `<span class="lvl-badge">LV ${h(level || 1)}</span>`;
+}
+function tabs(name, value, items) {
+  return `<div class="tabs">${items.map(item => `<button type="button" class="tab ${value === item.key ? 'on' : ''}" onclick="${name}='${item.key}';render()">${h(item.label)}${item.count != null ? `<span class="tcount">${item.count}</span>` : ''}</button>`).join('')}</div>`;
+}
+function boardVersions(b) {
+  const revisionRows = (published.revisions || [])
+    .filter(rev => (rev.changes || []).some(c => String(c.detail || '').includes(b.originalId) || String(c.detail || '').includes(b.urlId)))
+    .slice(0, 3)
+    .map((rev, i) => ({
+      v: `v${Math.max(1, (published.revisions || []).length - i)}`,
+      at: rev.createdAt || Date.now(),
+      by: rev.author || 'Super Admin',
+      current: false,
+      note: `${(rev.changes || []).length} changes`
+    }));
+  return [
+    { v: 'current', at: b.data?.updatedAt || Date.now(), by: b.adminName || 'Super Admin', current: true, note: 'Current state' },
+    ...revisionRows
+  ];
+}
+function auditEntries() {
+  const drafts = diffBoards().map((c, i) => ({
+    id: `draft-${i}`,
+    ts: Date.now(),
+    actor: 'Local Draft',
+    scope: String(c.area || '').toLowerCase().startsWith('admin') ? 'admin' : String(c.area || '').toLowerCase().startsWith('user') ? 'user' : 'board',
+    action: c.detail,
+    target: c.detail.match(/\b\d{4}\b/)?.[0] || 'draft'
+  }));
+  const publishedRows = (published.revisions || []).flatMap(rev => (rev.changes || []).map((c, i) => ({
+    id: `${rev.id || rev.createdAt}-${i}`,
+    ts: rev.createdAt || Date.now(),
+    actor: rev.author || 'Super Admin',
+    scope: String(c.area || '').toLowerCase().startsWith('admin') ? 'admin' : String(c.area || '').toLowerCase().startsWith('user') ? 'user' : 'board',
+    action: c.detail,
+    target: c.detail.match(/\b\d{4}\b/)?.[0] || 'revision'
+  })));
+  if (!drafts.length && !publishedRows.length) {
+    return activeBoards().slice(0, 8).map(b => ({
+      id: `board-${b.originalId}`,
+      ts: b.data?.updatedAt || Date.now(),
+      actor: b.adminName || 'Super Admin',
+      scope: 'board',
+      action: `${b.tripName} active snapshot`,
+      target: b.urlId
+    }));
+  }
+  return [...drafts, ...publishedRows].sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0));
+}
 function renderDashboard() {
   const boards = activeBoards();
   const split = boards.filter(b => (b.type || 'split') === 'split').length;
@@ -477,16 +551,45 @@ function renderDashboard() {
   return `${pageHead('Dashboard', 'Super Admin command center', seg('dashMode', dashMode, [['a','A Cards'], ['b','B Command']]))}${command}`;
 }
 function renderRelationshipMap() {
-  const cols = [
-    ['Users', 'Global User ID', 'หนึ่ง user ใช้ข้าม Split และ Debt', 'user'],
-    ['Characters', 'Character IDs', 'EXP/LV อยู่บน Character ไม่ใช่ User', 'char'],
-    ['Boards', 'Boards', 'Split trip หรือ Debt lair เท่านั้น Compare ไม่ใช่ Board', 'board'],
-    ['Admins', 'Admin IDs', 'Admin ID เดียวผูกหลาย Board ได้', 'admin'],
-    ['Ownership', 'Owned Boards', 'Super Admin แก้ทุกอย่างได้ผ่าน portal นี้', 'board'],
-  ];
-  const map = `<div class="relmap">${cols.map(([title, name, desc, cls]) => `<div class="rel-col"><div class="rel-col-title">${h(title)}</div><div class="rel-node ${cls}"><div class="rn-top">${h(name)}</div><div class="rn-sub">${h(desc)}</div></div></div>`).join('')}</div>`;
-  const links = userRecords().slice(0, 6).map(u => `<div class="log-item"><div class="log-ico">👤</div><div class="log-body"><div class="log-text">${idChip('user', u.userId, u.userId)} ${h(u.name)}</div><div class="log-meta">${u.chars.map(c => idChip('char', c.id || '-', c.id)).join(' ')} ${u.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</div></div></div>`).join('');
-  return `${pageHead('Relationship Map', 'Board ↔ Admin ↔ User ↔ Character links')}${card('Relationship Map', `${map}<div class="hr"></div><p class="section-label">Live links</p><div class="log-list">${links || '<div class="empty"><div class="e-t">ยังไม่มี user</div></div>'}</div>`)}`;
+  const u = userRecords().find(x => x.adminGroups.length) || userRecords()[0];
+  if (!u) return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board')} ${card('Relationship Map', '<div class="empty"><div class="e-t">ยังไม่มี user</div></div>')}`;
+  const adminCards = u.adminGroups.map(g => `<div class="rel-node admin" style="border-color:#c9d9f1;background:#f1f6fc">
+    <div class="rn-top">🛡️ Admin IDs</div>
+    <div class="rn-sub">${idChip('admin', g.adminId || '-', g.key)} ${h(g.adminName || '')}</div>
+  </div>`).join('') || `<div class="rel-node admin" style="border-color:#c9d9f1;background:#f1f6fc"><div class="rn-top">🛡️ Admin IDs</div><div class="rn-sub muted">Not an admin</div></div>`;
+  const chars = u.chars.map(c => `<div class="rel-node char">
+    <div class="rn-top">⚔️ ${h(c.name)} ${idChip('char', c.id || '-', c.id)}</div>
+    <div class="rn-sub">${h(c.className)} · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</div>
+    <div class="rn-sub" style="margin-top:5px">plays in: ${c.boards.map(bid => {
+      const b = boardById(bid);
+      return b ? idChip('board', b.urlId, b.originalId) : '';
+    }).join(' ') || '<span class="muted">—</span>'}</div>
+  </div>`).join('');
+  const boards = [...new Set([...u.boards, ...u.adminGroups.flatMap(g => g.boards)])].map(b => `<div class="rel-node board">
+    <div class="rn-top">${boardTypeIcon(b)} ${h(b.tripName)}</div>
+    <div class="rn-sub">${idChip('board', b.urlId, b.originalId)} · owns: ${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</div>
+  </div>`).join('');
+  const map = `<div class="relmap">
+    <div class="rel-col"><div class="rel-col-title">Global User ID</div>
+      <div class="rel-node user"><div class="rn-top">👤 ${h(u.name)} ${idChip('user', u.userId, u.userId)}</div><div class="rn-sub">${u.chars.length} active character · ${u.adminGroups.length} admin roles</div></div>
+      ${adminCards}
+    </div>
+    <div class="rel-col"><div class="rel-col-title">Character</div>${chars || '<div class="rel-node char"><div class="rn-sub muted">No character yet</div></div>'}</div>
+    <div class="rel-col"><div class="rel-col-title">Boards</div>${boards || '<div class="rel-node board"><div class="rn-sub muted">No boards yet</div></div>'}</div>
+  </div>
+  <div class="rel-legend">
+    <span><span class="rar-dot" style="background:#7c5cd0"></span> Global User ID</span>
+    <span><span class="rar-dot" style="background:#d99a1f"></span> one active Character per user in the current auth loop</span>
+    <span><span class="rar-dot" style="background:#9a8c72"></span> Admin IDs can own many Boards</span>
+  </div>`;
+  const rules = `<ul class="model-rules">
+    <li>One User ID works across Split Expenses, Debt Dragon, Treasury, and Character Profile.</li>
+    <li>Current player/auth canon: one User ID has one active Character. Admin can edit that character's name/class/XP.</li>
+    <li>Character XP uses PointyLogic.levelFromXp(); overall Renown uses PointyLogic.levelFromRenown().</li>
+    <li>A user can be a board admin through one or more Admin IDs, and one Admin ID can own multiple boards.</li>
+    <li>Compare Prices is a tool, not a Board.</li>
+  </ul>`;
+  return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board links')}${card('Relationship Map', map)}<div class="mt16">${flatCard(`<p class="section-label">📐 Model rules</p>${rules}`)}</div>`;
 }
 function boardRows() {
   return filtered(activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter), ['urlId', 'tripName', 'adminId', 'adminName']).map(b => {
@@ -514,18 +617,53 @@ function renderBoardDetail(id) {
   if (!b) return card('Board not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const st = boardStats(b);
   const ownerUser = adminUserId(b);
-  const changeRows = diffBoards().filter(c => c.detail.includes(b.originalId) || c.detail.includes(b.urlId) || c.detail.includes(b.tripName)).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Revert board</button></div></div>`).join('') || '<div class="empty"><div class="e-t">No draft changes for this board</div></div>';
+  const versions = boardVersions(b);
+  const adminForm = `${formField('URL', `<input value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})">`)}${formField('Name', `<input value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})">`)}${formField('Admin ID', `<input value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})">`)}${formField('Password reset', `<input type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})">`)}`;
+  const overview = `<div class="grid g-2">
+    ${card('📋 Board info', `<div class="kv">
+      <div class="kv-row"><span class="k">Board ID</span><span class="v mono">${h(b.urlId)}</span></div>
+      <div class="kv-row"><span class="k">Type</span><span class="v">${modBadge(b.type)}</span></div>
+      <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(statusForBoard(b))}</span></div>
+      <div class="kv-row"><span class="k">Owner admin</span><span class="v">${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</span></div>
+      <div class="kv-row"><span class="k">Owner user</span><span class="v">${idChip('user', ownerUser, ownerUser)}</span></div>
+      <div class="kv-row"><span class="k">Last active</span><span class="v">${h(b.data?.updatedAt ? new Date(b.data.updatedAt).toLocaleString() : '—')}</span></div>
+    </div>`)}
+    ${card('📈 Stats', `<div class="grid g-2" style="gap:12px">
+      ${b.type === 'debt'
+        ? `${statCard('Dragons', st.dragons, 'tracked debts', '🐉')}${statCard('Balance', fmtMoney(st.balance), 'outstanding', '💳')}${statCard('Overdue', st.overdue, 'needs attention', '🔥', st.overdue ? 'down' : 'flat')}${statCard('Party size', b.participants.length, 'slayers', '👥')}`
+        : b.type === 'treasury'
+        ? `${statCard('Monthly income', fmtMoney(b.data?.treasury?.income || 0), 'treasury', '💰')}${statCard('Spent', fmtMoney(st.spend), 'logged', '🗡️')}${statCard('Party size', b.participants.length, 'owner party', '👥')}${statCard('Quests', st.expenses, 'entries', '📜')}`
+        : `${statCard('Quests', st.expenses, 'ledger rows', '📜')}${statCard('Total spend', fmtMoney(st.spend), 'party spend', '💰')}${statCard('Party size', b.participants.length, 'heroes', '👥')}${statCard('Unsettled', fmtMoney(0), 'draft proxy', '💸')}`}
+    </div><div class="mt16"><div class="spark">${[22, 40, 28, 48, 36, 58, 44].map(v => `<i style="height:${v}%"></i>`).join('')}</div></div>`)}
+    ${card('Owner / Admin', adminForm, '', 'wide')}
+  </div>`;
   const members = b.participants.map(name => {
     const charId = b.characterIds[name] || '';
+    const c = charById(charId) || { className: b.data?.heroClasses?.[name] || 'hero', xp: 0 };
     const uId = userKey(name, charId);
-    const role = name === b.adminName ? 'Owner' : b.type === 'debt' ? 'Slayer' : 'Hero';
-    return `<tr><td class="cell-strong">${h(name)}</td><td>${idChip('char', charId || '-', charId)}</td><td>${idChip('user', uId, uId)}</td><td>${statusBadge(role, 'active')}</td><td>${editInput(charId, `updateUser(${q(b.originalId)},${q(name)},this.value)`, { small:true, max:4 })}</td><td class="td-actions"><button class="btn btn-danger sm" onclick="deleteUser(${q(b.originalId)},${q(name)})">ลบ</button></td></tr>`;
+    const role = name === b.adminName || charId === b.data?.admin?.characterId ? 'Owner' : b.type === 'debt' ? 'Slayer' : 'Hero';
+    return `<tr><td><div class="flex gap8" style="align-items:center"><span style="font-size:18px">⚔️</span><span class="cell-strong">${h(name)}</span> ${idChip('char', charId || '-', charId)}</div></td><td>${idChip('user', uId, uId)}</td><td>${h(c.className)}</td><td>${levelBadge(characterLevelFromXp(c.xp).lvl)}</td><td><span class="badge ${role === 'Owner' ? 'role' : 'outline'}">${role === 'Owner' ? '👑 ' : ''}${role}</span></td><td>${editInput(charId, `updateUser(${q(b.originalId)},${q(name)},this.value)`, { small:true, max:4 })}</td><td class="td-actions"><button class="btn btn-danger sm" onclick="deleteUser(${q(b.originalId)},${q(name)})">ลบ</button></td></tr>`;
   }).join('');
-  const overview = `${flatCard(`<div class="profile-card"><div class="profile-ava">${boardTypeIcon(b)}</div><div class="profile-name">${h(b.tripName)}</div><div class="profile-id">${idChip('board', b.urlId, b.originalId)}</div><div class="wrap-chips mt12">${modBadge(b.type)} ${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)} ${idChip('user', ownerUser, ownerUser)}</div></div>`)}
-    ${card('Overview', `<div class="kv"><div class="kv-row"><span class="k">Type</span><span class="v">${boardTypeIcon(b)} ${boardTypeLabel(b)}</span></div><div class="kv-row"><span class="k">Stats</span><span class="v">${b.type === 'debt' ? `${st.dragons} dragons · ${fmtMoney(st.balance)}` : `${st.expenses} quests · ${fmtMoney(st.spend)}`}</span></div></div>`)}
-    <div class="danger-zone mt16"><h4>Danger Zone</h4><div class="page-head-actions mt8"><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Restore board</button><button class="btn btn-danger sm" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div></div>`;
-  const adminForm = `${formField('URL', `<input value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})">`)}${formField('Name', `<input value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})">`)}${formField('Admin ID', `<input value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})">`)}${formField('Password reset', `<input type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})">`)}`;
-  return `<div class="crumbs"><button onclick="closeDetail('boards')">Boards</button><span class="sep">/</span><span class="cur">${h(b.urlId)}</span></div>${pageHead(b.tripName, 'Board detail and admin controls')}<div class="detail-grid"><div>${overview}</div><div class="grid">${card('Owner / Admin', adminForm)}${card('Members', `${table(['Name','Character','User','Role','Edit ID',''], members)}<button class="btn btn-ghost mt12" onclick="addUser(${q(b.originalId)})">+ Add user</button>`)}${card('Change Log', `<div class="log-list">${changeRows}</div>`)}${card('Board Versions', `<div class="between"><span>Latest published snapshot</span><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Restore</button></div>`)}</div></div>`;
+  const membersPanel = card('👥 Members', `${table(['Character','User ID','Class','Level','Role','Edit ID',''], members)}<button class="btn btn-ghost mt12" onclick="addUser(${q(b.originalId)})">+ Add user</button>`);
+  const changeRows = diffBoards().filter(c => c.detail.includes(b.originalId) || c.detail.includes(b.urlId) || c.detail.includes(b.tripName)).map(c => `<div class="log-item"><div class="log-ico edit">✏️</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div><div class="log-actions"><button class="btn tiny btn-ghost" onclick="restoreBoard(${q(b.originalId)})">↩ Revert</button></div></div>`).join('') || '<div class="empty"><div class="e-t">No draft changes for this board</div></div>';
+  const logPanel = card('📜 Change Log', `<div class="log-list">${changeRows}</div>`);
+  const versionRows = versions.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ` <span class="badge st-active">Current</span>` : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(typeof v.at === 'number' ? new Date(v.at).toLocaleString() : v.at)}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions">${!v.current ? `<button class="btn tiny btn-ghost" onclick="restoreBoard(${q(b.originalId)})">↺ Restore</button>` : ''}</div></div>`).join('');
+  const versionsPanel = card('🕰️ Versions', `<div class="log-list">${versionRows}</div>`);
+  const dangerPanel = `<div class="grid" style="gap:14px">
+    <div class="phase-note" style="margin:0"><span class="pn-ico">🔒</span><span>In-app board admins can only archive a board. Permanent delete is a Super Admin action here.</span></div>
+    <div class="danger-zone between"><div><h4>♻️ Reset board data</h4><div class="cell-sub">Clears quests/dragons but keeps members and admin metadata.</div></div><button class="btn btn-danger" onclick="restoreBoard(${q(b.originalId)})">Reset board data</button></div>
+    <div class="danger-zone between"><div><h4>📦 Archive board</h4><div class="cell-sub">Hide from use while keeping data recoverable.</div></div><button class="btn btn-gold" onclick="deleteBoard(${q(b.originalId)})">Archive board</button></div>
+    <div class="danger-zone between" style="border-color:var(--danger)"><div><h4>🗑️ Delete board</h4><div class="cell-sub">Delete the board and all data after Publish.</div></div><button class="btn btn-danger" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div>
+  </div>`;
+  const tabbed = `${tabs('boardDetailTab', boardDetailTab, [
+    { key:'overview', label:'Overview' },
+    { key:'members', label:'Members', count:b.participants.length },
+    { key:'log', label:'Change Log', count:diffBoards().length },
+    { key:'versions', label:'Versions', count:versions.length },
+    { key:'danger', label:'Danger zone' }
+  ])}${boardDetailTab === 'overview' ? overview : boardDetailTab === 'members' ? membersPanel : boardDetailTab === 'log' ? logPanel : boardDetailTab === 'versions' ? versionsPanel : dangerPanel}`;
+  const scroll = `<div class="grid" style="gap:18px">${overview}${membersPanel}${logPanel}${versionsPanel}${dangerPanel}</div>`;
+  return `<div class="crumbs"><button onclick="closeDetail('boards')">Boards</button><span class="sep">/</span><span class="cur">${h(b.urlId)}</span></div>${pageHead(b.tripName, `<span>${idChip('board', b.urlId, b.originalId)} ${modBadge(b.type)} ${statusBadgeFor(statusForBoard(b))}</span>`, `<span class="count-note">Layout</span>${seg('boardDetailView', boardDetailView, [['tabbed','Tabs'],['scroll','Scroll']])}<button class="btn btn-gold" onclick="showExportModal(${q(b.originalId)})">📤 Export data</button>`)}${boardDetailView === 'tabbed' ? tabbed : scroll}`;
 }
 function renderAdmins() {
   if (detail?.kind === 'admin') return renderAdminDetail(detail.id);
@@ -554,57 +692,78 @@ function renderAdminDetail(key) {
 function renderUsers() {
   if (detail?.kind === 'user') return renderUserDetail(detail.id);
   const records = userRecords().filter(u => !query || `${u.name} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
-  const flatRows = users().filter(u => !query || `${u.name} ${u.id} ${u.board.urlId}`.toLowerCase().includes(query.toLowerCase())).map(u => `
+  const rows = records.map(u => `
     <tr>
-      <td>${idChip('board', u.board.urlId, u.board.originalId)}</td>
+      <td>${idChip('user', u.userId, u.userId)}</td>
       <td class="cell-strong">${h(u.name)}</td>
-      <td>${editInput(u.id, `updateUser(${q(u.board.originalId)},${q(u.name)},this.value)`, { small:true, max:4 })}</td>
-      <td>${idChip('user', userKey(u.name, u.id), userKey(u.name, u.id))}</td>
-      <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.id))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(userKey(u.name, u.id))})">Detail</button><button class="btn btn-danger sm" onclick="deleteUser(${q(u.board.originalId)},${q(u.name)})">ลบ</button></td>
+      <td><div class="wrap-chips">${u.chars.map(c => idChip('char', c.id || '-', c.id, `<span>${h(c.name)}</span>`)).join(' ') || '<span class="muted cell-sub">—</span>'}</div></td>
+      <td class="mono">${u.boards.length}</td>
+      <td>${levelBadge(userLevel(u))} <span class="cell-sub mono">${userRenown(u).toLocaleString()}</span></td>
+      <td>${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length} Admin roles</span>` : '<span class="muted cell-sub">—</span>'}</td>
+      <td>${statusBadgeFor('active')}</td>
+      <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.chars[0]?.id || ''))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(u.userId)})">Detail</button></td>
     </tr>`).join('');
-  return `${pageHead('Users', `${records.length} global users · ${users().length} board character links`, `<button class="btn btn-ghost" onclick="supportAction('Add User','เลือก existing/new user แล้วสร้าง character LV 1 ใน board')">+ Add user</button>`)}<div class="toolbar">${searchBox('ค้นหา user/board')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['Board','ชื่อ','Character ID','User ID',''], flatRows))}`;
+  return `${pageHead('Users', `${records.length} global users · one active character per User ID`, `<button class="btn btn-primary" onclick="showAddUserModal()">+ Add user</button>`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Total renown','Admin role','Status',''], rows))}`;
 }
 function renderUserDetail(id) {
   const u = userById(id);
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const renown = userRenown(u);
-  const boards = u.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td>${h(b.tripName)}</td><td>${boardTypeLabel(b)}</td><td>${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</td></tr>`).join('');
-  const chars = u.chars.map(c => `<tr><td>${idChip('char', c.id || '-', c.id)}</td><td>${h(c.name)}</td><td>${h(c.className)}</td><td>LV ${characterLevelFromXp(c.xp).lvl} · ${Number(c.xp || 0)} XP</td><td>${idChip('board', boardById(c.boardId)?.urlId || c.boardId, c.boardId)}</td></tr>`).join('');
-  const adminRows = u.adminGroups.map(g => `<tr><td>${idChip('admin', g.adminId || '-', g.key)}</td><td class="muted">${h(g.key)}</td><td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td></tr>`).join('');
-  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div><div class="profile-id">${idChip('user', u.userId, u.userId)}</div></div>`);
-  const stats = `<div class="grid g-4">${statCard('User ID', h(u.userId), h(u.name), 'ID')}${statCard('Overall Level', userLevel(u), `${renown} Renown`, 'LV')}${statCard('Characters', u.chars.length, 'EXP lives on each character', '⚔️')}${statCard('Admin Roles', u.adminGroups.length, `${u.adminGroups.flatMap(g => g.boards).length} owned boards`, '🛡️')}</div>`;
-  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.userId)}</span></div>${pageHead('User Profile', 'Global user, character IDs, and admin roles')}<div class="detail-grid"><div>${profile}</div><div class="grid">${stats}${card('Characters', table(['Character','Name','Class','Level / XP','Boards'], chars))}${card('Admin roles', table(['Admin ID','Owner hash','Owned boards'], adminRows))}${card('Boards', table(['Board','Name','Type','Admin'], boards))}</div></div>`;
+  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div><div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor('active')}</div><hr class="hr"><div class="kv">
+    <div class="kv-row"><span class="k">Overall level (Renown)</span><span class="v"><b>LV ${userLevel(u)}</b> · ${renown.toLocaleString()}</span></div>
+    <div class="kv-row"><span class="k">Character</span><span class="v">${u.chars.length}</span></div>
+    <div class="kv-row"><span class="k">Boards</span><span class="v">${u.boards.length}</span></div>
+    <div class="kv-row"><span class="k">Is admin</span><span class="v">${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length}</span>` : 'Not an admin'}</span></div>
+  </div>`);
+  const activitySpark = flatCard(`<p class="section-label">📊 14-day activity</p><div class="spark">${[18, 52, 38, 64, 42, 70, 54].map(v => `<i style="height:${v}%"></i>`).join('')}</div>`);
+  const chars = u.chars.map(c => `<div class="card flat card-pad" style="padding:15px 16px">
+    <div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:48px;height:48px;font-size:24px;border-radius:12px;margin:0">⚔️</div><div><div style="font-weight:700;font-size:15px">${h(c.name)} ${idChip('char', c.id || '-', c.id)}</div><div class="cell-sub mt8" style="margin-top:3px">Class: <b>${h(c.className)}</b> · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</div></div></div><button class="btn sm btn-ghost" onclick="showEditCharModal(${q(u.userId)},${q(c.id)})">Edit</button></div>
+    <div class="xpbar mt12"><span style="width:${Math.min(100, characterLevelFromXp(c.xp).pct || 0)}%"></span></div>
+    <div class="mt12"><div class="section-label" style="margin:0 0 7px">🔗 Appears in</div><div class="wrap-chips">${c.boards.map(bid => { const b = boardById(bid); return b ? `<button type="button" class="idchip k-board" onclick="openDetail('board',${q(b.originalId)})"><span class="ic-ico">${boardTypeIcon(b)}</span>${h(b.tripName)} · ${h(b.urlId)}</button>` : ''; }).join('') || '<span class="muted cell-sub">No boards</span>'}</div></div>
+  </div>`).join('');
+  const boards = u.boards.map(b => `<tr class="clickable" onclick="openDetail('board',${q(b.originalId)})"><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td>${idChip('char', u.chars.find(c => c.boards.includes(b.originalId))?.id || '-', u.chars.find(c => c.boards.includes(b.originalId))?.id || '-')}</td><td class="td-right"><button class="btn sm btn-ghost">Open →</button></td></tr>`).join('');
+  const adminRows = u.adminGroups.map(g => `<div class="card flat card-pad mt12" style="margin-top:0;margin-bottom:12px"><div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:44px;height:44px;font-size:20px;border-radius:11px;margin:0;background:#e7eef9">🛡️</div><div><div style="font-weight:700;font-size:15px">${h(g.adminName || g.adminId || 'Admin')} ${idChip('admin', g.adminId || '-', g.key)}</div><div class="cell-sub" style="margin-top:3px">Owner hash: <span class="mono">${h(g.key)}</span></div></div></div><button class="btn sm btn-ghost" onclick="openDetail('admin',${q(g.key)})">Open →</button></div><div class="mt12"><div class="section-label" style="margin:0 0 7px">🗂️ Boards owned</div><div class="wrap-chips">${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</div></div></div>`).join('') || '<div class="empty"><div class="e-t">Not an admin</div><div class="e-d">This user does not administer any board.</div></div>';
+  const activityRows = auditEntries().filter(a => a.actor === u.name || u.boards.some(b => a.target === b.urlId || a.target === b.originalId)).map(a => `<div class="log-item"><div class="log-ico">📌</div><div class="log-body"><div class="log-text">${h(a.action)}</div><div class="log-meta"><span>${new Date(a.ts).toLocaleString()}</span><span class="dot-sep">·</span><span class="mono">${h(a.target)}</span></div></div></div>`).join('') || '<div class="empty"><div class="e-t">No activity yet</div></div>';
+  const body = userDetailTab === 'chars'
+    ? card('🎭 Character', `<div class="card-pad" style="display:flex;flex-direction:column;gap:12px">${chars}</div>`)
+    : userDetailTab === 'boards'
+    ? card('🗂️ Boards', table(['Board','Name','Type','As character',''], boards))
+    : userDetailTab === 'admin'
+    ? card('🛡️ Admin roles', `<div class="card-pad">${adminRows}<button class="btn btn-ghost mt12" onclick="showInviteAdminModal(${q(u.userId)})">+ Invite admin</button></div>`)
+    : card('📜 Activity', `<div class="card-pad" style="padding-top:4px;padding-bottom:8px"><div class="log-list">${activityRows}</div></div>`);
+  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div>${pageHead(u.name, 'User profile (one User ID)', `<button class="btn btn-ghost" onclick="showImpersonateModal(${q(u.userId)})">🎭 Impersonate user</button><button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">🔑 Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">📤 Export data</button>`)}<div class="detail-grid"><div>${profile}${activitySpark}</div><div>${tabs('userDetailTab', userDetailTab, [{key:'chars',label:'Character',count:u.chars.length},{key:'boards',label:'Boards',count:u.boards.length},{key:'admin',label:'Admin roles',count:u.adminGroups.length},{key:'activity',label:'Activity'}])}${body}</div></div>`;
 }
 function renderAuditLog() {
-  const changes = diffBoards().map((c, i) => ({ ...c, id: 'draft-' + i, at: Date.now(), author: 'Local Draft' }));
-  const revChanges = (published.revisions || []).flatMap(rev => (rev.changes || []).map((c, i) => ({ ...c, id: `${rev.id || rev.createdAt}-${i}`, at: rev.createdAt, author: rev.author || 'Super Admin' })));
-  const all = [...changes, ...revChanges].filter(c => auditFilter === 'all' || String(c.area).toLowerCase().includes(auditFilter));
-  const rows = all.map(c => `<div class="log-item"><div class="log-ico edit">✦</div><div class="log-body"><div class="log-text">${h(c.detail)}</div><div class="log-meta"><span>${new Date(c.at || Date.now()).toLocaleString()}</span><span class="dot-sep">•</span><span>${h(c.author)}</span><span class="dot-sep">•</span>${statusBadge(`${c.area} · ${c.action}`, 'active')}</div></div></div>`).join('');
-  const filter = `<div class="field compact-select"><select onchange="auditFilter=this.value;render()">${['all','boards','admins','users'].map(x => `<option value="${x}" ${auditFilter === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>`;
-  return `${pageHead('Audit Log', 'System-wide chronological feed from drafts and published revisions', filter)}${card('Audit Log', `<div class="log-list">${rows || '<div class="empty"><div class="e-t">No audit entries yet</div></div>'}</div>`)}`;
+  const scopeIco = { board:'🗂️', user:'👤', admin:'🛡️', system:'⚙️' };
+  const rows = auditEntries()
+    .filter(a => auditFilter === 'all' || a.scope === auditFilter)
+    .filter(a => !query || `${a.actor} ${a.action} ${a.target}`.toLowerCase().includes(query.toLowerCase()));
+  const body = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Actor</th><th>Scope</th><th>Action</th><th>Target</th><th></th></tr></thead><tbody>${rows.map(a => `<tr><td class="cell-sub mono nowrap">${h(new Date(a.ts).toLocaleString())}</td><td class="cell-strong">${h(a.actor)}</td><td><span class="badge outline">${scopeIco[a.scope] || '•'} ${h(a.scope)}</span></td><td>${h(a.action)}</td><td>${a.scope === 'board' && a.target !== 'draft' ? idChip('board', a.target, a.target) : a.scope === 'user' ? idChip('user', a.target, a.target) : `<span class="mono cell-sub">${h(a.target)}</span>`}</td><td class="td-right">${a.scope !== 'system' ? '<button class="btn tiny btn-ghost">View diff</button>' : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  const filter = `${searchBox('Search audit')} ${seg('auditFilter', auditFilter, [['all','All types'],['board','Board'],['user','User'],['admin','Admin'],['system','System']])}`;
+  return `${pageHead('Audit Log', 'Every change across the system, with actor and target')}${`<div class="toolbar">${filter}</div>`}${card('Audit Log', rows.length ? body : '<div class="empty"><div class="e-t">No audit entries yet</div></div>')}`;
 }
 function renderRevisions() {
   const revs = published.revisions || [];
   const current = diffBoards();
-  const body = revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div></details>`).join('') || '<div class="empty"><div class="e-t">ยังไม่มี revision</div></div>';
-  const actions = `<button class="btn btn-ghost" onclick="saveDraft()">Save snapshot</button><button class="btn btn-primary" onclick="publishDraft()">Publish now${current.length ? ` (${current.length})` : ''}</button><button class="btn btn-ghost" onclick="restoreDraft()">Restore latest</button>`;
-  return `${pageHead('Version Control', 'Published revisions and local draft changes', actions)}${card('Recent Revisions', body)}`;
+  const versionRows = [
+    { v:'current', at:Date.now(), by:'Local Draft', current:true, note: current.length ? `${current.length} unpublished changes` : 'Published version' },
+    ...revs.map((rev, i) => ({ v:`v${revs.length - i}`, at:rev.createdAt, by:rev.author || 'Super Admin', current:false, note:`${(rev.changes || []).length} changes`, rev }))
+  ];
+  const body = `<div class="log-list">${versionRows.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ' <span class="badge st-active">Published</span>' : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(v.at ? new Date(v.at).toLocaleString() : '—')}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions"><button class="btn tiny btn-ghost">View diff</button>${!v.current ? '<button class="btn tiny btn-ghost" onclick="restoreDraft()">↺ Restore</button>' : ''}</div></div>`).join('')}</div>`;
+  const revDetails = revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div></details>`).join('');
+  const actions = `<button class="btn btn-ghost" onclick="saveDraft()">💾 Save snapshot</button><button class="btn btn-primary" onclick="publishDraft()">🚀 Publish now${current.length ? ` (${current.length})` : ''}</button>`;
+  return `${pageHead('Versions & Publishing', 'System-wide snapshots: save, restore, and publish', actions)}<div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1 local gate is not real security. Publish writes the current admin draft to storage.</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
 }
 function renderSupportTools() {
-  const tools = `<div class="grid g-4">
-    ${statCard('Read-only view', '👁', 'User perspective debug', 'View')}
-    ${statCard('Reset password', '🔑', 'Temporary board admin password', 'Key')}
-    ${statCard('Export', '📦', 'Board/User JSON or CSV', 'JSON')}
-    ${statCard('Merge', '🔀', 'Merge duplicate accounts', 'Ops')}
-  </div>`;
-  const toolActions = `<div class="log-list">
-    <div class="log-item"><div class="log-ico edit">👁</div><div class="log-body"><div class="log-text">Impersonate</div><div class="log-meta">Open read-only user view for debugging.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Impersonate','เปิด read-only user view สำหรับ debug')">Open</button></div></div>
-    <div class="log-item"><div class="log-ico edit">🔑</div><div class="log-body"><div class="log-text">Reset password</div><div class="log-meta">Create a temporary board admin password.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Reset Password','สร้าง temporary password และ log action')">Reset</button></div></div>
-    <div class="log-item"><div class="log-ico add">📦</div><div class="log-body"><div class="log-text">Export</div><div class="log-meta">Prepare a Board/User data package.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Export Data','เตรียม export package สำหรับ support')">Export</button></div></div>
-    <div class="log-item"><div class="log-ico fire">🔀</div><div class="log-body"><div class="log-text">Merge</div><div class="log-meta">Merge duplicate accounts with audit logging.</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="supportAction('Merge Accounts','รวมบัญชีซ้ำพร้อมบันทึก audit')">Merge</button></div></div>
-  </div>`;
-  const flows = `<div class="page-head-actions"><button class="btn btn-primary" onclick="addBoard()">New board</button><button class="btn btn-ghost" onclick="supportAction('Invite Admin','เลือก user → nickname → board แล้วเพิ่ม Admin ID')">Invite admin</button><button class="btn btn-ghost" onclick="supportAction('Add User','เพิ่ม existing/new user เข้า board และสร้าง character LV 1')">Add user</button></div>`;
-  return `${pageHead('Support Tools', 'Operator actions for Phase 1')}${tools}<div class="mt16">${card('Support Actions', toolActions)}</div><div class="mt16">${card('Create / invite flows', flows)}</div>`;
+  const cards = [
+    ['impersonate','🎭','Impersonate user','Open the app in a user view (read-only).','Open user view','showImpersonateModal()','btn-ghost'],
+    ['reset','🔑','Reset password','Set a temporary password for a user or admin.','Reset password','showResetPwModal()','btn-ghost'],
+    ['export','📤','Export data','Download board or user data as JSON.','Export JSON','showExportModal()','btn-gold'],
+    ['merge','🔗','Merge accounts','Merge duplicate users into one User ID.','Run','showMergeModal()','btn-ghost'],
+  ];
+  const toolCards = `<div class="grid g-2">${cards.map(c => `<div class="card card-pad"><div class="flex gap12" style="align-items:flex-start"><div class="s-ico" style="width:42px;height:42px;font-size:20px;background:var(--panel-2)">${c[1]}</div><div style="flex:1"><div style="font-family:var(--font-display);font-weight:600;font-size:16px">${c[2]}</div><div class="cell-sub mt8" style="margin-top:4px">${c[3]}</div><button class="btn ${c[6]} mt12" style="margin-top:14px" onclick="${c[5]}">${c[4]}</button></div></div></div>`).join('')}</div>`;
+  const flows = `<div class="page-head-actions"><button class="btn btn-primary" onclick="addBoard()">New board</button><button class="btn btn-ghost" onclick="showInviteAdminModal()">Invite admin</button><button class="btn btn-ghost" onclick="showAddUserModal()">Add user</button></div>`;
+  return `${pageHead('Support Tools', 'Tools for helping users; every action should be audit logged.')}${`<div class="phase-note"><span class="pn-ico">🛡️</span><span>Every action here is recorded in the Audit Log once wired to production security.</span></div>`}${toolCards}<div class="mt16">${card('Create / invite flows', flows)}</div>`;
 }
 function panel(title, body) { return card(title, body); }
 function renderMain() {
@@ -648,6 +807,77 @@ function renderGate() {
   document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Coin Quest Ledger admin command center</div><div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1 local gate เท่านั้น ยังไม่ใช่ security จริง</span></div>${formField('', `<input id="gate-pass" class="pin-input" type="password" placeholder="${gateConfigured() ? 'Super Admin local pass' : 'ตั้ง local pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()">`)}<button class="btn btn-primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button></div></div>`;
 }
 function render() { isUnlocked() ? renderMain() : renderGate(); }
+function userOptions(selected = '') {
+  return userRecords().map(u => `<option value="${h(u.userId)}" ${u.userId === selected ? 'selected' : ''}>${h(u.name)} · ${h(u.userId)}</option>`).join('');
+}
+function boardOptions(selected = '') {
+  return activeBoards().map(b => `<option value="${h(b.originalId)}" ${b.originalId === selected || b.urlId === selected ? 'selected' : ''}>${h(b.tripName)} · ${h(b.urlId)}</option>`).join('');
+}
+function closePortalModal() {
+  const root = document.getElementById('modal-root');
+  root.classList.remove('show');
+  root.innerHTML = '';
+}
+function portalModal(title, body, footer = '') {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${title}</h3><button class="x-btn" onclick="closePortalModal()">×</button></div><div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div>`;
+  root.classList.add('show');
+}
+function showExportModal(target = '') {
+  const body = `<div class="field"><label>Select board / user</label><select id="export-target"><option value="">All</option><optgroup label="Boards">${activeBoards().map(b => `<option value="b:${h(b.originalId)}" ${b.originalId === target || b.urlId === target ? 'selected' : ''}>🗂️ ${h(b.tripName)} · ${h(b.urlId)}</option>`).join('')}</optgroup><optgroup label="Users">${userRecords().map(u => `<option value="u:${h(u.userId)}" ${u.userId === target ? 'selected' : ''}>👤 ${h(u.name)} · ${h(u.userId)}</option>`).join('')}</optgroup></select></div><div class="field"><label>Format</label><select><option>JSON</option><option>CSV</option></select></div>`;
+  portalModal('📤 Export data', body, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-gold" onclick="supportAction('Export data','Prepared coin-quest-export.json');closePortalModal()">Export JSON</button>`);
+}
+function showImpersonateModal(uid = '') {
+  portalModal('🎭 Impersonate user', `<div class="field"><label>Select user</label><select>${userOptions(uid)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">👁️</span><span>Read-only mode. Actions should be logged when production auth is wired.</span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Impersonate user','Opened read-only user view');closePortalModal()">Open user view</button>`);
+}
+function showResetPwModal(id = '') {
+  const temp = 'CQ-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+  portalModal('🔑 Reset password', `<div class="field"><label>Select user / admin</label><select>${userOptions(id)}${adminGroups().map(g => `<option value="${h(g.key)}" ${g.key === id || g.adminId === id ? 'selected' : ''}>🛡️ ${h(g.adminName || g.adminId || g.key)}</option>`).join('')}</select></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(temp)}"><div class="hint">User must change it on next login.</div></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Reset password','Temporary password generated');closePortalModal()">Confirm</button>`);
+}
+function showMergeModal() {
+  portalModal('🔗 Merge accounts', `<div class="field"><label>Keep this user</label><select>${userOptions()}</select></div><div class="field"><label>Merge from (will be removed)</label><select>${userOptions()}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">⚠️</span><span>All characters and boards move to the kept User ID. <b>This action cannot be undone.</b></span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="supportAction('Merge accounts','Prepared duplicate-user merge');closePortalModal()">Confirm</button>`);
+}
+function showInviteAdminModal(uid = '') {
+  portalModal('🛡️ Invite admin', `<div class="field"><label>Pick the user to make admin</label><select>${userOptions(uid)}</select><div class="hint">This User ID gets a new Admin ID.</div></div><div class="field"><label>Admin nickname</label><input placeholder="e.g. PartyMaster"></div><div class="field"><label>Assign admin → Boards</label><select>${boardOptions()}</select></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Invite admin','Prepared Admin ID invitation');closePortalModal()">Confirm</button>`);
+}
+function showAddUserModal(boardId = '') {
+  portalModal('👤 Add user', `<div class="field"><label>Type</label><div class="seg"><button type="button" class="on">Existing user</button><button type="button">New user</button></div></div><div class="field"><label>Select user</label><select>${userOptions()}</select></div><div class="field"><label>Select board</label><select id="add-user-board">${boardOptions(boardId)}</select><div class="hint">Creates/links one active character in this board.</div></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Add user','Prepared board user link');closePortalModal()">Confirm</button>`);
+}
+function showEditCharModal(userId, charId) {
+  const u = userById(userId);
+  const c = u?.chars.find(x => x.id === charId);
+  if (!u || !c) return;
+  const classKeys = PointyLogic.CLASS_ORDER || ['warrior', 'wizard', 'cleric', 'monk', 'bard', 'dragoon'];
+  const radios = classKeys.map(key => `<button type="button" class="radio-card av-card ${c.className === key ? 'on' : ''}" onclick="document.getElementById('edit-char-class').value='${h(key)}';this.parentElement.querySelectorAll('.radio-card').forEach(b=>b.classList.remove('on'));this.classList.add('on')"><div class="rc-ico">⚔️</div><div class="rc-t">${h(key)}</div></button>`).join('');
+  portalModal('🎭 Edit character · ' + h(c.name), `<div class="phase-note" style="margin-top:0;margin-bottom:14px"><span class="pn-ico">👤</span><span>Each user has one active character in the current player loop; admin edits that character here.</span></div><input id="edit-char-class" type="hidden" value="${h(c.className)}"><div class="field"><label>Character name</label><input id="edit-char-name" value="${h(c.name)}"></div><div class="field"><label>Avatar / Class</label><div class="radio-cards av-grid">${radios}</div></div><div class="grid g-2" style="gap:12px"><div class="field"><label>Level</label><input id="edit-char-level" type="number" min="1" value="${h(characterLevelFromXp(c.xp).lvl)}"></div><div class="field"><label>EXP</label><input id="edit-char-xp" type="number" min="0" value="${h(c.xp)}"></div></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditedCharacter(${q(userId)},${q(charId)})">Save</button>`);
+}
+function saveEditedCharacter(userId, charId) {
+  const u = userById(userId);
+  const c = u?.chars.find(x => x.id === charId);
+  if (!u || !c) return closePortalModal();
+  const nextName = document.getElementById('edit-char-name')?.value.trim() || c.name;
+  const nextClass = document.getElementById('edit-char-class')?.value || c.className;
+  const levelValue = Math.max(1, parseInt(document.getElementById('edit-char-level')?.value || '1', 10));
+  const xpValue = Math.max(0, parseInt(document.getElementById('edit-char-xp')?.value || String((levelValue - 1) * PointyLogic.CHARACTER_LEVEL_STEP), 10));
+  activeBoards().forEach(b => {
+    const currentName = Object.keys(b.characterIds || {}).find(name => b.characterIds[name] === charId);
+    if (!currentName) return;
+    if (nextName !== currentName && !b.participants.includes(nextName)) {
+      b.participants = b.participants.map(name => name === currentName ? nextName : name);
+      b.characterIds[nextName] = b.characterIds[currentName];
+      delete b.characterIds[currentName];
+      if (b.data?.heroClasses?.[currentName]) {
+        b.data.heroClasses[nextName] = b.data.heroClasses[currentName];
+        delete b.data.heroClasses[currentName];
+      }
+    }
+    b.data.heroClasses = { ...(b.data.heroClasses || {}), [nextName]: nextClass };
+    b.data.characterXp = { ...(b.data.characterXp || {}), [charId]: xpValue };
+  });
+  markDirty();
+  closePortalModal();
+  render();
+}
 function showModal(title, body, actions = []) {
   const root = document.getElementById('modal-root');
   root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn" data-i="0">×</button></div><div class="modal-body">${h(body)}</div><div class="modal-foot">${actions.map((a, i) => `<button class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'} ${a.danger ? 'btn-danger' : ''}" data-i="${i}">${h(a.label || 'ตกลง')}</button>`).join('')}</div></div>`;

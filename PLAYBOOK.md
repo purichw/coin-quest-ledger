@@ -120,6 +120,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - Resource package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Resources.zip`
 - Full split package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Full Split Reference.zip`
 - Current Character/Profile sources: `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`, `/Users/point/Downloads/Character Profile (standalone) (1).html`, and `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`
+- Current Admin Portal sources: `/Users/point/Downloads/Coin Quest Ledger/admin/` and `/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html`; newer source files supersede older `/Users/point/Downloads/admin/` handoffs.
 
 ## Expense Splitter Notes
 
@@ -136,6 +137,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 
 - `/admin/` is the Phase 1 Super Admin Portal. Changes here affect admin/persistence behavior, so use Production Patch verification (`npm test`) even if the visible diff looks small.
 - Admin Portal design must stay aligned to the supplied Claude Admin Portal HTML. Keep the Claude component vocabulary and layout primitives (`page-head`, `card`, `stat`, `tbl`, `detail-grid`, `profile-card`, `log-list`, modal patterns) rather than restoring legacy `panel`/ad hoc table markup.
+- Admin Portal now works back from the newer `/Users/point/Downloads/Coin Quest Ledger/admin/` source set. Preserve the current one-user-one-active-character canon when older Admin copy says users can have many characters.
 - Phase 1 uses a local browser gate only. Do not describe it as real access control; true private admin access needs Firebase Auth and Firestore Security Rules.
 - Save is local draft storage, Restore discards the draft back to the latest published snapshot, and Publish writes board/admin/user changes plus a revision log.
 - Board Admin IDs may intentionally repeat across boards because one admin can own multiple boards. Keep duplicate validation focused on board URLs unless the user asks otherwise.

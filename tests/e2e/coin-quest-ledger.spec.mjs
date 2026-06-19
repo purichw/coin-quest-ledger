@@ -507,6 +507,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await page.getByRole('button', { name: 'Users' }).click();
   await page.getByRole('button', { name: 'Detail' }).first().click();
   await expect(page.getByText('User Profile')).toBeVisible();
+  await page.getByRole('button', { name: /Admin roles/ }).click();
   await expect(page.getByRole('heading', { name: 'Admin roles' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Board Admins' }).click();
@@ -515,7 +516,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.getByText('Owned Boards')).toBeVisible();
 
   await page.getByRole('button', { name: 'Audit Log' }).click();
-  await expect(page.getByText('System-wide chronological feed')).toBeVisible();
+  await expect(page.getByText('Every change across the system')).toBeVisible();
   await page.getByRole('button', { name: 'Support Tools' }).click();
   await expect(page.getByText('Impersonate')).toBeVisible();
   await expect(page.getByText('Create / invite flows')).toBeVisible();
@@ -578,8 +579,11 @@ test('profile hub completes character creation and links to the full character p
   await page.goto('/');
 
   await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toBeVisible();
-  await page.locator('[data-char-class="ranger"]').click();
-  await page.locator('[data-char-gender="female"]').click();
+  await expect(page.getByText(/แตะเลือกฮีโร่|Tap to choose your hero/)).toBeVisible();
+  await page.locator('[data-char-open-picker]').click();
+  await expect(page.getByRole('dialog', { name: /เลือกฮีโร่ของคุณ|Choose your hero/ })).toBeVisible();
+  await page.locator('[data-picker-gender="female"]').click();
+  await page.locator('[data-char-class="ranger"][data-char-gender="female"]').click();
   await page.locator('[data-char-name]').fill('Fresh Ranger');
   await page.getByRole('button', { name: /เริ่มผจญภัย|Begin the adventure/ }).click();
 
