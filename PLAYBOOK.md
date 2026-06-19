@@ -3,10 +3,15 @@
 ## Start Of Work
 
 - Read `Memory.md` first in a new chat or after a long context reset.
+- Read `architecture.md` when the request touches system shape, routing, shared modules, persistence, or deployment.
+- Read `data-contracts.md` when the request touches Firestore, localStorage/sessionStorage, character IDs, admin ownership, imports/exports, or migrations.
+- Read `claude-design-index.md` when the request involves Claude Design references, visual parity, mobile handoff files, or finding the right downloaded source.
+- Read `roadmap.md` when the request asks what to build next, how to phase work, or whether Codex vs Claude Design should own a step.
 - Check `git status --short --branch` before editing.
 - If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
 - If the user asks to commit or deploy, escalate to Production Patch.
 - Keep `Memory.md` updated before intentionally moving work to a new chat.
+- Current user instruction: ignore `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
 
 ## Change Modes
 
@@ -52,6 +57,9 @@ Use when the user asks to commit, push, or deploy, or when the change affects co
 - Commit with a focused message.
 - Push to `origin main` when requested or when the user asks for GitHub.
 - Deploy with `vercel --prod --yes` when requested.
+- Alias the canonical domain after deploy when needed.
+- Curl the changed production route for a marker that proves the deployed content is current.
+- Confirm `git status --short --branch` is clean except unrelated user files.
 - Report commit hash, test result, deployment URL, and push status.
 
 Good prompt:
@@ -59,6 +67,21 @@ Good prompt:
 ```text
 ทำ production-safe + commit + deploy
 ```
+
+## Release Checklist
+
+When the user asks to commit, push, or deploy:
+
+1. Run `npm test`.
+2. Check `git status --short --branch`.
+3. Stage only focused files.
+4. Commit with a focused message.
+5. Push to `origin main`.
+6. Deploy with `vercel --prod --yes`.
+7. Alias `coin-quest-ledger.vercel.app` to the new deployment when needed.
+8. Curl the changed live route for an expected marker.
+9. Re-check `git status --short --branch`.
+10. Report commit hash, tests, push, deploy URL, alias status, and any remaining dirty files.
 
 ## Claude Handoff Rule
 
@@ -75,17 +98,26 @@ When implementing from Claude Design:
 - For Party Ledger specifically, prefer the smaller split reference zips in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/` for initial study, then fall back to the full offline canon when exact all-in-one behavior must be verified.
 - Do not drop `sound.jsx`; the Party Ledger offline bundle stores SFX as WebAudio code there, not as separate `audio/*` files.
 
+## Architecture And Roadmap
+
+- `architecture.md` is the current technical map: app surfaces, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
+- `data-contracts.md` documents the practical persisted shapes for Firestore, local/session storage, and derived Character Profile data.
+- `claude-design-index.md` maps downloaded Claude references to live surfaces and records what each reference does or does not specify.
+- `roadmap.md` is the phased product/engineering plan: profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery polish.
+- Keep these docs current when a change alters product direction, system shape, deployment assumptions, data contracts, reference sources, or major cross-module behavior.
+
 ## Claude Recovery References
 
 Use these when rebuilding context in a new chat or a new Claude Project:
 
-- Repo recovery doc: `CLAUDE_RECOVERY.md`
+- Do not use `CLAUDE_RECOVERY.md` by default. It is currently ignored/deprecated by user instruction.
 - Party Ledger canon lives outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`; do not commit large offline zip copies.
 - Upload bundle folder: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`
 - Small HomeView package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger HomeView Reference.zip`
 - Small app/source package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Internals Source.zip`
 - Resource package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Resources.zip`
 - Full split package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Full Split Reference.zip`
+- Character Profile source: `/Users/point/Downloads/Character Profile (standalone).html`
 
 ## Expense Splitter Notes
 
@@ -119,3 +151,9 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - Claude mobile source expects a hamburger drawer and fixed bottom tab bar at phone width. Keep that behavior centralized in `shared/mobile-shell.*`.
 - Desktop and tablet should retain their current module topbars; verify the mobile shell is `display:none` there.
 - Compare mobile intentionally keeps the visible `Home` back button when active, even though the Claude prototype hides `.tb-back`, because the live app and tests depend on that return path.
+
+## Preview Notes
+
+- Do not open live app pages directly with `file://`. They use absolute `/shared/...` and route script paths, so scripts/assets fail outside a server.
+- Use `npm run serve` and open `http://127.0.0.1:4569/...`, or use the production URL.
+- For Vercel deploys, alias the canonical domain after deploy when needed: `vercel alias set <deployment-url> coin-quest-ledger.vercel.app`.
