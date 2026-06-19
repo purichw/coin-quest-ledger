@@ -599,6 +599,10 @@
     const hue = classMeta(cls).hue || 256;
     return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
   }
+  function assetUrl(path) {
+    if (TEST_MODE) return '/' + path;
+    return window.PointyAssets?.url ? window.PointyAssets.url(path) : '/' + path;
+  }
   function avatarFile(cls, gender, skin) {
     const c = classMeta(cls).id;
     const g = gender === 'female' ? 'female' : 'male';
@@ -609,8 +613,7 @@
     };
     const res = skin && skinMap[skin] ? skinMap[skin] : `${c}-${g}`;
     const path = `assets/rpg-portraits/${res}.png`;
-    if (TEST_MODE) return '/' + path;
-    return window.PointyAssets?.url ? window.PointyAssets.url(path) : '/' + path;
+    return assetUrl(path);
   }
   function avatarMarkup(slayer, sizeClass) {
     const cls = classMeta(slayer?.class || slayer?.cls || 'dragoon');
@@ -1276,7 +1279,7 @@
           <button type="button" class="${langKey === 'en' ? 'on' : ''}" data-login-lang="en">EN</button>
         </div>
           <form class="login-card cc-card" data-char-form>
-          <div class="login-crest" aria-hidden="true"><img src="/assets/icons/loot-chest.svg" alt=""></div>
+          <div class="login-crest" aria-hidden="true"><img src="${h(assetUrl('assets/icons/loot-chest.svg'))}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none">🎁</span></div>
           <h1 class="login-title">${h(copy.charTitle)}</h1>
           <p class="login-sub">${h(copy.charSub)}</p>
           <div class="cc-uid">${h(copy.yourUserId)} · <b>${h(base.userId)}</b></div>
