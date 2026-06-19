@@ -78,6 +78,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `shared/pointy-logic.js`: shared data normalization, split math, price math, class registry, level helpers, and character profile aggregation.
 - `lang.js`: Thai/English shared labels.
 - `shared/firebase-client.js`: shared Firebase app/Auth/Firestore initializer for static pages.
+- `shared/account-scope.js`: account-scoped local storage helper. Module progress/cache keys derive from the active `pointy_auth_v1` account (`uid`, then User ID, then username) so a signed-in account does not inherit stale browser-wide progress.
 - `shared/profile-hub.js` / `.css`: username/password Sign In/Sign Up, Firebase Auth + Firestore user/character binding in production, local mock fallback for tests, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury.
 - `shared/first-load.js` / `.css`: first-load splash.
@@ -111,7 +112,8 @@ Normal mode:
 Local/test mode:
 
 - `sessionStorage.pointy_test_trip_*`: test trip fixtures.
-- `localStorage.pointy_character_registry_v1`: local character registry/cache.
+- `localStorage.<module-key>::<account-scope>`: signed-in account progress/cache for profile streaks, character registry fallback, trip snapshots, Debt Dragon, Treasury, Compare, and the last opened trip. Unsuffixed legacy keys are still read only where required for guest/test compatibility.
+- `localStorage.pointy_character_registry_v1`: legacy local character registry/cache for guest/test compatibility; signed-in accounts use the scoped variant.
 - `localStorage.pointy_auth_v1`: local mirror of current auth account, including selected/created character. It is authoritative only in tests/local fallback.
 - `localStorage.pointy_accounts_v1`: local fallback Sign Up registry for tests and mock mode.
 - `localStorage.pointy_theme`: global theme source of truth.

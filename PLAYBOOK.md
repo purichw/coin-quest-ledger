@@ -150,6 +150,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - `private=1` only hides monetary values in the rendered profile. It is not authorization or Firestore security.
 - The shared profile drawer now has the canonical full-profile entry for the active mock account character. On phone width, open it through the shared hamburger drawer's Profile item.
 - Current auth loop is one account = one active character. Production Sign Up uses Firebase Auth username/password through an internal `@coinquest.local` email and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`; tests keep the local fallback through `pointy_accounts_v1` / `pointy_auth_v1`.
+- Signed-in progress must be account-scoped, not browser-scoped. Use `shared/account-scope.js` for module/profile cache keys and do not let stale unsuffixed localStorage module data count toward a real account.
 - Recovery without email is Phase 1 credential rotation: player recovery code and Super Admin temp-password reset create a new Firebase Auth credential, then move the username/User ID/Character pointer to the new `uid`. Do not describe this as final security; future hardening needs server-side Admin SDK or locked-down rules.
 - Keep `firestore.rules` in sync with identity changes and deploy it before testing production auth flows.
 - Character Profile, character persistence, or `admin.characterId` changes require full `npm test` and responsive verification.

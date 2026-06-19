@@ -590,7 +590,7 @@ test('profile hub completes character creation and links to the full character p
   await expect(page.locator('.login-gate')).toHaveCount(0);
   const auth = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1') || '{}'));
   expect(auth.character).toMatchObject({ id: '4444', name: 'Fresh Ranger', class: 'ranger', gender: 'female' });
-  const registry = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_character_registry_v1') || '{}'));
+  const registry = await page.evaluate(() => JSON.parse(localStorage.getItem(window.PointyScope.key('pointy_character_registry_v1')) || '{}'));
   expect(registry['4444']).toMatchObject({ name: 'Fresh Ranger', class: 'ranger', gender: 'female' });
 
   const profileBadge = page.locator('[data-profile-hub="profile"]');
@@ -611,6 +611,39 @@ test('profile hub completes character creation and links to the full character p
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
+});
+
+test('profile hub scopes progress to the signed-in account instead of stale browser data', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (location.pathname !== '/') return;
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_profile_v1', JSON.stringify({ streak: 9, bestStreak: 12 }));
+    localStorage.setItem('pointy_debt_v5', JSON.stringify({ dragons: [{ id: 'old', name: 'Old Dragon', balance: 0, slain: true, log: [{ amount: 40000 }] }], stats: {} }));
+    localStorage.setItem('pointy_treasury_v1', JSON.stringify({ stats: { monthsWon: 4, logged: 50, onTime: 20 }, expenses: [{ amount: 12000 }] }));
+    localStorage.setItem('coin_quest_trip_snapshots_v1', JSON.stringify({
+      old: { id: 'old', data: { participants: ['Pointy'], characterIds: { Pointy: '3720' }, expenses: [{ paidBy: 'Pointy', amount: 9000, sharedBy: ['Pointy'] }], completedAt: Date.now() } }
+    }));
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'fresh-scope-uid',
+      username: 'freshscope',
+      email: 'freshscope@coinquest.local',
+      userId: '5555',
+      name: 'Fresh Scope',
+      character: { id: '5555', name: 'Fresh Scope', class: 'ranger', cls: 'ranger', gender: 'female' }
+    }));
+  });
+  await page.goto('/');
+
+  const scoped = await page.evaluate(() => window.PointyProfileHub.computeProfile());
+  expect(scoped.renown).toBe(0);
+  expect(scoped.level.lvl).toBe(1);
+  expect(scoped.streak).toBeGreaterThanOrEqual(0);
+  expect(scoped.streak).toBeLessThan(9);
+
+  const homeText = await page.locator('#home-renown').innerText();
+  expect(homeText).toContain('LV 1');
+  expect(homeText).toMatch(/0\s+(Renown|ชื่อเสียง)/);
 });
 
 test('price comparison page loads and ranks normalized unit prices', async ({ page }) => {

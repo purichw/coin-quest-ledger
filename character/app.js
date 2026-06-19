@@ -63,17 +63,34 @@ function readJson(key, fallback = null) {
     return fallback;
   }
 }
+function readScopedJson(key, fallback = null) {
+  return window.PointyScope?.getJSON ? window.PointyScope.getJSON(key, fallback) : readJson(key, fallback);
+}
 function profileStore() {
-  return { streak: 0, bestStreak: 0, ...readJson('pointy_profile_v1', {}) };
+  return { streak: 0, bestStreak: 0, ...readScopedJson('pointy_profile_v1', {}) };
 }
 function accountStore() {
   return readJson('pointy_auth_v1', null);
 }
 function localCharacterRegistry() {
-  try { return JSON.parse(localStorage.getItem('pointy_character_registry_v1') || '{}') || {}; } catch (_) { return {}; }
+  return readScopedJson('pointy_character_registry_v1', {}) || {};
+}
+function activeAccountCharacter(id) {
+  const account = accountStore();
+  const character = account?.character || null;
+  const charId = String(character?.id || account?.userId || '').replace(/\D/g, '').slice(0, 4);
+  if (!character || charId !== String(id || '')) return null;
+  return {
+    id: charId,
+    name: character.name || account.name || 'Hero',
+    class: character.class || character.cls || 'warrior',
+    cls: character.cls || character.class || 'warrior',
+    gender: character.gender === 'female' ? 'female' : 'male',
+    skin: character.skin || ''
+  };
 }
 async function loadCharacterRecord(id) {
-  const local = localCharacterRegistry()[id] || {};
+  const local = { ...(activeAccountCharacter(id) || {}), ...(localCharacterRegistry()[id] || {}) };
   if (TEST_MODE) return { id, ...local };
   initFirebase();
   try {

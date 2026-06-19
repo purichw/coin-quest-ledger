@@ -324,6 +324,7 @@
   <script src="/shared/cloudinary-assets.js"></script>
   <script src="/shared/asset-urls.js"></script>
   <script src="/shared/first-load.js"></script>
+  <script src="/shared/account-scope.js"></script>
   <script src="/lang.js"></script>
   <script src="/trip/pixicons.jsx"></script>
   <script>
@@ -420,6 +421,7 @@
     function homeCopy() { return HOME_STR[LANG === 'en' ? 'en' : 'th']; }
     function readJson(key, fallback) {
       try {
+        if (window.PointyScope) return window.PointyScope.getJSON(key, fallback);
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : fallback;
       } catch (_) {
@@ -439,7 +441,9 @@
     function tripCount() {
       const seen = new Set();
       storageEntries('pointy_test_trip_', sessionStorage).forEach(e => seen.add(e.key));
-      storageEntries('pointy_trip_', localStorage).forEach(e => seen.add(e.key));
+      if (!window.PointyScope?.accountKey?.()) {
+        storageEntries('pointy_trip_', localStorage).forEach(e => seen.add(e.key));
+      }
       const cache = readJson('coin_quest_trip_snapshots_v1', {});
       if (cache && typeof cache === 'object') Object.keys(cache).forEach(k => seen.add(k));
       return seen.size;
@@ -564,7 +568,9 @@
     }
     function loadState() {
       try {
-        const raw = localStorage.getItem(STORE_KEY);
+        const raw = window.PointyScope
+          ? JSON.stringify(window.PointyScope.getJSON(STORE_KEY, null))
+          : localStorage.getItem(STORE_KEY);
         if (raw) {
           const data = JSON.parse(raw);
           if (Array.isArray(data)) return data.map(normalizeComparison);
@@ -573,7 +579,10 @@
       return seed().map(normalizeComparison);
     }
     function saveState() {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(comparisons)); } catch (e) {}
+      try {
+        if (window.PointyScope) window.PointyScope.setJSON(STORE_KEY, comparisons);
+        else localStorage.setItem(STORE_KEY, JSON.stringify(comparisons));
+      } catch (e) {}
       window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
     }
     function normalizedOffer(offer, cmp) { return PointyLogic.normalizedOffer(offer, cmp, { unitGroups: UNIT_GROUPS, unitAlias: UNIT_ALIAS }); }

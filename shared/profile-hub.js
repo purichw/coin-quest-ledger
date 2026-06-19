@@ -275,6 +275,16 @@
   function h(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function readJson(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (_) { return fallback; } }
   function writeJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {} }
+  function readScopedJson(key, fallback) {
+    return window.PointyScope?.getJSON ? window.PointyScope.getJSON(key, fallback) : readJson(key, fallback);
+  }
+  function writeScopedJson(key, value) {
+    if (window.PointyScope?.setJSON) window.PointyScope.setJSON(key, value);
+    else writeJson(key, value);
+  }
+  function hasScopedAccount() {
+    return !!window.PointyScope?.accountKey?.();
+  }
   function genId4() { return String(Math.floor(1000 + Math.random() * 9000)); }
   function normalizeUsername(value) {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
@@ -382,12 +392,15 @@
     const id = String(character.id || account.userId || genId4()).replace(/\D/g, '').slice(0, 4) || genId4();
     return { id, name: character.name || account.name || 'Hero', class: cls, cls, gender, skin: character.skin || '' };
   }
-  function persistCharacter(character) {
+  function persistCharacter(character, account = null) {
     const rec = normalizeCharacter(character);
     if (!rec?.id) return rec;
-    const registry = readJson(CHARACTER_REGISTRY_KEY, {}) || {};
+    const registry = window.PointyScope?.getJSON
+      ? window.PointyScope.getJSON(CHARACTER_REGISTRY_KEY, {}, { account })
+      : readJson(CHARACTER_REGISTRY_KEY, {}) || {};
     registry[rec.id] = { ...(registry[rec.id] || {}), id: rec.id, name: rec.name, class: rec.class, gender: rec.gender, skin: rec.skin, updatedAt: Date.now(), createdAt: registry[rec.id]?.createdAt || Date.now() };
-    writeJson(CHARACTER_REGISTRY_KEY, registry);
+    if (window.PointyScope?.setJSON) window.PointyScope.setJSON(CHARACTER_REGISTRY_KEY, registry, { account });
+    else writeJson(CHARACTER_REGISTRY_KEY, registry);
     return rec;
   }
   function ownerHash(token) {
@@ -404,8 +417,8 @@
   }
   function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function defaultProfile() { return { lastVisit: null, streak: 0, bestStreak: 0, seen: [], tourSeen: false }; }
-  function loadProfile() { return { ...defaultProfile(), ...readJson(PROFILE_KEY, {}) }; }
-  function saveProfile(next) { profile = { ...defaultProfile(), ...next }; writeJson(PROFILE_KEY, profile); return profile; }
+  function loadProfile() { return { ...defaultProfile(), ...readScopedJson(PROFILE_KEY, {}) }; }
+  function saveProfile(next) { profile = { ...defaultProfile(), ...next }; writeScopedJson(PROFILE_KEY, profile); return profile; }
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
   function loadAuth() {
     const auth = readJson(AUTH_KEY, null);
@@ -414,7 +427,7 @@
   }
   function saveAuth(account) {
     const next = normalizeAccount(account);
-    if (next?.character) next.character = persistCharacter({ ...next.character, id: next.character.id || next.userId });
+    if (next?.character) next.character = persistCharacter({ ...next.character, id: next.character.id || next.userId }, next);
     writeJson(AUTH_KEY, next);
     return next;
   }
@@ -568,6 +581,8 @@
     clearAuth();
     closeOverlay();
     loginMode = 'in';
+    profile = null;
+    baselineDone = false;
     refresh({ toast: false });
     showLoginGate();
   }
@@ -643,17 +658,17 @@
   }
   function updateTripSnapshot(id, data) {
     if (!id || !data) return;
-    const cache = readJson(TRIP_CACHE_KEY, {});
+    const cache = readScopedJson(TRIP_CACHE_KEY, {});
     cache[id] = { id, data, updatedAt: Date.now() };
     const ids = Object.keys(cache).sort((a, b) => (cache[b].updatedAt || 0) - (cache[a].updatedAt || 0));
     ids.slice(12).forEach(key => delete cache[key]);
-    writeJson(TRIP_CACHE_KEY, cache);
+    writeScopedJson(TRIP_CACHE_KEY, cache);
   }
   function tripEntries() {
     const out = [];
     const current = currentTripState();
     if (current?.id && current?.data) out.push(current);
-    const cache = readJson(TRIP_CACHE_KEY, {});
+    const cache = readScopedJson(TRIP_CACHE_KEY, {});
     Object.keys(cache || {}).forEach(id => {
       if (!out.some(x => x.id === id)) out.push({ id, data: cache[id].data || cache[id] });
     });
@@ -708,6 +723,7 @@
       expenses: Array.isArray(c.expenses) ? c.expenses : [],
       budgets: c.budgets || state.budgets || {},
       heroClasses: c.heroClasses || state.heroClasses || {},
+      characterIds: c.characterIds || state.characterIds || {},
       settleXp: c.settleXp || state.settleXp || {},
       completedAt: c.completedAt || null
     }));
@@ -717,15 +733,16 @@
     return window.PointyLogic.computeParty(c, { classOf: name => c.heroClasses?.[name] || 'warrior' });
   }
   function loadDebt() {
-    const raw = readJson('pointy_debt_v5', null);
-    return window.PointyLogic?.normalizeDebtState ? window.PointyLogic.normalizeDebtState(raw || window.PointyLogic.SEED_DEBT) : (raw || {});
+    const raw = readScopedJson('pointy_debt_v5', null);
+    const fallback = hasScopedAccount() ? { dragons: [], settings: {}, profile: {}, history: [], stats: {} } : window.PointyLogic.SEED_DEBT;
+    return window.PointyLogic?.normalizeDebtState ? window.PointyLogic.normalizeDebtState(raw || fallback) : (raw || fallback || {});
   }
   function loadCompare() {
-    const raw = readJson('pointy_compare_v2', readJson('pointy_compare_v1', []));
+    const raw = readScopedJson('pointy_compare_v2', readScopedJson('pointy_compare_v1', []));
     return Array.isArray(raw) ? raw : [];
   }
   function loadTreasury() {
-    const raw = readJson('pointy_treasury_v1', null);
+    const raw = readScopedJson('pointy_treasury_v1', null);
     if (raw && typeof raw === 'object') return raw;
     return {};
   }
@@ -750,18 +767,29 @@
     return { paid: false, overdue: false, days: dueThis - today.getDate() };
   }
   function computeProfile() {
+    const account = loadAccount();
+    const character = accountCharacter(account);
+    const scoped = hasScopedAccount();
+    const characterId = String(character?.id || account?.userId || '');
     let fronted = 0, settleR = 0, quests = 0, completed = 0, maxPartySize = 0, totalLogged = 0;
     tripEntries().forEach(entry => {
       campaignsFromTrip(entry.data).forEach(c => {
+        const participantName = Object.keys(c.characterIds || {}).find(name => String(c.characterIds?.[name]) === characterId)
+          || (c.participants || []).find(name => name === character?.name || name === account?.name);
+        if (scoped && !participantName) return;
         const party = computePartyForCampaign(c);
-        party.forEach(hero => {
+        const heroes = scoped ? party.filter(hero => hero.name === participantName) : party;
+        heroes.forEach(hero => {
           fronted += Number(hero.gen) || 0;
           settleR += Number(c.settleXp?.[hero.name]) || 0;
         });
-        quests += (c.expenses || []).length;
-        totalLogged += (c.expenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        const visibleExpenses = scoped
+          ? (c.expenses || []).filter(e => (e.sharedBy || []).includes(participantName) || e.paidBy === participantName || e.payers?.[participantName])
+          : (c.expenses || []);
+        quests += visibleExpenses.length;
+        totalLogged += visibleExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
         if (c.completedAt) completed += 1;
-        maxPartySize = Math.max(maxPartySize, (c.participants || []).length);
+        maxPartySize = Math.max(maxPartySize, participantName ? (c.participants || []).length : scoped ? 0 : (c.participants || []).length);
       });
     });
 
@@ -851,13 +879,23 @@
     const source = current?.data || tripEntries()[0]?.data;
     if (!source) return [];
     const active = (source.campaigns || []).find(c => c.id === source.activeCampaignId) || (source.campaigns || [source])[0];
-    return active ? computePartyForCampaign({
+    if (!active) return [];
+    if (hasScopedAccount()) {
+      const account = loadAccount();
+      const character = accountCharacter(account);
+      const characterId = String(character?.id || account?.userId || '');
+      const ids = active.characterIds || source.characterIds || {};
+      const participantName = Object.keys(ids).find(name => String(ids?.[name]) === characterId)
+        || (active.participants || source.participants || []).find(name => name === character?.name || name === account?.name);
+      if (!participantName) return [];
+    }
+    return computePartyForCampaign({
       participants: active.participants || source.participants || [],
       expenses: active.expenses || [],
       budgets: active.budgets || source.budgets || {},
       heroClasses: active.heroClasses || source.heroClasses || {},
       settleXp: active.settleXp || source.settleXp || {}
-    }) : [];
+    });
   }
   function computeReminders() {
     const copy = [];
@@ -1347,7 +1385,7 @@
           error.textContent = text ? `⚠️ ${text}` : '';
         };
         const charName = String(loginGate.querySelector('[data-char-name]')?.value || '').trim() || base.name || 'Hero';
-        const character = persistCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' });
+        const character = persistCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' }, base);
         const next = saveAuth({ ...base, character });
         if (realAuthEnabled() && next.uid) {
           try {
@@ -1600,6 +1638,8 @@
         const current = readJson(AUTH_KEY, null);
         if (current?.provider === 'firebase') {
           clearAuth();
+          profile = null;
+          baselineDone = false;
           refresh({ toast: false });
           showLoginGate();
         }
@@ -1609,6 +1649,8 @@
         const account = await loadCloudAccount(user);
         if (!account) return;
         saveAuth(account);
+        profile = null;
+        baselineDone = false;
         if (account.character) {
           removeLoginGate();
           profile = tickStreak();

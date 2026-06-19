@@ -2,11 +2,11 @@ const _params = new URLSearchParams(window.location.search);
 const TEST_MODE = _params.get('test') === '1';
 let tripId = _params.get('id');
 if (!tripId) {
-  const lastId = localStorage.getItem('last_trip_id');
+  const lastId = localStorage.getItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id');
   tripId = lastId || makeTripCode();
   history.replaceState(null, '', '?id=' + tripId);
 }
-if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
+if (!TEST_MODE) localStorage.setItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id', tripId);
 let tripRef = tripRefFor(tripId);
 const TripStore = {
   read() {
@@ -277,6 +277,10 @@ async function tripExists(id) {
   return !!snap.exists;
 }
 function readLocalRegistry() {
+  if (window.PointyScope?.getJSON) {
+    const data = window.PointyScope.getJSON(CHARACTER_REGISTRY_KEY, {});
+    return data && typeof data === 'object' ? data : {};
+  }
   try {
     const data = JSON.parse(localStorage.getItem(CHARACTER_REGISTRY_KEY) || '{}');
     return data && typeof data === 'object' ? data : {};
@@ -285,7 +289,10 @@ function readLocalRegistry() {
   }
 }
 function writeLocalRegistry(registry) {
-  try { localStorage.setItem(CHARACTER_REGISTRY_KEY, JSON.stringify(registry)); } catch (_) {}
+  try {
+    if (window.PointyScope?.setJSON) window.PointyScope.setJSON(CHARACTER_REGISTRY_KEY, registry);
+    else localStorage.setItem(CHARACTER_REGISTRY_KEY, JSON.stringify(registry));
+  } catch (_) {}
 }
 async function loadCharacterRegistry(ids = []) {
   _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry };
@@ -763,7 +770,7 @@ async function confirmNewTrip() {
   sessionStorage.setItem(ownerSessionKey(tripId), ownerToken);
   sessionStorage.setItem(adminSessionKey(), '1');
   sessionStorage.removeItem(adminLockKey());
-  if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
+  if (!TEST_MODE) localStorage.setItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id', tripId);
   const next = new URL(tripLinkFor(tripId));
   history.replaceState(null, '', next.pathname + next.search);
   resetTripRuntime();
@@ -1723,7 +1730,7 @@ async function setupAdmin() {
     sessionStorage.removeItem(adminLockKey());
     const next = new URL(tripLinkFor(tripId));
     history.replaceState(null, '', next.pathname + next.search);
-    if (!TEST_MODE) localStorage.setItem('last_trip_id', tripId);
+    if (!TEST_MODE) localStorage.setItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id', tripId);
     await tripRef.set({ ...S, updatedAt: TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp() });
     _ownedBoardsFor = '';
     toast(t('admin_url_saved'));

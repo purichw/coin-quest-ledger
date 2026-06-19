@@ -16,6 +16,7 @@ let dirty = false;
 let userDetailTab = 'chars';
 let boardDetailTab = 'overview';
 let boardDetailView = 'tabbed';
+let cloudUsers = [];
 
 function initFirebase() {
   if (TEST_MODE || firebase.apps.length) return;
@@ -115,6 +116,7 @@ async function loadPublished() {
   initFirebase();
   let boards = [];
   let revisions = [];
+  cloudUsers = [];
   if (TEST_MODE) {
     boards = Object.keys(sessionStorage)
       .filter(k => k.startsWith('pointy_test_trip_'))
@@ -129,6 +131,13 @@ async function loadPublished() {
       revisions = revSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (_) {
       revisions = [];
+    }
+    try {
+      const usersSnap = await db.collection('users').get();
+      cloudUsers = usersSnap.docs.map(doc => normalizeCloudUser(doc.id, doc.data() || {})).filter(Boolean);
+    } catch (err) {
+      console.warn('Admin cloud users load failed', err);
+      cloudUsers = [];
     }
   }
   boards.sort((a, b) => a.id.localeCompare(b.id));
@@ -209,14 +218,71 @@ function adminUserId(b) {
   const adminChar = b.data?.admin?.characterId || b.characterIds?.[b.adminName] || '';
   return adminChar ? userKey(b.adminName || b.adminId, adminChar) : userKey(b.adminName || b.adminId || b.adminOwnerHash, b.adminId);
 }
+function normalizeCloudUser(uid, data = {}) {
+  const character = data.character || {};
+  const userId = String(data.userId || data.characterId || character.id || '').trim() || userKey(data.username || data.name || uid, '');
+  const name = data.name || data.username || String(data.email || '').split('@')[0] || 'User';
+  const charId = String(data.characterId || character.id || '').replace(/\D/g, '').slice(0, 4);
+  const chars = charId ? [{
+    id: charId,
+    name: character.name || name,
+    className: character.class || character.cls || 'hero',
+    xp: Number(data.characterXp || character.xp || 0),
+    boards: [],
+    boardId: ''
+  }] : [];
+  return {
+    uid,
+    userId,
+    name,
+    username: data.username || '',
+    email: data.email || '',
+    chars,
+    boards: [],
+    adminGroups: [],
+    cloud: true
+  };
+}
+function mergeUserRecord(map, rec) {
+  if (!rec?.userId) return rec;
+  const existing = map.get(rec.userId);
+  if (!existing) {
+    map.set(rec.userId, { ...rec, chars: rec.chars || [], boards: rec.boards || [], adminGroups: rec.adminGroups || [] });
+    return map.get(rec.userId);
+  }
+  existing.uid = existing.uid || rec.uid || '';
+  existing.username = existing.username || rec.username || '';
+  existing.email = existing.email || rec.email || '';
+  existing.name = existing.name || rec.name || existing.username || 'User';
+  existing.cloud = existing.cloud || rec.cloud;
+  (rec.boards || []).forEach(b => {
+    if (!existing.boards.some(x => x.originalId === b.originalId)) existing.boards.push(b);
+  });
+  (rec.adminGroups || []).forEach(g => {
+    if (!existing.adminGroups.some(x => x.key === g.key)) existing.adminGroups.push(g);
+  });
+  (rec.chars || []).forEach(ch => {
+    const current = existing.chars.find(x => String(x.id || '') === String(ch.id || ''));
+    if (current) {
+      current.name = current.name || ch.name;
+      current.className = current.className || ch.className;
+      current.xp = Math.max(Number(current.xp || 0), Number(ch.xp || 0));
+      (ch.boards || []).forEach(bid => { if (!current.boards.includes(bid)) current.boards.push(bid); });
+      current.boardId = current.boardId || ch.boardId || '';
+    } else {
+      existing.chars.push(ch);
+    }
+  });
+  return existing;
+}
 function userRecords() {
   const map = new Map();
+  cloudUsers.forEach(u => mergeUserRecord(map, u));
   activeBoards().forEach(b => {
     b.participants.forEach(name => {
       const charId = b.characterIds[name] || '';
       const key = userKey(name, charId);
-      if (!map.has(key)) map.set(key, { userId: key, name, chars: [], boards: [], adminGroups: [] });
-      const u = map.get(key);
+      const u = mergeUserRecord(map, { userId: key, name, chars: [], boards: [], adminGroups: [] });
       if (!u.boards.some(x => x.originalId === b.originalId)) u.boards.push(b);
       let ch = u.chars.find(c => c.id === charId);
       if (!ch) {
@@ -237,8 +303,8 @@ function userRecords() {
   adminGroups().forEach(g => {
     const b = g.boards[0];
     const key = b ? adminUserId(b) : userKey(g.adminName, g.adminId);
-    if (!map.has(key)) map.set(key, { userId: key, name: g.adminName || g.adminId || 'Admin', chars: [], boards: [], adminGroups: [] });
-    map.get(key).adminGroups.push(g);
+    const u = mergeUserRecord(map, { userId: key, name: g.adminName || g.adminId || 'Admin', chars: [], boards: [], adminGroups: [] });
+    if (!u.adminGroups.some(x => x.key === g.key)) u.adminGroups.push(g);
   });
   return [...map.values()].sort((a, b) => a.userId.localeCompare(b.userId));
 }
@@ -718,11 +784,11 @@ function renderAdminDetail(key) {
 }
 function renderUsers() {
   if (detail?.kind === 'user') return renderUserDetail(detail.id);
-  const records = userRecords().filter(u => !query || `${u.name} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
+  const records = userRecords().filter(u => !query || `${u.name} ${u.username || ''} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
   const rows = records.map(u => `
     <tr>
       <td>${idChip('user', u.userId, u.userId)}</td>
-      <td class="cell-strong">${h(u.name)}</td>
+      <td><div class="cell-strong">${h(u.name)}</div>${u.username ? `<div class="cell-sub">@${h(u.username)}</div>` : ''}</td>
       <td><div class="wrap-chips">${u.chars.map(c => idChip('char', c.id || '-', c.id, `<span>${h(c.name)}</span>`)).join(' ') || '<span class="muted cell-sub">—</span>'}</div></td>
       <td class="mono">${u.boards.length}</td>
       <td>${levelBadge(userLevel(u))} <span class="cell-sub mono">${userRenown(u).toLocaleString()}</span></td>
@@ -736,7 +802,7 @@ function renderUserDetail(id) {
   const u = userById(id);
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const renown = userRenown(u);
-  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div><div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor('active')}</div><hr class="hr"><div class="kv">
+  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor('active')}</div><hr class="hr"><div class="kv">
     <div class="kv-row"><span class="k">Overall level (Renown)</span><span class="v"><b>LV ${userLevel(u)}</b> · ${renown.toLocaleString()}</span></div>
     <div class="kv-row"><span class="k">Character</span><span class="v">${u.chars.length}</span></div>
     <div class="kv-row"><span class="k">Boards</span><span class="v">${u.boards.length}</span></div>

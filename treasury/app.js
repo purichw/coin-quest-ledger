@@ -237,6 +237,9 @@ function freshTreasury(mk = monthKey(new Date())) {
   ].forEach(e => { if (e.day <= dom) exps.push({ ...e, id: truid(), date: isoDay(mk, e.day) }); });
   return JSON.parse(JSON.stringify({ ...SEED_TREASURY, expenses: exps, month: mk }));
 }
+function blankTreasury(mk = monthKey(new Date())) {
+  return JSON.parse(JSON.stringify({ ...SEED_TREASURY, expenses: [], history: [], stats: {}, month: mk }));
+}
 function normalizeTreasury(data) {
   const fresh = freshTreasury();
   const next = { ...fresh, ...(data || {}) };
@@ -251,13 +254,20 @@ function normalizeTreasury(data) {
 }
 function loadTreasury() {
   try {
+    if (window.PointyScope) {
+      const scoped = window.PointyScope.getJSON(TR_KEY, null);
+      return scoped ? normalizeTreasury(scoped) : blankTreasury();
+    }
     const raw = localStorage.getItem(TR_KEY);
     if (raw) return normalizeTreasury(JSON.parse(raw));
   } catch (_) {}
   return freshTreasury();
 }
 function save() {
-  try { localStorage.setItem(TR_KEY, JSON.stringify(S)); } catch (_) {}
+  try {
+    if (window.PointyScope) window.PointyScope.setJSON(TR_KEY, S);
+    else localStorage.setItem(TR_KEY, JSON.stringify(S));
+  } catch (_) {}
   window.dispatchEvent(new CustomEvent('pointy-treasury-changed'));
   window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
 }

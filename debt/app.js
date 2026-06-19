@@ -406,15 +406,22 @@ function profileUrl(id = S.slayer.characterId) {
 }
 
 function loadDebtState() {
+  const fallback = window.PointyScope?.accountKey?.()
+    ? { dragons: [], settings: {}, profile: {}, history: [], stats: {} }
+    : PointyLogic.SEED_DEBT;
   try {
+    if (window.PointyScope) return window.PointyScope.getJSON(STORE_KEY, fallback);
     const raw = localStorage.getItem(STORE_KEY);
     return raw ? JSON.parse(raw) : PointyLogic.SEED_DEBT;
   } catch (_) {
-    return PointyLogic.SEED_DEBT;
+    return fallback;
   }
 }
 function saveDebtState() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (_) {}
+  try {
+    if (window.PointyScope) window.PointyScope.setJSON(STORE_KEY, S);
+    else localStorage.setItem(STORE_KEY, JSON.stringify(S));
+  } catch (_) {}
   persistSlayerRecord();
   window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
 }
@@ -437,10 +444,14 @@ function saveSettings() {
   try { localStorage.setItem('pointy_debt_settings_v1', JSON.stringify(SETTINGS)); } catch (_) {}
 }
 function readLocalRegistry() {
+  if (window.PointyScope?.getJSON) return window.PointyScope.getJSON(CHARACTER_REGISTRY_KEY, {});
   try { return JSON.parse(localStorage.getItem(CHARACTER_REGISTRY_KEY) || '{}') || {}; } catch (_) { return {}; }
 }
 function writeLocalRegistry(registry) {
-  try { localStorage.setItem(CHARACTER_REGISTRY_KEY, JSON.stringify(registry)); } catch (_) {}
+  try {
+    if (window.PointyScope?.setJSON) window.PointyScope.setJSON(CHARACTER_REGISTRY_KEY, registry);
+    else localStorage.setItem(CHARACTER_REGISTRY_KEY, JSON.stringify(registry));
+  } catch (_) {}
 }
 function generateCharacterId() {
   const registry = readLocalRegistry();

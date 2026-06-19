@@ -293,7 +293,33 @@ Current demo/mock accounts:
 
 The current Claude loop implemented in `shared/profile-hub.*` is one account =
 one active character. Accounts without `character` are routed through Character
-Creation, and the character is mirrored into `pointy_character_registry_v1`.
+Creation, and the character is mirrored into the account-scoped character
+registry.
+
+### Account-scoped local keys
+
+`shared/account-scope.js` scopes browser-local progress/cache to the active
+account. The key format is:
+
+```txt
+<base-key>::uid_<firebaseUid>
+<base-key>::user_<publicUserId>
+<base-key>::name_<username>
+```
+
+Priority is `uid`, then public User ID, then username. When there is no signed-in
+account, legacy unsuffixed keys remain the guest/test fallback. Signed-in users
+must not read old browser-wide module progress as account progress.
+
+Currently scoped bases:
+
+- `pointy_profile_v1`
+- `pointy_character_registry_v1`
+- `coin_quest_trip_snapshots_v1`
+- `pointy_debt_v5`
+- `pointy_treasury_v1`
+- `pointy_compare_v2`
+- `last_trip_id`
 
 ### `pointy_accounts_v1`
 
@@ -326,7 +352,11 @@ Local character cache/registry, keyed by Character ID:
 }
 ```
 
-Used by Party Ledger, Debt Dragon, Character Profile, and tests. In normal mode, Firestore `characters/{id}` should be treated as the durable source when available.
+Used by Party Ledger, Debt Dragon, Character Profile, and tests. In normal mode,
+the account-scoped key is the local fallback and Firestore `characters/{id}`
+should be treated as the durable source when available. Character Profile may
+also use the active `pointy_auth_v1.character` when the requested Character ID
+matches the signed-in account.
 
 ### `pointy_theme`
 
