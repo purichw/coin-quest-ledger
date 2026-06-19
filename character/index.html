@@ -45,10 +45,11 @@
     .banner{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;height:300px;
       display:flex;align-items:flex-end;justify-content:center;box-shadow:var(--shadow);}
     .banner-art{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;}
-    .banner-art img{height:97%;width:auto;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45));}
+    .banner-art img{height:97%;width:auto;object-fit:contain;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45));
+      transform-origin:50% 100%;animation:idle-sway 2.9s ease-in-out infinite;will-change:transform;}
     .banner-grad{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,6,16,.78) 0%,rgba(8,6,16,.18) 42%,transparent 70%);}
-    .banner-meta{position:relative;z-index:2;text-align:center;padding:0 18px 22px;color:#fff;}
-    .banner-name{margin:0;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:38px;line-height:1.05;text-shadow:0 2px 10px rgba(0,0,0,.5);}
+    .banner-meta{position:relative;z-index:2;text-align:center;padding:0 18px 34px;color:#fff;}
+    .banner-name{position:relative;top:-5px;margin:0;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:38px;line-height:1.05;text-shadow:0 2px 10px rgba(0,0,0,.5);}
     .banner-rank{margin-top:6px;display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;
       background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:5px 14px;border-radius:999px;backdrop-filter:blur(4px);}
 
@@ -57,7 +58,8 @@
     .ci-ava{position:relative;width:104px;height:104px;flex-shrink:0;border-radius:22px;overflow:hidden;
       box-shadow:inset 0 0 0 3px rgba(255,255,255,.5), 0 4px 10px rgba(0,0,0,.18);}
     .ci-ava .ci-bg{position:absolute;inset:0;}
-    .ci-ava img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;}
+    .ci-ava img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;
+      transform-origin:50% 100%;animation:idle-sway 2.9s ease-in-out infinite;will-change:transform;}
     .ci-badge{position:absolute;right:-4px;bottom:-4px;width:34px;height:34px;border-radius:50%;background:var(--card);
       border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 2px 6px rgba(0,0,0,.2);}
     .ci-info{flex:1;min-width:0;}
@@ -139,6 +141,11 @@
     .search-row{display:flex;gap:8px;flex-wrap:wrap;}
     .search-row input{flex:1;min-width:180px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-family:'Chakra Petch',sans-serif;font-size:18px;background:var(--card);}
 
+    @keyframes idle-sway{
+      0%,100%{transform:rotate(-.5deg);}
+      50%{transform:rotate(.6deg) scaleY(1.006);}
+    }
+
     @media(max-width:600px){
       .wrap{padding:0 13px calc(40px + env(safe-area-inset-bottom));}
       .cnav{padding:10px 13px calc(10px);margin:0;max-width:none;background:rgba(233,222,201,.92);}
@@ -148,7 +155,7 @@
       .banner{height:auto;min-height:360px;margin-top:12px;border-radius:18px;}
       .banner-art img{height:300px;}
       .banner-meta{padding-bottom:42px;}
-      .banner-name{font-size:32px;}
+      .banner-name{top:-4px;font-size:32px;}
       .banner-rank{font-size:13px;}
       .idcard{flex-direction:column;text-align:center;align-items:center;gap:12px;margin-top:-26px;padding:18px 16px;border-radius:18px;}
       .ci-ava{width:96px;height:96px;}
