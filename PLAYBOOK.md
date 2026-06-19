@@ -6,12 +6,14 @@
 - Read `architecture.md` when the request touches system shape, routing, shared modules, persistence, or deployment.
 - Read `data-contracts.md` when the request touches Firestore, localStorage/sessionStorage, character IDs, admin ownership, imports/exports, or migrations.
 - Read `claude-design-index.md` when the request involves Claude Design references, visual parity, mobile handoff files, or finding the right downloaded source.
+- Read `leveling-canon.md` when the request touches XP rewards, level thresholds, title milestones, profile renown, Treasury XP, or Admin level displays.
 - Read `roadmap.md` when the request asks what to build next, how to phase work, or whether Codex vs Claude Design should own a step.
 - Check `git status --short --branch` before editing.
 - If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
 - If the user asks to commit or deploy, escalate to Production Patch.
 - Keep `Memory.md` updated before intentionally moving work to a new chat.
 - Current user instruction: ignore `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
+- Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromRenown()` instead of adding local formulas.
 
 ## Change Modes
 

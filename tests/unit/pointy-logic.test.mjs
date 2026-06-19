@@ -137,6 +137,15 @@ test('computeParty can add cross-trip base XP for character progress', () => {
   assert.equal(party[0].level.lvl, 2);
 });
 
+test('leveling canon separates character XP from profile renown', () => {
+  assert.equal(logic.CHARACTER_LEVEL_STEP, 600);
+  assert.equal(logic.RENOWN_LEVEL_STEP, 1200);
+  assert.deepEqual(plain(logic.levelFromXp(300)), { lvl: 1, into: 300, need: 600, pct: 50 });
+  assert.deepEqual(plain(logic.levelFromXp(600)), { lvl: 2, into: 0, need: 600, pct: 0 });
+  assert.deepEqual(plain(logic.levelFromRenown(600)), { lvl: 1, into: 600, need: 1200, pct: 50 });
+  assert.deepEqual(plain(logic.levelFromRenown(1200)), { lvl: 2, into: 0, need: 1200, pct: 0 });
+});
+
 test('normalizeTripState keeps legacy trip data compatible', () => {
   const state = logic.normalizeTripState({
     participants: ['A'],

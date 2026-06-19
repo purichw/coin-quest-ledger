@@ -37,7 +37,9 @@
     seraph:      { glyph:"😇", hue:95,  th:"ทูตสวรรค์", en:"Seraph" },
     tiderunner:  { glyph:"🌊", hue:225, th:"นักแล่นคลื่น", en:"Tiderunner" }
   };
-  PointyLogic.LEVEL_STEP = 600;
+  PointyLogic.CHARACTER_LEVEL_STEP = 600;
+  PointyLogic.RENOWN_LEVEL_STEP = 1200;
+  PointyLogic.LEVEL_STEP = PointyLogic.CHARACTER_LEVEL_STEP;
   PointyLogic.SETTLE_BONUS_PAYER = 400;
   PointyLogic.SETTLE_BONUS_PAYEE = 200;
   PointyLogic.LEVEL_REWARDS = [
@@ -166,10 +168,20 @@
     return PointyLogic.CLASSES[id] ? id : PointyLogic.CLASS_ORDER[hashOf(id) % PointyLogic.CLASS_ORDER.length];
   }
 
+  function levelFrom(value, step) {
+    const clean = Math.max(0, Math.round(Number(value) || 0));
+    const size = Math.max(1, Math.round(Number(step) || PointyLogic.CHARACTER_LEVEL_STEP));
+    const lvl = Math.floor(clean / size) + 1;
+    const into = clean - (lvl - 1) * size;
+    return { lvl, into, need: size, pct: Math.round((into / size) * 100) };
+  }
+
   function levelFromXp(xp) {
-    const lvl = Math.floor(xp / PointyLogic.LEVEL_STEP) + 1;
-    const into = xp - (lvl - 1) * PointyLogic.LEVEL_STEP;
-    return { lvl, into, need: PointyLogic.LEVEL_STEP, pct: Math.round((into / PointyLogic.LEVEL_STEP) * 100) };
+    return levelFrom(xp, PointyLogic.CHARACTER_LEVEL_STEP);
+  }
+
+  function levelFromRenown(renown) {
+    return levelFrom(renown, PointyLogic.RENOWN_LEVEL_STEP);
   }
 
   function rewardFor(lvl) {
@@ -637,7 +649,9 @@
     normalizedOffer,
     rankOffers,
     normalizeClass,
+    levelFrom,
     levelFromXp,
+    levelFromRenown,
     rewardFor,
     hpColor,
     statusOf,

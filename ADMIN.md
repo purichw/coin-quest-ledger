@@ -110,6 +110,7 @@ Important rules:
 - One User ID can hold multiple Character IDs.
 - Each Character has its own class, level, XP, and board history.
 - The same Character can gain progress from multiple modules.
+- Admin Portal displays levels from the shared leveling canon: Character rows use `PointyLogic.levelFromXp()` and overall/user rows use `PointyLogic.levelFromRenown()`. Do not add admin-only level thresholds.
 - One User ID can hold multiple Admin IDs.
 - One Admin ID can own multiple Boards.
 - Admin IDs are intentionally reusable across Boards; do not globally de-dupe

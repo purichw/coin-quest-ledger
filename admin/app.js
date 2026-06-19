@@ -31,6 +31,8 @@ function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<
 function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
+function characterLevelFromXp(xp) { return PointyLogic.levelFromXp(xp); }
+function profileLevelFromRenown(renown) { return PointyLogic.levelFromRenown(renown); }
 
 function isUnlocked() {
   return sessionStorage.getItem(GATE_UNLOCK_KEY) === '1';
@@ -211,7 +213,7 @@ function boardStats(b) {
 }
 function fmtMoney(v) { return '฿' + Math.round(Number(v || 0)).toLocaleString('th-TH'); }
 function userRenown(u) { return u.chars.reduce((sum, c) => sum + Number(c.xp || 0), 0) + u.adminGroups.length * 800; }
-function userLevel(u) { return Math.floor(userRenown(u) / 1200) + 1; }
+function userLevel(u) { return profileLevelFromRenown(userRenown(u)).lvl; }
 function idChip(kind, label, id = label, extra = '') {
   const safeKind = kind === 'debt' ? 'debt' : kind;
   const on = kind === 'char' ? '' : ` onclick="openDetail(${q(kind)},${q(id)})"`;
@@ -567,7 +569,7 @@ function renderUserDetail(id) {
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const renown = userRenown(u);
   const boards = u.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td>${h(b.tripName)}</td><td>${boardTypeLabel(b)}</td><td>${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</td></tr>`).join('');
-  const chars = u.chars.map(c => `<tr><td>${idChip('char', c.id || '-', c.id)}</td><td>${h(c.name)}</td><td>${h(c.className)}</td><td>LV ${Math.floor(Number(c.xp || 0) / 1200) + 1} · ${Number(c.xp || 0)} XP</td><td>${idChip('board', boardById(c.boardId)?.urlId || c.boardId, c.boardId)}</td></tr>`).join('');
+  const chars = u.chars.map(c => `<tr><td>${idChip('char', c.id || '-', c.id)}</td><td>${h(c.name)}</td><td>${h(c.className)}</td><td>LV ${characterLevelFromXp(c.xp).lvl} · ${Number(c.xp || 0)} XP</td><td>${idChip('board', boardById(c.boardId)?.urlId || c.boardId, c.boardId)}</td></tr>`).join('');
   const adminRows = u.adminGroups.map(g => `<tr><td>${idChip('admin', g.adminId || '-', g.key)}</td><td class="muted">${h(g.key)}</td><td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td></tr>`).join('');
   const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div><div class="profile-id">${idChip('user', u.userId, u.userId)}</div></div>`);
   const stats = `<div class="grid g-4">${statCard('User ID', h(u.userId), h(u.name), 'ID')}${statCard('Overall Level', userLevel(u), `${renown} Renown`, 'LV')}${statCard('Characters', u.chars.length, 'EXP lives on each character', '⚔️')}${statCard('Admin Roles', u.adminGroups.length, `${u.adminGroups.flatMap(g => g.boards).length} owned boards`, '🛡️')}</div>`;

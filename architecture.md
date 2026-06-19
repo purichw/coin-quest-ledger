@@ -12,6 +12,7 @@ Companion docs:
 
 - `data-contracts.md`: persisted data shapes and migration rules.
 - `claude-design-index.md`: Claude reference map and inspection notes.
+- `leveling-canon.md`: current XP/level tracks, rewards, thresholds, and recalibration backlog.
 - `roadmap.md`: phased product/engineering plan and open decisions.
 
 ## Runtime Model
@@ -74,7 +75,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ## Shared Modules
 
-- `shared/pointy-logic.js`: shared data normalization, split math, price math, class registry, character profile aggregation.
+- `shared/pointy-logic.js`: shared data normalization, split math, price math, class registry, level helpers, and character profile aggregation.
 - `lang.js`: Thai/English shared labels.
 - `shared/profile-hub.js` / `.css`: mock Sign In/Sign Up gate, local account registry, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury.
@@ -164,3 +165,4 @@ curl -fsSL https://coin-quest-ledger.vercel.app/<changed-route> | rg "<expected-
 - Preserve i18n for user-facing text.
 - Preserve newest user requirements over older handoffs.
 - Preserve Firebase state shape unless doing a planned migration with regression coverage.
+- Keep XP/level formulas centralized in `shared/pointy-logic.js` and documented in `leveling-canon.md`.

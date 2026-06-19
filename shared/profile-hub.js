@@ -8,7 +8,6 @@
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const TEST_FLAG_KEY = 'pointy_test_mode_v1';
-  const PROFILE_STEP = 1200;
   const URL_TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
   if (URL_TEST_MODE) {
     try { sessionStorage.setItem(TEST_FLAG_KEY, '1'); } catch (_) {}
@@ -312,9 +311,9 @@
     return patchProfile({ lastVisit: today, streak, bestStreak: Math.max(Number(p.bestStreak) || 0, streak) });
   }
   function profileLevelFromRenown(renown) {
-    const lvl = Math.floor(renown / PROFILE_STEP) + 1;
-    const into = renown - (lvl - 1) * PROFILE_STEP;
-    return { lvl, into, need: PROFILE_STEP, pct: Math.round((into / PROFILE_STEP) * 100) };
+    return window.PointyLogic?.levelFromRenown
+      ? window.PointyLogic.levelFromRenown(renown)
+      : { lvl: 1, into: 0, need: 0, pct: 0 };
   }
   function rewardFor(lvl) {
     return (window.PointyLogic?.rewardFor ? window.PointyLogic.rewardFor(lvl) : { frame: 'novice', glyph: '', title: { th: 'มือใหม่', en: 'Novice' } });

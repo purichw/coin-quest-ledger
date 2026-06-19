@@ -16,6 +16,7 @@ Done recently:
 - Claude Character Profile design ported to `/character/`.
 - Character banner animation and chip spacing tuned, committed, pushed, and deployed.
 - Latest Claude profile loop partially ported into the static app: Sign In/Sign Up tabs, local account registry, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, and Character Profile My Boards actions.
+- Leveling canon v0 established in `leveling-canon.md` and centralized in `shared/pointy-logic.js` before reward recalibration.
 - Production domain verified at `https://coin-quest-ledger.vercel.app`.
 
 Known constraints:
@@ -35,6 +36,7 @@ Known constraints:
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
 - Phase 1 Admin and mock login are local/browser gates only, not real security.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
+- Character XP and Profile Renown are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromRenown()`.
 
 ## Phase 0 - Keep The Canon Stable
 
@@ -130,6 +132,7 @@ Goal: make cross-module RPG progress coherent.
 Work:
 
 - Keep class metadata and portrait assets centralized through `shared/pointy-logic.js` and `assets/rpg-portraits/`.
+- Recalibrate XP rewards only after updating `leveling-canon.md`; do not mix canon cleanup with balance changes.
 - Define how Debt Dragon and Treasury progress should write back into character history.
 - Decide whether Compare Prices contributes to character achievements or remains a pure utility.
 - Keep migrations optional/backward-compatible.

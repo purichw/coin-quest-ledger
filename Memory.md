@@ -20,13 +20,14 @@ Last updated: 2026-06-19
 3. For small visual tweaks, default to Fast UI Patch unless the user asks to commit/deploy.
 4. Preserve newest user requirements over any older Claude prototype/handoff behavior.
 5. Never modify legacy inactive snapshots unless explicitly asked.
-6. For system shape, read `architecture.md`; for data shape, read `data-contracts.md`; for Claude references, read `claude-design-index.md`; for next-step planning, read `roadmap.md`.
+6. For system shape, read `architecture.md`; for data shape, read `data-contracts.md`; for leveling/XP, read `leveling-canon.md`; for Claude references, read `claude-design-index.md`; for next-step planning, read `roadmap.md`.
 7. Current user instruction: ignore `CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
 
 ## Important Files
 
 - `architecture.md`: current static app architecture, routes, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
 - `data-contracts.md`: practical Firestore/local/session storage contracts, derived Character Profile shape, and migration rules.
+- `leveling-canon.md`: v0 XP/level canon for Character XP, Profile Renown, Treasury XP contribution, reward titles, and Admin display rules.
 - `claude-design-index.md`: map of Claude reference sources to live surfaces, plus notes on mobile coverage and route wiring.
 - `roadmap.md`: phased roadmap for profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery.
 - `CLAUDE_RECOVERY.md`: deprecated/ignored for now by current user instruction. Do not read/use it unless explicitly re-enabled.
@@ -39,7 +40,7 @@ Last updated: 2026-06-19
 - `character/app.js`: Character Profile loading, board aggregation, privacy/share mode, i18n, and rendering.
 - `index.html`: live toolbox home and price comparison entry.
 - `lang.js`: shared i18n for Thai and English across the toolbox. Every user-facing string needs both languages.
-- `shared/pointy-logic.js`: shared calculation, normalization, class registry, split logic, price comparison logic.
+- `shared/pointy-logic.js`: shared calculation, normalization, class registry, split logic, price comparison logic, and canonical level helpers.
 - `shared/mobile-shell.css` and `shared/mobile-shell.js`: Claude-style native phone shell shared by Home/Compare, Split, Debt Dragon, and Treasury. It injects the hamburger drawer and bottom tab bar at `max-width: 600px`; desktop/tablet topbars remain controlled by each page.
 - `trip/pixicons.jsx`: labeled pixel icon registry/renderer/migration helpers.
 - `assets/rpg-portraits/`: current full-body class portrait assets, 18 classes x 2 genders plus skin art.
@@ -128,6 +129,8 @@ Character Profile lives at `/character/?id=1234`. The hero card Character ID and
 Profiles support Thai/English and responsive desktop/tablet/mobile layouts. Money privacy uses `private=1` in the URL and renders monetary values as hidden placeholders, so copied links open in privacy mode. This is display privacy, not database access control.
 
 Board admin ownership can store `admin.characterId`. Party Ledger automatically links it when the admin nickname matches a participant and preserves it when that Character ID changes. Legacy boards still fall back to matching `adminName`.
+
+Leveling canon v0: Character XP uses `PointyLogic.levelFromXp()` at 600 XP per level; overall/profile Renown uses `PointyLogic.levelFromRenown()` at 1200 Renown per level. Do not add local level formulas in feature files; update `leveling-canon.md` and `shared/pointy-logic.js` first.
 
 ## Pixel Icon Picker
 
