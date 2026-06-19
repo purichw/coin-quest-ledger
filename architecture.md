@@ -77,7 +77,8 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 - `shared/pointy-logic.js`: shared data normalization, split math, price math, class registry, level helpers, and character profile aggregation.
 - `lang.js`: Thai/English shared labels.
-- `shared/profile-hub.js` / `.css`: mock Sign In/Sign Up gate, local account registry, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
+- `shared/firebase-client.js`: shared Firebase app/Auth/Firestore initializer for static pages.
+- `shared/profile-hub.js` / `.css`: username/password Sign In/Sign Up, Firebase Auth + Firestore user/character binding in production, local mock fallback for tests, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury.
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.
@@ -88,27 +89,31 @@ Shared modules are browser globals. Keep additions conservative and compatible w
 
 Current product model has separate identities:
 
-- User ID: account/person identity. Mock login currently stores this in `localStorage.pointy_auth_v1`; local signups are stored in `localStorage.pointy_accounts_v1`.
+- User ID: account/person identity. Production signups use Firebase Auth with username/password via an internal `@coinquest.local` auth email, then store profile data in `users/{uid}`. Local/test fallback still stores mirrors in `localStorage.pointy_auth_v1`.
 - Character ID: playable hero identity, four digits, stored in trip participant maps and `characters/{id}`.
 - Admin ID: Board Admin identity, can own multiple boards and intentionally repeat across boards.
 - Board ID / Trip ID: four-digit route/document ID for a board.
 
-The latest Claude loop implemented in the live static app treats one mock account as having one active character. The broader product model can still evolve toward multiple characters per user later. One user can still have many admin IDs. One admin ID can own many boards. Do not globally de-dupe Admin IDs unless the user changes the requirement.
+The latest Claude loop implemented in the live static app treats one account as having one active character. The broader product model can still evolve toward multiple characters per user later. One user can still have many admin IDs. One admin ID can own many boards. Do not globally de-dupe Admin IDs unless the user changes the requirement.
 
 ## Persistence
 
 Normal mode:
 
 - `trips/{id}`: Party Ledger board documents.
+- `users/{uid}`: Firebase Auth account profile, public User ID, username, and active character pointer.
+- `usernames/{username}`: username lookup and recovery pointer for the internal Firebase Auth email currently attached to a public username.
 - `characters/{id}`: character records.
 - `adminRevisions/{id}`: Super Admin publish logs.
+
+`firestore.rules` is the repository copy of the deployed Phase 1 rules. It keeps the current real-account loop usable, but private admin hardening still needs a real Super Admin identity/allowlist instead of the local gate.
 
 Local/test mode:
 
 - `sessionStorage.pointy_test_trip_*`: test trip fixtures.
 - `localStorage.pointy_character_registry_v1`: local character registry/cache.
-- `localStorage.pointy_auth_v1`: current mock login account, including the selected/created character.
-- `localStorage.pointy_accounts_v1`: local Sign Up registry so newly created accounts can sign in again.
+- `localStorage.pointy_auth_v1`: local mirror of current auth account, including selected/created character. It is authoritative only in tests/local fallback.
+- `localStorage.pointy_accounts_v1`: local fallback Sign Up registry for tests and mock mode.
 - `localStorage.pointy_theme`: global theme source of truth.
 - `localStorage.coin_quest_ui_v1.theme`: compatibility mirror for older/shared UI.
 - Module-specific local stores exist for Debt Dragon, Treasury, Price Arena, drafts, and settings.

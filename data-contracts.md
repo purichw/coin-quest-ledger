@@ -172,6 +172,8 @@ Character records are merged with board-derived history by `PointyLogic.buildCha
 
 Rules:
 
+- Real account-created characters include `ownerUid`, `userId`, `username`, and
+  `accountName` so Character ID can be traced back to the Firebase Auth user.
 - Missing `class`, `gender`, or `skin` should fall back from latest matching board or deterministic defaults.
 - `xp` is preferred when present.
 - If `xp` is absent, profile aggregation can derive XP from `trips`, `debtXp`, fronted money, and settlement XP.
@@ -203,14 +205,72 @@ Created by Super Admin publish.
 
 `changes` is currently a simple list of board/admin/user changes produced by `/admin/`. Treat it as audit metadata, not a full event-sourced restore log.
 
+### `users/{uid}`
+
+Created by `shared/profile-hub.js` after Firebase Auth username/password signup.
+The user types a username, not a real email; the app maps it to an internal
+Firebase Auth email of `username@coinquest.local`.
+
+```js
+{
+  uid: firebaseAuthUid,
+  username: string,
+  email: internalAuthEmail,
+  userId: fourDigitPublicUserId,
+  name: displayName,
+  character: CharacterRecord | null,
+  characterId: characterId | "",
+  provider: "firebase",
+  recoveryHash?: sha256(username + ":" + recoveryCode),
+  recoveryIssuedAt?: epochMs,
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+```
+
+Rules:
+
+- `uid` is the durable account owner key.
+- `userId` remains the public four-digit app identity.
+- Current product canon is one active `character` per user.
+- Firebase Authentication/email-password is enabled for `pointy-personal-toolkit`.
+- Player recovery and Super Admin reset rotate the underlying Firebase Auth
+  credential, then preserve `userId` and `characterId` by updating
+  `usernames/{username}`, `users/{uid}`, and `characters/{characterId}`.
+- This is Phase 1 client-driven recovery. Future security hardening should move
+  reset authority behind server-side Admin SDK or a stricter admin identity.
+
+### `usernames/{username}`
+
+Lookup table for username login without requiring real user email addresses.
+
+```js
+{
+  username: string,
+  uid: firebaseAuthUid,
+  authEmail: internalAuthEmail,
+  userId: fourDigitPublicUserId,
+  characterId: characterId | "",
+  recoveryHash?: sha256(username + ":" + recoveryCode),
+  recoveryIssuedAt?: epochMs,
+  adminResetAt?: epochMs,
+  updatedAt: timestamp
+}
+```
+
 ## Local Storage Contracts
 
 ### `pointy_auth_v1`
 
-Mock login account. This is not secure auth.
+Local mirror of the current auth account. In production it mirrors Firebase
+Auth/Firestore `users/{uid}`; in tests and fallback mode it remains the mock
+account source. This is not a security boundary.
 
 ```js
 {
+  uid?: firebaseAuthUid,
+  provider?: "firebase" | string,
+  username: string,
   email: string,
   userId: string,
   name: string,
@@ -225,17 +285,20 @@ Mock login account. This is not secure auth.
 }
 ```
 
-Current demo accounts:
+Current demo/mock accounts:
 
 - `pointy@line.me` / `quest123` / User ID `3720`
 - `nok.k@line.me` / `quest123` / User ID `9637`
 - `bank@line.me` / `quest123` / User ID `5521`
 
-The current Claude loop implemented in `shared/profile-hub.*` is one mock account = one active character. Accounts without `character` are routed through Character Creation, and the character is mirrored into `pointy_character_registry_v1`.
+The current Claude loop implemented in `shared/profile-hub.*` is one account =
+one active character. Accounts without `character` are routed through Character
+Creation, and the character is mirrored into `pointy_character_registry_v1`.
 
 ### `pointy_accounts_v1`
 
-Local Sign Up registry. This is convenience persistence, not secure auth.
+Local fallback Sign Up registry for tests/mock mode. Production signups use
+Firebase Auth and `users/{uid}`.
 
 ```js
 Array<{

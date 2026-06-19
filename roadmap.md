@@ -18,13 +18,14 @@ Done recently:
 - Latest Claude profile loop partially ported into the static app: Sign In/Sign Up tabs, local account registry, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, and Character Profile My Boards actions.
 - Leveling canon v0 established in `leveling-canon.md` and centralized in `shared/pointy-logic.js` before reward recalibration.
 - Newer Claude Admin source set workback started: Relationship Map, Board Detail tabs/scroll layout, Users/User Detail, Audit Log, Version Control, Support Tools, modal shells, and desktop/tablet/mobile Admin E2E coverage are aligned with the current static implementation.
+- Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
 - Production domain verified at `https://coin-quest-ledger.vercel.app`.
 
 Known constraints:
 
-- Auth is still mock/local, not secure.
+- Local/test fallback is still mock; production username/password auth now uses Firebase Auth/Firestore.
 - Super Admin Phase 1 gate is local only.
-- Firestore rules/auth are not yet the product security boundary.
+- Firestore rules/auth are sufficient for the current Phase 1 real-account loop, but are not yet the final product security boundary for private admin access.
 - App pages require server hosting; `file://` preview is not supported.
 - Claude Design references are fragmented across downloaded bundles and standalone HTML.
 
@@ -33,9 +34,9 @@ Known constraints:
 - `CLAUDE_RECOVERY.md` is ignored/deprecated for now by current user instruction.
 - Character Profile route remains `/character/?id=####`.
 - The latest Claude handoff specifies a profile side panel full-profile entry; the live shared profile drawer now links to `/character/?id=####`.
-- Current mock loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`.
+- Current loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`; real users get a Firebase Auth `uid`, public four-digit User ID, and active Character ID.
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
-- Phase 1 Admin and mock login are local/browser gates only, not real security.
+- Phase 1 Admin is still a local/browser gate only. Player login has Firebase Auth support and deployed Firestore rules, but private admin access still needs a real Super Admin allowlist and stricter rules before it is a complete security boundary.
 - Admin source of truth is currently `/Users/point/Downloads/Coin Quest Ledger/admin/`; older admin copy that allows many Characters per User is overridden by the current one-account-one-active-character canon.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
 - Character XP and Profile Renown are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromRenown()`.
@@ -95,11 +96,12 @@ Goal: replace mock/local gates with real access control.
 
 Work:
 
-- Choose Firebase Auth strategy and account model.
-- Map User ID to auth user safely.
+- Keep the chosen username strategy: username maps to internal `username@coinquest.local`; users do not need real email addresses.
+- Preserve the current verified mapping: username -> Firebase Auth credential -> `users/{uid}` public User ID -> active Character ID.
+- Harden recovery/admin reset with server-side Admin SDK or equivalent so credential rotation is no longer purely client-driven.
 - Add Super Admin allowlist.
 - Add Board Admin permissions scoped to owned boards.
-- Write Firestore Security Rules for `trips`, `characters`, and `adminRevisions`.
+- Tighten Firestore Security Rules beyond the current Phase 1 `firestore.rules` once Super Admin/Board Admin auth is real.
 - Add rollback/export plan before rule enforcement.
 
 Important:
@@ -120,7 +122,7 @@ Work:
 - Continue aligning `/admin/` with Claude Admin Portal structure when the user asks for Admin work.
 - Keep draft/restore/publish semantics clear.
 - Deepen board/user/admin relationship views only where the newer source or user request adds behavior beyond the current workback.
-- Add safer password reset and board ownership workflows after real auth exists.
+- Harden password reset and board ownership workflows now that the real-auth foundation exists.
 - Add audit trail details for meaningful admin actions.
 
 Testing:

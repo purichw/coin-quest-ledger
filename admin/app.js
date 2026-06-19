@@ -36,6 +36,33 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 function characterLevelFromXp(xp) { return PointyLogic.levelFromXp(xp); }
 function profileLevelFromRenown(renown) { return PointyLogic.levelFromRenown(renown); }
+function normalizeUsername(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
+}
+function adminAuthEmail(username) {
+  const clean = normalizeUsername(username);
+  return `${clean}.admin-${Date.now().toString(36)}@coinquest.local`;
+}
+function tempPassword() {
+  return 'CQ-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
+async function sha256(text) {
+  const data = new TextEncoder().encode(String(text || ''));
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function cleanRecoveryCode(code) {
+  return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+async function recoveryHash(username, code) {
+  return sha256(`${normalizeUsername(username)}:${cleanRecoveryCode(code)}`);
+}
+function recoveryCodeValue() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('').replace(/(.{4})/g, '$1-').replace(/-$/, '');
+}
 
 function isUnlocked() {
   return sessionStorage.getItem(GATE_UNLOCK_KEY) === '1';
@@ -831,8 +858,78 @@ function showImpersonateModal(uid = '') {
   portalModal('🎭 Impersonate user', `<div class="field"><label>Select user</label><select>${userOptions(uid)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">👁️</span><span>Read-only mode. Actions should be logged when production auth is wired.</span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Impersonate user','Opened read-only user view');closePortalModal()">Open user view</button>`);
 }
 function showResetPwModal(id = '') {
-  const temp = 'CQ-' + Math.random().toString(36).slice(2, 7).toUpperCase();
-  portalModal('🔑 Reset password', `<div class="field"><label>Select user / admin</label><select>${userOptions(id)}${adminGroups().map(g => `<option value="${h(g.key)}" ${g.key === id || g.adminId === id ? 'selected' : ''}>🛡️ ${h(g.adminName || g.adminId || g.key)}</option>`).join('')}</select></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(temp)}"><div class="hint">User must change it on next login.</div></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Reset password','Temporary password generated');closePortalModal()">Confirm</button>`);
+  const temp = tempPassword();
+  portalModal('🔑 Reset password', `<div class="field"><label>Real account username</label><input id="reset-username" class="mono" placeholder="pointy"><div class="hint">No real email needed. This rotates the Firebase Auth credential behind this username.</div></div><div class="field"><label>Temporary password</label><input id="reset-temp-password" class="mono" value="${h(temp)}"><div class="hint">Give this password to the user. They can login, then keep it or reset again with recovery code.</div></div><div class="field"><label>Optional User ID to preserve</label><select id="reset-user-id"><option value="">From existing account mapping</option>${userOptions(id)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">🔐</span><span>Admin reset creates a new Firebase Auth credential and moves the username/User ID/Character pointer to it.</span></div><div class="login-err" id="reset-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="performAdminPasswordReset()">Confirm reset</button>`);
+}
+async function performAdminPasswordReset() {
+  const username = normalizeUsername(document.getElementById('reset-username')?.value || '');
+  const password = String(document.getElementById('reset-temp-password')?.value || '');
+  const keepUserId = String(document.getElementById('reset-user-id')?.value || '');
+  const err = document.getElementById('reset-error');
+  const setError = text => {
+    if (!err) return;
+    err.hidden = !text;
+    err.textContent = text ? `⚠️ ${text}` : '';
+  };
+  if (!username || password.length < 6) {
+    setError('Enter a username and 6+ character temporary password.');
+    return;
+  }
+  try {
+    const db = window.PointyFirebase?.firestore?.();
+    const auth = window.PointyFirebase?.auth?.();
+    if (!db || !auth) throw new Error('Firebase Auth is not available on this page.');
+    const snap = await db.collection('usernames').doc(username).get();
+    const old = snap.exists ? snap.data() || {} : {};
+    const oldUser = old.uid ? await db.collection('users').doc(old.uid).get().then(s => s.exists ? s.data() : {}) : {};
+    const authEmail = adminAuthEmail(username);
+    const cred = await auth.createUserWithEmailAndPassword(authEmail, password);
+    await cred.user.updateProfile({ displayName: username });
+    const recoveryCode = recoveryCodeValue();
+    const recHash = await recoveryHash(username, recoveryCode);
+    const character = oldUser.character || null;
+    const userId = oldUser.userId || old.userId || keepUserId || String(Math.floor(1000 + Math.random() * 9000));
+    const next = {
+      uid: cred.user.uid,
+      username,
+      email: authEmail,
+      userId,
+      name: oldUser.name || username,
+      character,
+      characterId: character?.id || old.characterId || '',
+      provider: 'firebase',
+      recoveryHash: recHash,
+      recoveryIssuedAt: Date.now(),
+      tempPasswordRequired: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('users').doc(cred.user.uid).set(next, { merge: true });
+    await db.collection('usernames').doc(username).set({
+      username,
+      uid: cred.user.uid,
+      authEmail,
+      userId,
+      characterId: next.characterId,
+      recoveryHash: recHash,
+      recoveryIssuedAt: Date.now(),
+      adminResetAt: Date.now(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    if (next.characterId) {
+      await db.collection('characters').doc(next.characterId).set({
+        ownerUid: cred.user.uid,
+        userId,
+        username,
+        accountName: next.name,
+        updatedAt: Date.now()
+      }, { merge: true });
+    }
+    supportAction('Reset password', `Admin reset username ${username}`);
+    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(recoveryCode)}" readonly><div class="hint">Give this to the user once. It replaces their previous recovery code.</div></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
+  } catch (error) {
+    setError(error?.message || 'Reset failed.');
+  }
 }
 function showMergeModal() {
   portalModal('🔗 Merge accounts', `<div class="field"><label>Keep this user</label><select>${userOptions()}</select></div><div class="field"><label>Merge from (will be removed)</label><select>${userOptions()}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">⚠️</span><span>All characters and boards move to the kept User ID. <b>This action cannot be undone.</b></span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="supportAction('Merge accounts','Prepared duplicate-user merge');closePortalModal()">Confirm</button>`);

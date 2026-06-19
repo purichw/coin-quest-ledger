@@ -8,6 +8,8 @@
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const TEST_FLAG_KEY = 'pointy_test_mode_v1';
+  const PENDING_RECOVERY_KEY = 'pointy_pending_recovery_code_v1';
+  const USERNAME_DOMAIN = 'coinquest.local';
   const URL_TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
   if (URL_TEST_MODE) {
     try { sessionStorage.setItem(TEST_FLAG_KEY, '1'); } catch (_) {}
@@ -17,24 +19,40 @@
   })();
   const AUTOMATED = navigator.webdriver === true;
   const DUMMY_ACCOUNTS = [
-    { email: 'pointy@line.me', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
-    { email: 'nok.k@line.me', password: 'quest123', userId: '9637', name: 'Nok', character: { id: '9637', name: 'Nok', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' } },
-    { email: 'bank@line.me', password: 'quest123', userId: '5521', name: 'Bank', character: { id: '5521', name: 'Bank', class: 'thief', cls: 'thief', gender: 'male', skin: '' } }
+    { username: 'pointy', email: 'pointy@line.me', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
+    { username: 'nok', email: 'nok.k@line.me', password: 'quest123', userId: '9637', name: 'Nok', character: { id: '9637', name: 'Nok', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' } },
+    { username: 'bank', email: 'bank@line.me', password: 'quest123', userId: '5521', name: 'Bank', character: { id: '5521', name: 'Bank', class: 'thief', cls: 'thief', gender: 'male', skin: '' } }
   ];
 
   const STR = {
     th: {
       loginWelcome: 'ยินดีต้อนรับกลับฮีโร่',
       loginSub: 'ลงชื่อเข้าสู่บัญชีของคุณ',
-      loginEmail: 'อีเมล (ชื่อผู้ใช้)',
+      loginEmail: 'Username',
       loginPassword: 'รหัสผ่าน',
       loginEnter: 'ผจญภัยต่อ!',
-      loginEmailPlaceholder: 'you@line.me',
+      loginEmailPlaceholder: 'pointy',
       loginPasswordPlaceholder: '••••••••',
-      loginError: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
-      loginEmpty: 'กรอกอีเมลและรหัสผ่าน',
+      loginError: 'username หรือรหัสผ่านไม่ถูกต้อง',
+      loginEmpty: 'กรอก username และรหัสผ่าน',
       loginDemo: 'บัญชีทดลอง - แตะเพื่อกรอกให้อัตโนมัติ',
       loginNote: 'สาธิตจำลอง - ยังไม่ได้เชื่อมต่อระบบจริง',
+      loginNoteReal: 'บัญชีจริงผ่าน Firebase Auth - ใช้ username/password ไม่ต้องใช้อีเมลจริง',
+      authUserExists: 'username นี้ถูกใช้แล้ว',
+      authUserMissing: 'ไม่พบ username นี้',
+      authWeakPassword: 'รหัสผ่านอย่างน้อย 6 ตัว',
+      authGeneric: 'เข้าสู่ระบบไม่สำเร็จ ลองอีกครั้ง',
+      forgotPassword: 'ลืมรหัสผ่าน?',
+      resetTitle: 'กู้รหัสผ่าน',
+      resetSub: 'ใช้ recovery code เพื่อตั้งรหัสใหม่ โดยไม่ต้องใช้อีเมล',
+      recoveryCode: 'Recovery code',
+      newPassword: 'รหัสผ่านใหม่',
+      resetConfirm: 'ตั้งรหัสใหม่',
+      resetBadCode: 'Recovery code ไม่ถูกต้อง',
+      recoveryTitle: 'เก็บ recovery code นี้ไว้',
+      recoverySub: 'ใช้ code นี้กู้บัญชีถ้าลืมรหัสผ่าน ระบบจะแสดงให้ดูครั้งนี้เท่านั้น',
+      recoverySaved: 'ฉันเก็บไว้แล้ว',
+      copyRecovery: 'คัดลอก code',
       loginSignIn: 'เข้าสู่ระบบ',
       loginSignUp: 'สมัครใหม่',
       signupWelcome: 'ร่วมกิลด์นักผจญภัย',
@@ -116,15 +134,31 @@
     en: {
       loginWelcome: 'Welcome back, hero',
       loginSub: 'Sign in to your guild account',
-      loginEmail: 'Email (username)',
+      loginEmail: 'Username',
       loginPassword: 'Password',
       loginEnter: 'Enter the realm!',
-      loginEmailPlaceholder: 'you@line.me',
+      loginEmailPlaceholder: 'pointy',
       loginPasswordPlaceholder: '••••••••',
-      loginError: 'Wrong email or password',
-      loginEmpty: 'Enter an email and password',
+      loginError: 'Wrong username or password',
+      loginEmpty: 'Enter a username and password',
       loginDemo: 'Demo accounts - tap one to autofill',
       loginNote: 'Mock sign-in - not connected to a real backend yet',
+      loginNoteReal: 'Real Firebase Auth account - username/password only, no real email required',
+      authUserExists: 'That username is already taken',
+      authUserMissing: 'Username not found',
+      authWeakPassword: 'Password must be 6+ characters',
+      authGeneric: 'Could not sign in. Try again',
+      forgotPassword: 'Forgot password?',
+      resetTitle: 'Recover password',
+      resetSub: 'Use your recovery code to set a new password without email',
+      recoveryCode: 'Recovery code',
+      newPassword: 'New password',
+      resetConfirm: 'Set new password',
+      resetBadCode: 'Wrong recovery code',
+      recoveryTitle: 'Save this recovery code',
+      recoverySub: 'Use this code to recover your account if you forget your password. It is shown only once.',
+      recoverySaved: 'I saved it',
+      copyRecovery: 'Copy code',
       loginSignIn: 'Sign In',
       loginSignUp: 'Sign Up',
       signupWelcome: 'Join the adventure',
@@ -242,6 +276,81 @@
   function readJson(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (_) { return fallback; } }
   function writeJson(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {} }
   function genId4() { return String(Math.floor(1000 + Math.random() * 9000)); }
+  function normalizeUsername(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
+  }
+  function usernameEmail(username) {
+    const clean = normalizeUsername(username);
+    return `${clean || 'user'}@${USERNAME_DOMAIN}`;
+  }
+  function accountLogin(account) {
+    return normalizeUsername(account?.username || String(account?.email || '').split('@')[0] || account?.name || '');
+  }
+  function realAuthEnabled() {
+    return !TEST_MODE && !AUTOMATED && !!window.PointyFirebase?.auth?.() && !!window.PointyFirebase?.firestore?.();
+  }
+  function cloudDb() { return window.PointyFirebase?.firestore?.() || null; }
+  function cloudAuth() { return window.PointyFirebase?.auth?.() || null; }
+  function cloudNow() { return window.PointyFirebase?.serverTimestamp?.() || Date.now(); }
+  function recoveryCodeValue() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => alphabet[b % alphabet.length]).join('').replace(/(.{4})/g, '$1-').replace(/-$/, '');
+  }
+  function cleanRecoveryCode(code) {
+    return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+  async function sha256(text) {
+    const data = new TextEncoder().encode(String(text || ''));
+    const buf = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function recoveryHash(username, code) {
+    return sha256(`${normalizeUsername(username)}:${cleanRecoveryCode(code)}`);
+  }
+  function storePendingRecovery(code) {
+    try { sessionStorage.setItem(PENDING_RECOVERY_KEY, code || ''); } catch (_) {}
+  }
+  function consumePendingRecovery() {
+    try {
+      const code = sessionStorage.getItem(PENDING_RECOVERY_KEY) || '';
+      sessionStorage.removeItem(PENDING_RECOVERY_KEY);
+      return code;
+    } catch (_) {
+      return '';
+    }
+  }
+  function authEmailForUsername(username, suffix = '') {
+    const clean = normalizeUsername(username);
+    return suffix ? `${clean}.${suffix}@${USERNAME_DOMAIN}` : usernameEmail(clean);
+  }
+  async function usernameRecord(username) {
+    const db = cloudDb();
+    const clean = normalizeUsername(username);
+    if (!db || !clean) return null;
+    const snap = await db.collection('usernames').doc(clean).get();
+    return snap.exists ? { id: clean, ...(snap.data() || {}) } : null;
+  }
+  async function saveUsernameRecord(account, extra = {}) {
+    const db = cloudDb();
+    const username = normalizeUsername(account?.username);
+    if (!db || !username) return;
+    await db.collection('usernames').doc(username).set({
+      username,
+      uid: account.uid || '',
+      authEmail: account.email || usernameEmail(username),
+      userId: account.userId || '',
+      characterId: account.character?.id || extra.characterId || '',
+      updatedAt: cloudNow(),
+      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
+      ...(extra.create ? { createdAt: cloudNow() } : {})
+    }, { merge: true });
+  }
+  async function resolveAuthEmail(username) {
+    const rec = await usernameRecord(username);
+    return rec?.authEmail || usernameEmail(username);
+  }
   function loadAccounts() {
     const accounts = readJson(ACCOUNTS_KEY, []);
     return Array.isArray(accounts) ? accounts : [];
@@ -255,7 +364,16 @@
   function normalizeAccount(account) {
     if (!account) return null;
     const character = account.character ? normalizeCharacter(account.character, account) : null;
-    return { email: account.email, userId: String(account.userId || genId4()).slice(0, 4), name: account.name || String(account.email || '').split('@')[0] || 'Hero', character };
+    const username = accountLogin(account);
+    return {
+      uid: account.uid || account.authUid || '',
+      provider: account.provider || account.authProvider || '',
+      username,
+      email: account.email || usernameEmail(username),
+      userId: String(account.userId || genId4()).replace(/\D/g, '').slice(0, 4) || genId4(),
+      name: account.name || username || 'Hero',
+      character
+    };
   }
   function normalizeCharacter(character, account = {}) {
     if (!character) return null;
@@ -300,6 +418,140 @@
     writeJson(AUTH_KEY, next);
     return next;
   }
+  function publicUserIdFromUid(uid) {
+    const hash = window.PointyLogic?.hashOf ? window.PointyLogic.hashOf(String(uid || 'user')) : [...String(uid || 'user')].reduce((sum, c) => ((sum * 31 + c.charCodeAt(0)) | 0), 7);
+    return String(Math.abs(hash) % 9000 + 1000).slice(0, 4);
+  }
+  async function allocateCloudUserId(uid) {
+    const db = cloudDb();
+    if (!db) return publicUserIdFromUid(uid);
+    const stable = publicUserIdFromUid(uid);
+    try {
+      const snap = await db.collection('users').where('userId', '==', stable).limit(1).get();
+      if (snap.empty || snap.docs.some(doc => doc.id === uid)) return stable;
+    } catch (_) {
+      return stable;
+    }
+    for (let i = 0; i < 16; i += 1) {
+      const id = genId4();
+      try {
+        const snap = await db.collection('users').where('userId', '==', id).limit(1).get();
+        if (snap.empty) return id;
+      } catch (_) {
+        return publicUserIdFromUid(uid);
+      }
+    }
+    return publicUserIdFromUid(uid);
+  }
+  function accountFromFirebaseUser(user, data = {}) {
+    const username = normalizeUsername(data.username || user?.displayName || String(user?.email || '').split('@')[0]);
+    return normalizeAccount({
+      uid: user?.uid || data.uid || '',
+      provider: 'firebase',
+      username,
+      email: user?.email || data.email || usernameEmail(username),
+      userId: data.userId || publicUserIdFromUid(user?.uid || username),
+      name: data.name || username || 'Hero',
+      character: data.character || null
+    });
+  }
+  async function saveCloudUser(account, extra = {}) {
+    const db = cloudDb();
+    if (!db || !account?.uid) return;
+    await db.collection('users').doc(account.uid).set({
+      uid: account.uid,
+      username: account.username,
+      email: account.email,
+      userId: account.userId,
+      name: account.name,
+      character: account.character || null,
+      characterId: account.character?.id || extra.characterId || '',
+      provider: 'firebase',
+      updatedAt: cloudNow(),
+      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
+      ...(extra.create ? { createdAt: cloudNow() } : {})
+    }, { merge: true });
+    await saveUsernameRecord(account, extra);
+  }
+  async function loadCloudAccount(user) {
+    const db = cloudDb();
+    if (!db || !user) return null;
+    const ref = db.collection('users').doc(user.uid);
+    const snap = await ref.get();
+    if (snap.exists) return accountFromFirebaseUser(user, snap.data() || {});
+    const username = normalizeUsername(user.displayName || String(user.email || '').split('@')[0]);
+    const account = normalizeAccount({
+      uid: user.uid,
+      provider: 'firebase',
+      username,
+      email: user.email || usernameEmail(username),
+      userId: await allocateCloudUserId(user.uid),
+      name: username || 'Hero',
+      character: null
+    });
+    await saveCloudUser(account, { create: true });
+    return account;
+  }
+  async function saveCloudCharacter(account, character) {
+    const db = cloudDb();
+    if (!db || !account?.uid || !character?.id) return;
+    const rec = normalizeCharacter(character, account);
+    await db.collection('characters').doc(rec.id).set({
+      ...rec,
+      ownerUid: account.uid,
+      userId: account.userId,
+      username: account.username,
+      accountName: account.name,
+      updatedAt: Date.now(),
+      createdAt: Date.now()
+    }, { merge: true });
+    await saveCloudUser({ ...account, character: rec }, { characterId: rec.id });
+  }
+  function authErrorMessage(err) {
+    const code = String(err?.code || '');
+    if (code.includes('email-already-in-use')) return s().authUserExists;
+    if (code.includes('user-not-found') || code.includes('invalid-credential') || code.includes('wrong-password')) return s().authUserMissing;
+    if (code.includes('weak-password')) return s().authWeakPassword;
+    if (code.includes('operation-not-allowed') || code.includes('configuration-not-found')) return 'Firebase Authentication ยังไม่ได้เปิดใน Firebase Console';
+    return s().authGeneric;
+  }
+  async function recoverWithCode(username, code, password) {
+    const clean = normalizeUsername(username);
+    if (!clean || !password) throw new Error('missing');
+    const rec = await usernameRecord(clean);
+    if (!rec?.recoveryHash) throw new Error('bad-recovery-code');
+    const hash = await recoveryHash(clean, code);
+    if (hash !== rec.recoveryHash) throw new Error('bad-recovery-code');
+    const db = cloudDb();
+    const oldUser = rec.uid ? await db.collection('users').doc(rec.uid).get().then(snap => snap.exists ? snap.data() : {}) : {};
+    const authEmail = authEmailForUsername(clean, `r${Date.now().toString(36)}`);
+    const cred = await cloudAuth().createUserWithEmailAndPassword(authEmail, password);
+    await cred.user.updateProfile({ displayName: clean });
+    const newRecoveryCode = recoveryCodeValue();
+    const next = normalizeAccount({
+      ...(oldUser || {}),
+      uid: cred.user.uid,
+      provider: 'firebase',
+      username: clean,
+      email: authEmail,
+      userId: oldUser?.userId || rec.userId || await allocateCloudUserId(cred.user.uid),
+      name: oldUser?.name || clean,
+      character: oldUser?.character || null
+    });
+    const newRecoveryHash = await recoveryHash(clean, newRecoveryCode);
+    await saveCloudUser(next, { create: true, recoveryHash: newRecoveryHash, recoveryIssuedAt: Date.now(), characterId: next.character?.id || rec.characterId || '' });
+    if (next.character?.id) {
+      await db.collection('characters').doc(next.character.id).set({
+        ownerUid: next.uid,
+        userId: next.userId,
+        username: next.username,
+        accountName: next.name,
+        updatedAt: Date.now()
+      }, { merge: true });
+    }
+    storePendingRecovery(newRecoveryCode);
+    return saveAuth(next);
+  }
   function clearAuth() {
     try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
   }
@@ -309,9 +561,13 @@
   function accountCharacter(account = loadAccount()) {
     return normalizeCharacter(account?.character, account) || { id: account?.userId || '3720', name: account?.name || 'Hero', class: 'dragoon', cls: 'dragoon', gender: 'male', skin: '' };
   }
-  function signOut() {
+  async function signOut() {
+    if (realAuthEnabled()) {
+      try { await cloudAuth()?.signOut?.(); } catch (_) {}
+    }
     clearAuth();
     closeOverlay();
+    loginMode = 'in';
     refresh({ toast: false });
     showLoginGate();
   }
@@ -737,6 +993,71 @@
     loginGate = null;
     document.body.classList.remove('login-locked');
   }
+  function showRecoveryCode(code) {
+    if (!code) return;
+    mountOverlay(`<div class="rem-overlay"><div class="rem-panel recovery-panel">
+      <div class="rem-head"><span class="rem-title">🔐 ${h(s().recoveryTitle)}</span><button class="picker-close sm" type="button" data-close>✕</button></div>
+      <div class="recovery-body">
+        <p>${h(s().recoverySub)}</p>
+        <div class="recovery-code mono">${h(code)}</div>
+        <div class="pdb-actions"><button class="btn-ghost sm" type="button" data-copy-recovery>📋 ${h(s().copyRecovery)}</button><button class="btn-primary sm" type="button" data-close>${h(s().recoverySaved)}</button></div>
+      </div>
+    </div></div>`);
+    overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
+    overlay.querySelector('[data-copy-recovery]')?.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(code); showMiniToast(s().copyRecovery); } catch (_) {}
+    });
+  }
+  function showRecoveryReset() {
+    if (!realAuthEnabled()) return;
+    const copy = STR[loginLanguage()];
+    if (!loginGate) {
+      loginGate = document.createElement('div');
+      loginGate.className = 'login-gate';
+      document.body.appendChild(loginGate);
+    }
+    document.body.classList.add('login-locked');
+    loginGate.innerHTML = `<div class="login-wrap">
+      <form class="login-card" data-recovery-form>
+        <div class="login-crest" aria-hidden="true"><span>🔐</span></div>
+        <h1 class="login-title">${h(copy.resetTitle)}</h1>
+        <p class="login-sub">${h(copy.resetSub)}</p>
+        <label class="login-field"><span>${h(copy.loginEmail)}</span><input type="text" autocomplete="username" data-recovery-username placeholder="${h(copy.loginEmailPlaceholder)}"></label>
+        <label class="login-field"><span>${h(copy.recoveryCode)}</span><input type="text" autocomplete="one-time-code" data-recovery-code placeholder="XXXX-XXXX-XXXX"></label>
+        <label class="login-field"><span>${h(copy.newPassword)}</span><input type="password" autocomplete="new-password" data-recovery-password placeholder="${h(copy.loginPasswordPlaceholder)}"></label>
+        <div class="login-err" data-recovery-error hidden></div>
+        <button type="submit" class="login-btn">🔑 ${h(copy.resetConfirm)}</button>
+        <button type="button" class="btn-ghost sm" data-back-login style="width:100%;margin-top:10px">${h(copy.loginSignIn)}</button>
+      </form>
+    </div>`;
+    const form = loginGate.querySelector('[data-recovery-form]');
+    const error = loginGate.querySelector('[data-recovery-error]');
+    const setError = text => {
+      error.hidden = !text;
+      error.textContent = text ? `⚠️ ${text}` : '';
+    };
+    loginGate.querySelector('[data-back-login]').addEventListener('click', () => { loginMode = 'in'; showLoginGate(); });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const submit = form.querySelector('.login-btn');
+      try {
+        submit.disabled = true;
+        const account = await recoverWithCode(
+          form.querySelector('[data-recovery-username]')?.value,
+          form.querySelector('[data-recovery-code]')?.value,
+          form.querySelector('[data-recovery-password]')?.value
+        );
+        removeLoginGate();
+        profile = tickStreak();
+        refresh({ toast: false });
+        showRecoveryCode(consumePendingRecovery());
+        if (!account.character) showCharacterCreation(account);
+      } catch (err) {
+        submit.disabled = false;
+        setError(String(err?.message || '').includes('bad-recovery-code') ? copy.resetBadCode : authErrorMessage(err));
+      }
+    });
+  }
   function showLoginGate() {
     const existingAuth = loadAuth();
     if (existingAuth?.character) {
@@ -751,6 +1072,7 @@
     const copy = STR[langKey];
     const theme = currentTheme();
     const isSignup = loginMode === 'up';
+    const real = realAuthEnabled();
     if (!loginGate) {
       loginGate = document.createElement('div');
       loginGate.className = 'login-gate';
@@ -777,7 +1099,7 @@
         </label>` : ''}
         <label class="login-field">
           <span>${h(copy.loginEmail)}</span>
-          <input type="email" autocomplete="username" data-login-email placeholder="${h(copy.loginEmailPlaceholder)}">
+          <input type="text" autocomplete="username" data-login-email placeholder="${h(copy.loginEmailPlaceholder)}">
         </label>
         <label class="login-field">
           <span>${h(copy.loginPassword)}</span>
@@ -789,15 +1111,16 @@
         </label>` : ''}
         <div class="login-err" data-login-error hidden></div>
         <button type="submit" class="login-btn">${isSignup ? '✨ ' + h(copy.signupCreate) : '⚔️ ' + h(copy.loginEnter)}</button>
-        ${!isSignup ? `<div class="login-demo">
+        ${!isSignup && !real ? `<div class="login-demo">
           <div class="login-demo-h">${h(copy.loginDemo)}</div>
           <div class="login-demo-list">
-            ${DUMMY_ACCOUNTS.map(account => `<button type="button" class="login-demo-acct" data-demo-email="${h(account.email)}" data-demo-password="${h(account.password)}">
-              <b>${h(account.name)}</b><span>${h(account.email)}</span><i>${h(classLabel(account.character?.class || account.character?.cls))} · ID ${h(account.userId)}</i>
+            ${DUMMY_ACCOUNTS.map(account => `<button type="button" class="login-demo-acct" data-demo-email="${h(account.username || accountLogin(account))}" data-demo-password="${h(account.password)}">
+              <b>${h(account.name)}</b><span>@${h(account.username || accountLogin(account))}</span><i>${h(classLabel(account.character?.class || account.character?.cls))} · ID ${h(account.userId)}</i>
             </button>`).join('')}
           </div>
         </div>` : ''}
-        <div class="login-note">🔒 ${h(copy.loginNote)}</div>
+        ${!isSignup && real ? `<button type="button" class="btn-ghost sm" data-forgot-password style="width:100%;margin-top:10px">${h(copy.forgotPassword)}</button>` : ''}
+        <div class="login-note">🔒 ${h(real ? copy.loginNoteReal : copy.loginNote)}</div>
       </form>
     </div>`;
     const name = loginGate.querySelector('[data-login-name]');
@@ -809,29 +1132,79 @@
       error.hidden = !text;
       error.textContent = text ? `⚠️ ${text}` : '';
     };
-    loginGate.querySelector('[data-login-form]').addEventListener('submit', event => {
+    loginGate.querySelector('[data-login-form]').addEventListener('submit', async event => {
       event.preventDefault();
-      const em = String(email.value || '').trim();
+      const loginName = normalizeUsername(email.value || '');
+      const em = real ? usernameEmail(loginName) : String(email.value || '').trim();
       const pw = String(password.value || '');
+      const submit = loginGate.querySelector('.login-btn');
+      const setBusy = on => {
+        if (submit) submit.disabled = !!on;
+        if (email) email.disabled = !!on;
+        if (password) password.disabled = !!on;
+        if (name) name.disabled = !!on;
+        if (password2) password2.disabled = !!on;
+      };
       if (isSignup) {
         const display = String(name?.value || '').trim();
         const pw2 = String(password2?.value || '');
         if (!display) { setError(copy.signupNameMissing); return; }
-        if (!em || !pw) { setError(copy.loginEmpty); return; }
+        if (!loginName || !pw) { setError(copy.loginEmpty); return; }
         if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
         if (pw !== pw2) { setError(copy.signupPasswordMismatch); return; }
-        if (allAccounts().some(account => account.email.toLowerCase() === em.toLowerCase())) { setError(copy.signupTaken); return; }
-        const account = { email: em, password: pw, userId: genId4(), name: display, character: null };
+        if (real) {
+          try {
+            setBusy(true);
+            const existing = await usernameRecord(loginName);
+            if (existing) throw Object.assign(new Error('username exists'), { code: 'auth/email-already-in-use' });
+            const recoveryCode = recoveryCodeValue();
+            const recovery = await recoveryHash(loginName, recoveryCode);
+            const cred = await cloudAuth().createUserWithEmailAndPassword(em, pw);
+            await cred.user.updateProfile({ displayName: loginName });
+            const account = normalizeAccount({ uid: cred.user.uid, provider: 'firebase', username: loginName, email: em, userId: await allocateCloudUserId(cred.user.uid), name: display, character: null });
+            await saveCloudUser(account, { create: true, recoveryHash: recovery, recoveryIssuedAt: Date.now() });
+            storePendingRecovery(recoveryCode);
+            saveAuth(account);
+            showCharacterCreation(account);
+          } catch (err) {
+            setError(authErrorMessage(err));
+            setBusy(false);
+          }
+          return;
+        }
+        if (allAccounts().some(account => accountLogin(account) === loginName || String(account.email || '').toLowerCase() === em.toLowerCase())) { setError(copy.signupTaken); return; }
+        const account = { username: loginName, email: em || usernameEmail(loginName), password: pw, userId: genId4(), name: display, character: null };
         saveAccounts([...loadAccounts(), account]);
         saveAuth(account);
         showCharacterCreation(account);
         return;
       }
-      if (!em || !pw) {
+      if (!loginName || !pw) {
         setError(copy.loginEmpty);
         return;
       }
-      const account = allAccounts().find(item => item.email.toLowerCase() === em.toLowerCase());
+      if (real) {
+        try {
+          setBusy(true);
+          const authEmail = await resolveAuthEmail(loginName);
+          const cred = await cloudAuth().signInWithEmailAndPassword(authEmail, pw);
+          const next = saveAuth(await loadCloudAccount(cred.user));
+          if (!next.character) {
+            showCharacterCreation(next);
+            return;
+          }
+        } catch (err) {
+          setError(authErrorMessage(err));
+          setBusy(false);
+          return;
+        }
+        removeLoginGate();
+        profile = tickStreak();
+        refresh({ toast: false });
+        if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
+        return;
+      }
+      const account = allAccounts().find(item => accountLogin(item) === loginName || String(item.email || '').toLowerCase() === em.toLowerCase());
       if (account) {
         if (account.password !== pw) {
           setError(copy.loginError);
@@ -843,7 +1216,7 @@
           return;
         }
       } else {
-        const next = saveAuth({ email: em, userId: mockUserId(em), name: em.split('@')[0] || 'Hero', character: null });
+        const next = saveAuth({ username: loginName, email: usernameEmail(loginName), userId: mockUserId(loginName), name: loginName || 'Hero', character: null });
         showCharacterCreation(next);
         return;
       }
@@ -858,6 +1231,7 @@
       setError('');
       email.focus();
     }));
+    loginGate.querySelector('[data-forgot-password]')?.addEventListener('click', showRecoveryReset);
     loginGate.querySelectorAll('[data-login-tab]').forEach(btn => btn.addEventListener('click', () => {
       loginMode = btn.dataset.loginTab === 'up' ? 'up' : 'in';
       showLoginGate();
@@ -920,6 +1294,7 @@
             <span>${h(copy.charName)}</span>
             <input type="text" autocomplete="nickname" data-char-name value="${h(base.name || '')}" placeholder="${h(copy.charNamePlaceholder)}">
           </label>
+          <div class="login-err" data-char-error hidden></div>
           <button type="submit" class="login-btn" ${pickedClass ? '' : 'disabled'}>⚔️ ${h(copy.charCreate)}</button>
         </form>
         ${pickerOpen ? renderPicker() : ''}
@@ -954,16 +1329,33 @@
           </div>
         </div>`;
       }
-      loginGate.querySelector('[data-char-form]').addEventListener('submit', event => {
+      loginGate.querySelector('[data-char-form]').addEventListener('submit', async event => {
         event.preventDefault();
         if (!pickedClass || !pickedGender) {
           pickerOpen = true;
           render();
           return;
         }
+        const error = loginGate.querySelector('[data-char-error]');
+        const submit = loginGate.querySelector('.login-btn');
+        const setError = text => {
+          if (!error) return;
+          error.hidden = !text;
+          error.textContent = text ? `⚠️ ${text}` : '';
+        };
         const charName = String(loginGate.querySelector('[data-char-name]')?.value || '').trim() || base.name || 'Hero';
         const character = persistCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' });
         const next = saveAuth({ ...base, character });
+        if (realAuthEnabled() && next.uid) {
+          try {
+            if (submit) submit.disabled = true;
+            await saveCloudCharacter(next, character);
+          } catch (err) {
+            if (submit) submit.disabled = false;
+            setError(authErrorMessage(err));
+            return;
+          }
+        }
         const accounts = loadAccounts();
         const idx = accounts.findIndex(item => item.email.toLowerCase() === String(base.email || '').toLowerCase());
         if (idx >= 0) {
@@ -973,6 +1365,7 @@
         removeLoginGate();
         profile = tickStreak();
         refresh({ toast: false });
+        showRecoveryCode(consumePendingRecovery());
         if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
       });
       loginGate.querySelector('[data-char-open-picker]')?.addEventListener('click', () => {
@@ -1117,7 +1510,7 @@
             ${avatarMarkup(slayer, 'pda-ava')}
             <span class="pda-info">
               <b>${h(account.name || 'Pointy')}</b>
-              <span class="pda-email">${h(account.email || 'pointy@line.me')}</span>
+              <span class="pda-email">@${h(account.username || accountLogin(account) || 'pointy')}</span>
               <span class="pda-uid">${h(s().userId)} · ${h(account.userId || '3720')}</span>
             </span>
           </div>
@@ -1193,9 +1586,42 @@
     }
     renderTopbar();
   }
+  let authWatcherStarted = false;
+  function watchFirebaseAuth() {
+    if (authWatcherStarted || !realAuthEnabled()) return;
+    const auth = cloudAuth();
+    if (!auth?.onAuthStateChanged) return;
+    authWatcherStarted = true;
+    auth.onAuthStateChanged(async user => {
+      if (!user) {
+        const current = readJson(AUTH_KEY, null);
+        if (current?.provider === 'firebase') {
+          clearAuth();
+          refresh({ toast: false });
+          showLoginGate();
+        }
+        return;
+      }
+      try {
+        const account = await loadCloudAccount(user);
+        if (!account) return;
+        saveAuth(account);
+        if (account.character) {
+          removeLoginGate();
+          profile = tickStreak();
+          refresh({ toast: false });
+        } else {
+          showCharacterCreation(account);
+        }
+      } catch (err) {
+        console.warn('Firebase account sync failed', err);
+      }
+    });
+  }
   function init() {
     ensureTopbar();
     setupTheme();
+    watchFirebaseAuth();
     if (loadAuth()) profile = tickStreak();
     else profile = loadProfile();
     refresh({ toast: false });
