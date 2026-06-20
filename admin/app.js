@@ -994,7 +994,7 @@ function renderUserDetail(id) {
   const deleteReady = TEST_MODE || adminBackendStatus.adminDeleteConfigured;
   const deleteDisabled = deleteReady ? '' : 'disabled';
   const deleteHint = deleteReady
-    ? 'Requests backend deletion of Auth user, user mapping, character ownership, and username record.'
+    ? 'Requests backend deletion of Auth user, username mapping, character ownership, and legacy board references.'
     : adminDeleteBackendNote();
   const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor(u.status)}</div><hr class="hr"><div class="kv">
     <div class="kv-row"><span class="k">Overall level (Renown)</span><span class="v"><b>LV ${userLevel(u)}</b> · ${renown.toLocaleString()}</span></div>
@@ -1285,7 +1285,7 @@ function showPermanentDeleteModal(userId) {
     return;
   }
   const confirmText = `DELETE ${u.userId}`;
-  portalModal('🗑️ Permanent delete request', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>This action is backend-only. The browser sends your Google-auth ID token; only ${h(SUPER_ADMIN_EMAIL)} is accepted.</span></div><div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}${u.username ? ' · @' + h(u.username) : ''}" readonly></div><div class="field"><label>Reason</label><textarea id="delete-reason" rows="3" placeholder="Required audit reason"></textarea></div><div class="field"><label>Type to confirm</label><input id="delete-confirm" class="mono" placeholder="${h(confirmText)}"><div class="hint">This requests deletion of Auth uid, user doc, username mapping, and character owner links.</div></div><div class="login-err" id="delete-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="performPermanentDeleteRequest(${q(userId)})">Request permanent delete</button>`);
+  portalModal('🗑️ Permanent delete request', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>This action is backend-only. The browser sends your Google-auth ID token; only ${h(SUPER_ADMIN_EMAIL)} is accepted.</span></div><div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}${u.username ? ' · @' + h(u.username) : ''}" readonly></div><div class="field"><label>Reason</label><textarea id="delete-reason" rows="3" placeholder="Required audit reason"></textarea></div><div class="field"><label>Type to confirm</label><input id="delete-confirm" class="mono" placeholder="${h(confirmText)}"><div class="hint">This deletes Auth-linked account data when a UID exists, and also cleans no-auth legacy board/character references that cannot work with the current account flow.</div></div><div class="login-err" id="delete-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="performPermanentDeleteRequest(${q(userId)})">Request permanent delete</button>`);
 }
 async function performPermanentDeleteRequest(userId) {
   const u = userById(userId);
@@ -1304,6 +1304,8 @@ async function performPermanentDeleteRequest(userId) {
     userId: u.userId,
     uid: u.uid || '',
     username: u.username || '',
+    displayName: u.name || '',
+    email: u.email || '',
     characterIds: u.chars.map(c => c.id).filter(Boolean),
     reason
   };
