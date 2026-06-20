@@ -713,3 +713,112 @@ test('home view opens user modules and treasury logs expenses', async ({ page })
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
 });
+
+test('all player modules and admin portal keep their mobile and tablet responsive shells', async ({ page }, testInfo) => {
+  const isPhone = testInfo.project.name === 'mobile';
+  const isTablet = testInfo.project.name === 'tablet';
+  test.skip(!isPhone && !isTablet, 'Dedicated mobile/tablet responsive smoke test.');
+  test.setTimeout(45_000);
+
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'mobile-smoke-uid',
+      username: 'mobile.smoke',
+      email: 'mobile.smoke@coinquest.local',
+      userId: '7777',
+      name: 'Mobile Smoke',
+      character: { id: '7777', name: 'Mobile Smoke', class: 'archfiend', cls: 'archfiend', gender: 'male' }
+    }));
+    localStorage.setItem('pointy_character_registry_v1::acct:mobile-smoke-uid', JSON.stringify({
+      '7777': { id: '7777', name: 'Mobile Smoke', class: 'archfiend', gender: 'male', xp: 0 }
+    }));
+    sessionStorage.setItem('pointy_test_trip_9901', JSON.stringify({
+      tripName: 'Mobile Board',
+      participants: ['Mobile Smoke'],
+      characterIds: { 'Mobile Smoke': '7777' },
+      heroClasses: { 'Mobile Smoke': 'archfiend' },
+      heroGenders: { 'Mobile Smoke': 'male' },
+      expenses: [],
+      admin: { ownerHash: 'mobile-owner', adminId: 'ADM-MOBILE', adminName: 'Mobile Smoke', characterId: '7777', passwordHash: 'hash', urlLocked: true },
+      updatedAt: 100
+    }));
+  });
+
+  const assertNoOverflow = async () => {
+    await page.waitForLoadState('domcontentloaded');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    expect(overflow).toBe(false);
+  };
+  const assertPlayerShell = async () => {
+    if (isPhone) {
+      await expect(page.locator('.tb-burger')).toBeVisible();
+      await expect(page.locator('.mtabbar')).toBeVisible();
+    } else {
+      await expect(page.locator('.tb-burger')).toBeHidden();
+      await expect(page.locator('.mtabbar')).toBeHidden();
+      await expect(page.locator('.topbar')).toBeVisible();
+    }
+    await assertNoOverflow();
+  };
+
+  await page.goto('/?test=1');
+  await expect(page.getByRole('heading', { name: 'Coin Quest Ledger' })).toBeVisible();
+  await assertPlayerShell();
+
+  await page.goto('/?view=compare&test=1');
+  await expect(page.locator('#cmp-grid')).toBeVisible();
+  if (isTablet) {
+    const cols = await page.locator('#cmp-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+    expect(cols).toBe(1);
+  }
+  await assertPlayerShell();
+
+  await page.goto('/trip/?id=9901&test=1');
+  await expect(page.getByRole('heading', { name: 'แบ่งค่าใช้จ่าย' })).toBeVisible();
+  await assertPlayerShell();
+
+  await page.goto('/debt/?test=1');
+  await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
+  await assertPlayerShell();
+
+  await page.goto('/treasury/?test=1');
+  await expect(page.getByRole('heading', { name: /คลังหลวง|Personal Treasury/ })).toBeVisible();
+  await assertPlayerShell();
+
+  await page.goto('/character/?id=7777&test=1');
+  await expect(page.getByRole('heading', { name: 'Mobile Smoke' })).toBeVisible();
+  await expect(page.locator('.cnav')).toBeVisible();
+  await assertNoOverflow();
+
+  await page.goto('/admin/?test=1');
+  await page.locator('#gate-pass').fill('portal-pass');
+  await page.getByRole('button', { name: 'Set & Unlock' }).click();
+  await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.locator('.sidebar')).toBeVisible();
+  await expect(page.locator('.sidebar')).toHaveCSS('flex-direction', 'row');
+  await expect(page.locator('.nav-item').first()).toBeVisible();
+  if (isTablet) {
+    const navHeight = await page.locator('.nav-item').first().evaluate(el => el.getBoundingClientRect().height);
+    expect(navHeight).toBeGreaterThanOrEqual(44);
+    await page.getByRole('button', { name: 'Relationship Map' }).click();
+    await expect(page.locator('.relmap')).toBeVisible();
+    const relCols = await page.locator('.relmap').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+    expect(relCols).toBe(1);
+  }
+  await assertNoOverflow();
+
+  await page.getByRole('button', { name: 'Users' }).click();
+  await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: '+ Add user' }).click();
+  await expect(page.locator('.modal-bg.show')).toBeVisible();
+  if (isPhone) {
+    await expect(page.locator('.floating-modal')).toHaveCSS('bottom', '0px');
+    await expect(page.locator('.floating-modal')).toHaveCSS('border-top-left-radius', '18px');
+  } else {
+    const addUserHeight = await page.getByRole('button', { name: '+ Add user' }).evaluate(el => el.getBoundingClientRect().height);
+    expect(addUserHeight).toBeGreaterThanOrEqual(44);
+  }
+  await assertNoOverflow();
+});

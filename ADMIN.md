@@ -471,6 +471,13 @@ The current live Admin Portal now covers the major newer-source structure for
 Dashboard, Relationship Map, Boards, Users, Board Admins, Audit Log, Version
 Control, Support Tools, tabs, modal shells, and mobile/tablet table behavior.
 It is still static/no-build and should continue to preserve live persistence.
+The mobile responsive layer now follows the latest Admin mobile export: the
+sidebar becomes a horizontal scroll nav below `1000px`, topbar/page actions
+compress below `760px`, dense tables scroll horizontally, and modals present as
+bottom sheets on phone widths.
+The tablet/touch layer is included: Relationship Map stacks below `900px`, and
+coarse-pointer Admin tablets at `min-width: 761px` get 44px nav/button/ID-chip
+targets plus roomier table rows.
 
 Likely gaps to close later:
 
@@ -479,7 +486,7 @@ Likely gaps to close later:
   export.
 - Deeper board version restore semantics beyond the current revision model.
 - Richer audit diff payloads.
-- Full responsive parity with prototype.
+- Fine visual tuning against future fresh Admin mobile exports.
 - Real backend-backed permissions.
 
 ## Persistence Caution
@@ -517,6 +524,10 @@ Focused browser checks should include:
 - `/admin/` desktop.
 - `/admin/` tablet.
 - `/admin/` mobile.
+- `/admin/` mobile Users and Add User modal, specifically checking horizontal
+  admin nav and bottom-sheet modal behavior.
+- `/admin/` tablet Relationship Map, specifically checking one-column stack,
+  horizontal admin nav, 44px touch targets, and no overflow.
 - Login gate does not expose admin data before unlock.
 - Boards list renders split, debt, and treasury board types.
 - Board detail opens and returns.

@@ -124,11 +124,16 @@ Known mobile coverage from references:
 - Character standalone includes mobile CSS, but not shared app drawer/bottom tab integration.
 - Party Ledger/HomeView references include the mobile shell concept.
 - Live shared mobile shell currently covers Home/Compare, Split, Debt Dragon, and Treasury.
+- Live tablet/touch support follows the 2026-06-20 Claude exports: player modules keep desktop/tablet topbars above `600px`, add coarse-pointer 44px hit targets, and use `601-820px` grid refinements where needed.
+- Live Admin Portal follows the latest Admin mobile/tablet export pattern: horizontal scroll admin nav under `1000px`, Relationship Map stack under `900px`, compressed topbar/actions under `760px`, scrollable dense tables, 44px tablet touch targets, and phone bottom-sheet modals.
 
 Open mobile decisions:
 
 - Whether Character Profile should stay standalone with `cnav` or also include shared mobile shell.
-- Whether Admin Portal should get a separate admin-specific mobile navigation or remain utility/table-first.
+
+Closed mobile decisions:
+
+- Admin Portal keeps admin-specific navigation rather than adopting the player bottom tab bar. The player shell is for Home/Compare, Split, Debt, Prices, and Treasury phone widths only; tablet keeps the desktop/topbar model with touch-comfort CSS.
 
 ## Inspection Tips
 

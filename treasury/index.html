@@ -134,6 +134,21 @@
       .banner-title { font-size: 31px; }
       .hoard-bar, .main-grid, .ward-grid, .form-grid.two { grid-template-columns: 1fr; }
     }
+    @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+      .tb-link { padding: 9px 16px; }
+      .tb-back { min-height: 44px; }
+      .lang-toggle button,
+      .theme-toggle,
+      .profile-badge,
+      .rem-bell,
+      .btn-primary,
+      .btn-ghost,
+      .btn-danger,
+      .btn-gold {
+        min-height: 44px;
+      }
+      .ward-card { cursor: default; }
+    }
   </style>
 </head>
 <body>

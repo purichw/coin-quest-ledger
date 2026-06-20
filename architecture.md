@@ -71,6 +71,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - Files: `admin/index.html`, `admin/app.js`, `admin/admin.css`
 - Route: `/admin/`
 - Phase 1 admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, and relationship views.
+- Responsive model is admin-specific: below `1000px` the sidebar becomes a horizontal scroll nav; below `900px` Relationship Map stacks; below `760px` topbar/actions compress, dense tables scroll, and modals render as bottom sheets; coarse-pointer tablets get 44px touch targets.
 - Gate is local browser state only. Real private admin access requires Firebase Auth and Firestore Security Rules.
 
 ## Shared Modules
@@ -80,7 +81,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `shared/firebase-client.js`: shared Firebase app/Auth/Firestore initializer for static pages.
 - `shared/account-scope.js`: account-scoped local storage helper. Module progress/cache keys derive from the active `pointy_auth_v1` account (`uid`, then User ID, then username) so a signed-in account does not inherit stale browser-wide progress.
 - `shared/profile-hub.js` / `.css`: username/password Sign In/Sign Up, Firebase Auth + Firestore user/character binding in production, local mock fallback for tests, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
-- `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury.
+- `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury. Tablet/touch remains CSS-only in each surface plus shared profile CSS.
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.
 

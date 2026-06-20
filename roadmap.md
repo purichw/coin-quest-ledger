@@ -1,6 +1,6 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 
 ## North Star
 
@@ -19,6 +19,7 @@ Done recently:
 - Leveling canon v0 established in `leveling-canon.md` and centralized in `shared/pointy-logic.js` before reward recalibration.
 - Newer Claude Admin source set workback started: Relationship Map, Board Detail tabs/scroll layout, Users/User Detail, Audit Log, Version Control, Support Tools, modal shells, and desktop/tablet/mobile Admin E2E coverage are aligned with the current static implementation.
 - Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
+- Latest responsive pass is implemented: Home/Compare, Split, Debt, Treasury use the shared phone shell at `<=600px`; tablet/touch keeps desktop topbars with 44px hit targets and `601-820px` grid refinements; Character Profile keeps its standalone `cnav`; Admin Portal uses the Claude mobile/tablet export pattern with horizontal admin nav, Relationship Map stacking, compressed phone actions, scrollable dense tables, and phone bottom-sheet modals.
 - Production domain verified at `https://coin-quest-ledger.vercel.app`.
 
 Known constraints:
@@ -36,6 +37,7 @@ Known constraints:
 - The latest Claude handoff specifies a profile side panel full-profile entry; the live shared profile drawer now links to `/character/?id=####`.
 - Current loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`; real users get a Firebase Auth `uid`, public four-digit User ID, and active Character ID.
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
+- Admin Portal mobile/tablet decision: keep admin-specific horizontal navigation, not the player bottom tab bar. This matches the latest Admin mobile/tablet export and keeps dense admin tables/tooling usable.
 - Phase 1 Admin is still a local/browser gate only. Player login has Firebase Auth support and deployed Firestore rules, but private admin access still needs a real Super Admin allowlist and stricter rules before it is a complete security boundary.
 - Signed-in progress is account-scoped, not browser-scoped. `shared/account-scope.js` derives local module/cache keys from the active account so new real users start at LV1/0 Renown even if the same browser has legacy demo progress.
 - Admin Users now merges Firestore `users/{uid}` records with board-derived participants/admin roles, so real accounts with no board membership still appear in the portal.
@@ -82,8 +84,9 @@ Goal: all core modules respect the Claude mobile model without duplicating shell
 
 Work:
 
-- Audit Home/Compare, Split, Debt, Treasury, Character, and Admin mobile behavior against supplied Claude/mobile references.
-- Keep shared phone drawer/bottom tabs centralized in `shared/mobile-shell.*`.
+- Keep Home/Compare, Split, Debt, Treasury phone drawer/bottom tabs centralized in `shared/mobile-shell.*`.
+- Keep tablet/touch polish as CSS media rules, not separate tablet files: `hover:none` / `pointer:coarse` with `min-width:601px` for player modules and `min-width:761px` for Admin.
+- Keep Admin Portal's admin-specific responsive nav, Relationship Map stack, and phone bottom-sheet modal rules in `admin/admin.css`.
 - Decide whether Character Profile should adopt shared mobile shell or remain a standalone profile page with its own nav.
 - Check text fitting, no horizontal overflow, and no overlapping controls at `390px`, `360px`, tablet, and desktop.
 

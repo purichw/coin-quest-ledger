@@ -368,6 +368,32 @@
       .settings-row { align-items: stretch; flex-direction: column; }
       .seg { overflow-x: auto; }
     }
+    @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+      .tb-link { padding: 9px 16px; }
+      .tb-back { min-height: 44px; }
+      .lang-toggle button,
+      .theme-toggle,
+      .profile-badge,
+      .rem-bell,
+      .btn-primary,
+      .btn-ghost,
+      .btn-danger,
+      .seg button,
+      .df-seg button,
+      .icon-mini,
+      .settings-fab {
+        min-height: 44px;
+      }
+      .gender-toggle button { width: 44px; min-height: 38px; }
+      .record-grid,
+      .df-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .dragon-card,
+      button.dc-log-row {
+        cursor: default;
+      }
+    }
   </style>
 </head>
 <body>

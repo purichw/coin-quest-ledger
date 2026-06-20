@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 
 ## Project
 
@@ -86,7 +86,7 @@ The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now sp
 
 `trip/app.js` owns the shell event delegation and the expense-entry dynamic controls. Some dynamic hero/admin/overlay renderers still use inline handlers; do not rewrite all of them casually unless doing a focused refactor with full tests.
 
-Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
+Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. Tablet/touch uses the Claude `hover:none` / `pointer:coarse` tier from the 2026-06-20 exports: larger 44px tap targets, single-column Compare cards at `601-820px`, and module-specific touch polish without adopting the phone shell. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
 
 The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production, while preserving local mock fallback for tests. Users type a username, not a real email; `profile-hub` maps it to an internal `username@coinquest.local` Firebase Auth email, creates/loads `users/{uid}`, routes accounts without a character through one-time Character Creation, writes the active character to `characters/{id}`, and mirrors the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
 
@@ -126,7 +126,7 @@ Party Ledger stores admin ownership metadata under `state.admin`:
 
 The trip UI now asks for Board Admin ID and nickname when creating/admin-setting a board, and remembers the creator profile locally for convenience. Same Admin ID can intentionally own multiple boards.
 
-Phase 1 Super Admin Portal lives at `/admin/`. It now follows the newer Claude Admin source set for Dashboard, Relationship Map, Boards, Users, Board Admins, Audit Log, Version Control, Support Tools, tabs, modal shells, and responsive table behavior. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/active character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, show revision/audit logs, and rotate a real username account to a temporary password while preserving User ID/Character ID. Phase 1 gate is local only and is not real security. True "คนนอกเข้าไม่ได้เลย" requires Phase 2 Super Admin authentication/allowlist and stricter Firestore Security Rules.
+Phase 1 Super Admin Portal lives at `/admin/`. It now follows the newer Claude Admin source set for Dashboard, Relationship Map, Boards, Users, Board Admins, Audit Log, Version Control, Support Tools, tabs, modal shells, and responsive table behavior. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/active character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, show revision/audit logs, and rotate a real username account to a temporary password while preserving User ID/Character ID. Mobile/tablet Admin follows the latest Claude export: below `1000px` the sidebar becomes a horizontal scroll nav, below `900px` Relationship Map stacks, below `760px` headers/actions compress and modals become bottom sheets, and coarse-pointer tablet gets 44px nav/button/ID-chip targets. Phase 1 gate is local only and is not real security. True "คนนอกเข้าไม่ได้เลย" requires Phase 2 Super Admin authentication/allowlist and stricter Firestore Security Rules.
 
 ## Character Profiles
 
@@ -183,6 +183,7 @@ Use the lightest verification that fits the requested mode:
 - Production Patch: full `npm test`.
 - Responsive-sensitive changes should be checked on desktop, tablet, and mobile. Playwright now has projects for `chromium`, `tablet` (`820 x 1180`), and `mobile`.
 - Changes to `shared/mobile-shell.*` require at least Home/Compare, Split, Debt Dragon, and Treasury mobile checks, plus a desktop smoke check to confirm the burger/tab bar remain hidden.
+- The E2E test `all player modules and admin portal keep their mobile and tablet responsive shells` is the current phone/tablet smoke guard for Home, Compare, Split, Debt, Treasury, Character Profile, Admin horizontal nav, Admin Relationship Map stacking, and Admin phone bottom-sheet behavior.
 
 Available commands:
 

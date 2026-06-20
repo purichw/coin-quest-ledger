@@ -524,6 +524,28 @@
       .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
       .vc-recap { flex-wrap: wrap; }
     }
+    @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+      .tb-link { padding: 9px 16px; }
+      .tb-back { min-height: 44px; }
+      .lang-toggle button,
+      .theme-toggle,
+      .profile-badge,
+      .rem-bell,
+      .btn-primary,
+      .btn-gold,
+      .btn-ghost,
+      .btn-tool,
+      .seg button,
+      .chip-all {
+        min-height: 44px;
+      }
+      .icon-btn { width: 52px; height: 52px; }
+      .hero-card,
+      .quest-row,
+      .tribute {
+        cursor: default;
+      }
+    }
   </style>
 </head>
 <body>

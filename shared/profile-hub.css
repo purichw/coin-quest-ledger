@@ -1172,6 +1172,29 @@ body[data-theme="dungeon"] {
   .pb-lvl { font-size: 12px; }
   .pb-streak { display: none; }
 }
+@media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+  .theme-toggle,
+  .rem-bell,
+  .profile-badge,
+  .pd-fullprofile,
+  .pd-board-main,
+  .pdb-actions .btn-ghost,
+  .tour-nav .btn-gold,
+  .tour-nav .btn-ghost,
+  .login-tabs button,
+  .login-btn,
+  .cc-portrait,
+  .picker-filter button,
+  .picker-close,
+  .picker-cell {
+    min-height: 44px;
+  }
+  .pd-board-main {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .picker-cell { cursor: default; }
+}
 @media (max-width: 600px) {
   .tb-inner {
     flex-wrap: wrap;

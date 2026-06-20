@@ -197,6 +197,19 @@
       .bd-actions{display:grid;grid-template-columns:1fr;}
       .bd-actions .btn{text-align:center;}
     }
+    @media(hover:none) and (pointer:coarse) and (min-width:601px){
+      .cback,
+      .lang button,
+      .bd-actions .btn{
+        min-height:44px;
+      }
+      .cback,
+      .bd-actions .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+      }
+    }
     @media(max-width:360px){
       .ribbon{gap:7px;}
       .rib-n{font-size:19px;}
