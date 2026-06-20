@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Project
 
@@ -88,11 +88,11 @@ The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now sp
 
 Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. Tablet/touch uses the Claude `hover:none` / `pointer:coarse` tier from the 2026-06-20 exports: larger 44px tap targets, single-column Compare cards at `601-820px`, and module-specific touch polish without adopting the phone shell. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
 
-The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production, while preserving local mock fallback for tests. Users type a username, not a real email; `profile-hub` maps it to an internal `username@coinquest.local` Firebase Auth email, creates/loads `users/{uid}`, routes accounts without a character through one-time Character Creation, writes the active character to `characters/{id}`, and mirrors the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
+The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production. Local test accounts exist only behind explicit `?test=1` regression mode; production must never fall back to built-in accounts when Firebase is missing or still loading. Users type a username, not a real email; `profile-hub` maps it to an internal `username@coinquest.local` Firebase Auth email, creates/loads `users/{uid}`, routes accounts without a character through one-time Character Creation, writes the active character to `characters/{id}`, and mirrors the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
 
 Admin Users now merges real Firestore `users/{uid}` accounts with board-derived participants/admin roles. Real accounts without board membership should still appear in `/admin/` Users; board/admin links are additive, not the only source of truth.
 
-Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and `coin-quest-ledger.vercel.app`, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts.
+Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and `coin-quest-ledger.vercel.app`, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts. As of 2026-06-21, the profile side panel shows the current Recovery ID for the signed-in account and can regenerate it; regeneration overwrites the recovery hash immediately so the old code no longer works.
 
 Security setup note: the repo `firestore.rules` was tightened and deployed on 2026-06-20 through `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`. Character writes require owner/Super Admin, username mapping updates cannot be taken over by another user, deleted username tombstones can only be reclaimed by the newly signed-in user while preserving the same User ID, and `adminRevisions` requires Super Admin.
 

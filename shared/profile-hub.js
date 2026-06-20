@@ -18,10 +18,10 @@
     try { return sessionStorage.getItem(TEST_FLAG_KEY) === '1'; } catch (_) { return false; }
   })();
   const AUTOMATED = navigator.webdriver === true;
-  const DUMMY_ACCOUNTS = [
-    { username: 'pointy', email: 'pointy@line.me', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
-    { username: 'nok', email: 'nok.k@line.me', password: 'quest123', userId: '9637', name: 'Nok', character: { id: '9637', name: 'Nok', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' } },
-    { username: 'bank', email: 'bank@line.me', password: 'quest123', userId: '5521', name: 'Bank', character: { id: '5521', name: 'Bank', class: 'thief', cls: 'thief', gender: 'male', skin: '' } }
+  const TEST_ACCOUNTS = [
+    { username: 'pointy', email: 'pointy@coinquest.test', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
+    { username: 'nok', email: 'nok@coinquest.test', password: 'quest123', userId: '9637', name: 'Nok', character: { id: '9637', name: 'Nok', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' } },
+    { username: 'bank', email: 'bank@coinquest.test', password: 'quest123', userId: '5521', name: 'Bank', character: { id: '5521', name: 'Bank', class: 'thief', cls: 'thief', gender: 'male', skin: '' } }
   ];
 
   const STR = {
@@ -35,9 +35,10 @@
       loginPasswordPlaceholder: '••••••••',
       loginError: 'username หรือรหัสผ่านไม่ถูกต้อง',
       loginEmpty: 'กรอก username และรหัสผ่าน',
-      loginDemo: 'บัญชีทดลอง - แตะเพื่อกรอกให้อัตโนมัติ',
-      loginNote: 'สาธิตจำลอง - ยังไม่ได้เชื่อมต่อระบบจริง',
+      loginDemo: 'บัญชีทดสอบ - ใช้เฉพาะ regression mode',
+      loginNote: 'Test mode เท่านั้น - ไม่ใช่ระบบ production',
       loginNoteReal: 'บัญชีจริงผ่าน Firebase Auth - ใช้ username/password ไม่ต้องใช้อีเมลจริง',
+      authLoading: 'ระบบบัญชีจริงกำลังโหลดอยู่ ลองอีกครั้งในไม่กี่วินาที',
       authUserExists: 'username นี้ถูกใช้แล้ว',
       authUserMissing: 'ไม่พบ username นี้',
       authWeakPassword: 'รหัสผ่านอย่างน้อย 6 ตัว',
@@ -54,6 +55,12 @@
       recoverySub: 'ใช้ code นี้กู้บัญชีถ้าลืมรหัสผ่าน ระบบจะแสดงให้ดูครั้งนี้เท่านั้น',
       recoverySaved: 'ฉันเก็บไว้แล้ว',
       copyRecovery: 'คัดลอก code',
+      recoveryPanelTitle: 'Recovery ID',
+      recoveryPanelSub: 'ใช้กู้บัญชีถ้าลืมรหัสผ่าน เก็บไว้ตรงนี้ได้เพราะแอปนี้ใช้กันในวงเล็ก',
+      recoveryMissing: 'ยังไม่มี recovery ID บนเครื่องนี้',
+      regenerateRecovery: 'Regenerate',
+      recoveryRegenerated: 'สร้าง recovery ID ใหม่แล้ว',
+      recoveryRegenBad: 'สร้าง recovery ID ไม่สำเร็จ ลองใหม่อีกครั้ง',
       loginSignIn: 'เข้าสู่ระบบ',
       loginSignUp: 'สมัครใหม่',
       signupWelcome: 'ร่วมกิลด์นักผจญภัย',
@@ -142,9 +149,10 @@
       loginPasswordPlaceholder: '••••••••',
       loginError: 'Wrong username or password',
       loginEmpty: 'Enter a username and password',
-      loginDemo: 'Demo accounts - tap one to autofill',
-      loginNote: 'Mock sign-in - not connected to a real backend yet',
+      loginDemo: 'Test accounts - regression mode only',
+      loginNote: 'Test mode only - not production auth',
       loginNoteReal: 'Real Firebase Auth account - username/password only, no real email required',
+      authLoading: 'Real account auth is still loading. Try again in a few seconds.',
       authUserExists: 'That username is already taken',
       authUserMissing: 'Username not found',
       authWeakPassword: 'Password must be 6+ characters',
@@ -161,6 +169,12 @@
       recoverySub: 'Use this code to recover your account if you forget your password. It is shown only once.',
       recoverySaved: 'I saved it',
       copyRecovery: 'Copy code',
+      recoveryPanelTitle: 'Recovery ID',
+      recoveryPanelSub: 'Use this if you forget your password. It is okay to keep visible here for this small casual app.',
+      recoveryMissing: 'No recovery ID is saved on this device yet',
+      regenerateRecovery: 'Regenerate',
+      recoveryRegenerated: 'New recovery ID generated',
+      recoveryRegenBad: 'Could not generate a new recovery ID. Try again.',
       loginSignIn: 'Sign In',
       loginSignUp: 'Sign Up',
       signupWelcome: 'Join the adventure',
@@ -270,6 +284,9 @@
   let loginGate = null;
   let loginMode = 'in';
   let toastTimer = null;
+  let pendingTourAfterOverlay = false;
+  let tourTimer = null;
+  let signingOut = false;
   let baselineDone = false;
 
   function lang() { return window.LANG === 'en' ? 'en' : 'th'; }
@@ -299,7 +316,10 @@
     return normalizeUsername(account?.username || String(account?.email || '').split('@')[0] || account?.name || '');
   }
   function realAuthEnabled() {
-    return !TEST_MODE && !AUTOMATED && !!window.PointyFirebase?.auth?.() && !!window.PointyFirebase?.firestore?.();
+    return !TEST_MODE && !!window.PointyFirebase?.auth?.() && !!window.PointyFirebase?.firestore?.();
+  }
+  function localAuthEnabled() {
+    return TEST_MODE;
   }
   function cloudDb() { return window.PointyFirebase?.firestore?.() || null; }
   function cloudAuth() { return window.PointyFirebase?.auth?.() || null; }
@@ -380,7 +400,7 @@
     writeJson(ACCOUNTS_KEY, Array.isArray(accounts) ? accounts : []);
   }
   function allAccounts() {
-    return [...DUMMY_ACCOUNTS, ...loadAccounts()];
+    return localAuthEnabled() ? [...TEST_ACCOUNTS, ...loadAccounts()] : [];
   }
   function normalizeAccount(account) {
     if (!account) return null;
@@ -395,6 +415,9 @@
       userId: String(account.userId || genId4()).replace(/\D/g, '').slice(0, 4) || genId4(),
       name: account.name || username || 'Hero',
       status,
+      recoveryCode: account.recoveryCode || '',
+      recoveryHash: account.recoveryHash || '',
+      recoveryIssuedAt: Number(account.recoveryIssuedAt || 0) || 0,
       character
     };
   }
@@ -446,7 +469,7 @@
       }
       return normalized;
     }
-    return (TEST_MODE || AUTOMATED) ? normalizeAccount(DUMMY_ACCOUNTS[0]) : null;
+    return localAuthEnabled() ? normalizeAccount(TEST_ACCOUNTS[0]) : null;
   }
   function saveAuth(account) {
     const next = normalizeAccount(account);
@@ -489,6 +512,9 @@
       userId: data.userId || publicUserIdFromUid(user?.uid || username),
       name: data.name || username || 'Hero',
       status: data.status || data.lifecycleStatus || 'active',
+      recoveryCode: data.recoveryCode || '',
+      recoveryHash: data.recoveryHash || '',
+      recoveryIssuedAt: Number(data.recoveryIssuedAt || 0) || 0,
       character: data.character || null
     });
   }
@@ -506,7 +532,7 @@
       characterId: account.character?.id || extra.characterId || '',
       provider: 'firebase',
       updatedAt: cloudNow(),
-      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
+      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryCode: extra.recoveryCode || account.recoveryCode || '', recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
       ...(extra.create ? { createdAt: cloudNow() } : {})
     }, { merge: true });
     await saveUsernameRecord(account, extra);
@@ -577,7 +603,10 @@
       character: oldUser?.character || null
     });
     const newRecoveryHash = await recoveryHash(clean, newRecoveryCode);
-    await saveCloudUser(next, { create: true, recoveryHash: newRecoveryHash, recoveryIssuedAt: Date.now(), characterId: next.character?.id || rec.characterId || '' });
+    next.recoveryCode = newRecoveryCode;
+    next.recoveryHash = newRecoveryHash;
+    next.recoveryIssuedAt = Date.now();
+    await saveCloudUser(next, { create: true, recoveryHash: newRecoveryHash, recoveryCode: newRecoveryCode, recoveryIssuedAt: next.recoveryIssuedAt, characterId: next.character?.id || rec.characterId || '' });
     if (next.character?.id) {
       await db.collection('characters').doc(next.character.id).set({
         ownerUid: next.uid,
@@ -590,6 +619,25 @@
     storePendingRecovery(newRecoveryCode);
     return saveAuth(next);
   }
+  async function regenerateRecoveryCode() {
+    const account = loadAuth();
+    if (!account || account.signedOut) throw new Error('missing-account');
+    const code = recoveryCodeValue();
+    const issuedAt = Date.now();
+    const hash = await recoveryHash(account.username || accountLogin(account), code);
+    const next = saveAuth({ ...account, recoveryCode: code, recoveryHash: hash, recoveryIssuedAt: issuedAt });
+    if (realAuthEnabled() && next.uid) {
+      await saveCloudUser(next, { recoveryHash: hash, recoveryCode: code, recoveryIssuedAt: issuedAt, characterId: next.character?.id || next.userId || '' });
+    } else if (localAuthEnabled()) {
+      const accounts = loadAccounts();
+      const idx = accounts.findIndex(item => accountLogin(item) === accountLogin(next) || String(item.email || '').toLowerCase() === String(next.email || '').toLowerCase());
+      if (idx >= 0) {
+        accounts[idx] = { ...accounts[idx], recoveryCode: code, recoveryHash: hash, recoveryIssuedAt: issuedAt };
+        saveAccounts(accounts);
+      }
+    }
+    return { ...next, recoveryHash: hash };
+  }
   function clearAuth() {
     try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
   }
@@ -600,8 +648,12 @@
     return normalizeCharacter(account?.character, account) || { id: account?.userId || '3720', name: account?.name || 'Hero', class: 'dragoon', cls: 'dragoon', gender: 'male', skin: '' };
   }
   async function signOut() {
-    if (realAuthEnabled()) {
-      try { await cloudAuth()?.signOut?.(); } catch (_) {}
+    signingOut = true;
+    try {
+      const auth = cloudAuth();
+      if (auth?.signOut) await auth.signOut();
+    } catch (_) {
+      /* Local cleanup below still needs to run if Firebase is temporarily unavailable. */
     }
     clearAuth();
     closeOverlay();
@@ -610,6 +662,7 @@
     baselineDone = false;
     refresh({ toast: false });
     showLoginGate();
+    setTimeout(() => { signingOut = false; }, 0);
   }
   function tickStreak() {
     const p = loadProfile();
@@ -1049,15 +1102,29 @@
   function loginLanguage() {
     return window.LANG === 'en' ? 'en' : 'th';
   }
-  function mockUserId(email) {
-    const value = String(email || '');
-    const hash = [...value].reduce((sum, c) => ((sum * 31 + c.charCodeAt(0)) | 0), 7);
-    return String(Math.abs(hash) % 9000 + 1000);
-  }
   function removeLoginGate() {
     if (loginGate) loginGate.remove();
     loginGate = null;
     document.body.classList.remove('login-locked');
+  }
+  function recoveryOverlayActive() {
+    return !!overlay && (overlay.dataset.profileOverlay === 'recovery' || !!overlay.querySelector?.('.recovery-panel'));
+  }
+  function shouldAutoTour() {
+    return !TEST_MODE && !AUTOMATED && !!loadAuth() && !!profile && !profile.tourSeen;
+  }
+  function scheduleWelcomeTour(delay = 300) {
+    if (!shouldAutoTour()) return;
+    clearTimeout(tourTimer);
+    tourTimer = setTimeout(() => {
+      tourTimer = null;
+      if (!shouldAutoTour()) return;
+      if (recoveryOverlayActive()) {
+        pendingTourAfterOverlay = true;
+        return;
+      }
+      showTour();
+    }, delay);
   }
   function showRecoveryCode(code) {
     if (!code) return;
@@ -1069,6 +1136,7 @@
         <div class="pdb-actions"><button class="btn-ghost sm" type="button" data-copy-recovery>📋 ${h(s().copyRecovery)}</button><button class="btn-primary sm" type="button" data-close>${h(s().recoverySaved)}</button></div>
       </div>
     </div></div>`);
+    overlay.dataset.profileOverlay = 'recovery';
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
     overlay.querySelector('[data-copy-recovery]')?.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(code); showMiniToast(s().copyRecovery); } catch (_) {}
@@ -1139,6 +1207,7 @@
     const theme = currentTheme();
     const isSignup = loginMode === 'up';
     const real = realAuthEnabled();
+    const local = localAuthEnabled();
     if (!loginGate) {
       loginGate = document.createElement('div');
       loginGate.className = 'login-gate';
@@ -1177,16 +1246,16 @@
         </label>` : ''}
         <div class="login-err" data-login-error hidden></div>
         <button type="submit" class="login-btn">${isSignup ? '✨ ' + h(copy.signupCreate) : '⚔️ ' + h(copy.loginEnter)}</button>
-        ${!isSignup && !real ? `<div class="login-demo">
+        ${!isSignup && local ? `<div class="login-demo">
           <div class="login-demo-h">${h(copy.loginDemo)}</div>
           <div class="login-demo-list">
-            ${DUMMY_ACCOUNTS.map(account => `<button type="button" class="login-demo-acct" data-demo-email="${h(account.username || accountLogin(account))}" data-demo-password="${h(account.password)}">
+            ${TEST_ACCOUNTS.map(account => `<button type="button" class="login-demo-acct" data-demo-email="${h(account.username || accountLogin(account))}" data-demo-password="${h(account.password)}">
               <b>${h(account.name)}</b><span>@${h(account.username || accountLogin(account))}</span><i>${h(classLabel(account.character?.class || account.character?.cls))} · ID ${h(account.userId)}</i>
             </button>`).join('')}
           </div>
         </div>` : ''}
         ${!isSignup && real ? `<button type="button" class="btn-ghost sm" data-forgot-password style="width:100%;margin-top:10px">${h(copy.forgotPassword)}</button>` : ''}
-        <div class="login-note">🔒 ${h(real ? copy.loginNoteReal : copy.loginNote)}</div>
+        <div class="login-note">🔒 ${h(local ? copy.loginNote : copy.loginNoteReal)}</div>
       </form>
     </div>`;
     const name = loginGate.querySelector('[data-login-name]');
@@ -1218,6 +1287,10 @@
         if (!loginName || !pw) { setError(copy.loginEmpty); return; }
         if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
         if (pw !== pw2) { setError(copy.signupPasswordMismatch); return; }
+        if (!real && !local) {
+          setError(copy.authLoading);
+          return;
+        }
         if (real) {
           try {
             setBusy(true);
@@ -1227,8 +1300,9 @@
             const recovery = await recoveryHash(loginName, recoveryCode);
             const cred = await cloudAuth().createUserWithEmailAndPassword(em, pw);
             await cred.user.updateProfile({ displayName: loginName });
-            const account = normalizeAccount({ uid: cred.user.uid, provider: 'firebase', username: loginName, email: em, userId: existing?.userId || await allocateCloudUserId(cred.user.uid), name: display, character: null });
-            await saveCloudUser(account, { create: true, recoveryHash: recovery, recoveryIssuedAt: Date.now() });
+            const issuedAt = Date.now();
+            const account = normalizeAccount({ uid: cred.user.uid, provider: 'firebase', username: loginName, email: em, userId: existing?.userId || await allocateCloudUserId(cred.user.uid), name: display, character: null, recoveryCode, recoveryHash: recovery, recoveryIssuedAt: issuedAt });
+            await saveCloudUser(account, { create: true, recoveryHash: recovery, recoveryCode, recoveryIssuedAt: issuedAt });
             storePendingRecovery(recoveryCode);
             saveAuth(account);
             showCharacterCreation(account);
@@ -1239,7 +1313,10 @@
           return;
         }
         if (allAccounts().some(account => accountLogin(account) === loginName || String(account.email || '').toLowerCase() === em.toLowerCase())) { setError(copy.signupTaken); return; }
-        const account = { username: loginName, email: em || usernameEmail(loginName), password: pw, userId: genId4(), name: display, character: null };
+        const recoveryCode = recoveryCodeValue();
+        const recovery = await recoveryHash(loginName, recoveryCode);
+        const account = { username: loginName, email: em || usernameEmail(loginName), password: pw, userId: genId4(), name: display, recoveryCode, recoveryHash: recovery, recoveryIssuedAt: Date.now(), character: null };
+        storePendingRecovery(recoveryCode);
         saveAccounts([...loadAccounts(), account]);
         saveAuth(account);
         showCharacterCreation(account);
@@ -1247,6 +1324,10 @@
       }
       if (!loginName || !pw) {
         setError(copy.loginEmpty);
+        return;
+      }
+      if (!real && !local) {
+        setError(copy.authLoading);
         return;
       }
       if (real) {
@@ -1275,7 +1356,7 @@
         removeLoginGate();
         profile = tickStreak();
         refresh({ toast: false });
-        if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
+        scheduleWelcomeTour(300);
         return;
       }
       const account = allAccounts().find(item => accountLogin(item) === loginName || String(item.email || '').toLowerCase() === em.toLowerCase());
@@ -1289,15 +1370,11 @@
           showCharacterCreation(next);
           return;
         }
-      } else {
-        const next = saveAuth({ username: loginName, email: usernameEmail(loginName), userId: mockUserId(loginName), name: loginName || 'Hero', character: null });
-        showCharacterCreation(next);
-        return;
-      }
+      } else { setError(copy.loginError); return; }
       removeLoginGate();
       profile = tickStreak();
       refresh({ toast: false });
-      if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
+      scheduleWelcomeTour(300);
     });
     loginGate.querySelectorAll('[data-demo-email]').forEach(btn => btn.addEventListener('click', () => {
       email.value = btn.dataset.demoEmail || '';
@@ -1440,7 +1517,7 @@
         profile = tickStreak();
         refresh({ toast: false });
         showRecoveryCode(consumePendingRecovery());
-        if (!TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 300);
+        scheduleWelcomeTour(300);
       });
       loginGate.querySelector('[data-char-open-picker]')?.addEventListener('click', () => {
         pickerOpen = true;
@@ -1491,8 +1568,13 @@
     }
   }
   function closeOverlay() {
+    const wasRecovery = recoveryOverlayActive();
     if (overlay) overlay.remove();
     overlay = null;
+    if (wasRecovery && pendingTourAfterOverlay) {
+      pendingTourAfterOverlay = false;
+      setTimeout(() => showTour(), 80);
+    }
   }
   function mountOverlay(html) {
     closeOverlay();
@@ -1548,6 +1630,7 @@
     const got = trophies.filter(t => t.unlocked).length;
     const boards = profileBoardRows(account);
     const profileHref = `/character/?id=${encodeURIComponent(slayer.id || account.userId || '3720')}${(TEST_MODE || AUTOMATED) ? '&test=1' : ''}`;
+    const recoveryCode = String(account.recoveryCode || '').trim();
     const boardCards = boards.length ? boards.map(board => `<div class="pd-board ${board.archived ? 'arch' : ''}">
       <a class="pd-board-main" href="${h(board.href)}">
         <span class="pdb-crest">${board.archived ? '🗄️' : '🏕️'}</span>
@@ -1579,6 +1662,16 @@
         <div class="pd-setting"><span class="pds-k">${currentTheme() === 'dungeon' ? '🌙 ' + h(s().themeDark) : '☀️ ' + h(s().themeLight)}</span><div class="pd-theme-seg"><button class="${currentTheme() === 'tavern' ? 'on' : ''}" data-theme-pick="tavern">☀️</button><button class="${currentTheme() === 'dungeon' ? 'on' : ''}" data-theme-pick="dungeon">🌙</button></div></div>
         <div class="pd-setting"><span class="pds-k">🧭 ${h(s().takeTour)}</span><button class="btn-ghost xs" type="button" data-tour>${h(s().tourNext)} →</button></div>
         <div class="pd-backup"><div class="pdb-h">💾 ${h(s().backup)}</div><div class="pdb-sub">${h(s().backupSub)}</div><div class="pdb-actions"><button class="btn-ghost sm" type="button" data-export>⬇️ ${h(s().exportData)}</button><button class="btn-ghost sm" type="button" data-import>⬆️ ${h(s().importData)}</button><input type="file" accept="application/json,.json" hidden data-file></div><div class="pdb-msg" hidden></div></div>
+        ${account.signedOut ? '' : `<div class="pd-recovery">
+          <div class="pdb-h">🔐 ${h(s().recoveryPanelTitle)}</div>
+          <div class="pdb-sub">${h(s().recoveryPanelSub)}</div>
+          <div class="pd-recovery-code mono" data-recovery-code>${h(recoveryCode || s().recoveryMissing)}</div>
+          <div class="pdb-actions">
+            <button class="btn-ghost sm" type="button" data-copy-recovery-side ${recoveryCode ? '' : 'disabled'}>📋 ${h(s().copyRecovery)}</button>
+            <button class="btn-ghost sm" type="button" data-regenerate-recovery>↻ ${h(s().regenerateRecovery)}</button>
+          </div>
+          <div class="pdb-msg" data-recovery-msg hidden></div>
+        </div>`}
         <div class="pd-account">
           <div class="pda-row">
             ${avatarMarkup(slayer, 'pda-ava')}
@@ -1597,6 +1690,34 @@
     overlay.querySelector('[data-tour]').addEventListener('click', () => { closeOverlay(); showTour(); });
     overlay.querySelector('[data-export]').addEventListener('click', exportBackup);
     overlay.querySelector('[data-sign-out]')?.addEventListener('click', signOut);
+    overlay.querySelector('[data-copy-recovery-side]')?.addEventListener('click', async () => {
+      const code = String(loadAuth()?.recoveryCode || '').trim();
+      if (!code) return;
+      try { await navigator.clipboard.writeText(code); showMiniToast(s().copyRecovery); } catch (_) {}
+    });
+    overlay.querySelector('[data-regenerate-recovery]')?.addEventListener('click', async event => {
+      const btn = event.currentTarget;
+      const codeEl = overlay.querySelector('[data-recovery-code]');
+      const copyBtn = overlay.querySelector('[data-copy-recovery-side]');
+      const status = overlay.querySelector('[data-recovery-msg]');
+      try {
+        btn.disabled = true;
+        const next = await regenerateRecoveryCode();
+        if (codeEl) codeEl.textContent = next.recoveryCode || s().recoveryMissing;
+        if (copyBtn) copyBtn.disabled = !next.recoveryCode;
+        if (status) {
+          status.hidden = false;
+          status.textContent = s().recoveryRegenerated;
+        }
+      } catch (_) {
+        if (status) {
+          status.hidden = false;
+          status.textContent = s().recoveryRegenBad;
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
     const file = overlay.querySelector('[data-file]');
     const msg = overlay.querySelector('.pdb-msg');
     overlay.querySelector('[data-import]').addEventListener('click', () => file.click());
@@ -1607,6 +1728,10 @@
     });
   }
   function showTour() {
+    if (recoveryOverlayActive()) {
+      pendingTourAfterOverlay = true;
+      return;
+    }
     let idx = 0;
     const steps = [
       { ic: '⚔️', bg: 255, t: s().tourT0, b: s().tourB0 },
@@ -1662,11 +1787,15 @@
   }
   let authWatcherStarted = false;
   function watchFirebaseAuth() {
-    if (authWatcherStarted || !realAuthEnabled()) return;
+    if (authWatcherStarted || TEST_MODE) return;
     const auth = cloudAuth();
-    if (!auth?.onAuthStateChanged) return;
+    if (!auth?.onAuthStateChanged) {
+      setTimeout(watchFirebaseAuth, 150);
+      return;
+    }
     authWatcherStarted = true;
     auth.onAuthStateChanged(async user => {
+      if (signingOut) return;
       if (!user) {
         const current = readJson(AUTH_KEY, null);
         if (current?.provider === 'firebase') {
@@ -1717,7 +1846,7 @@
     window.addEventListener('coin-quest-state-changed', () => refresh({ toast: true }));
     window.addEventListener('pointy-treasury-changed', () => refresh({ toast: true }));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
-    if (loadAuth() && !TEST_MODE && !AUTOMATED && !profile.tourSeen) setTimeout(showTour, 650);
+    scheduleWelcomeTour(650);
   }
 
   window.PointyProfileHub = {

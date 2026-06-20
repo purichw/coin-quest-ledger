@@ -11,8 +11,8 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 Done recently:
 
 - Party Ledger offline zip removed from Git; large Claude references stay outside the repo.
-- Mock login gate added through `shared/profile-hub.*`.
-- Sign out fixed so logout returns to the mock login gate.
+- Real login gate added through `shared/profile-hub.*`; test account fixtures are restricted to explicit `?test=1`.
+- Sign out fixed so logout clears the real Firebase session and returns to the production login gate.
 - Claude Character Profile design ported to `/character/`.
 - Character banner animation and chip spacing tuned, committed, pushed, and deployed.
 - Latest Claude profile loop partially ported into the static app: Sign In/Sign Up tabs, local account registry, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, and Character Profile My Boards actions.
@@ -24,7 +24,7 @@ Done recently:
 
 Known constraints:
 
-- Local/test fallback is still mock; production username/password auth now uses Firebase Auth/Firestore.
+- Local test fixtures are `?test=1` only; production username/password auth uses Firebase Auth/Firestore and does not fall back to local accounts.
 - Super Admin production gate now uses Firebase Google Auth and allowlists only `purich.wc@gmail.com`; `?test=1` keeps the local gate for regression.
 - Firestore rules include the Super Admin email helper for user lifecycle operations. Permanent user deletion requires the backend Firebase Admin function and service-account env vars.
 - App pages require server hosting; `file://` preview is not supported.

@@ -3,6 +3,9 @@
   const THEME_KEY = 'pointy_theme';
   const UI_KEY = 'coin_quest_ui_v1';
   const THEMES = new Set(['tavern', 'dungeon']);
+  const TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1' || (() => {
+    try { return sessionStorage.getItem('pointy_test_mode_v1') === '1'; } catch (_) { return false; }
+  })();
 
   const COPY = {
     th: {
@@ -140,7 +143,18 @@
       refresh();
       return;
     }
-    window.location.href = tab.href;
+    window.location.href = withTestParam(tab.href);
+  }
+
+  function withTestParam(href) {
+    if (!TEST_MODE) return href;
+    try {
+      const url = new URL(href, location.origin);
+      url.searchParams.set('test', '1');
+      return url.pathname + url.search + url.hash;
+    } catch (_) {
+      return href;
+    }
   }
 
   function ensureRoot() {
@@ -171,7 +185,7 @@
 
   function tabMarkup(tab, active) {
     const label = text()[tab.id];
-    return `<a class="mtab ${tab.id === active ? 'on' : ''}" href="${html(tab.href)}" data-mtab="${html(tab.id)}" aria-label="${html(label)}">
+    return `<a class="mtab ${tab.id === active ? 'on' : ''}" href="${html(withTestParam(tab.href))}" data-mtab="${html(tab.id)}" aria-label="${html(label)}">
       <span class="mtab-ic"><span class="mt-emoji">${html(tab.icon)}</span></span>
       <span class="mtab-lab">${html(label)}</span>
     </a>`;
@@ -185,7 +199,7 @@
   }
 
   function tabDrawerMarkup(tab, active) {
-    return `<a class="mm-item" href="${html(tab.href)}" data-mm-tab="${html(tab.id)}">
+    return `<a class="mm-item" href="${html(withTestParam(tab.href))}" data-mm-tab="${html(tab.id)}">
       <span class="mm-ic">${html(tab.icon)}</span><span class="mm-lab">${html(text()[tab.id])}</span><span class="mm-arr">${tab.id === active ? '•' : '›'}</span>
     </a>`;
   }
@@ -194,7 +208,8 @@
     const username = String(account?.username || '').trim();
     if (username) return `@${username}`;
     const email = String(account?.email || '').trim();
-    const local = email.split('@')[0] || '';
+    const [local, domain] = email.split('@');
+    if (domain === 'coinquest.local' && local) return `@${local}`;
     return local ? `@${local}` : text().accountSub;
   }
 

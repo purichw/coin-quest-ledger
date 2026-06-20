@@ -577,6 +577,21 @@ test('Debt Dragon uses the signed-in account hero instead of legacy slayer ident
   await expect(page.locator('.slayer-portrait img')).toHaveAttribute('src', /assets\/rpg-portraits\/alchemist-male\.png$/);
 });
 
+test('production player login surfaces never expose test account fallback', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto('/debt/');
+
+  await expect(page.locator('.login-gate')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.login-demo')).toHaveCount(0);
+  await expect(page.getByText('Pointy', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Nok', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Bank', { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/บัญชีทดสอบ|Test accounts/)).toHaveCount(0);
+});
+
 test('super admin portal saves drafts, publishes board edits, and records revisions', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
@@ -755,7 +770,7 @@ test('profile hub completes character creation and links to the full character p
     localStorage.clear();
     sessionStorage.clear();
     localStorage.setItem('pointy_auth_v1', JSON.stringify({
-      email: 'fresh@line.me',
+      email: 'fresh@coinquest.test',
       userId: '4444',
       name: 'Fresh'
     }));
@@ -795,6 +810,93 @@ test('profile hub completes character creation and links to the full character p
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
+});
+
+test('recovery code stays visible until saved before the welcome tour can open', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (location.pathname !== '/') return;
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'recovery-tour-uid',
+      username: 'recovery.tour',
+      email: 'recovery.tour@coinquest.local',
+      userId: '4477',
+      name: 'Recovery Tour'
+    }));
+    sessionStorage.setItem('pointy_pending_recovery_code_v1', 'ABCD-EFGH-JKLM');
+  });
+  await page.goto('/?test=1');
+
+  await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toBeVisible();
+  await page.locator('[data-char-open-picker]').click();
+  await page.locator('[data-char-class="warrior"][data-char-gender="male"]').click();
+  await page.locator('[data-char-name]').fill('Recovery Hero');
+  await page.getByRole('button', { name: /เริ่มผจญภัย|Begin the adventure/ }).click();
+
+  await expect(page.locator('.recovery-panel')).toBeVisible();
+  await expect(page.locator('.recovery-code')).toContainText('ABCD-EFGH-JKLM');
+  await page.evaluate(() => window.PointyProfileHub.showTour());
+  await expect(page.locator('.recovery-panel')).toBeVisible();
+  await expect(page.locator('.tour-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /ฉันเก็บไว้แล้ว|I saved it/ }).click();
+  await expect(page.locator('.tour-overlay')).toBeVisible();
+});
+
+test('profile drawer shows recovery ID and regeneration invalidates the previous code', async ({ page }) => {
+  const oldCode = 'ABCD-EFGH-JKLM';
+  await page.addInitScript(code => {
+    if (location.pathname !== '/') return;
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'recovery-regenerate-uid',
+      username: 'recovery.regen',
+      email: 'recovery.regen@coinquest.local',
+      userId: '4488',
+      name: 'Recovery Regen',
+      recoveryCode: code,
+      recoveryHash: 'old-hash',
+      recoveryIssuedAt: Date.now(),
+      character: { id: '4488', name: 'Recovery Regen', class: 'warrior', cls: 'warrior', gender: 'male' }
+    }));
+  }, oldCode);
+  await page.goto('/?test=1');
+  const profileBadge = page.locator('[data-profile-hub="profile"]');
+  if (await profileBadge.isVisible().catch(() => false)) {
+    await profileBadge.click();
+  } else {
+    await page.locator('.tb-burger').click();
+    await page.locator('[data-mm-action="profile"]').click();
+  }
+
+  await expect(page.locator('.profile-drawer')).toBeVisible();
+  await expect(page.locator('[data-recovery-code]')).toContainText(oldCode);
+  await page.locator('[data-regenerate-recovery]').click();
+  await expect(page.locator('[data-recovery-msg]')).toContainText(/สร้าง recovery ID ใหม่แล้ว|New recovery ID generated/);
+
+  const result = await page.evaluate(async previous => {
+    const auth = JSON.parse(localStorage.getItem('pointy_auth_v1') || '{}');
+    const clean = value => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const hash = async value => {
+      const data = new TextEncoder().encode(`recovery.regen:${clean(value)}`);
+      const buf = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+    return {
+      previous,
+      next: auth.recoveryCode,
+      storedHash: auth.recoveryHash,
+      oldHash: await hash(previous),
+      newHash: await hash(auth.recoveryCode)
+    };
+  }, oldCode);
+
+  expect(result.next).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  expect(result.next).not.toBe(result.previous);
+  expect(result.storedHash).toBe(result.newHash);
+  expect(result.storedHash).not.toBe(result.oldHash);
+  await expect(page.locator('[data-recovery-code]')).toContainText(result.next);
 });
 
 test('real Firebase account can be permanently deleted and recreated with the same username and ID', async ({ page, browser }, testInfo) => {
@@ -936,7 +1038,7 @@ test('home view opens user modules and treasury logs expenses', async ({ page })
   await expect(page.locator('[data-home-card="split"]')).toBeVisible();
 
   await page.locator('[data-home-card="treasury"]').click();
-  await expect(page).toHaveURL(/\/treasury\/$/);
+  await expect(page).toHaveURL(/\/treasury\/(?:\?test=1)?$/);
   await expect(page.getByRole('heading', { name: /คลังหลวง|Personal Treasury/ })).toBeVisible();
   await expect(page.getByText(/พยากรณ์สิ้นเดือน|Month forecast/)).toBeVisible();
 

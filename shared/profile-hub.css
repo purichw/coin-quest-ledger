@@ -916,10 +916,30 @@ body.login-locked {
   border: 1px dashed var(--border-strong);
   border-radius: 13px;
 }
+.pd-recovery {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 13px;
+  background: color-mix(in oklch, var(--panel-2) 62%, transparent);
+}
+.pd-recovery-code {
+  margin: 8px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-in);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  overflow-wrap: anywhere;
+}
 .pdb-h { color: var(--ink); font-family: var(--font-display); font-weight: 700; font-size: 13.5px; }
 .pdb-sub { margin: 3px 0 10px; color: var(--ink-soft); font-size: 11.5px; }
 .pdb-actions { display: flex; gap: 8px; }
 .pdb-actions .btn-ghost { flex: 1; }
+.pdb-actions .btn-ghost:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .pdb-msg { margin-top: 9px; color: var(--accent); text-align: center; font-size: 12px; font-weight: 700; }
 .pd-account {
   margin-top: 18px;

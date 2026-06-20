@@ -224,6 +224,7 @@ Firebase Auth email of `username@coinquest.local`.
   characterId: characterId | "",
   provider: "firebase",
   recoveryHash?: sha256(username + ":" + recoveryCode),
+  recoveryCode?: string,
   recoveryIssuedAt?: epochMs,
   createdAt: timestamp,
   updatedAt: timestamp
@@ -236,6 +237,7 @@ Rules:
 - `userId` remains the public four-digit app identity.
 - Current product canon is one active `character` per user.
 - Firebase Authentication/email-password is enabled for `pointy-personal-toolkit`.
+- The profile side panel may display `recoveryCode` for the signed-in owner. This is an intentional low-security/convenience tradeoff for the small private app. `usernames/{username}` should keep only `recoveryHash`, not plaintext code.
 - Player recovery and Super Admin reset rotate the underlying Firebase Auth
   credential, then preserve `userId` and `characterId` by updating
   `usernames/{username}`, `users/{uid}`, and `characters/{characterId}`.
@@ -291,8 +293,8 @@ Delete payload:
 ### `pointy_auth_v1`
 
 Local mirror of the current auth account. In production it mirrors Firebase
-Auth/Firestore `users/{uid}`; in tests and fallback mode it remains the mock
-account source. This is not a security boundary.
+Auth/Firestore `users/{uid}`; in explicit `?test=1` regression mode it remains
+the local account source. This is not a security boundary.
 
 ```js
 {
@@ -302,6 +304,9 @@ account source. This is not a security boundary.
   email: string,
   userId: string,
   name: string,
+  recoveryCode?: string,
+  recoveryHash?: string,
+  recoveryIssuedAt?: epochMs,
   character?: {
     id: characterId,
     name: string,
@@ -313,11 +318,11 @@ account source. This is not a security boundary.
 }
 ```
 
-Current demo/mock accounts:
+Current `?test=1` regression accounts:
 
-- `pointy@line.me` / `quest123` / User ID `3720`
-- `nok.k@line.me` / `quest123` / User ID `9637`
-- `bank@line.me` / `quest123` / User ID `5521`
+- `pointy` / `quest123` / User ID `3720`
+- `nok` / `quest123` / User ID `9637`
+- `bank` / `quest123` / User ID `5521`
 
 The current Claude loop implemented in `shared/profile-hub.*` is one account =
 one active character. Accounts without `character` are routed through Character
@@ -351,8 +356,8 @@ Currently scoped bases:
 
 ### `pointy_accounts_v1`
 
-Local fallback Sign Up registry for tests/mock mode. Production signups use
-Firebase Auth and `users/{uid}`.
+Local Sign Up registry for explicit `?test=1` regression mode. Production
+signups use Firebase Auth and `users/{uid}`.
 
 ```js
 Array<{
@@ -366,8 +371,8 @@ Array<{
 
 Rules:
 
-- Demo accounts are built in; Sign Up-created accounts live here so they can sign in again.
-- Passwords are mock/local plaintext for the prototype only. Do not treat this as production auth.
+- Regression accounts are built in only under `?test=1`; Sign Up-created test accounts live here so they can sign in again.
+- Passwords are local plaintext in regression mode only. Do not treat this as production auth.
 - When Character Creation finishes, both `pointy_auth_v1.character` and the matching `pointy_accounts_v1[].character` are updated.
 
 ### `pointy_character_registry_v1`

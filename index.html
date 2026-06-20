@@ -458,6 +458,23 @@
       return window.iconLabel ? window.iconLabel(icon, LANG || 'th') : '';
     }
     function homeCopy() { return HOME_STR[LANG === 'en' ? 'en' : 'th']; }
+    function isTestMode() {
+      try {
+        return new URLSearchParams(location.search || '').get('test') === '1' || sessionStorage.getItem('pointy_test_mode_v1') === '1';
+      } catch (_) {
+        return false;
+      }
+    }
+    function withTestParam(href) {
+      if (!isTestMode()) return href;
+      try {
+        const url = new URL(href, location.origin);
+        url.searchParams.set('test', '1');
+        return url.pathname + url.search + url.hash;
+      } catch (_) {
+        return href;
+      }
+    }
     function readJson(key, fallback) {
       try {
         if (window.PointyScope) return window.PointyScope.getJSON(key, fallback);
@@ -538,7 +555,7 @@
         const card = cards.find(c => c.id === btn.dataset.homeCard);
         btn.addEventListener('click', () => {
           if (card.id === 'compare') openCompare();
-          else location.href = card.href;
+          else location.href = withTestParam(card.href);
         });
       });
     }
