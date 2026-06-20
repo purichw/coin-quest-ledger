@@ -1535,17 +1535,7 @@
     setTimeout(() => el.remove(), 2200);
   }
   function showReminders() {
-    const items = reminders.length ? reminders.map(r => `
-      <button class="rem-item k-${h(r.kind)}" type="button" data-href="${h(r.href)}">
-        <span class="ri-ic">${h(r.icon)}</span>
-        <span class="ri-body"><span class="ri-title">${h(r.title || '')}</span><span class="ri-sub${r.kind === 'overdue' ? ' urgent' : ''}">${h(r.sub || '')}</span></span>
-        <span class="ri-go">${h(s().remJump)} →</span>
-      </button>
-    `).join('') : `<div class="rem-empty">${h(s().noReminders)}</div>`;
-    mountOverlay(`<div class="rem-overlay"><div class="rem-panel">
-      <div class="rem-head"><span class="rem-title">🔔 ${h(s().reminders)}</span><button class="picker-close sm" type="button" data-close>✕</button></div>
-      <div class="rem-list">${items}</div>
-    </div></div>`);
+    mountOverlay(window.PointyProfileReminders.render({ reminders, copy: s() }));
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
     overlay.querySelectorAll('[data-href]').forEach(btn => btn.addEventListener('click', () => { location.href = btn.dataset.href; }));
   }
