@@ -24,6 +24,7 @@ let cloudUsers = [];
 let adminUser = null;
 let adminAuthReady = TEST_MODE;
 let adminAuthStarted = false;
+let adminAuthSettling = false;
 let adminGateError = '';
 let adminBackendStatus = TEST_MODE
   ? { checked: true, adminDeleteConfigured: true, mode: 'test' }
@@ -165,10 +166,12 @@ function adminDeleteBackendNote() {
 }
 function startAdminAuth() {
   if (TEST_MODE || adminAuthStarted) return;
+  adminAuthSettling = true;
   initFirebase();
   const auth = adminAuth();
   if (!auth?.onAuthStateChanged) {
     adminAuthReady = true;
+    adminAuthSettling = false;
     adminGateError = 'Firebase Auth is not available on this page.';
     renderGate();
     return;
@@ -176,6 +179,7 @@ function startAdminAuth() {
   adminAuthStarted = true;
   auth.onAuthStateChanged(async user => {
     adminAuthReady = true;
+    adminAuthSettling = false;
     if (user && isAllowedAdmin(user)) {
       adminUser = user;
       adminGateError = '';
@@ -1105,6 +1109,10 @@ function renderMain() {
 function renderGate() {
   const error = adminGateError ? `<div class="login-err" style="display:block;margin-top:12px">${h(adminGateError)}</div>` : '';
   if (!TEST_MODE) {
+    if (adminAuthSettling || !adminAuthReady) {
+      document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Checking Google session...</div><div class="phase-note"><span class="pn-ico">🛡️</span><span>กำลังตรวจสอบสิทธิ์ Super Admin</span></div></div></div>`;
+      return;
+    }
     document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Google sign-in required</div><div class="phase-note"><span class="pn-ico">🛡️</span><span>เข้าได้เฉพาะ Gmail <b>${h(SUPER_ADMIN_EMAIL)}</b> เท่านั้น</span></div><button class="btn btn-primary" onclick="unlockGate()" ${adminAuthReady ? '' : 'disabled'}>Sign in with Google</button>${error}</div></div>`;
     return;
   }
@@ -1404,7 +1412,7 @@ function inputAction(title, body, placeholder, onConfirm) {
 async function boot() {
   if (!TEST_MODE) {
     startAdminAuth();
-    if (!adminAuthReady || !isUnlocked()) { renderGate(); return; }
+    if (adminAuthSettling || !adminAuthReady || !isUnlocked()) { renderGate(); return; }
   }
   if (!isUnlocked()) { renderGate(); return; }
   await loadPublished();

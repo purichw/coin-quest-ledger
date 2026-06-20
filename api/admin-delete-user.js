@@ -71,11 +71,18 @@ export default async function handler(req, res) {
     return json(res, 405, { error: 'Method not allowed.' });
   }
 
-  const db = adminDb();
-  if (!db) return json(res, 503, { error: 'Firebase Admin service account is not configured.' });
-
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) return json(res, 401, { error: 'Missing Firebase ID token.' });
+
+  let db;
+  try {
+    db = adminDb();
+  } catch (error) {
+    console.error('Firebase Admin service account initialization failed', error);
+    return json(res, 500, { error: 'Firebase Admin service account could not be initialized.' });
+  }
+  if (!db) return json(res, 503, { error: 'Firebase Admin service account is not configured.' });
+
   let decoded;
   try {
     decoded = await getAuth().verifyIdToken(token);
