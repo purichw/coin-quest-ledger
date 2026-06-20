@@ -11,6 +11,7 @@
 - Check `git status --short --branch` before editing.
 - If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
 - If the user asks to commit or deploy, escalate to Production Patch.
+- For profile/auth refactors, keep slices independently revertible. Commit each completed boundary separately after targeted tests, even when the user gives one broad refactor instruction.
 - Keep `Memory.md` updated before intentionally moving work to a new chat.
 - Current user instruction: ignore `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
 - Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromRenown()` instead of adding local formulas.
@@ -150,7 +151,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - Preserve the four-digit public Character ID links from hero cards and Admin Portal Users.
 - `private=1` only hides monetary values in the rendered profile. It is not authorization or Firestore security.
 - The shared profile drawer now has the canonical full-profile entry for the active account character. On phone width, open it through the shared hamburger drawer's Profile item.
-- Current auth loop is one account = one active character. Production Sign Up uses Firebase Auth username/password through an internal `@coinquest.local` email and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`; explicit `?test=1` regression mode keeps local fixtures through `pointy_accounts_v1` / `pointy_auth_v1`. Production must never fall back to local test accounts.
+- Current auth loop is one account = one active character. Production Sign Up uses Firebase Auth username/password through an internal `@coinquest.local` email and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`; explicit `?test=1` regression mode keeps local fixtures through `pointy_accounts_v1` / `pointy_auth_v1`. Production must never fall back to local test accounts. Profile helper boundaries now live in focused `shared/profile-*.js` modules; preserve script load order when adding or reverting slices.
 - Signed-in progress must be account-scoped, not browser-scoped. Use `shared/account-scope.js` for module/profile cache keys and do not let stale unsuffixed localStorage module data count toward a real account.
 - Recovery without email is Phase 1 credential rotation: player recovery code and Super Admin temp-password reset create a new Firebase Auth credential, then move the username/User ID/Character pointer to the new `uid`. Do not describe this as final security; future hardening needs server-side Admin SDK or locked-down rules.
 - The profile side panel intentionally shows the current Recovery ID and offers Regenerate for this small, casual app. Regenerate must update the recovery hash immediately so the previous code is invalid.

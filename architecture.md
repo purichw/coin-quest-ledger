@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Purpose
 
@@ -83,7 +83,15 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `lang.js`: Thai/English shared labels.
 - `shared/firebase-client.js`: shared Firebase app/Auth/Firestore initializer for static pages.
 - `shared/account-scope.js`: account-scoped local storage helper. Module progress/cache keys derive from the active `pointy_auth_v1` account (`uid`, then User ID, then username) so a signed-in account does not inherit stale browser-wide progress.
-- `shared/profile-hub.js` / `.css`: username/password Sign In/Sign Up, Firebase Auth + Firestore user/character binding in production, test-account fixtures only under explicit `?test=1`, one-time Character Creation, topbar/mobile-drawer profile entry, profile drawer, My Boards, theme/language helpers, backup/restore, sign out.
+- `shared/profile-hub.js` / `.css`: profile orchestrator for username/password Sign In/Sign Up, Firebase Auth + Firestore user/character binding, one-time Character Creation, topbar/mobile-drawer profile entry, My Boards, theme/language helpers, profile drawer events, and sign out.
+- `shared/profile-session.js`: `?test=1` mode detection plus local auth/account storage helpers for `pointy_auth_v1` and `pointy_accounts_v1`.
+- `shared/profile-auth.js`: username normalization, internal `@coinquest.local` email formatting, account login keys, and blocked account status helpers.
+- `shared/profile-cloud.js`: Firebase Auth/Firestore/server timestamp access boundary for profile code.
+- `shared/profile-recovery.js`: Recovery ID generation and hashing helpers.
+- `shared/profile-backup.js`: profile drawer export/restore helpers for local Coin Quest data.
+- `shared/profile-drawer.js`: profile drawer recovery/account block renderers.
+- `shared/profile-reminders.js`: reminder overlay renderer.
+- `shared/profile-tour.js`: Welcome Tour step data and renderer.
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury. Tablet/touch remains CSS-only in each surface plus shared profile CSS.
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.

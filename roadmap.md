@@ -159,7 +159,7 @@ Goal: improve resilience without changing the static-app spirit.
 
 Work:
 
-- Harden backup/restore in `profile-hub`.
+- Continue shrinking `shared/profile-hub.js` in reversible slices. Recovery, auth identity, session storage, Firebase boundary, backup, drawer blocks, reminders, and tour rendering are now split; future slices should target login form rendering, character creation rendering, and cloud persistence only with focused tests.
 - Add clearer local data export/import for users.
 - Keep Cloudinary asset references verified.
 - Improve production smoke checks after deploy.
