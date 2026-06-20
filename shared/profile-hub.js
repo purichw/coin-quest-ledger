@@ -2,20 +2,11 @@
   const PROFILE_KEY = 'pointy_profile_v1';
   const UI_KEY = 'coin_quest_ui_v1';
   const THEME_KEY = 'pointy_theme';
-  const AUTH_KEY = 'pointy_auth_v1';
-  const ACCOUNTS_KEY = 'pointy_accounts_v1';
   const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
-  const TEST_FLAG_KEY = 'pointy_test_mode_v1';
   const PENDING_RECOVERY_KEY = 'pointy_pending_recovery_code_v1';
-  const URL_TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
-  if (URL_TEST_MODE) {
-    try { sessionStorage.setItem(TEST_FLAG_KEY, '1'); } catch (_) {}
-  }
-  const TEST_MODE = URL_TEST_MODE || (() => {
-    try { return sessionStorage.getItem(TEST_FLAG_KEY) === '1'; } catch (_) { return false; }
-  })();
+  const TEST_MODE = window.PointyProfileSession.isTestMode();
   const AUTOMATED = navigator.webdriver === true;
   const TEST_ACCOUNTS = [
     { username: 'pointy', email: 'pointy@coinquest.test', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
@@ -379,11 +370,10 @@
     return rec?.authEmail || usernameEmail(username);
   }
   function loadAccounts() {
-    const accounts = readJson(ACCOUNTS_KEY, []);
-    return Array.isArray(accounts) ? accounts : [];
+    return window.PointyProfileSession.readAccounts();
   }
   function saveAccounts(accounts) {
-    writeJson(ACCOUNTS_KEY, Array.isArray(accounts) ? accounts : []);
+    window.PointyProfileSession.writeAccounts(accounts);
   }
   function allAccounts() {
     return localAuthEnabled() ? [...TEST_ACCOUNTS, ...loadAccounts()] : [];
@@ -446,7 +436,7 @@
   function saveProfile(next) { profile = { ...defaultProfile(), ...next }; writeScopedJson(PROFILE_KEY, profile); return profile; }
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
   function loadAuth() {
-    const auth = readJson(AUTH_KEY, null);
+    const auth = window.PointyProfileSession.readAuth();
     if (auth && auth.email && auth.userId && !auth.signedOut) {
       const normalized = normalizeAccount(auth);
       if (isBlockedAccountStatus(normalized)) {
@@ -460,7 +450,7 @@
   function saveAuth(account) {
     const next = normalizeAccount(account);
     if (next?.character) next.character = persistCharacter({ ...next.character, id: next.character.id || next.userId }, next);
-    writeJson(AUTH_KEY, next);
+    window.PointyProfileSession.writeAuth(next);
     return next;
   }
   function publicUserIdFromUid(uid) {
@@ -625,7 +615,7 @@
     return { ...next, recoveryHash: hash };
   }
   function clearAuth() {
-    try { localStorage.removeItem(AUTH_KEY); } catch (_) {}
+    window.PointyProfileSession.clearAuth();
   }
   function loadAccount() {
     return loadAuth() || { name: 'Guest', email: s().loginSub, userId: '----' };
