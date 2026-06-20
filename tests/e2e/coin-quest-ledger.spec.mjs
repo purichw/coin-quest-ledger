@@ -963,6 +963,72 @@ test('onboarding tour navigation uses unified outlined buttons', async ({ page }
   await expect(page.locator('.tour-overlay')).toHaveCount(0);
 });
 
+test('player-facing controls use themed chrome instead of native browser appearance', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'control-audit-uid',
+      username: 'control.audit',
+      email: 'control.audit@coinquest.local',
+      userId: '7791',
+      name: 'Control Audit',
+      character: { id: '7791', name: 'Control Audit', class: 'warrior', cls: 'warrior', gender: 'male' }
+    }));
+    localStorage.setItem('pointy_character_registry_v1::acct:control-audit-uid', JSON.stringify({
+      '7791': { id: '7791', name: 'Control Audit', class: 'warrior', gender: 'male', xp: 0 }
+    }));
+    sessionStorage.setItem('pointy_test_trip_control-audit', JSON.stringify({
+      tripName: 'Control Audit Board',
+      participants: ['Control Audit'],
+      characterIds: { 'Control Audit': '7791' },
+      heroClasses: { 'Control Audit': 'warrior' },
+      heroGenders: { 'Control Audit': 'male' },
+      expenses: [],
+      admin: { ownerHash: 'control-owner', adminId: 'ADM-CTRL', adminName: 'Control Audit', characterId: '7791', passwordHash: 'hash', urlLocked: true },
+      updatedAt: 100
+    }));
+  });
+
+  const pages = [
+    ['home', '/?test=1', () => page.getByRole('heading', { name: 'Coin Quest Ledger' })],
+    ['compare', '/?view=compare&test=1', () => page.locator('#cmp-grid')],
+    ['trip', '/trip/?id=control-audit&test=1', () => page.getByRole('heading', { name: 'แบ่งค่าใช้จ่าย' })],
+    ['debt', '/debt/?test=1', () => page.getByRole('heading', { name: 'มังกรหนี้' })],
+    ['treasury', '/treasury/?test=1', () => page.getByRole('heading', { name: /คลังหลวง|Personal Treasury/ })],
+    ['character', '/character/?id=7791&test=1', () => page.getByRole('heading', { name: 'Control Audit' })]
+  ];
+
+  for (const [label, url, ready] of pages) {
+    await page.goto(url);
+    await expect(ready()).toBeVisible();
+    const nativeControls = await page.evaluate(() => {
+      function controlName(el) {
+        const id = el.id ? `#${el.id}` : '';
+        const cls = typeof el.className === 'string' && el.className.trim() ? `.${el.className.trim().replace(/\s+/g, '.')}` : '';
+        const text = (el.innerText || el.value || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '').replace(/\s+/g, ' ').trim();
+        return `${el.tagName.toLowerCase()}${id}${cls}${text ? ` :: ${text.slice(0, 48)}` : ''}`;
+      }
+      return [...document.querySelectorAll('button,input,select,textarea')]
+        .filter(el => {
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return r.width > 1 && r.height > 1 && cs.visibility !== 'hidden' && cs.display !== 'none';
+        })
+        .map(el => {
+          const tag = el.tagName.toLowerCase();
+          const type = (el.getAttribute('type') || '').toLowerCase();
+          const cs = getComputedStyle(el);
+          const appearance = cs.appearance || cs.webkitAppearance || '';
+          const shouldReset = tag === 'button' || tag === 'select' || tag === 'textarea' || (tag === 'input' && !['checkbox', 'radio', 'file', 'hidden'].includes(type));
+          return { label: controlName(el), appearance, shouldReset };
+        })
+        .filter(item => item.shouldReset && item.appearance !== 'none');
+    });
+    expect(nativeControls, `${label} has native controls: ${JSON.stringify(nativeControls, null, 2)}`).toEqual([]);
+  }
+});
+
 test('all player modules and admin portal keep their mobile and tablet responsive shells', async ({ page }, testInfo) => {
   const isPhone = testInfo.project.name === 'mobile';
   const isTablet = testInfo.project.name === 'tablet';
