@@ -521,6 +521,14 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await expect(page.locator('.forecast-panel')).toContainText('เร็วขึ้น');
   await expect(page.locator('.forecast-panel')).toContainText('โจม');
 
+  await page.getByRole('button', { name: /เพิ่มมังกร/ }).click();
+  const addDragonForm = page.locator('.dragon-form').last();
+  await addDragonForm.locator('.df-type[data-dragon-type="autoloan"]').click();
+  await expect(addDragonForm.locator('.df-type.on')).toHaveAttribute('data-dragon-type', 'autoloan');
+  await addDragonForm.locator('.df-type[data-dragon-type="card"]').click();
+  await expect(addDragonForm.locator('.df-type.on')).toHaveAttribute('data-dragon-type', 'card');
+  await addDragonForm.getByRole('button', { name: 'ยกเลิก' }).click();
+
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_test_debt_v1')));
   expect(saved.dragons[0].balance).toBe(56800);
   expect(saved.dragons[0].log[0].amount).toBe(1200);
@@ -535,6 +543,38 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await page.goto('/debt/?test=1');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
+});
+
+test('Debt Dragon uses the signed-in account hero instead of legacy slayer identity', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'debt-sync-uid',
+      username: 'debt.sync',
+      email: 'debt.sync@coinquest.local',
+      userId: '2468',
+      name: 'Debt Sync',
+      character: {
+        id: '2468',
+        name: 'P',
+        class: 'alchemist',
+        cls: 'alchemist',
+        gender: 'male',
+        skin: ''
+      }
+    }));
+  });
+  await page.goto('/debt/');
+  await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
+  await expect(page.locator('#slayer-name')).toHaveValue('P');
+  await expect(page.locator('#slayer-name')).toHaveAttribute('readonly', '');
+  await expect(page.locator('.slayer-rank')).toContainText('นักเล่นแร่');
+  await expect(page.locator('.char-id-link')).toHaveText('#2468');
+  await expect(page.locator('.account-hero-note')).toContainText('ใช้ฮีโร่เดียวกับบัญชีของคุณ');
+  await expect(page.getByRole('button', { name: 'สร้าง ID' })).toHaveCount(0);
+  await expect(page.locator('#slayer-character-id')).toHaveCount(0);
+  await expect(page.locator('.slayer-portrait img')).toHaveAttribute('src', /assets\/rpg-portraits\/alchemist-male\.png$/);
 });
 
 test('super admin portal saves drafts, publishes board edits, and records revisions', async ({ page }) => {

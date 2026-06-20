@@ -203,6 +203,7 @@
     .dragon-form { display: flex; flex-direction: column; gap: 10px; border-top: 1.5px dashed var(--border); padding-top: 12px; margin-top: 12px; }
     .field-input, .df-name { border: 1.5px solid var(--border-strong); border-radius: 10px; background: var(--panel-in); color: var(--ink); padding: 10px 12px; font-size: 15px; min-width: 0; }
     .field-input:focus, .df-name:focus, .df-num:focus-within { outline: none; border-color: var(--accent); }
+    .account-hero-lock { display: flex; align-items: center; font-weight: 700; }
     .df-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
     .df-type { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 1.5px solid var(--border); border-radius: 11px; background: var(--panel); padding: 8px 4px; color: var(--ink-soft); font-size: 9.5px; font-weight: 600; line-height: 1.1; text-align: center; }
     .df-type.on { border-color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 90%); color: var(--accent); }
@@ -235,14 +236,17 @@
     .slayer-lvl span:last-child { font: 700 14px var(--font-stat); }
     .slayer-info { flex: 1; min-width: 0; }
     .slayer-name { width: 100%; border: 0; background: transparent; color: var(--ink); padding: 2px 4px; border-radius: 7px; font: 600 18px var(--font-display); text-align: left; }
+    .slayer-name[readonly] { cursor: default; }
     .slayer-rank { color: var(--ink-soft); font: 700 12px var(--font-stat); margin: 3px 0 8px 4px; }
     .char-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
     .char-id-link { color: var(--accent); font: 700 12px var(--font-stat); text-decoration: none; }
+    .account-hero-note { display: inline-flex; align-items: center; color: var(--ink-soft); font-size: 12px; font-weight: 700; }
     .slayer-editor { display: grid; grid-template-columns: 1fr 96px; gap: 8px; margin-top: 12px; }
     .class-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 8px; }
     .gender-toggle { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; }
     .gender-toggle button { width: 36px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-weight: 800; }
     .gender-toggle button.on { background: var(--accent); color: #fff; }
+    .gender-toggle.locked button { cursor: default; opacity: .72; }
     .bar-row { display: flex; align-items: center; gap: 8px; }
     .bar-lab { width: 24px; font: 700 10px var(--font-stat); color: var(--xp); }
     .bar { flex: 1; height: 10px; border-radius: 6px; background: var(--gold-soft); overflow: hidden; border: 1px solid rgba(0,0,0,.08); }

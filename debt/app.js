@@ -2,6 +2,7 @@ const PARAMS = new URLSearchParams(window.location.search);
 const TEST_MODE = PARAMS.get('test') === '1';
 const STORE_KEY = TEST_MODE ? 'pointy_test_debt_v1' : 'pointy_debt_v5';
 const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
+const AUTH_KEY = 'pointy_auth_v1';
 const ACCENTS = ['#2f8f5b', '#c79a2e', '#d4503f', '#6d5ae0', '#2a7fb8'];
 const CLASSES = PointyLogic.CLASSES;
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
@@ -69,6 +70,48 @@ let POWER_EXTRA = 0;
 let flashToken = 0;
 let toastTimer;
 let audioCtx = null;
+
+function readDebtAccount() {
+  if (TEST_MODE) return null;
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    const account = raw ? JSON.parse(raw) : null;
+    return account && !account.signedOut ? account : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function accountHero() {
+  const account = readDebtAccount();
+  const character = account?.character || null;
+  if (!account || !character) return null;
+  const id = String(character.id || account.userId || '').replace(/\D/g, '').slice(0, 4);
+  const cls = PointyLogic.normalizeClass(character.class || character.cls || 'dragoon');
+  return {
+    id,
+    name: character.name || account.name || account.username || 'Hero',
+    class: cls,
+    gender: character.gender === 'female' ? 'female' : 'male',
+    skin: character.skin || '',
+    account
+  };
+}
+
+function syncSlayerWithAccount() {
+  const hero = accountHero();
+  if (!hero) return false;
+  S.slayer = {
+    ...(S.slayer || {}),
+    name: hero.name,
+    characterId: hero.id,
+    class: hero.class,
+    gender: hero.gender,
+    skin: hero.skin,
+    accountLinked: true
+  };
+  return true;
+}
 
 function fallback(key) {
   const th = {
@@ -150,6 +193,7 @@ function fallback(key) {
     dd_character_hint: 'เชื่อมกับโปรไฟล์เดิม หรือสร้าง ID ใหม่จากหน้านี้',
     dd_create_character: 'สร้าง ID',
     dd_open_profile: 'เปิดโปรไฟล์',
+    dd_account_hero_locked: 'ใช้ฮีโร่เดียวกับบัญชีของคุณ',
     dd_record: 'สถิตินักล่า',
     dd_reclaimed_life: 'ทวงคืนทั้งหมด',
     dd_interest_fed: 'จ่ายดอกเบี้ยไป',
@@ -253,6 +297,7 @@ function fallback(key) {
     dd_character_hint: 'Connect an existing profile or create a new ID here',
     dd_create_character: 'Create ID',
     dd_open_profile: 'Open profile',
+    dd_account_hero_locked: 'Using your account hero',
     dd_record: "Slayer's Record",
     dd_reclaimed_life: 'Total reclaimed',
     dd_interest_fed: 'Interest fed',
@@ -418,6 +463,7 @@ function loadDebtState() {
   }
 }
 function saveDebtState() {
+  syncSlayerWithAccount();
   try {
     if (window.PointyScope) window.PointyScope.setJSON(STORE_KEY, S);
     else localStorage.setItem(STORE_KEY, JSON.stringify(S));
@@ -463,6 +509,7 @@ function generateCharacterId() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }
 function persistSlayerRecord() {
+  syncSlayerWithAccount();
   const id = String(S.slayer.characterId || '').replace(/\D/g, '').slice(0, 4);
   if (id.length !== 4) return;
   const registry = readLocalRegistry();
@@ -638,7 +685,7 @@ function renderDragonForm(form = {}, mode = 'add') {
   const originalLow = d.original > 0 && d.original < d.balance;
   return `<div class="dragon-form">
     <input id="${prefix}-name" class="df-name" placeholder="${h(tt('dd_name_ph'))}" value="${h(d.name)}">
-    <div class="df-types">${DRAGON_ORDER.map(type => `<button type="button" class="df-type ${d.type === type ? 'on' : ''}" onclick="setDragonFormType('${prefix}','${type}')">
+    <div class="df-types">${DRAGON_ORDER.map(type => `<button type="button" class="df-type ${d.type === type ? 'on' : ''}" data-dragon-type="${h(type)}" aria-pressed="${d.type === type}" onclick="setDragonFormType('${prefix}','${type}')">
       ${renderDragonPortrait(type, { face: true, suffix: prefix })}<span>${h(dragonTypeName(type))}</span>
     </button>`).join('')}</div>
     <input id="${prefix}-type" type="hidden" value="${h(d.type)}">
@@ -665,7 +712,7 @@ function renderDragonCard(d) {
   const months = PointyLogic.payoffMonths(d);
   const regen = PointyLogic.monthlyInterest(d);
   const adhoc = d.payMode === 'adhoc';
-  const never = !adhoc && !isFinite(months) && !d.slain;
+  const never = !adhoc && Number(regen) > 0 && !isFinite(months) && !d.slain;
   const target = d.id === targetId();
   const fx = FX[d.id];
   const due = dueStatus(d);
@@ -742,26 +789,33 @@ function renderLair() {
 }
 
 function renderSlayerPanel() {
+  const linkedHero = accountHero();
   const cls = PointyLogic.normalizeClass(S.slayer.class || 'dragoon');
   const xp = PointyLogic.slayerXpFrom(S.dragons);
   const level = PointyLogic.levelFromXp(xp);
   const reward = PointyLogic.rewardFor(level.lvl);
   const base = avatarId(cls, S.slayer.gender);
   const skins = avatarSkins(base);
+  const characterLink = S.slayer.characterId ? `<a class="char-id-link" href="${h(profileUrl())}">#${h(S.slayer.characterId)}</a>` : `<span class="settings-sub">${tt('dd_character_hint')}</span>`;
+  const characterActions = linkedHero
+    ? `${characterLink}<span class="account-hero-note">🔒 ${tt('dd_account_hero_locked')}</span>${S.slayer.characterId ? `<a class="btn-ghost sm" href="${h(profileUrl())}">${tt('dd_open_profile')}</a>` : ''}`
+    : `${characterLink}<button class="btn-ghost sm" onclick="ensureDebtCharacter()">${tt('dd_create_character')}</button>${S.slayer.characterId ? `<a class="btn-ghost sm" href="${h(profileUrl())}">${tt('dd_open_profile')}</a>` : ''}`;
+  const classControls = linkedHero
+    ? `<div class="field-input account-hero-lock">${CLASSES[cls].glyph} ${h(classLabel(cls))}</div>
+      <div class="gender-toggle locked"><button class="${S.slayer.gender !== 'female' ? 'on' : ''}" disabled>♂</button><button class="${S.slayer.gender === 'female' ? 'on' : ''}" disabled>♀</button></div>`
+    : `<select class="field-input" onchange="updateSlayerField('class',this.value)">${CLASS_ORDER.map(id => `<option value="${id}" ${id === cls ? 'selected' : ''}>${CLASSES[id].glyph} ${h(classLabel(id))}</option>`).join('')}</select>
+      <div class="gender-toggle"><button class="${S.slayer.gender !== 'female' ? 'on' : ''}" onclick="updateSlayerField('gender','male')">♂</button><button class="${S.slayer.gender === 'female' ? 'on' : ''}" onclick="updateSlayerField('gender','female')">♀</button></div>`;
   return `<section class="panel slayer-panel">
     <div class="panel-head"><h2 class="panel-title">🗡️ ${tt('dd_slayer')}</h2></div>
     <div class="slayer-body">${renderSlayerPortrait()}<div class="slayer-info">
-      <input id="slayer-name" class="slayer-name" value="${h(S.slayer.name || '')}" oninput="updateSlayerField('name',this.value)">
+      <input id="slayer-name" class="slayer-name" value="${h(S.slayer.name || '')}" ${linkedHero ? 'readonly aria-readonly="true"' : "oninput=\"updateSlayerField('name',this.value)\""}>
       <div class="slayer-rank">${reward.glyph} ${h(reward.title?.[LANG] || reward.title?.th || '')} · ${h(classLabel(cls))}</div>
-      <div class="char-row">${S.slayer.characterId ? `<a class="char-id-link" href="${h(profileUrl())}">#${h(S.slayer.characterId)}</a>` : `<span class="settings-sub">${tt('dd_character_hint')}</span>`}<button class="btn-ghost sm" onclick="ensureDebtCharacter()">${S.slayer.characterId ? tt('dd_create_character') : tt('dd_create_character')}</button>${S.slayer.characterId ? `<a class="btn-ghost sm" href="${h(profileUrl())}">${tt('dd_open_profile')}</a>` : ''}</div>
+      <div class="char-row">${characterActions}</div>
       <div class="bar-row"><span class="bar-lab">${t('xp')}</span><div class="bar"><span class="bar-fill" style="display:block;width:${level.pct}%"></span></div><span class="bar-val">${level.into}/${level.need}</span></div>
     </div></div>
-    <div class="class-row">
-      <select class="field-input" onchange="updateSlayerField('class',this.value)">${CLASS_ORDER.map(id => `<option value="${id}" ${id === cls ? 'selected' : ''}>${CLASSES[id].glyph} ${h(classLabel(id))}</option>`).join('')}</select>
-      <div class="gender-toggle"><button class="${S.slayer.gender !== 'female' ? 'on' : ''}" onclick="updateSlayerField('gender','male')">♂</button><button class="${S.slayer.gender === 'female' ? 'on' : ''}" onclick="updateSlayerField('gender','female')">♀</button></div>
-    </div>
-    ${skins.length > 1 ? `<select class="field-input" style="margin-top:8px" onchange="updateSlayerField('skin',this.value)">${skins.map(sk => `<option value="${h(sk.id)}" ${S.slayer.skin === sk.id ? 'selected' : ''}>${h(sk[LANG] || sk.th || sk.en)}</option>`).join('')}</select>` : ''}
-    <div class="slayer-editor"><input id="slayer-character-id" class="field-input" inputmode="numeric" maxlength="4" placeholder="${tt('dd_character')}" value="${h(S.slayer.characterId || '')}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4)"><button class="btn-primary sm" onclick="linkDebtCharacter()">${tt('dd_character')}</button></div>
+    <div class="class-row">${classControls}</div>
+    ${!linkedHero && skins.length > 1 ? `<select class="field-input" style="margin-top:8px" onchange="updateSlayerField('skin',this.value)">${skins.map(sk => `<option value="${h(sk.id)}" ${S.slayer.skin === sk.id ? 'selected' : ''}>${h(sk[LANG] || sk.th || sk.en)}</option>`).join('')}</select>` : ''}
+    ${linkedHero ? '' : `<div class="slayer-editor"><input id="slayer-character-id" class="field-input" inputmode="numeric" maxlength="4" placeholder="${tt('dd_character')}" value="${h(S.slayer.characterId || '')}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4)"><button class="btn-primary sm" onclick="linkDebtCharacter()">${tt('dd_character')}</button></div>`}
   </section>`;
 }
 
@@ -821,6 +875,7 @@ function renderQuickToggles() {
 }
 
 function renderAll(shouldSave = true) {
+  syncSlayerWithAccount();
   applySettings();
   translatePage();
   document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('lang-active', btn.dataset.lang === LANG));
@@ -969,10 +1024,16 @@ function setDragonFormType(prefix, type) {
   const payment = document.getElementById(`${prefix}-payment`);
   if (payMode && prefix === 'new') payMode.value = min > 0 ? 'monthly' : 'adhoc';
   if (payment && prefix === 'new') payment.value = min;
-  document.querySelectorAll(`#${CSS.escape(prefix)}-type`).forEach(() => {});
-  document.querySelectorAll('.df-type').forEach(btn => btn.classList.toggle('on', btn.textContent.trim() === dragonTypeName(type)));
+  const form = hidden.closest('.dragon-form') || document;
+  form.querySelectorAll('.df-type').forEach(btn => {
+    const on = btn.dataset.dragonType === type;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  });
   const wrap = document.getElementById(`${prefix}-payment-wrap`);
   if (wrap) wrap.style.display = payMode?.value === 'adhoc' ? 'none' : '';
+  const dueWrap = document.getElementById(`${prefix}-due-wrap`);
+  if (dueWrap) dueWrap.style.display = payMode?.value === 'adhoc' ? 'none' : '';
 }
 function setPayMode(prefix, mode) {
   const el = document.getElementById(`${prefix}-payMode`);
@@ -1060,6 +1121,12 @@ function deleteStrikeLog(id, logId) {
   renderAll();
 }
 function updateSlayerField(field, value) {
+  if (accountHero()) {
+    syncSlayerWithAccount();
+    saveDebtState();
+    if (field !== 'name') renderAll(false);
+    return;
+  }
   if (field === 'class') S.slayer.class = PointyLogic.normalizeClass(value);
   else if (field === 'gender') S.slayer.gender = value === 'female' ? 'female' : 'male';
   else if (field === 'skin') S.slayer.skin = value;
@@ -1068,12 +1135,23 @@ function updateSlayerField(field, value) {
   if (field !== 'name') renderAll(false);
 }
 function ensureDebtCharacter() {
+  if (syncSlayerWithAccount()) {
+    persistSlayerRecord();
+    SFX.click();
+    renderAll();
+    return;
+  }
   S.slayer.characterId = generateCharacterId();
   persistSlayerRecord();
   SFX.click();
   renderAll();
 }
 function linkDebtCharacter() {
+  if (syncSlayerWithAccount()) {
+    persistSlayerRecord();
+    renderAll();
+    return;
+  }
   const id = String(document.getElementById('slayer-character-id')?.value || '').replace(/\D/g, '').slice(0, 4);
   if (id.length !== 4) return;
   const registry = readLocalRegistry();
