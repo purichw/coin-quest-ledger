@@ -1622,7 +1622,7 @@
         <div class="tour-art" style="background:radial-gradient(120% 90% at 50% 18%, oklch(0.6 0.13 ${st.bg}), oklch(0.22 0.06 ${st.bg}) 82%)"><span class="tour-emoji">${h(st.ic)}</span></div>
         <div class="tour-t">${h(st.t)}</div><div class="tour-b">${h(st.b)}</div>
         <div class="tour-dots">${steps.map((_, i) => `<button type="button" class="tour-dot ${i === idx ? 'on' : ''}" data-step="${i}" aria-label="step ${i + 1}"></button>`).join('')}</div>
-        <div class="tour-nav">${idx > 0 ? `<button class="btn-ghost" type="button" data-back>← ${h(s().tourBack)}</button>` : '<span></span>'}<button class="btn-gold" type="button" data-next>${idx === steps.length - 1 ? h(s().tourDone) : h(s().tourNext) + ' →'}</button></div>
+        <div class="tour-nav">${idx > 0 ? `<button class="tour-btn tour-back" type="button" data-back>← ${h(s().tourBack)}</button>` : '<span></span>'}<button class="tour-btn tour-next" type="button" data-next>${idx === steps.length - 1 ? h(s().tourDone) : h(s().tourNext) + ' →'}</button></div>
       </div></div>`);
       overlay.querySelector('[data-done]').addEventListener('click', finish);
       overlay.querySelector('[data-next]').addEventListener('click', () => { if (idx === steps.length - 1) finish(); else { idx += 1; render(); } });

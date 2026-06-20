@@ -913,6 +913,56 @@ test('home view opens user modules and treasury logs expenses', async ({ page })
   expect(overflow).toBe(false);
 });
 
+test('onboarding tour navigation uses unified outlined buttons', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'tour-style-uid',
+      username: 'tour.style',
+      email: 'tour.style@coinquest.local',
+      userId: '7788',
+      name: 'Tour Style',
+      character: { id: '7788', name: 'Tour Style', class: 'warrior', cls: 'warrior', gender: 'male' }
+    }));
+  });
+  await page.goto('/?test=1');
+  await page.waitForFunction(() => Boolean(window.PointyProfileHub?.showTour));
+  await page.evaluate(() => window.PointyProfileHub.showTour());
+  await expect(page.locator('.tour-next')).toBeVisible();
+  await page.locator('.tour-next').click();
+  await expect(page.locator('.tour-back')).toBeVisible();
+
+  const styles = await page.locator('.tour-nav').evaluate(nav => {
+    const pick = selector => {
+      const cs = getComputedStyle(nav.querySelector(selector));
+      return {
+        appearance: cs.appearance,
+        borderRadius: cs.borderRadius,
+        borderStyle: cs.borderStyle,
+        borderWidth: cs.borderWidth,
+        borderColor: cs.borderColor,
+        minHeight: cs.minHeight,
+        color: cs.color,
+        fontWeight: cs.fontWeight
+      };
+    };
+    return { back: pick('.tour-back'), next: pick('.tour-next') };
+  });
+  expect(styles.next).toMatchObject({
+    appearance: styles.back.appearance,
+    borderRadius: styles.back.borderRadius,
+    borderStyle: styles.back.borderStyle,
+    borderWidth: styles.back.borderWidth,
+    minHeight: styles.back.minHeight,
+    color: styles.back.color,
+    fontWeight: styles.back.fontWeight
+  });
+  expect(styles.next.borderColor).not.toBe(styles.back.borderColor);
+  await page.locator('[data-done]').click();
+  await expect(page.locator('.tour-overlay')).toHaveCount(0);
+});
+
 test('all player modules and admin portal keep their mobile and tablet responsive shells', async ({ page }, testInfo) => {
   const isPhone = testInfo.project.name === 'mobile';
   const isTablet = testInfo.project.name === 'tablet';
@@ -965,6 +1015,12 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
   await page.goto('/?test=1');
   await expect(page.getByRole('heading', { name: 'Coin Quest Ledger' })).toBeVisible();
   await assertPlayerShell();
+  if (isPhone) {
+    await page.locator('.tb-burger').click();
+    await expect(page.locator('.mm-account .mm-sub')).toContainText('@mobile.smoke · ID 7777');
+    await expect(page.locator('#mobile-shell-root')).not.toContainText('@coinquest.local');
+    await page.locator('[data-mm-close]').click();
+  }
 
   await page.goto('/?view=compare&test=1');
   await expect(page.locator('#cmp-grid')).toBeVisible();

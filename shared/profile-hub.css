@@ -1096,7 +1096,26 @@ body.login-locked {
 }
 .tour-dot.on { width: 22px; border-radius: 4px; background: var(--accent); }
 .tour-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.tour-nav .btn-gold { min-width: 120px; }
+.tour-nav .tour-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 120px;
+  min-height: 44px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 8px 12px;
+  font: 800 14px var(--font-body, system-ui, sans-serif);
+  cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s, transform .12s;
+}
+.tour-nav .tour-btn:hover { background: var(--panel-2); }
+.tour-nav .tour-btn:active { transform: translateY(1px); }
+.tour-nav .tour-next {
+  border-color: var(--accent);
+  color: var(--ink);
+}
 .ach-toast {
   position: fixed;
   left: 50%;
@@ -1179,8 +1198,7 @@ body[data-theme="dungeon"] {
   .pd-fullprofile,
   .pd-board-main,
   .pdb-actions .btn-ghost,
-  .tour-nav .btn-gold,
-  .tour-nav .btn-ghost,
+  .tour-nav .tour-btn,
   .login-tabs button,
   .login-btn,
   .cc-portrait,
@@ -1224,7 +1242,7 @@ body[data-theme="dungeon"] {
   .trophy-grid { grid-template-columns: 1fr; }
   .rem-panel { top: 58px; right: 14px; left: 14px; width: auto; }
   .pdb-actions, .tour-nav { flex-wrap: wrap; }
-  .tour-nav .btn-gold, .tour-nav .btn-ghost { flex: 1; }
+  .tour-nav .tour-btn { flex: 1; }
   .login-wrap { padding: 24px 14px; }
   .login-card { padding: 28px 22px 22px; }
   .cc-card { max-width: 408px; }

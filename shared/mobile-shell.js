@@ -190,6 +190,14 @@
     </a>`;
   }
 
+  function accountHandle(account) {
+    const username = String(account?.username || '').trim();
+    if (username) return `@${username}`;
+    const email = String(account?.email || '').trim();
+    const local = email.split('@')[0] || '';
+    return local ? `@${local}` : text().accountSub;
+  }
+
   function renderDrawer() {
     const root = ensureRoot();
     const active = activeTabId();
@@ -203,7 +211,7 @@
           <button class="mm-close" type="button" data-mm-close aria-label="Close">✕</button>
         </div>
         <div class="mm-scroll">
-          <div class="mm-account"><span class="mm-avatar">🦸</span><div><div class="mm-name">${html(account?.name || t.account)}</div><div class="mm-sub">${html(account?.email || t.accountSub)}${account?.userId ? ` · ID ${html(account.userId)}` : ''}</div></div></div>
+          <div class="mm-account"><span class="mm-avatar">🦸</span><div><div class="mm-name">${html(account?.name || t.account)}</div><div class="mm-sub">${html(accountHandle(account))}${account?.userId ? ` · ID ${html(account.userId)}` : ''}</div></div></div>
           ${TABS.map(tab => tabDrawerMarkup(tab, active)).join('')}
           <button class="mm-item" type="button" data-mm-action="profile"><span class="mm-ic">🏅</span><span class="mm-lab">${html(t.profile)}</span><span class="mm-arr">›</span></button>
           <button class="mm-item" type="button" data-mm-action="reminders"><span class="mm-ic">🔔</span><span class="mm-lab">${html(t.reminders)}</span><span class="mm-arr">›</span></button>
