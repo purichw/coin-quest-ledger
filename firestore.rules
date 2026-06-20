@@ -35,8 +35,19 @@ service cloud.firestore {
       allow create: if (request.auth != null && request.resource.data.uid == request.auth.uid) || isSuperAdmin();
       allow update: if isSuperAdmin() || (
         request.auth != null
-        && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == resource.data.uid
+        && (
+          (
+            resource.data.uid == request.auth.uid
+            && request.resource.data.uid == resource.data.uid
+          )
+          || (
+            resource.data.deleteReusable == true
+            && resource.data.lifecycleStatus == 'deleted'
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.username == resource.data.username
+            && request.resource.data.userId == resource.data.userId
+          )
+        )
       );
       allow delete: if isSuperAdmin();
     }

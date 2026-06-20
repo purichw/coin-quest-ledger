@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { cert, deleteApp, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
 function uniqueTripId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -37,6 +39,122 @@ async function addWarrior(page, name) {
   await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toBeVisible();
   await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
   await expect(page.locator('#party-grid')).toContainText(name);
+}
+
+const FIREBASE_WEB_API_KEY = 'AIzaSyBDDC1sJnITQOqyp1qiPGvB1KLuUH1B28o';
+const REAL_FIREBASE_E2E = process.env.POINTY_REAL_FIREBASE_E2E === '1';
+
+function serviceAccountFromEnv() {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) return null;
+  return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+}
+
+function adminTestApp() {
+  const existing = getApps().find(app => app.name === 'pointy-real-e2e');
+  if (existing) return existing;
+  const account = serviceAccountFromEnv();
+  if (!account) return null;
+  return initializeApp({ credential: cert(account) }, 'pointy-real-e2e');
+}
+
+async function superAdminIdToken() {
+  const app = adminTestApp();
+  if (!app) throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is required for real Firebase E2E.');
+  const customToken = await getAuth(app).createCustomToken(`super-admin-e2e-${Date.now()}`, {
+    email: 'purich.wc@gmail.com',
+    email_verified: true
+  });
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${FIREBASE_WEB_API_KEY}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token: customToken, returnSecureToken: true })
+  });
+  const data = await res.json();
+  if (!res.ok || !data.idToken) throw new Error(data.error?.message || 'Could not mint Super Admin ID token.');
+  return data.idToken;
+}
+
+async function requestPermanentDelete(account, reason) {
+  if (!account?.userId && !account?.uid) return null;
+  const token = account.adminToken || await superAdminIdToken();
+  const res = await fetch('https://coin-quest-ledger.vercel.app/api/admin-delete-user', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      uid: account.uid || '',
+      userId: account.userId || '',
+      username: account.username || '',
+      characterIds: [account.characterId, ...(account.characterIds || [])].filter(Boolean),
+      reason
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
+async function cleanupRealAccount(username, account = {}) {
+  const token = account.adminToken || await superAdminIdToken().catch(() => '');
+  if (!token) return;
+  if (account.secondUid || account.secondUserId) {
+    await requestPermanentDelete({
+      adminToken: token,
+      uid: account.secondUid,
+      userId: account.secondUserId || account.userId,
+      username,
+      characterId: account.secondCharacterId || account.userId
+    }, 'Automated E2E cleanup after recreate').catch(() => {});
+  } else if (account.uid || account.userId) {
+    await requestPermanentDelete({
+      adminToken: token,
+      uid: account.uid,
+      userId: account.userId,
+      username,
+      characterId: account.characterId || account.userId
+    }, 'Automated E2E cleanup after partial run').catch(() => {});
+  }
+}
+
+async function enableRealAuth(page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+}
+
+async function signUpRealAccount(page, username, password, displayName, heroName) {
+  await enableRealAuth(page);
+  await page.goto('/');
+  await page.locator('[data-login-tab="up"]').click();
+  await page.locator('[data-login-name]').fill(displayName);
+  await page.locator('[data-login-email]').fill(username);
+  await page.locator('[data-login-password]').fill(password);
+  await page.locator('[data-login-password2]').fill(password);
+  await page.locator('.login-btn').click();
+  await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toBeVisible({ timeout: 15_000 });
+  await page.evaluate(async name => {
+    const account = JSON.parse(localStorage.getItem('pointy_auth_v1') || '{}');
+    const character = { id: account.userId, name, class: 'warrior', cls: 'warrior', gender: 'male', skin: '' };
+    await firebase.firestore().collection('characters').doc(character.id).set({
+      ...character,
+      ownerUid: account.uid,
+      userId: account.userId,
+      username: account.username,
+      accountName: account.name,
+      updatedAt: Date.now(),
+      createdAt: Date.now()
+    }, { merge: true });
+    await firebase.firestore().collection('users').doc(account.uid).set({
+      character,
+      characterId: character.id,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({ ...account, character }));
+    document.querySelector('.login-gate')?.remove();
+    document.body.classList.remove('login-locked');
+  }, heroName);
+  await expect(page.locator('.login-gate')).toHaveCount(0, { timeout: 15_000 });
+  return page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1') || '{}'));
 }
 
 test.beforeEach(async ({ page }) => {
@@ -637,6 +755,61 @@ test('profile hub completes character creation and links to the full character p
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
+});
+
+test('real Firebase account can be permanently deleted and recreated with the same username and ID', async ({ page, browser }, testInfo) => {
+  test.setTimeout(120_000);
+  test.skip(testInfo.project.name !== 'chromium', 'Real Firebase E2E runs once to avoid creating duplicate live accounts.');
+  test.skip(!REAL_FIREBASE_E2E || !serviceAccountFromEnv(), 'Set POINTY_REAL_FIREBASE_E2E=1 and FIREBASE_SERVICE_ACCOUNT_JSON to run live account lifecycle E2E.');
+
+  const suffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  const username = `e2e.reuse.${suffix}`;
+  const password = `Reuse-${suffix}`;
+  const seen = {};
+
+  try {
+    const first = await signUpRealAccount(page, username, password, 'E2E Reuse', 'E2E First Hero');
+    seen.uid = first.uid;
+    seen.userId = first.userId;
+    seen.characterId = first.character?.id;
+    expect(first.username).toBe(username);
+    expect(first.userId).toMatch(/^\d{4}$/);
+    expect(first.character).toMatchObject({ id: first.userId, name: 'E2E First Hero', class: 'warrior', gender: 'male' });
+
+    seen.adminToken = await superAdminIdToken();
+    const { res: deleteRes, data: deleted } = await requestPermanentDelete({
+      adminToken: seen.adminToken,
+      uid: first.uid,
+      userId: first.userId,
+      username,
+      characterId: first.character.id
+    }, 'Automated E2E recreate same username and ID');
+    expect(deleteRes.ok, JSON.stringify(deleted)).toBe(true);
+    expect(deleted).toMatchObject({ ok: true, deleted: true, userId: first.userId, username });
+    expect(deleted.results.usernameDoc).toBe('tombstoned');
+
+    const secondContext = await browser.newContext();
+    const secondPage = await secondContext.newPage();
+    secondPage.consoleErrors = [];
+    secondPage.on('console', msg => {
+      if (msg.type() === 'error') secondPage.consoleErrors.push(msg.text());
+    });
+    secondPage.on('pageerror', err => secondPage.consoleErrors.push(err.message));
+    const second = await signUpRealAccount(secondPage, username, password, 'E2E Reuse Again', 'E2E Second Hero');
+    seen.secondUid = second.uid;
+    seen.secondUserId = second.userId;
+    seen.secondCharacterId = second.character?.id;
+    expect(second.username).toBe(username);
+    expect(second.uid).not.toBe(first.uid);
+    expect(second.userId).toBe(first.userId);
+    expect(second.character).toMatchObject({ id: first.userId, name: 'E2E Second Hero', class: 'warrior', gender: 'male' });
+    expect(secondPage.consoleErrors).toEqual([]);
+    await secondContext.close();
+  } finally {
+    await cleanupRealAccount(username, seen);
+    const app = adminTestApp();
+    if (app) await deleteApp(app).catch(() => {});
+  }
 });
 
 test('profile hub scopes progress to the signed-in account instead of stale browser data', async ({ page }) => {

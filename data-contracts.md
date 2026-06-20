@@ -267,7 +267,7 @@ Repo rules now prevent username mapping takeover: an update is allowed only for 
 Backend-only permanent delete endpoints:
 
 - `/api/admin-delete-status`: `GET`, no secrets returned. Reports whether Vercel has Firebase Admin service-account env vars.
-- `/api/admin-delete-user`: `POST`, requires `Authorization: Bearer <Firebase ID token>` from Google-auth Super Admin `purich.wc@gmail.com`.
+- `/api/admin-delete-user`: `POST`, requires `Authorization: Bearer <Firebase ID token>` from Google-auth Super Admin `purich.wc@gmail.com`. Deletes the Firebase Auth user, `users/{uid}`, and character docs. It writes `usernames/{username}` as a `lifecycleStatus: "deleted"` / `deleteReusable: true` tombstone with the old `userId` and `characterId`, so a future signup with the same username reuses the same public identity.
 
 Accepted production env:
 

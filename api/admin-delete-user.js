@@ -3,6 +3,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 const SUPER_ADMIN_EMAIL = 'purich.wc@gmail.com';
+const USERNAME_DOMAIN = 'coinquest.local';
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -145,8 +146,23 @@ export default async function handler(req, res) {
     batch.delete(db.collection('users').doc(uid));
     results.userDoc = 'deleted';
     if (finalUsername) {
-      batch.delete(db.collection('usernames').doc(finalUsername));
-      results.usernameDoc = 'deleted';
+      batch.set(db.collection('usernames').doc(finalUsername), {
+        username: finalUsername,
+        uid: '',
+        previousUid: uid,
+        authEmail: `${finalUsername}@${USERNAME_DOMAIN}`,
+        userId: userId || data.userId || '',
+        characterId: finalCharacterIds[0] || data.characterId || data.character?.id || '',
+        characterIds: finalCharacterIds,
+        status: 'deleted',
+        lifecycleStatus: 'deleted',
+        deleteReusable: true,
+        deletedBy: decoded.email,
+        deletedReason: reason,
+        deletedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      results.usernameDoc = 'tombstoned';
     }
     finalCharacterIds.forEach(id => {
       batch.delete(db.collection('characters').doc(id));

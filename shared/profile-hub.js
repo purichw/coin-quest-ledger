@@ -344,6 +344,10 @@
     const snap = await db.collection('usernames').doc(clean).get();
     return snap.exists ? { id: clean, ...(snap.data() || {}) } : null;
   }
+  function reusableDeletedUsername(rec) {
+    const status = String(rec?.status || rec?.lifecycleStatus || '').toLowerCase();
+    return !!rec && (status === 'deleted' || rec.deleteReusable === true) && !!rec.userId;
+  }
   async function saveUsernameRecord(account, extra = {}) {
     const db = cloudDb();
     const username = normalizeUsername(account?.username);
@@ -354,6 +358,11 @@
       authEmail: account.email || usernameEmail(username),
       userId: account.userId || '',
       characterId: account.character?.id || extra.characterId || '',
+      status: account.status || 'active',
+      lifecycleStatus: account.status || 'active',
+      deleteReusable: false,
+      deletedAt: 0,
+      previousUid: '',
       updatedAt: cloudNow(),
       ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
       ...(extra.create ? { createdAt: cloudNow() } : {})
@@ -1213,12 +1222,12 @@
           try {
             setBusy(true);
             const existing = await usernameRecord(loginName);
-            if (existing) throw Object.assign(new Error('username exists'), { code: 'auth/email-already-in-use' });
+            if (existing && !reusableDeletedUsername(existing)) throw Object.assign(new Error('username exists'), { code: 'auth/email-already-in-use' });
             const recoveryCode = recoveryCodeValue();
             const recovery = await recoveryHash(loginName, recoveryCode);
             const cred = await cloudAuth().createUserWithEmailAndPassword(em, pw);
             await cred.user.updateProfile({ displayName: loginName });
-            const account = normalizeAccount({ uid: cred.user.uid, provider: 'firebase', username: loginName, email: em, userId: await allocateCloudUserId(cred.user.uid), name: display, character: null });
+            const account = normalizeAccount({ uid: cred.user.uid, provider: 'firebase', username: loginName, email: em, userId: existing?.userId || await allocateCloudUserId(cred.user.uid), name: display, character: null });
             await saveCloudUser(account, { create: true, recoveryHash: recovery, recoveryIssuedAt: Date.now() });
             storePendingRecovery(recoveryCode);
             saveAuth(account);
