@@ -9,7 +9,6 @@
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const TEST_FLAG_KEY = 'pointy_test_mode_v1';
   const PENDING_RECOVERY_KEY = 'pointy_pending_recovery_code_v1';
-  const USERNAME_DOMAIN = 'coinquest.local';
   const URL_TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
   if (URL_TEST_MODE) {
     try { sessionStorage.setItem(TEST_FLAG_KEY, '1'); } catch (_) {}
@@ -306,14 +305,13 @@
   }
   function genId4() { return String(Math.floor(1000 + Math.random() * 9000)); }
   function normalizeUsername(value) {
-    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
+    return window.PointyAuthCore.normalizeUsername(value);
   }
   function usernameEmail(username) {
-    const clean = normalizeUsername(username);
-    return `${clean || 'user'}@${USERNAME_DOMAIN}`;
+    return window.PointyAuthCore.usernameEmail(username);
   }
   function accountLogin(account) {
-    return normalizeUsername(account?.username || String(account?.email || '').split('@')[0] || account?.name || '');
+    return window.PointyAuthCore.accountLogin(account);
   }
   function realAuthEnabled() {
     return !TEST_MODE && !!window.PointyFirebase?.auth?.() && !!window.PointyFirebase?.firestore?.();
@@ -343,8 +341,7 @@
     }
   }
   function authEmailForUsername(username, suffix = '') {
-    const clean = normalizeUsername(username);
-    return suffix ? `${clean}.${suffix}@${USERNAME_DOMAIN}` : usernameEmail(clean);
+    return window.PointyAuthCore.authEmailForUsername(username, suffix);
   }
   async function usernameRecord(username) {
     const db = cloudDb();
@@ -411,7 +408,7 @@
     };
   }
   function isBlockedAccountStatus(account) {
-    return ['archived', 'deactivated', 'delete_requested', 'deleted'].includes(String(account?.status || '').toLowerCase());
+    return window.PointyAuthCore.isBlockedAccountStatus(account);
   }
   function normalizeCharacter(character, account = {}) {
     if (!character) return null;
