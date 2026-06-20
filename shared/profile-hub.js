@@ -978,40 +978,6 @@
     });
   }
 
-  function collectBackup() {
-    const out = {};
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
-      if (/pointy|coin_quest|lang/i.test(key)) out[key] = localStorage.getItem(key);
-    }
-    return out;
-  }
-  function exportBackup() {
-    const blob = new Blob([JSON.stringify({ __coin_quest_backup: 1, at: Date.now(), keys: collectBackup() }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'coin-quest-backup-' + ymd(new Date()) + '.json';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  }
-  function importBackup(file, cb) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        const keys = data?.keys;
-        if (!keys || typeof keys !== 'object' || !Object.keys(keys).some(k => /pointy|coin_quest/i.test(k))) throw new Error('bad backup');
-        if (!confirm(s().restoreConfirm)) return;
-        Object.keys(keys).forEach(key => localStorage.setItem(key, keys[key]));
-        cb(s().backupRestored);
-        setTimeout(() => location.reload(), 700);
-      } catch (_) {
-        cb(s().backupBad);
-      }
-    };
-    reader.readAsText(file);
-  }
-
   function ensureTopbar() {
     const inner = document.querySelector('.tb-inner');
     const langToggle = inner?.querySelector('.lang-toggle');
@@ -1646,7 +1612,7 @@
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
     overlay.querySelectorAll('[data-theme-pick]').forEach(btn => btn.addEventListener('click', () => { setTheme(btn.dataset.themePick); showProfile(); }));
     overlay.querySelector('[data-tour]').addEventListener('click', () => { closeOverlay(); showTour(); });
-    overlay.querySelector('[data-export]').addEventListener('click', exportBackup);
+    overlay.querySelector('[data-export]').addEventListener('click', window.PointyProfileBackup.exportData);
     overlay.querySelector('[data-sign-out]')?.addEventListener('click', signOut);
     overlay.querySelector('[data-copy-recovery-side]')?.addEventListener('click', async () => {
       const code = String(loadAuth()?.recoveryCode || '').trim();
@@ -1682,7 +1648,12 @@
     file.addEventListener('change', () => {
       const f = file.files && file.files[0];
       file.value = '';
-      if (f) importBackup(f, text => { msg.hidden = false; msg.textContent = text; });
+      if (f) window.PointyProfileBackup.importData(f, {
+        confirmMessage: s().restoreConfirm,
+        restoredMessage: s().backupRestored,
+        badMessage: s().backupBad,
+        onMessage: text => { msg.hidden = false; msg.textContent = text; }
+      });
     });
   }
   function showTour() {
