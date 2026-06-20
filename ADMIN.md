@@ -97,6 +97,8 @@ The Claude prototype included a local mock gate only. The live production `/admi
 
 Permanent user delete is not a client-side Firebase Auth action. The Admin UI calls `/api/admin-delete-status` to check whether the privileged backend is configured, disables permanent delete if Vercel lacks Firebase Admin service-account env vars, and calls `/api/admin-delete-user` only after the Super Admin signs in with Google. The backend verifies the Firebase ID token and allowlisted Gmail before deleting Auth, `users`, `usernames`, and `characters` records.
 
+As of 2026-06-20, production Vercel has encrypted `FIREBASE_SERVICE_ACCOUNT_JSON` for `vercel-admin-delete@pointy-personal-toolkit.iam.gserviceaccount.com`. That service account has `roles/firebaseauth.admin` and `roles/datastore.user`. Keep `firebase-admin` pinned to `13.10.0` unless the Vercel runtime/dependency issue with `firebase-admin@14.0.0` and `jwks-rsa`/`jose` is resolved.
+
 Real "outsiders cannot enter" behavior now depends on:
 
 - Firebase Google Auth.
