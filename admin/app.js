@@ -1,12 +1,16 @@
-const TEST_MODE = new URLSearchParams(location.search).get('test') === '1';
+const ADMIN_PARAMS = new URLSearchParams(location.search);
+const TEST_MODE = ADMIN_PARAMS.get('test') === '1';
 const DRAFT_KEY = 'pointy_super_admin_draft_v2';
 const GATE_KEY = 'pointy_super_admin_gate_hash_v2';
 const GATE_UNLOCK_KEY = 'pointy_super_admin_unlocked_v2';
 const LOCAL_REVISIONS_KEY = 'pointy_super_admin_revisions_v2';
+const LOCAL_USER_LIFECYCLE_KEY = 'pointy_admin_user_lifecycle_v1';
+const VALID_TABS = new Set(['dashboard', 'map', 'boards', 'users', 'admins', 'audit', 'revisions', 'support']);
+const SUPER_ADMIN_EMAIL = 'purich.wc@gmail.com';
 
 let published = { boards: [], revisions: [] };
 let draft = { boards: [] };
-let tab = 'boards';
+let tab = VALID_TABS.has(ADMIN_PARAMS.get('tab')) ? ADMIN_PARAMS.get('tab') : 'boards';
 let query = '';
 let detail = null;
 let boardFilter = 'all';
@@ -17,6 +21,10 @@ let userDetailTab = 'chars';
 let boardDetailTab = 'overview';
 let boardDetailView = 'tabbed';
 let cloudUsers = [];
+let adminUser = null;
+let adminAuthReady = TEST_MODE;
+let adminAuthStarted = false;
+let adminGateError = '';
 
 function initFirebase() {
   if (TEST_MODE || firebase.apps.length) return;
@@ -37,6 +45,31 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 function characterLevelFromXp(xp) { return PointyLogic.levelFromXp(xp); }
 function profileLevelFromRenown(renown) { return PointyLogic.levelFromRenown(renown); }
+function localUserLifecycle() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_USER_LIFECYCLE_KEY) || '{}') || {}; } catch (_) { return {}; }
+}
+function saveLocalUserLifecycle(data) {
+  localStorage.setItem(LOCAL_USER_LIFECYCLE_KEY, JSON.stringify(data || {}));
+}
+function normalizeUserStatus(value) {
+  const key = String(value || 'active').toLowerCase();
+  return ['active', 'archived', 'deactivated', 'delete_requested', 'deleted'].includes(key) ? key : 'active';
+}
+function statusWeight(value) {
+  return { active: 0, archived: 1, deactivated: 2, delete_requested: 3, deleted: 4 }[normalizeUserStatus(value)] || 0;
+}
+function mergeUserStatus(a, b) {
+  return statusWeight(b) > statusWeight(a) ? normalizeUserStatus(b) : normalizeUserStatus(a);
+}
+function userLifecycleLabel(status) {
+  return {
+    active: 'active',
+    archived: 'archived',
+    deactivated: 'deactivated',
+    delete_requested: 'delete requested',
+    deleted: 'deleted'
+  }[normalizeUserStatus(status)] || 'active';
+}
 function normalizeUsername(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
 }
@@ -66,12 +99,67 @@ function recoveryCodeValue() {
 }
 
 function isUnlocked() {
-  return sessionStorage.getItem(GATE_UNLOCK_KEY) === '1';
+  return TEST_MODE ? sessionStorage.getItem(GATE_UNLOCK_KEY) === '1' : !!adminUser && adminUser.email?.toLowerCase() === SUPER_ADMIN_EMAIL;
 }
 function gateConfigured() {
   return !!localStorage.getItem(GATE_KEY);
 }
-function unlockGate() {
+function adminAuth() {
+  if (TEST_MODE) return null;
+  return window.PointyFirebase?.auth?.() || (firebase.apps.length ? firebase.auth() : null);
+}
+function isAllowedAdmin(user) {
+  return String(user?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
+}
+function startAdminAuth() {
+  if (TEST_MODE || adminAuthStarted) return;
+  initFirebase();
+  const auth = adminAuth();
+  if (!auth?.onAuthStateChanged) {
+    adminAuthReady = true;
+    adminGateError = 'Firebase Auth is not available on this page.';
+    renderGate();
+    return;
+  }
+  adminAuthStarted = true;
+  auth.onAuthStateChanged(async user => {
+    adminAuthReady = true;
+    if (user && isAllowedAdmin(user)) {
+      adminUser = user;
+      adminGateError = '';
+      await loadPublished();
+      renderMain();
+      return;
+    }
+    adminUser = null;
+    if (user) {
+      adminGateError = `บัญชี ${user.email || 'unknown'} ไม่มีสิทธิ์ Super Admin`;
+      await auth.signOut().catch(() => {});
+    }
+    renderGate();
+  });
+}
+async function unlockGate() {
+  if (!TEST_MODE) {
+    adminGateError = '';
+    try {
+      initFirebase();
+      const auth = adminAuth();
+      if (!auth) throw new Error('Firebase Auth is not available.');
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ login_hint: SUPER_ADMIN_EMAIL });
+      const cred = await auth.signInWithPopup(provider);
+      if (!isAllowedAdmin(cred.user)) {
+        adminGateError = `บัญชี ${cred.user?.email || 'unknown'} ไม่มีสิทธิ์ Super Admin`;
+        await auth.signOut().catch(() => {});
+        renderGate();
+      }
+    } catch (error) {
+      adminGateError = error?.message || 'Google sign-in failed.';
+      renderGate();
+    }
+    return;
+  }
   const pass = document.getElementById('gate-pass')?.value || '';
   if (!pass.trim()) return;
   if (!gateConfigured()) {
@@ -87,7 +175,13 @@ function unlockGate() {
   sessionStorage.setItem(GATE_UNLOCK_KEY, '1');
   boot();
 }
-function lockGate() {
+async function lockGate() {
+  if (!TEST_MODE) {
+    adminUser = null;
+    await adminAuth()?.signOut?.().catch(() => {});
+    renderGate();
+    return;
+  }
   sessionStorage.removeItem(GATE_UNLOCK_KEY);
   renderGate();
 }
@@ -196,9 +290,20 @@ function users() {
     id: b.characterIds[name] || ''
   })));
 }
-function characterProfileLink(id) {
-  const url = `/character/?id=${encodeURIComponent(id || '')}`;
-  return TEST_MODE ? `${url}&test=1` : url;
+function adminReturnUrl(nextTab = tab || 'boards') {
+  const params = new URLSearchParams();
+  if (TEST_MODE) params.set('test', '1');
+  params.set('tab', VALID_TABS.has(nextTab) ? nextTab : 'boards');
+  return `/admin/?${params.toString()}`;
+}
+function characterProfileLink(id, returnTab = 'users') {
+  const params = new URLSearchParams({
+    id: String(id || ''),
+    from: 'admin',
+    return: adminReturnUrl(returnTab)
+  });
+  if (TEST_MODE) params.set('test', '1');
+  return `/character/?${params.toString()}`;
 }
 function activeBoards() { return draft.boards.filter(b => !b.deleted); }
 function boardTypeLabel(b) {
@@ -237,6 +342,11 @@ function normalizeCloudUser(uid, data = {}) {
     name,
     username: data.username || '',
     email: data.email || '',
+    status: normalizeUserStatus(data.status || data.lifecycleStatus || (data.deactivated ? 'deactivated' : data.archived ? 'archived' : 'active')),
+    archivedAt: data.archivedAt || 0,
+    deactivatedAt: data.deactivatedAt || 0,
+    deleteRequestedAt: data.deleteRequestedAt || 0,
+    deletedAt: data.deletedAt || 0,
     chars,
     boards: [],
     adminGroups: [],
@@ -255,6 +365,11 @@ function mergeUserRecord(map, rec) {
   existing.email = existing.email || rec.email || '';
   existing.name = existing.name || rec.name || existing.username || 'User';
   existing.cloud = existing.cloud || rec.cloud;
+  existing.status = mergeUserStatus(existing.status, rec.status);
+  existing.archivedAt = existing.archivedAt || rec.archivedAt || 0;
+  existing.deactivatedAt = existing.deactivatedAt || rec.deactivatedAt || 0;
+  existing.deleteRequestedAt = existing.deleteRequestedAt || rec.deleteRequestedAt || 0;
+  existing.deletedAt = existing.deletedAt || rec.deletedAt || 0;
   (rec.boards || []).forEach(b => {
     if (!existing.boards.some(x => x.originalId === b.originalId)) existing.boards.push(b);
   });
@@ -277,6 +392,7 @@ function mergeUserRecord(map, rec) {
 }
 function userRecords() {
   const map = new Map();
+  const lifecycle = localUserLifecycle();
   cloudUsers.forEach(u => mergeUserRecord(map, u));
   activeBoards().forEach(b => {
     b.participants.forEach(name => {
@@ -306,7 +422,18 @@ function userRecords() {
     const u = mergeUserRecord(map, { userId: key, name: g.adminName || g.adminId || 'Admin', chars: [], boards: [], adminGroups: [] });
     if (!u.adminGroups.some(x => x.key === g.key)) u.adminGroups.push(g);
   });
-  return [...map.values()].sort((a, b) => a.userId.localeCompare(b.userId));
+  return [...map.values()].map(u => {
+    const local = lifecycle[u.userId] || lifecycle[u.uid] || {};
+    return {
+      ...u,
+      status: mergeUserStatus(u.status, local.status),
+      archivedAt: u.archivedAt || local.archivedAt || 0,
+      deactivatedAt: u.deactivatedAt || local.deactivatedAt || 0,
+      deleteRequestedAt: u.deleteRequestedAt || local.deleteRequestedAt || 0,
+      deletedAt: u.deletedAt || local.deletedAt || 0,
+      lifecycleReason: u.lifecycleReason || local.reason || ''
+    };
+  }).sort((a, b) => a.userId.localeCompare(b.userId));
 }
 function userById(id) { return userRecords().find(u => u.userId === id); }
 function adminGroupByKey(key) { return adminGroups().find(g => g.key === key); }
@@ -556,8 +683,14 @@ function statusBadge(label, cls = 'active') {
 function statusForBoard(b) { return b.deleted ? 'deleted' : b.data?.status || (b.deleted ? 'archived' : 'active'); }
 function statusBadgeFor(value) {
   const key = String(value || 'active').toLowerCase();
-  const cls = key === 'flagged' ? 'flagged' : key === 'archived' ? 'archived' : key === 'locked' ? 'locked' : 'active';
-  return `<span class="badge st-${cls}">${h(value || 'active')}</span>`;
+  const cls = key === 'flagged' || key === 'deactivated' || key === 'delete_requested' || key === 'deleted'
+    ? 'flagged'
+    : key === 'archived'
+    ? 'archived'
+    : key === 'locked'
+    ? 'locked'
+    : 'active';
+  return `<span class="badge st-${cls}">${h(userLifecycleLabel(value || 'active'))}</span>`;
 }
 function levelBadge(level) {
   return `<span class="lvl-badge">LV ${h(level || 1)}</span>`;
@@ -793,7 +926,7 @@ function renderUsers() {
       <td class="mono">${u.boards.length}</td>
       <td>${levelBadge(userLevel(u))} <span class="cell-sub mono">${userRenown(u).toLocaleString()}</span></td>
       <td>${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length} Admin roles</span>` : '<span class="muted cell-sub">—</span>'}</td>
-      <td>${statusBadgeFor('active')}</td>
+      <td>${statusBadgeFor(u.status)}</td>
       <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.chars[0]?.id || ''))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(u.userId)})">Detail</button></td>
     </tr>`).join('');
   return `${pageHead('Users', `${records.length} global users · one active character per User ID`, `<button class="btn btn-primary" onclick="showAddUserModal()">+ Add user</button>`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Total renown','Admin role','Status',''], rows))}`;
@@ -802,10 +935,11 @@ function renderUserDetail(id) {
   const u = userById(id);
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const renown = userRenown(u);
-  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor('active')}</div><hr class="hr"><div class="kv">
+  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor(u.status)}</div><hr class="hr"><div class="kv">
     <div class="kv-row"><span class="k">Overall level (Renown)</span><span class="v"><b>LV ${userLevel(u)}</b> · ${renown.toLocaleString()}</span></div>
     <div class="kv-row"><span class="k">Character</span><span class="v">${u.chars.length}</span></div>
     <div class="kv-row"><span class="k">Boards</span><span class="v">${u.boards.length}</span></div>
+    <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
     <div class="kv-row"><span class="k">Is admin</span><span class="v">${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length}</span>` : 'Not an admin'}</span></div>
   </div>`);
   const activitySpark = flatCard(`<p class="section-label">📊 14-day activity</p><div class="spark">${[18, 52, 38, 64, 42, 70, 54].map(v => `<i style="height:${v}%"></i>`).join('')}</div>`);
@@ -816,6 +950,18 @@ function renderUserDetail(id) {
   </div>`).join('');
   const boards = u.boards.map(b => `<tr class="clickable" onclick="openDetail('board',${q(b.originalId)})"><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td>${idChip('char', u.chars.find(c => c.boards.includes(b.originalId))?.id || '-', u.chars.find(c => c.boards.includes(b.originalId))?.id || '-')}</td><td class="td-right"><button class="btn sm btn-ghost">Open →</button></td></tr>`).join('');
   const adminRows = u.adminGroups.map(g => `<div class="card flat card-pad mt12" style="margin-top:0;margin-bottom:12px"><div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:44px;height:44px;font-size:20px;border-radius:11px;margin:0;background:#e7eef9">🛡️</div><div><div style="font-weight:700;font-size:15px">${h(g.adminName || g.adminId || 'Admin')} ${idChip('admin', g.adminId || '-', g.key)}</div><div class="cell-sub" style="margin-top:3px">Owner hash: <span class="mono">${h(g.key)}</span></div></div></div><button class="btn sm btn-ghost" onclick="openDetail('admin',${q(g.key)})">Open →</button></div><div class="mt12"><div class="section-label" style="margin:0 0 7px">🗂️ Boards owned</div><div class="wrap-chips">${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</div></div></div>`).join('') || '<div class="empty"><div class="e-t">Not an admin</div><div class="e-d">This user does not administer any board.</div></div>';
+  const lifecyclePanel = card('🧯 Account lifecycle', `<div class="card-pad" style="padding:0">
+    <div class="phase-note" style="margin-top:0"><span class="pn-ico">🛡️</span><span>Archive/deactivate keeps account data recoverable. Permanent delete must go through the privileged backend function and never through Firebase client Auth.</span></div>
+    <div class="kv mt12">
+      <div class="kv-row"><span class="k">Current status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
+      <div class="kv-row"><span class="k">Firebase UID</span><span class="v mono">${h(u.uid || 'not linked')}</span></div>
+      <div class="kv-row"><span class="k">Username</span><span class="v">${u.username ? '@' + h(u.username) : '-'}</span></div>
+    </div>
+    <div class="danger-zone between mt16" style="border-color:var(--border-strong);background:var(--panel-in)"><div><h4 style="color:var(--ink)">📦 Archive user</h4><div class="cell-sub">Soft-retain the account and mark it as out of active circulation.</div></div><button class="btn btn-gold" onclick="showUserLifecycleModal(${q(u.userId)},'archived')">Archive</button></div>
+    <div class="danger-zone between mt12"><div><h4>⛔ Deactivate login</h4><div class="cell-sub">Mark the account unusable; player login guard blocks deactivated users.</div></div><button class="btn btn-danger" onclick="showUserLifecycleModal(${q(u.userId)},'deactivated')">Deactivate</button></div>
+    ${normalizeUserStatus(u.status) === 'active' ? '' : `<div class="danger-zone between mt12" style="border-color:var(--green);background:#f0faf3"><div><h4 style="color:var(--green)">✅ Reactivate user</h4><div class="cell-sub">Move the user back to active status.</div></div><button class="btn btn-primary" onclick="showUserLifecycleModal(${q(u.userId)},'active')">Reactivate</button></div>`}
+    <div class="danger-zone between mt12" style="border-color:var(--danger)"><div><h4>🗑️ Permanent delete request</h4><div class="cell-sub">Requests backend deletion of Auth user, user mapping, character ownership, and username record.</div></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})">Request delete</button></div>
+  </div>`);
   const activityRows = auditEntries().filter(a => a.actor === u.name || u.boards.some(b => a.target === b.urlId || a.target === b.originalId)).map(a => `<div class="log-item"><div class="log-ico">📌</div><div class="log-body"><div class="log-text">${h(a.action)}</div><div class="log-meta"><span>${new Date(a.ts).toLocaleString()}</span><span class="dot-sep">·</span><span class="mono">${h(a.target)}</span></div></div></div>`).join('') || '<div class="empty"><div class="e-t">No activity yet</div></div>';
   const body = userDetailTab === 'chars'
     ? card('🎭 Character', `<div class="card-pad" style="display:flex;flex-direction:column;gap:12px">${chars}</div>`)
@@ -823,8 +969,10 @@ function renderUserDetail(id) {
     ? card('🗂️ Boards', table(['Board','Name','Type','As character',''], boards))
     : userDetailTab === 'admin'
     ? card('🛡️ Admin roles', `<div class="card-pad">${adminRows}<button class="btn btn-ghost mt12" onclick="showInviteAdminModal(${q(u.userId)})">+ Invite admin</button></div>`)
+    : userDetailTab === 'lifecycle'
+    ? lifecyclePanel
     : card('📜 Activity', `<div class="card-pad" style="padding-top:4px;padding-bottom:8px"><div class="log-list">${activityRows}</div></div>`);
-  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div>${pageHead(u.name, 'User profile (one User ID)', `<button class="btn btn-ghost" onclick="showImpersonateModal(${q(u.userId)})">🎭 Impersonate user</button><button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">🔑 Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">📤 Export data</button>`)}<div class="detail-grid"><div>${profile}${activitySpark}</div><div>${tabs('userDetailTab', userDetailTab, [{key:'chars',label:'Character',count:u.chars.length},{key:'boards',label:'Boards',count:u.boards.length},{key:'admin',label:'Admin roles',count:u.adminGroups.length},{key:'activity',label:'Activity'}])}${body}</div></div>`;
+  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div>${pageHead(u.name, 'User profile (one User ID)', `<button class="btn btn-ghost" onclick="showImpersonateModal(${q(u.userId)})">🎭 Impersonate user</button><button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">🔑 Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">📤 Export data</button><button class="btn btn-danger" onclick="userDetailTab='lifecycle';render()">🧯 Lifecycle</button>`)}<div class="detail-grid"><div>${profile}${activitySpark}</div><div>${tabs('userDetailTab', userDetailTab, [{key:'chars',label:'Character',count:u.chars.length},{key:'boards',label:'Boards',count:u.boards.length},{key:'admin',label:'Admin roles',count:u.adminGroups.length},{key:'activity',label:'Activity'},{key:'lifecycle',label:'Lifecycle'}])}${body}</div></div>`;
 }
 function renderAuditLog() {
   const scopeIco = { board:'🗂️', user:'👤', admin:'🛡️', system:'⚙️' };
@@ -878,26 +1026,31 @@ function renderMain() {
         <div><div class="tb-title">Super Admin Portal</div><div class="tb-sub">Coin Quest Ledger · Board ↔ Admin ↔ User ↔ Character</div></div>
       </div>
       <div class="tb-right">
-        <span class="env-pill"><span class="dot"></span>PHASE 1</span>
+        <span class="env-pill"><span class="dot"></span>${TEST_MODE ? 'TEST MODE' : 'GOOGLE AUTH'}</span>
         <span id="draft-badge" class="env-pill">${dirty ? 'Draft changed locally' : 'Published version'}</span>
         <button class="btn btn-ghost sm" onclick="saveDraft()">Save</button>
         <button class="btn btn-ghost sm" onclick="restoreDraft()">Restore</button>
         <button id="publish-btn" class="btn btn-primary sm" onclick="publishDraft()">Publish ${changes ? `(${changes})` : ''}</button>
-        <button class="btn btn-ghost sm" onclick="lockGate()">Lock</button>
-        <div class="tb-admin"><div class="who"><b>Super Admin</b><span>LOCAL GATE</span></div><div class="tb-ava">🛡️</div></div>
+        <button class="btn btn-ghost sm" onclick="lockGate()">Sign out</button>
+        <div class="tb-admin"><div class="who"><b>Super Admin</b><span>${h(TEST_MODE ? 'test gate' : (adminUser?.email || SUPER_ADMIN_EMAIL))}</span></div><div class="tb-ava">🛡️</div></div>
       </div>
     </header>
     <div class="shell">
       <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${userRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
       <main class="main">
-        <div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1: local gate ยังไม่ใช่ security จริง ห้ามถือว่าเป็นการกันคนนอกจนกว่าจะมี Firebase Auth และ Security Rules</span></div>
+        <div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}.`)}</span></div>
         ${body}
       </main>
     </div>
   </div>`;
 }
 function renderGate() {
-  document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Coin Quest Ledger admin command center</div><div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1 local gate เท่านั้น ยังไม่ใช่ security จริง</span></div>${formField('', `<input id="gate-pass" class="pin-input" type="password" placeholder="${gateConfigured() ? 'Super Admin local pass' : 'ตั้ง local pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()">`)}<button class="btn btn-primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button></div></div>`;
+  const error = adminGateError ? `<div class="login-err" style="display:block;margin-top:12px">${h(adminGateError)}</div>` : '';
+  if (!TEST_MODE) {
+    document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Google sign-in required</div><div class="phase-note"><span class="pn-ico">🛡️</span><span>เข้าได้เฉพาะ Gmail <b>${h(SUPER_ADMIN_EMAIL)}</b> เท่านั้น</span></div><button class="btn btn-primary" onclick="unlockGate()" ${adminAuthReady ? '' : 'disabled'}>Sign in with Google</button>${error}</div></div>`;
+    return;
+  }
+  document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Coin Quest Ledger admin command center</div><div class="phase-note"><span class="pn-ico">⚠️</span><span>Test mode local gate for automated regression only</span></div>${formField('', `<input id="gate-pass" class="pin-input" type="password" placeholder="${gateConfigured() ? 'Super Admin test pass' : 'ตั้ง test pass ครั้งแรก'}" onkeydown="if(event.key==='Enter')unlockGate()">`)}<button class="btn btn-primary" onclick="unlockGate()">${gateConfigured() ? 'Unlock' : 'Set & Unlock'}</button>${error}</div></div>`;
 }
 function render() { isUnlocked() ? renderMain() : renderGate(); }
 function userOptions(selected = '') {
@@ -1000,6 +1153,118 @@ async function performAdminPasswordReset() {
 function showMergeModal() {
   portalModal('🔗 Merge accounts', `<div class="field"><label>Keep this user</label><select>${userOptions()}</select></div><div class="field"><label>Merge from (will be removed)</label><select>${userOptions()}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">⚠️</span><span>All characters and boards move to the kept User ID. <b>This action cannot be undone.</b></span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="supportAction('Merge accounts','Prepared duplicate-user merge');closePortalModal()">Confirm</button>`);
 }
+function showUserLifecycleModal(userId, nextStatus) {
+  const u = userById(userId);
+  if (!u) return;
+  const status = normalizeUserStatus(nextStatus);
+  const title = status === 'active' ? '✅ Reactivate user' : status === 'archived' ? '📦 Archive user' : '⛔ Deactivate user';
+  const note = status === 'active'
+    ? 'This returns the account to active status.'
+    : status === 'archived'
+    ? 'This is a recoverable soft archive. Data remains attached to the User ID.'
+    : 'This is a recoverable deactivation. Player login is blocked while this status is active.';
+  portalModal(title, `<div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}" readonly></div><div class="field"><label>Reason</label><textarea id="lifecycle-reason" rows="3" placeholder="Why is this lifecycle change needed?"></textarea><div class="hint">${h(note)}</div></div><div class="login-err" id="lifecycle-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn ${status === 'active' ? 'btn-primary' : status === 'archived' ? 'btn-gold' : 'btn-danger'}" onclick="performUserLifecycle(${q(userId)},${q(status)})">Confirm</button>`);
+}
+async function performUserLifecycle(userId, status) {
+  const u = userById(userId);
+  const err = document.getElementById('lifecycle-error');
+  const reason = String(document.getElementById('lifecycle-reason')?.value || '').trim();
+  const setError = text => {
+    if (!err) return;
+    err.hidden = !text;
+    err.textContent = text ? `⚠️ ${text}` : '';
+  };
+  if (!u) return setError('User not found.');
+  const nextStatus = normalizeUserStatus(status);
+  const now = Date.now();
+  const patch = {
+    status: nextStatus,
+    lifecycleReason: reason,
+    lifecycleUpdatedAt: now,
+    archivedAt: nextStatus === 'archived' ? now : 0,
+    deactivatedAt: nextStatus === 'deactivated' ? now : 0,
+    deleteRequestedAt: u.deleteRequestedAt || 0,
+    deletedAt: 0
+  };
+  try {
+    const local = localUserLifecycle();
+    local[u.userId] = { ...(local[u.userId] || {}), ...patch, reason };
+    saveLocalUserLifecycle(local);
+    if (!TEST_MODE && u.uid) {
+      const db = window.PointyFirebase?.firestore?.();
+      if (!db) throw new Error('Firebase Firestore is not available.');
+      await db.collection('users').doc(u.uid).set({
+        ...patch,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      if (u.username) {
+        await db.collection('usernames').doc(normalizeUsername(u.username)).set({
+          lifecycleStatus: nextStatus,
+          lifecycleUpdatedAt: now,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+    }
+    closePortalModal();
+    render();
+  } catch (error) {
+    setError(error?.message || 'Lifecycle update failed.');
+  }
+}
+function showPermanentDeleteModal(userId) {
+  const u = userById(userId);
+  if (!u) return;
+  const confirmText = `DELETE ${u.userId}`;
+  portalModal('🗑️ Permanent delete request', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>This action is backend-only. The browser sends your Google-auth ID token; only ${h(SUPER_ADMIN_EMAIL)} is accepted.</span></div><div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}${u.username ? ' · @' + h(u.username) : ''}" readonly></div><div class="field"><label>Reason</label><textarea id="delete-reason" rows="3" placeholder="Required audit reason"></textarea></div><div class="field"><label>Type to confirm</label><input id="delete-confirm" class="mono" placeholder="${h(confirmText)}"><div class="hint">This requests deletion of Auth uid, user doc, username mapping, and character owner links.</div></div><div class="login-err" id="delete-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="performPermanentDeleteRequest(${q(userId)})">Request permanent delete</button>`);
+}
+async function performPermanentDeleteRequest(userId) {
+  const u = userById(userId);
+  const err = document.getElementById('delete-error');
+  const reason = String(document.getElementById('delete-reason')?.value || '').trim();
+  const typed = String(document.getElementById('delete-confirm')?.value || '').trim();
+  const setError = text => {
+    if (!err) return;
+    err.hidden = !text;
+    err.textContent = text ? `⚠️ ${text}` : '';
+  };
+  if (!u) return setError('User not found.');
+  if (!reason) return setError('Audit reason is required.');
+  if (typed !== `DELETE ${u.userId}`) return setError(`Type DELETE ${u.userId} to confirm.`);
+  const body = {
+    userId: u.userId,
+    uid: u.uid || '',
+    username: u.username || '',
+    characterIds: u.chars.map(c => c.id).filter(Boolean),
+    reason
+  };
+  if (TEST_MODE) {
+    const local = localUserLifecycle();
+    local[u.userId] = { ...(local[u.userId] || {}), status: 'delete_requested', deleteRequestedAt: Date.now(), reason };
+    saveLocalUserLifecycle(local);
+    closePortalModal();
+    render();
+    return;
+  }
+  try {
+    const token = await adminAuth()?.currentUser?.getIdToken?.();
+    if (!token) throw new Error('Google admin session is missing. Sign in again.');
+    const res = await fetch('/api/admin-delete-user', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || `Backend returned ${res.status}`);
+    const local = localUserLifecycle();
+    local[u.userId] = { ...(local[u.userId] || {}), status: data.deleted ? 'deleted' : 'delete_requested', deleteRequestedAt: Date.now(), deletedAt: data.deleted ? Date.now() : 0, reason };
+    saveLocalUserLifecycle(local);
+    closePortalModal();
+    await loadPublished();
+    render();
+  } catch (error) {
+    setError(error?.message || 'Permanent delete request failed.');
+  }
+}
 function showInviteAdminModal(uid = '') {
   portalModal('🛡️ Invite admin', `<div class="field"><label>Pick the user to make admin</label><select>${userOptions(uid)}</select><div class="hint">This User ID gets a new Admin ID.</div></div><div class="field"><label>Admin nickname</label><input placeholder="e.g. PartyMaster"></div><div class="field"><label>Assign admin → Boards</label><select>${boardOptions()}</select></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Invite admin','Prepared Admin ID invitation');closePortalModal()">Confirm</button>`);
 }
@@ -1074,6 +1339,10 @@ function inputAction(title, body, placeholder, onConfirm) {
   input.focus();
 }
 async function boot() {
+  if (!TEST_MODE) {
+    startAdminAuth();
+    if (!adminAuthReady || !isUnlocked()) { renderGate(); return; }
+  }
   if (!isUnlocked()) { renderGate(); return; }
   await loadPublished();
   renderMain();

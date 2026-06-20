@@ -42,6 +42,7 @@
       authUserMissing: 'ไม่พบ username นี้',
       authWeakPassword: 'รหัสผ่านอย่างน้อย 6 ตัว',
       authGeneric: 'เข้าสู่ระบบไม่สำเร็จ ลองอีกครั้ง',
+      authBlocked: 'บัญชีนี้ถูกระงับหรือรอลบ กรุณาติดต่อผู้ดูแล',
       forgotPassword: 'ลืมรหัสผ่าน?',
       resetTitle: 'กู้รหัสผ่าน',
       resetSub: 'ใช้ recovery code เพื่อตั้งรหัสใหม่ โดยไม่ต้องใช้อีเมล',
@@ -148,6 +149,7 @@
       authUserMissing: 'Username not found',
       authWeakPassword: 'Password must be 6+ characters',
       authGeneric: 'Could not sign in. Try again',
+      authBlocked: 'This account is archived, deactivated, or pending deletion. Contact an admin.',
       forgotPassword: 'Forgot password?',
       resetTitle: 'Recover password',
       resetSub: 'Use your recovery code to set a new password without email',
@@ -375,6 +377,7 @@
     if (!account) return null;
     const character = account.character ? normalizeCharacter(account.character, account) : null;
     const username = accountLogin(account);
+    const status = String(account.status || account.lifecycleStatus || 'active').toLowerCase();
     return {
       uid: account.uid || account.authUid || '',
       provider: account.provider || account.authProvider || '',
@@ -382,8 +385,12 @@
       email: account.email || usernameEmail(username),
       userId: String(account.userId || genId4()).replace(/\D/g, '').slice(0, 4) || genId4(),
       name: account.name || username || 'Hero',
+      status,
       character
     };
+  }
+  function isBlockedAccountStatus(account) {
+    return ['archived', 'deactivated', 'delete_requested', 'deleted'].includes(String(account?.status || '').toLowerCase());
   }
   function normalizeCharacter(character, account = {}) {
     if (!character) return null;
@@ -422,7 +429,14 @@
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
   function loadAuth() {
     const auth = readJson(AUTH_KEY, null);
-    if (auth && auth.email && auth.userId && !auth.signedOut) return normalizeAccount(auth);
+    if (auth && auth.email && auth.userId && !auth.signedOut) {
+      const normalized = normalizeAccount(auth);
+      if (isBlockedAccountStatus(normalized)) {
+        clearAuth();
+        return null;
+      }
+      return normalized;
+    }
     return (TEST_MODE || AUTOMATED) ? normalizeAccount(DUMMY_ACCOUNTS[0]) : null;
   }
   function saveAuth(account) {
@@ -465,6 +479,7 @@
       email: user?.email || data.email || usernameEmail(username),
       userId: data.userId || publicUserIdFromUid(user?.uid || username),
       name: data.name || username || 'Hero',
+      status: data.status || data.lifecycleStatus || 'active',
       character: data.character || null
     });
   }
@@ -477,6 +492,7 @@
       email: account.email,
       userId: account.userId,
       name: account.name,
+      status: account.status || 'active',
       character: account.character || null,
       characterId: account.character?.id || extra.characterId || '',
       provider: 'firebase',
@@ -1229,7 +1245,15 @@
           setBusy(true);
           const authEmail = await resolveAuthEmail(loginName);
           const cred = await cloudAuth().signInWithEmailAndPassword(authEmail, pw);
-          const next = saveAuth(await loadCloudAccount(cred.user));
+          const cloudAccount = await loadCloudAccount(cred.user);
+          if (isBlockedAccountStatus(cloudAccount)) {
+            await cloudAuth().signOut().catch(() => {});
+            clearAuth();
+            setError(copy.authBlocked);
+            setBusy(false);
+            return;
+          }
+          const next = saveAuth(cloudAccount);
           if (!next.character) {
             showCharacterCreation(next);
             return;
@@ -1648,6 +1672,15 @@
       try {
         const account = await loadCloudAccount(user);
         if (!account) return;
+        if (isBlockedAccountStatus(account)) {
+          await auth.signOut().catch(() => {});
+          clearAuth();
+          profile = null;
+          baselineDone = false;
+          refresh({ toast: false });
+          showLoginGate();
+          return;
+        }
         saveAuth(account);
         profile = null;
         baselineDone = false;

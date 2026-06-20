@@ -461,8 +461,10 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
 
 test('super admin portal renders relationship views and drill-in details', async ({ page }) => {
   await page.addInitScript(() => {
+    if (sessionStorage.getItem('pointy_admin_fixture_seeded') === '1') return;
     localStorage.clear();
     sessionStorage.clear();
+    sessionStorage.setItem('pointy_admin_fixture_seeded', '1');
     sessionStorage.setItem('pointy_test_trip_9001', JSON.stringify({
       tripName: 'Alpha Board',
       participants: ['Shane', 'Mira'],
@@ -505,8 +507,32 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.locator('.id-chip.board')).toBeVisible();
 
   await page.getByRole('button', { name: 'Users' }).click();
+  const adminProfileLink = page.getByRole('link', { name: 'Profile' }).first();
+  await expect(adminProfileLink).toHaveAttribute('href', /\/character\/\?(.+&)?from=admin/);
+  await adminProfileLink.click();
+  await expect(page).toHaveURL(/\/character\/\?(.+&)?from=admin/);
+  await expect(page.getByRole('heading', { name: 'Shane' })).toBeVisible();
+  await page.getByRole('link', { name: /กลับ|Back/ }).click();
+  await expect(page).toHaveURL(/\/admin\/\?(.+&)?tab=users/);
+  await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
+
   await page.getByRole('button', { name: 'Detail' }).first().click();
   await expect(page.getByText('User Profile')).toBeVisible();
+  await page.getByRole('button', { name: /Lifecycle/ }).first().click();
+  await expect(page.getByText('Account lifecycle')).toBeVisible();
+  await page.getByRole('button', { name: 'Deactivate' }).click();
+  await page.locator('#lifecycle-reason').fill('Support audit check');
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await expect(page.getByText('deactivated').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Reactivate' }).click();
+  await page.locator('#lifecycle-reason').fill('Support audit check complete');
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await expect(page.getByText('active').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Request delete' }).click();
+  await page.locator('#delete-reason').fill('Permanent delete request audit');
+  await page.locator('#delete-confirm').fill('DELETE 1111');
+  await page.getByRole('button', { name: 'Request permanent delete' }).click();
+  await expect(page.getByText('delete requested').first()).toBeVisible();
   await page.getByRole('button', { name: /Admin roles/ }).click();
   await expect(page.getByRole('heading', { name: 'Admin roles' })).toBeVisible();
 

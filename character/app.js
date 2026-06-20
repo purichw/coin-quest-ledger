@@ -1,6 +1,7 @@
 const PARAMS = new URLSearchParams(location.search);
 const TEST_MODE = PARAMS.get('test') === '1';
 const CHARACTER_ID = String(PARAMS.get('id') || '').replace(/\D/g, '').slice(0, 4);
+const FROM_ADMIN = PARAMS.get('from') === 'admin';
 const PRIVACY_KEY = 'pointy_character_profile_hide_money_v1';
 const CLASSES = PointyLogic.CLASSES;
 const SKIN_DEFS = {
@@ -15,6 +16,15 @@ let hideMoney = PARAMS.get('private') === '1' || localStorage.getItem(PRIVACY_KE
 let activeProfile = null;
 
 function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safeInternalPath(value, fallback = '/') {
+  const path = String(value || '').trim();
+  if (!path || !path.startsWith('/') || path.startsWith('//')) return fallback;
+  return path;
+}
+function returnHref() {
+  const fallback = FROM_ADMIN ? `/admin/${TEST_MODE ? '?test=1&tab=users' : '?tab=users'}` : '/';
+  return safeInternalPath(PARAMS.get('return'), fallback);
+}
 function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(); }
 function dateLabel(ts) {
   if (!ts) return '-';
@@ -52,8 +62,13 @@ function tripUrl(id) {
   return TEST_MODE ? `${url}&test=1` : url;
 }
 function profileUrl(id = CHARACTER_ID) {
-  const url = `/character/?id=${encodeURIComponent(id)}`;
-  return TEST_MODE ? `${url}&test=1` : url;
+  const params = new URLSearchParams({ id: String(id || '') });
+  if (TEST_MODE) params.set('test', '1');
+  if (FROM_ADMIN) {
+    params.set('from', 'admin');
+    params.set('return', returnHref());
+  }
+  return `/character/?${params.toString()}`;
 }
 function readJson(key, fallback = null) {
   try {
@@ -214,7 +229,7 @@ function copy() {
 function navMarkup() {
   const c = copy();
   return `<nav class="cnav">
-    <a class="cback" href="/">&larr; ${h(c.back)}</a>
+    <a class="cback" href="${h(returnHref())}">&larr; ${h(c.back)}</a>
     <span class="cnav-title brand">${h(c.title)}</span>
     <div class="lang">
       <button type="button" class="${LANG === 'th' ? 'on' : ''}" onclick="setProfileLanguage('th')">TH</button>

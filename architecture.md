@@ -70,7 +70,9 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 - Files: `admin/index.html`, `admin/app.js`, `admin/admin.css`
 - Route: `/admin/`
-- Phase 1 admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, and relationship views.
+- Admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, relationship views, and user lifecycle.
+- Production access uses Firebase Google Auth and only allows `purich.wc@gmail.com`. The old local gate remains only under `?test=1` for automated tests.
+- User lifecycle is two-stage: recoverable `archived` / `deactivated` / `active` status is written to Firestore by the Super Admin UI, and permanent delete is delegated to `/api/admin-delete-user` using Firebase Admin SDK after verifying the Google-auth ID token.
 - Responsive model is admin-specific: below `1000px` the sidebar becomes a horizontal scroll nav; below `900px` Relationship Map stacks; below `760px` topbar/actions compress, dense tables scroll, and modals render as bottom sheets; coarse-pointer tablets get 44px touch targets.
 - Gate is local browser state only. Real private admin access requires Firebase Auth and Firestore Security Rules.
 
@@ -108,7 +110,7 @@ Normal mode:
 - `characters/{id}`: character records.
 - `adminRevisions/{id}`: Super Admin publish logs.
 
-`firestore.rules` is the repository copy of the deployed Phase 1 rules. It keeps the current real-account loop usable, but private admin hardening still needs a real Super Admin identity/allowlist instead of the local gate.
+`firestore.rules` is the repository copy of the deployed rules. It keeps the current real-account loop usable and includes a Super Admin helper for the allowlisted Gmail `purich.wc@gmail.com`.
 
 Local/test mode:
 

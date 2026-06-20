@@ -433,7 +433,7 @@ Shape should match `trips/{id}` after normalization.
 
 ### Admin Unlock Session Keys
 
-Party Ledger and Super Admin use session keys for local unlock state. These gates are convenience only, not security.
+Party Ledger still uses session keys for local board/admin convenience flows. Super Admin production access uses Firebase Google Auth allowlisted to `purich.wc@gmail.com`; the local Admin gate remains only under `?test=1` for automated regression and is not security.
 
 ## Derived Contracts
 

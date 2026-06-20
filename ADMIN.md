@@ -93,16 +93,16 @@ Portal implementation work should use Production Patch verification, meaning
 
 ## Security Reality
 
-The prototype includes a local mock gate only. It is not real security.
+The Claude prototype included a local mock gate only. The live production `/admin/` now uses Firebase Google Auth and only allows the Gmail `purich.wc@gmail.com`.
 
-Final "outsiders cannot enter" behavior needs real backend enforcement, likely:
+Real "outsiders cannot enter" behavior now depends on:
 
-- Firebase Auth or the chosen production auth provider.
+- Firebase Google Auth.
 - Firestore Security Rules or equivalent database access rules.
-- Super Admin allowlist.
+- Super Admin allowlist: `purich.wc@gmail.com`.
 - Board Admin permissions scoped to owned boards.
 
-Do not describe the Phase 1 local gate as secure access control.
+Do not describe the `?test=1` local gate as secure access control. It exists only for automated regression.
 
 ## Product Model
 
@@ -268,11 +268,11 @@ Behavior notes:
 
 Defined in `screens-overview.jsx`.
 
-`LoginGate`:
+`LoginGate` / Admin gate:
 
-- Mock PIN input.
-- Accepts `4242` or any length >= 4 in prototype.
-- Shows Phase 1 local-gate warning.
+- Production uses Google sign-in through Firebase Auth.
+- Only `purich.wc@gmail.com` is accepted.
+- Test mode (`?test=1`) keeps the mock PIN/local gate for Playwright.
 - Includes language toggle.
 
 `Dashboard`:
@@ -555,7 +555,8 @@ Also ensure existing user-facing modules still pass:
   React/Babel for this route.
 - Whether Treasury is fully first-class in Admin Portal for Phase 1 or only a
   visible board type placeholder.
-- Which auth provider and allowlist source will make Super Admin real.
+- Super Admin auth provider is Firebase Google Auth; the current allowlist is
+  the Gmail `purich.wc@gmail.com`.
 - Whether Super Admin edits publish directly to Firestore or stage in local
   draft first every time.
 - How merge-users should behave with Character IDs, Admin IDs, and board

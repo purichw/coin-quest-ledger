@@ -25,8 +25,8 @@ Done recently:
 Known constraints:
 
 - Local/test fallback is still mock; production username/password auth now uses Firebase Auth/Firestore.
-- Super Admin Phase 1 gate is local only.
-- Firestore rules/auth are sufficient for the current Phase 1 real-account loop, but are not yet the final product security boundary for private admin access.
+- Super Admin production gate now uses Firebase Google Auth and allowlists only `purich.wc@gmail.com`; `?test=1` keeps the local gate for regression.
+- Firestore rules include the Super Admin email helper for user lifecycle operations. Permanent user deletion requires the backend Firebase Admin function and service-account env vars.
 - App pages require server hosting; `file://` preview is not supported.
 - Claude Design references are fragmented across downloaded bundles and standalone HTML.
 
@@ -38,7 +38,7 @@ Known constraints:
 - Current loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`; real users get a Firebase Auth `uid`, public four-digit User ID, and active Character ID.
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
 - Admin Portal mobile/tablet decision: keep admin-specific horizontal navigation, not the player bottom tab bar. This matches the latest Admin mobile/tablet export and keeps dense admin tables/tooling usable.
-- Phase 1 Admin is still a local/browser gate only. Player login has Firebase Auth support and deployed Firestore rules, but private admin access still needs a real Super Admin allowlist and stricter rules before it is a complete security boundary.
+- Admin production access is Google-auth gated to `purich.wc@gmail.com`; keep admin-specific horizontal navigation, not the player bottom tab bar. This matches the latest Admin mobile/tablet export and keeps dense admin tables/tooling usable.
 - Signed-in progress is account-scoped, not browser-scoped. `shared/account-scope.js` derives local module/cache keys from the active account so new real users start at LV1/0 Renown even if the same browser has legacy demo progress.
 - Admin Users now merges Firestore `users/{uid}` records with board-derived participants/admin roles, so real accounts with no board membership still appear in the portal.
 - Admin source of truth is currently `/Users/point/Downloads/Coin Quest Ledger/admin/`; older admin copy that allows many Characters per User is overridden by the current one-account-one-active-character canon.
@@ -97,21 +97,21 @@ Testing:
 
 ## Phase 3 - Real Auth And Security
 
-Goal: replace mock/local gates with real access control.
+Goal: harden the now-real Google-auth Super Admin boundary and move remaining privileged flows server-side.
 
 Work:
 
 - Keep the chosen username strategy: username maps to internal `username@coinquest.local`; users do not need real email addresses.
 - Preserve the current verified mapping: username -> Firebase Auth credential -> `users/{uid}` public User ID -> active Character ID.
 - Harden recovery/admin reset with server-side Admin SDK or equivalent so credential rotation is no longer purely client-driven.
-- Add Super Admin allowlist.
+- Super Admin allowlist is now `purich.wc@gmail.com` via Firebase Google Auth.
 - Add Board Admin permissions scoped to owned boards.
 - Tighten Firestore Security Rules beyond the current Phase 1 `firestore.rules` once Super Admin/Board Admin auth is real.
 - Add rollback/export plan before rule enforcement.
 
 Important:
 
-- Do not present Phase 1 local gates as secure.
+- Do not present `?test=1` local gates as secure; they exist only for automated regression.
 - Do not rename `pointy-personal-toolkit` just for aesthetics.
 
 Exit criteria:

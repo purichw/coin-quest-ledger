@@ -12,7 +12,13 @@
     "test:e2e": "playwright test",
     "upload:cloudinary": "node scripts/upload-cloudinary-assets.mjs"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@playwright/test": "^1.54.2"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.0.0"
   }
 }
