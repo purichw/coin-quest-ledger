@@ -37,9 +37,8 @@
       '    <span class="first-load-torch left"></span>',
       '    <span class="first-load-eye"><span class="first-load-pupil"></span></span>',
       '    <span class="first-load-torch right"></span>',
-      '    <span class="first-load-tiny">Text</span>',
       '  </div>',
-      '  <div class="first-load-title">POINTY</div>',
+      '  <div class="first-load-title">COIN QUEST</div>',
       '  <div class="first-load-track"><div class="first-load-fill"></div></div>',
       '  <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>',
       '</div>'

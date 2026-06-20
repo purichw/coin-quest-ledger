@@ -1207,6 +1207,14 @@ body[data-theme="dungeon"] {
   .picker-cell {
     min-height: 44px;
   }
+  .theme-toggle,
+  .rem-bell {
+    min-width: 44px;
+    width: 44px;
+  }
+  .profile-badge {
+    min-width: 76px;
+  }
   .pd-board-main {
     padding-top: 12px;
     padding-bottom: 12px;

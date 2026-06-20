@@ -108,7 +108,7 @@
     .btn-primary.sm { padding: 8px 13px; font-size: 13px; box-shadow: 0 2px 0 color-mix(in oklab, var(--accent), #000 28%); }
     .btn-primary:active, .btn-danger:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in oklab, var(--accent), #000 28%); }
     .btn-ghost { border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink); padding: 9px 13px; }
-    .btn-ghost.sm { padding: 7px 11px; font-size: 13px; }
+    .btn-ghost.sm { min-height: 40px; padding: 8px 11px; font-size: 13px; }
     .btn-ghost:hover { background: var(--panel-2); }
     .btn-danger { background: var(--hp); color: #fff; padding: 10px 15px; box-shadow: 0 3px 0 color-mix(in oklab, var(--hp), #000 30%); }
     .btn-danger.sm { padding: 8px 11px; font-size: 13px; box-shadow: 0 2px 0 color-mix(in oklab, var(--hp), #000 30%); }
@@ -123,7 +123,7 @@
     .dc-target-flag, .dc-milestone { position: absolute; top: -10px; left: 14px; z-index: 7; border-radius: 999px; font: 700 11px var(--font-stat); padding: 3px 11px; }
     .dc-target-flag { background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 14%)); color: #2a1f06; box-shadow: 0 3px 8px -3px var(--gold); }
     .dc-milestone { left: 50%; transform: translateX(-50%); background: linear-gradient(var(--hp), color-mix(in oklab, var(--hp), #000 22%)); color: #fff; animation: dd-toast 1.7s ease forwards; white-space: nowrap; }
-    .dc-del { position: absolute; top: 9px; right: 9px; z-index: 4; width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); opacity: 0; }
+    .dc-del { position: absolute; top: 9px; right: 9px; z-index: 4; width: 44px; height: 44px; border-radius: 12px; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); opacity: 0; }
     .dragon-card:hover .dc-del { opacity: .9; }
     .dc-del:hover { color: var(--hp); border-color: var(--hp); opacity: 1; }
     .dc-body { display: flex; gap: 16px; align-items: stretch; }
@@ -136,7 +136,7 @@
     .dragon-medallion.face .dragon-png { object-position: center 46%; }
     .dragon-png.hurt { animation: dd-shake .42s ease, dd-redflash .5s ease; }
     .dragon-medallion.drag-over { box-shadow: 0 0 0 2px var(--gold), 0 8px 22px -10px var(--gold); }
-    .dragon-repick { position: absolute; right: 6px; bottom: 6px; z-index: 3; width: 26px; height: 26px; border-radius: 8px; border: 0; background: rgba(0,0,0,.5); color: #fff; opacity: 0; }
+    .dragon-repick { position: absolute; right: 6px; bottom: 6px; z-index: 3; width: 44px; height: 44px; border-radius: 12px; border: 0; background: rgba(0,0,0,.5); color: #fff; opacity: 0; }
     .dragon-medallion:hover .dragon-repick { opacity: .92; }
     .dragon-ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: rgba(255,255,255,.78); cursor: pointer; }
     .dragon-ph-ring { position: absolute; width: 56%; aspect-ratio: 1; border-radius: 50%; border: 2px dashed rgba(255,255,255,.32); animation: dd-sigil 14s linear infinite; }
@@ -187,7 +187,7 @@
     .dc-due.overdue { border-color: color-mix(in oklab, var(--hp), var(--border) 35%); background: color-mix(in oklab, var(--hp), transparent 88%); color: var(--hp); }
     .dc-actions { margin-top: auto; display: flex; align-items: center; gap: 8px; }
     .dc-strike-btn { flex: 1; border: 0; border-radius: 11px; padding: 11px; color: #fff; background: var(--hp); box-shadow: 0 3px 0 color-mix(in oklab, var(--hp), #000 30%); font: 600 14px var(--font-display); }
-    .dc-edit { width: 38px; height: 38px; border-radius: 10px; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); }
+    .dc-edit { width: 44px; height: 44px; border-radius: 12px; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); }
     .dc-strike-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
     .dc-move-pick, .dc-strike-row, .dc-strike-go { display: flex; gap: 8px; }
     .dc-move { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; border: 1.5px solid var(--border); background: var(--panel-in); border-radius: 10px; padding: 5px 4px; color: var(--ink-soft); }
@@ -282,10 +282,10 @@
     .pa-chip.gold { border-color: color-mix(in oklab, var(--gold), transparent 55%); background: var(--gold-soft); color: color-mix(in oklab, var(--gold), #000 22%); }
     .end-month-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
     .end-month-date { width: 132px; min-height: 34px; border: 1.5px solid var(--border); background: var(--panel-in); color: var(--ink); font: 700 12px var(--font-stat); padding: 5px 8px; border-radius: 10px; }
-    .end-month { border: 1.5px solid color-mix(in oklab, #ff7a3a, var(--border) 40%); background: color-mix(in oklab, #ff7a3a, transparent 90%); color: color-mix(in oklab, #c8431f, var(--ink) 20%); font: 600 13px var(--font-display); padding: 7px 13px; border-radius: 10px; white-space: nowrap; }
+    .end-month { min-height: 44px; border: 1.5px solid color-mix(in oklab, #ff7a3a, var(--border) 40%); background: color-mix(in oklab, #ff7a3a, transparent 90%); color: color-mix(in oklab, #c8431f, var(--ink) 20%); font: 600 13px var(--font-display); padding: 9px 13px; border-radius: 10px; white-space: nowrap; }
     .settings-fab { position: fixed; right: 18px; bottom: 18px; z-index: 45; width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-size: 20px; }
     .quick-toggles { position: fixed; right: 14px; top: 72px; z-index: 44; display: flex; flex-direction: column; gap: 8px; }
-    .quick-toggle { width: 38px; height: 38px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
+    .quick-toggle { width: 44px; height: 44px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
     .picker-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(20,14,8,.55); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 20px; animation: pk-fade .15s ease-out; }
     .picker { width: min(560px, 96vw); max-height: 90vh; overflow: auto; background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 20px; box-shadow: 0 24px 60px -20px rgba(0,0,0,.6); padding: 20px; }
     .picker-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
@@ -365,6 +365,8 @@
       .df-grid, .debt-side, .slayer-editor, .class-row { grid-template-columns: 1fr; }
       .lair-panel .panel-head { align-items: stretch; flex-direction: column; }
       .lair-actions { width: 100%; display: grid; grid-template-columns: 1fr; }
+      .lair-actions .btn-ghost, .lair-actions .btn-danger { min-height: 44px; }
+      .dc-del, .dragon-repick { opacity: .9; }
       .dc-strike-row { flex-direction: column; }
       .dc-strike-date { min-height: 42px; }
       .dc-log-edit { grid-template-columns: 1fr 1fr; }
@@ -373,6 +375,8 @@
       .seg { overflow-x: auto; }
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+      .tb-logo { width: 44px; height: 44px; border-radius: 12px; }
+      .tb-logo img { width: 28px; height: 28px; }
       .tb-link { padding: 9px 16px; }
       .tb-back { min-height: 44px; }
       .lang-toggle button,
@@ -387,6 +391,11 @@
       .icon-mini,
       .settings-fab {
         min-height: 44px;
+      }
+      .lang-toggle button,
+      .theme-toggle,
+      .rem-bell {
+        min-width: 44px;
       }
       .gender-toggle button { width: 44px; min-height: 38px; }
       .record-grid,
@@ -408,9 +417,8 @@
         <span class="first-load-torch left"></span>
         <span class="first-load-eye"><span class="first-load-pupil"></span></span>
         <span class="first-load-torch right"></span>
-        <span class="first-load-tiny">Text</span>
       </div>
-      <div class="first-load-title">POINTY</div>
+      <div class="first-load-title">COIN QUEST</div>
       <div class="first-load-track"><div class="first-load-fill"></div></div>
       <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
     </div>

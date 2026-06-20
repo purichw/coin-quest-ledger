@@ -34,12 +34,12 @@
       gap:12px;padding:12px 4px;backdrop-filter:blur(8px);background:rgba(233,222,201,.82);
       border-bottom:1px solid var(--line);max-width:760px;margin:0 auto;}
     .cback{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);
-      font-weight:600;font-size:14px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);
+      min-height:40px;font-weight:600;font-size:14px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);
       background:var(--card);transition:.15s;}
     .cback:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
     .cnav-title{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:15px;letter-spacing:.3px;color:#5a4f3a;}
     .lang{display:flex;background:var(--card);border:1px solid var(--line);border-radius:999px;overflow:hidden;}
-    .lang button{border:0;background:transparent;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;}
+    .lang button{min-width:40px;min-height:40px;border:0;background:transparent;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;}
     .lang button.on{background:var(--green);color:#fff;}
 
     .banner{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;height:300px;
@@ -203,6 +203,9 @@
       .bd-actions .btn{
         min-height:44px;
       }
+      .lang button{
+        min-width:44px;
+      }
       .cback,
       .bd-actions .btn{
         display:inline-flex;
@@ -227,9 +230,8 @@
         <span class="first-load-torch left"></span>
         <span class="first-load-eye"><span class="first-load-pupil"></span></span>
         <span class="first-load-torch right"></span>
-        <span class="first-load-tiny">Text</span>
       </div>
-      <div class="first-load-title">POINTY</div>
+      <div class="first-load-title">COIN QUEST</div>
       <div class="first-load-track"><div class="first-load-fill"></div></div>
       <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
     </div>

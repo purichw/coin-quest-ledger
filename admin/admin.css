@@ -321,7 +321,7 @@ table.tbl tbody tr:last-child td { border-bottom: none; }
 .modal-head h3 { font-family: var(--font-display); font-weight: 600; font-size: 18px; margin: 0; }
 .modal-body { padding: 20px 22px; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 9px; padding: 16px 22px; border-top: 1px solid var(--line); }
-.x-btn { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 17px; color: var(--ink-soft); }
+.x-btn { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; color: var(--ink-soft); }
 .x-btn:hover { background: var(--panel-2); }
 
 /* form */
@@ -442,7 +442,7 @@ table.tbl tbody tr:last-child td { border-bottom: none; }
     -webkit-overflow-scrolling: touch;
   }
   .nav-group-label, .nav-foot, .nav-spacer { display: none; }
-  .nav-item { width: auto; flex: 0 0 auto; white-space: nowrap; min-height: 40px; }
+  .nav-item { width: auto; flex: 0 0 auto; white-space: nowrap; min-height: 44px; }
   .nav-item .ni-badge { margin-left: 6px; }
 }
 @media (max-width: 760px) {
@@ -451,7 +451,7 @@ table.tbl tbody tr:last-child td { border-bottom: none; }
   .tb-title { font-size: 17px; }
   .tb-sub, .env-pill, .tb-admin .who { display: none; }
   .tb-right { flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
-  .tb-right .btn.sm { min-height: 36px; padding: 7px 11px; }
+  .tb-right .btn.sm { min-height: 44px; padding: 8px 12px; }
   .main { padding: 18px 16px 90px; }
   .page-title { font-size: 22px; }
   .page-head-actions { width: 100%; }
@@ -460,7 +460,9 @@ table.tbl tbody tr:last-child td { border-bottom: none; }
   .toolbar { align-items: stretch; }
   .toolbar .search, .toolbar .seg { width: 100%; }
   .toolbar .seg { justify-content: stretch; }
-  .toolbar .seg button { flex: 1; }
+  .toolbar .seg button { flex: 1; min-height: 44px; }
+  .pager .pg-btns button,
+  .x-btn { min-height: 44px; min-width: 44px; }
   table.tbl { min-width: 560px; font-size: 13px; }
   .relmap { grid-template-columns: 1fr; }
   .rel-col { padding: 8px 0; }

@@ -94,7 +94,7 @@
     .banner-title { margin: 6px 0 10px; font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--accent); letter-spacing: 0; }
     .campaign-row { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex-wrap: wrap; }
     .camp-label { font-family: var(--font-stat); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); }
-    .camp-name { border: 0; background: transparent; color: var(--ink); font-family: var(--font-display); font-size: 18px; font-weight: 500; border-radius: 7px; padding: 2px 6px; }
+    .camp-name { border: 0; background: transparent; color: var(--ink); font-family: var(--font-display); font-size: 18px; font-weight: 500; border-radius: 9px; padding: 6px 8px; min-height: 40px; display: inline-flex; align-items: center; }
     .camp-name:hover { background: var(--panel-2); }
     .camp-edit { display: none; border: 2px solid var(--accent); border-radius: 8px; background: var(--panel-in); color: var(--ink); padding: 3px 8px; text-align: center; font-family: var(--font-display); font-size: 18px; }
     .banner-gold { display: inline-flex; align-items: center; gap: 9px; margin: 16px auto 4px; padding: 8px 18px; border-radius: 999px; background: linear-gradient(var(--panel), var(--panel-2)); border: 1.5px solid var(--border-strong); box-shadow: var(--shadow); }
@@ -173,7 +173,7 @@
     .xp-bar { background: var(--gold-soft); }
     .xp-bar .bar-fill { background: linear-gradient(var(--xp), color-mix(in oklab, var(--xp), #000 18%)); }
     .bar-val, .budget-edit { font-family: var(--font-stat); font-size: 10px; color: var(--ink-soft); min-width: 50px; text-align: right; }
-    .budget-btn { border: 0; background: transparent; color: var(--ink-soft); border-radius: 5px; padding: 1px 3px; }
+    .budget-btn { min-height: 40px; border: 0; background: transparent; color: var(--ink-soft); border-radius: 8px; padding: 6px 8px; }
     .budget-btn:hover { background: var(--panel-2); color: var(--ink); }
     .budget-btn .over { color: var(--hp); font-weight: 700; }
     .budget-edit { width: 68px; border: 1.5px solid var(--gold); border-radius: 6px; padding: 2px 5px; background: var(--panel-in); color: var(--ink); }
@@ -263,7 +263,7 @@
     .modal-divider { margin: 15px 0; border: 0; border-top: 1px dashed var(--border); }
     .settings-fab { position: fixed; right: 18px; bottom: 18px; z-index: 45; width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-size: 20px; }
     .quick-toggles { position: fixed; right: 14px; top: 72px; z-index: 44; display: flex; flex-direction: column; gap: 8px; }
-    .quick-toggle { width: 38px; height: 38px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
+    .quick-toggle { width: 44px; height: 44px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
     .quick-toggle.off { opacity: .55; filter: grayscale(.35); }
     .settings-grid { display: grid; gap: 15px; }
     .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -278,7 +278,7 @@
     .admin-table tr:last-child td { border-bottom: 0; }
     .admin-id-input { width: 68px; border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--panel); color: var(--ink); padding: 5px 7px; font-family: var(--font-stat); font-weight: 700; text-align: center; }
     .admin-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-    .char-id { display: inline-flex; align-items: center; margin-left: 7px; padding: 1px 7px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink-soft); font-family: var(--font-stat); font-size: 10px; font-weight: 700; vertical-align: middle; text-decoration: none; }
+    .char-id { display: inline-flex; align-items: center; min-height: 40px; margin-left: 7px; padding: 5px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink-soft); font-family: var(--font-stat); font-size: 10px; font-weight: 700; vertical-align: middle; text-decoration: none; }
     .char-id:hover { border-color: var(--accent); color: var(--accent); }
     .setting-seg { display: flex; padding: 3px; border-radius: 9px; background: var(--panel-2); }
     .setting-seg button { border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft); padding: 6px 10px; font-size: 12px; }
@@ -519,12 +519,14 @@
       .split-seg button { flex: 1; white-space: nowrap; }
       .settings-fab { right: 12px; bottom: 12px; }
       .quick-toggles { right: 10px; top: 58px; flex-direction: row; }
-      .quick-toggle { width: 34px; height: 34px; border-radius: 10px; }
+      .quick-toggle { width: 44px; height: 44px; border-radius: 12px; }
       .admin-row { grid-template-columns: 1fr; }
       .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
       .vc-recap { flex-wrap: wrap; }
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+      .tb-logo { width: 44px; height: 44px; border-radius: 12px; }
+      .tb-logo img { width: 28px; height: 28px; }
       .tb-link { padding: 9px 16px; }
       .tb-back { min-height: 44px; }
       .lang-toggle button,
@@ -538,6 +540,11 @@
       .seg button,
       .chip-all {
         min-height: 44px;
+      }
+      .lang-toggle button,
+      .theme-toggle,
+      .rem-bell {
+        min-width: 44px;
       }
       .icon-btn { width: 52px; height: 52px; }
       .hero-card,
@@ -556,9 +563,8 @@
         <span class="first-load-torch left"></span>
         <span class="first-load-eye"><span class="first-load-pupil"></span></span>
         <span class="first-load-torch right"></span>
-        <span class="first-load-tiny">Text</span>
       </div>
-      <div class="first-load-title">POINTY</div>
+      <div class="first-load-title">COIN QUEST</div>
       <div class="first-load-track"><div class="first-load-fill"></div></div>
       <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
     </div>

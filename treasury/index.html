@@ -87,7 +87,7 @@
     .btn-gold { border: 0; background: linear-gradient(var(--gold), color-mix(in oklab, var(--gold), #000 14%)); color: #2a1f06; padding: 10px 16px; box-shadow: 0 3px 0 color-mix(in oklab, var(--gold), #000 35%); }
     .btn-ghost { border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink); padding: 8px 12px; }
     .btn-danger { border: 1.5px solid color-mix(in oklab, var(--hp), var(--border) 30%); background: color-mix(in oklab, var(--hp), transparent 88%); color: var(--hp); padding: 8px 12px; }
-    .btn-primary.sm, .btn-ghost.sm, .btn-danger.sm { padding: 7px 10px; font-size: 13px; }
+    .btn-primary.sm, .btn-ghost.sm, .btn-danger.sm { min-width: 44px; min-height: 40px; padding: 8px 10px; font-size: 13px; }
     .vault { display: grid; gap: 10px; margin: 20px auto 0; max-width: 980px; }
     .vault-head { display: flex; justify-content: space-between; color: var(--ink); font-weight: 800; }
     .vault-state.breached { color: var(--hp); }
@@ -133,8 +133,11 @@
       .page { padding: 22px 14px 54px; }
       .banner-title { font-size: 31px; }
       .hoard-bar, .main-grid, .ward-grid, .form-grid.two { grid-template-columns: 1fr; }
+      .btn-primary, .btn-ghost, .btn-danger, .btn-gold { min-height: 44px; }
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
+      .tb-logo { width: 44px; height: 44px; border-radius: 12px; }
+      .tb-logo img { width: 28px; height: 28px; }
       .tb-link { padding: 9px 16px; }
       .tb-back { min-height: 44px; }
       .lang-toggle button,
@@ -147,6 +150,13 @@
       .btn-gold {
         min-height: 44px;
       }
+      .lang-toggle button,
+      .theme-toggle,
+      .rem-bell,
+      .btn-ghost.sm,
+      .btn-danger.sm {
+        min-width: 44px;
+      }
       .ward-card { cursor: default; }
     }
   </style>
@@ -155,8 +165,8 @@
 <body>
   <div class="first-load" data-first-load>
     <div class="first-load-box">
-      <div class="first-load-emblem" aria-hidden="true"><span class="first-load-torch left"></span><span class="first-load-eye"><span class="first-load-pupil"></span></span><span class="first-load-torch right"></span><span class="first-load-tiny">Text</span></div>
-      <div class="first-load-title">POINTY</div>
+      <div class="first-load-emblem" aria-hidden="true"><span class="first-load-torch left"></span><span class="first-load-eye"><span class="first-load-pupil"></span></span><span class="first-load-torch right"></span></div>
+      <div class="first-load-title">COIN QUEST</div>
       <div class="first-load-track"><div class="first-load-fill"></div></div>
       <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
     </div>
