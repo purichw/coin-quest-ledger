@@ -1315,65 +1315,35 @@
       copy = STR[langKey];
       const nameInputValue = loginGate.querySelector('[data-char-name]')?.value;
       if (nameInputValue !== undefined) base.name = nameInputValue;
-      loginGate.innerHTML = `<div class="login-wrap">
-        <div class="login-langs">
-          <button type="button" class="${langKey === 'th' ? 'on' : ''}" data-login-lang="th">TH</button>
-          <button type="button" class="${langKey === 'en' ? 'on' : ''}" data-login-lang="en">EN</button>
-        </div>
-          <form class="login-card cc-card" data-char-form>
-          <div class="login-crest" aria-hidden="true"><img src="${h(assetUrl('assets/icons/loot-chest.svg'))}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><span style="display:none">🎁</span></div>
-          <h1 class="login-title">${h(copy.charTitle)}</h1>
-          <p class="login-sub">${h(copy.charSub)}</p>
-          <div class="cc-uid">${h(copy.yourUserId)} · <b>${h(base.userId)}</b></div>
-
-          <div class="cc-hero">
-            <button type="button" class="cc-portrait ${pickedClass ? 'has' : ''}" data-char-open-picker aria-label="${h(copy.tapToChoose)}">
-              ${pickedClass
-                ? `<span class="cc-picked" style="--avatar-bg:${avatarBg(pickedClass)}"><img src="${h(avatarFile(pickedClass, pickedGender, ''))}" alt=""><span class="pd-q" style="display:none">${h(classMeta(pickedClass).glyph)}</span></span>`
-                : `<span class="cc-q"><span class="cc-q-mark">?</span><span class="cc-q-lab">${h(copy.tapToChoose)}</span></span>`}
-            </button>
-            ${pickedClass ? `<div class="cc-cls">${h(classMeta(pickedClass).glyph || '')} ${h(classLabel(pickedClass))}</div>` : ''}
-          </div>
-
-          <label class="login-field">
-            <span>${h(copy.charName)}</span>
-            <input type="text" autocomplete="nickname" data-char-name value="${h(base.name || '')}" placeholder="${h(copy.charNamePlaceholder)}">
-          </label>
-          <div class="login-err" data-char-error hidden></div>
-          <button type="submit" class="login-btn" ${pickedClass ? '' : 'disabled'}>⚔️ ${h(copy.charCreate)}</button>
-        </form>
-        ${pickerOpen ? renderPicker() : ''}
-      </div>`;
-      function renderPicker() {
-        const options = heroOptions().filter(opt => pickerGender === 'all' || opt.gender === pickerGender);
-        return `<div class="picker-overlay" data-picker-close>
-          <div class="picker" role="dialog" aria-modal="true" aria-label="${h(copy.chooseHero)}" data-picker-dialog>
-            <div class="picker-head">
-              <div>
-                <div class="picker-title">⚔️ ${h(copy.chooseHero)}</div>
-                <div class="picker-sub">${h(copy.chooseHeroSub)}</div>
-              </div>
-              <button type="button" class="picker-close" data-picker-close aria-label="Close">×</button>
-            </div>
-            <div class="picker-filter" role="group" aria-label="Hero filter">
-              <button type="button" class="${pickerGender === 'all' ? 'on' : ''}" data-picker-gender="all">${h(copy.allHeroes)}</button>
-              <button type="button" class="${pickerGender === 'female' ? 'on' : ''}" data-picker-gender="female">♀ ${h(copy.female)}</button>
-              <button type="button" class="${pickerGender === 'male' ? 'on' : ''}" data-picker-gender="male">♂ ${h(copy.male)}</button>
-            </div>
-            <div class="picker-grid">
-              ${options.map(opt => {
-                const meta = classMeta(opt.cls);
-                const on = pickedClass === opt.cls && pickedGender === opt.gender;
-                return `<button type="button" class="picker-cell ${on ? 'on' : ''}" data-char-class="${h(opt.cls)}" data-char-gender="${h(opt.gender)}">
-                  ${heroPickerArt(opt.cls, opt.gender)}
-                  <div class="pc-name"><span class="pc-gender">${opt.gender === 'female' ? '♀' : '♂'}</span>${h(meta[langKey] || meta.th || meta.en || opt.cls)}</div>
-                  ${on ? '<div class="pc-check">✓</div>' : ''}
-                </button>`;
-              }).join('')}
-            </div>
-          </div>
-        </div>`;
-      }
+      const pickedMeta = pickedClass ? classMeta(pickedClass) : null;
+      const picked = pickedClass ? {
+        portraitHtml: `<span class="cc-picked" style="--avatar-bg:${avatarBg(pickedClass)}"><img src="${h(avatarFile(pickedClass, pickedGender, ''))}" alt=""><span class="pd-q" style="display:none">${h(pickedMeta.glyph)}</span></span>`,
+        glyph: pickedMeta.glyph || '',
+        label: classLabel(pickedClass)
+      } : null;
+      const pickerOptions = pickerOpen ? heroOptions()
+        .filter(opt => pickerGender === 'all' || opt.gender === pickerGender)
+        .map(opt => {
+          const meta = classMeta(opt.cls);
+          return {
+            classId: opt.cls,
+            gender: opt.gender,
+            artHtml: heroPickerArt(opt.cls, opt.gender),
+            label: meta[langKey] || meta.th || meta.en || opt.cls,
+            selected: pickedClass === opt.cls && pickedGender === opt.gender
+          };
+        }) : [];
+      loginGate.innerHTML = window.PointyProfileCharacterCreate.render({
+        copy,
+        langKey,
+        userId: base.userId,
+        name: base.name,
+        lootChestSrc: assetUrl('assets/icons/loot-chest.svg'),
+        picked,
+        pickerOpen,
+        pickerGender,
+        options: pickerOptions
+      });
       loginGate.querySelector('[data-char-form]').addEventListener('submit', async event => {
         event.preventDefault();
         if (!pickedClass || !pickedGender) {
