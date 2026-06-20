@@ -325,21 +325,10 @@
   function cloudAuth() { return window.PointyFirebase?.auth?.() || null; }
   function cloudNow() { return window.PointyFirebase?.serverTimestamp?.() || Date.now(); }
   function recoveryCodeValue() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const bytes = new Uint8Array(12);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, b => alphabet[b % alphabet.length]).join('').replace(/(.{4})/g, '$1-').replace(/-$/, '');
-  }
-  function cleanRecoveryCode(code) {
-    return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  }
-  async function sha256(text) {
-    const data = new TextEncoder().encode(String(text || ''));
-    const buf = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return window.PointyRecovery.generateCode();
   }
   async function recoveryHash(username, code) {
-    return sha256(`${normalizeUsername(username)}:${cleanRecoveryCode(code)}`);
+    return window.PointyRecovery.hash(username, code);
   }
   function storePendingRecovery(code) {
     try { sessionStorage.setItem(PENDING_RECOVERY_KEY, code || ''); } catch (_) {}
