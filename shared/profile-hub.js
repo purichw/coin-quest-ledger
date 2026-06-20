@@ -1709,22 +1709,9 @@
       return;
     }
     let idx = 0;
-    const steps = [
-      { ic: '⚔️', bg: 255, t: s().tourT0, b: s().tourB0 },
-      { ic: '💸', bg: 150, t: s().tourT1, b: s().tourB1 },
-      { ic: '🐉', bg: 25, t: s().tourT2, b: s().tourB2 },
-      { ic: '⚖️', bg: 42, t: s().tourT3, b: s().tourB3 },
-      { ic: '🏦', bg: 78, t: s().tourT4, b: s().tourB4 }
-    ];
+    const steps = window.PointyProfileTour.steps(s());
     function render() {
-      const st = steps[idx];
-      mountOverlay(`<div class="tour-overlay"><div class="tour-card">
-        <button class="tour-skip" type="button" data-done>${h(s().tourSkip)}</button>
-        <div class="tour-art" style="background:radial-gradient(120% 90% at 50% 18%, oklch(0.6 0.13 ${st.bg}), oklch(0.22 0.06 ${st.bg}) 82%)"><span class="tour-emoji">${h(st.ic)}</span></div>
-        <div class="tour-t">${h(st.t)}</div><div class="tour-b">${h(st.b)}</div>
-        <div class="tour-dots">${steps.map((_, i) => `<button type="button" class="tour-dot ${i === idx ? 'on' : ''}" data-step="${i}" aria-label="step ${i + 1}"></button>`).join('')}</div>
-        <div class="tour-nav">${idx > 0 ? `<button class="tour-btn tour-back" type="button" data-back>← ${h(s().tourBack)}</button>` : '<span></span>'}<button class="tour-btn tour-next" type="button" data-next>${idx === steps.length - 1 ? h(s().tourDone) : h(s().tourNext) + ' →'}</button></div>
-      </div></div>`);
+      mountOverlay(window.PointyProfileTour.render({ steps, index: idx, copy: s() }));
       overlay.querySelector('[data-done]').addEventListener('click', finish);
       overlay.querySelector('[data-next]').addEventListener('click', () => { if (idx === steps.length - 1) finish(); else { idx += 1; render(); } });
       const back = overlay.querySelector('[data-back]');
