@@ -89,6 +89,8 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `shared/profile-cloud.js`: Firebase Auth/Firestore/server timestamp access boundary for profile code.
 - `shared/profile-recovery.js`: Recovery ID generation and hashing helpers.
 - `shared/profile-backup.js`: profile drawer export/restore helpers for local Coin Quest data.
+- `shared/profile-login.js`: Sign In/Sign Up and recovery reset form renderers.
+- `shared/profile-character-create.js`: one-time Character Creation card and hero picker renderer.
 - `shared/profile-drawer.js`: profile drawer recovery/account block renderers.
 - `shared/profile-reminders.js`: reminder overlay renderer.
 - `shared/profile-tour.js`: Welcome Tour step data and renderer.
