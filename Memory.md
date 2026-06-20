@@ -92,7 +92,11 @@ The shared profile/auth loop now supports real username/password account creatio
 
 Admin Users now merges real Firestore `users/{uid}` accounts with board-derived participants/admin roles. Real accounts without board membership should still appear in `/admin/` Users; board/admin links are additive, not the only source of truth.
 
-Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and `coin-quest-ledger.vercel.app`, and `firestore.rules` was deployed to allow the Phase 1 `trips`, `users`, `usernames`, `characters`, and `adminRevisions` documents. Real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts.
+Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and `coin-quest-ledger.vercel.app`, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts.
+
+Security setup note: the repo `firestore.rules` was tightened on 2026-06-20 so character writes require owner/Super Admin, username mapping updates cannot be taken over by another user, and `adminRevisions` requires Super Admin. The local machine currently does not have Firebase CLI, so these latest rules still need to be deployed through Firebase CLI or Firebase Console before they protect live Firestore.
+
+Super Admin production access uses Firebase Google Auth and only allows `purich.wc@gmail.com`. The old local gate exists only under `/admin/?test=1` for automated regression. Permanent delete is backend-only through `/api/admin-delete-user`; `/api/admin-delete-status` reports whether Vercel has the required Firebase Admin service account env vars. Production delete requires either `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`.
 
 Theme selection is global across Home, Split, Debt Dragon, and Treasury. The source of truth is `localStorage.pointy_theme`, mirrored into `coin_quest_ui_v1.theme` for shared shell/profile compatibility. Per-board or per-module legacy `settings.theme` values must not override the global theme on route load.
 

@@ -1,6 +1,6 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 
 ## Purpose
 
@@ -205,6 +205,8 @@ Created by Super Admin publish.
 
 `changes` is currently a simple list of board/admin/user changes produced by `/admin/`. Treat it as audit metadata, not a full event-sourced restore log.
 
+Repo rules now restrict `adminRevisions` to the Google-auth Super Admin. Deploy the latest `firestore.rules` through Firebase CLI/Console before treating live revision logs as protected.
+
 ### `users/{uid}`
 
 Created by `shared/profile-hub.js` after Firebase Auth username/password signup.
@@ -255,6 +257,32 @@ Lookup table for username login without requiring real user email addresses.
   recoveryIssuedAt?: epochMs,
   adminResetAt?: epochMs,
   updatedAt: timestamp
+}
+```
+
+Repo rules now prevent username mapping takeover: an update is allowed only for Super Admin or the current owner UID preserving the same UID. This must be deployed to live Firestore separately.
+
+### Admin Delete Backend
+
+Backend-only permanent delete endpoints:
+
+- `/api/admin-delete-status`: `GET`, no secrets returned. Reports whether Vercel has Firebase Admin service-account env vars.
+- `/api/admin-delete-user`: `POST`, requires `Authorization: Bearer <Firebase ID token>` from Google-auth Super Admin `purich.wc@gmail.com`.
+
+Accepted production env:
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON`, or
+- `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`
+
+Delete payload:
+
+```js
+{
+  uid?: firebaseAuthUid,
+  userId?: fourDigitPublicUserId,
+  username?: string,
+  characterIds?: characterId[],
+  reason: string
 }
 ```
 

@@ -25,6 +25,9 @@ let adminUser = null;
 let adminAuthReady = TEST_MODE;
 let adminAuthStarted = false;
 let adminGateError = '';
+let adminBackendStatus = TEST_MODE
+  ? { checked: true, adminDeleteConfigured: true, mode: 'test' }
+  : { checked: false, adminDeleteConfigured: false, mode: 'unknown' };
 
 function initFirebase() {
   if (TEST_MODE || firebase.apps.length) return;
@@ -111,6 +114,38 @@ function adminAuth() {
 function isAllowedAdmin(user) {
   return String(user?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
 }
+async function refreshAdminBackendStatus() {
+  if (TEST_MODE) {
+    adminBackendStatus = { checked: true, adminDeleteConfigured: true, mode: 'test' };
+    return adminBackendStatus;
+  }
+  try {
+    const res = await fetch('/api/admin-delete-status', { cache: 'no-store' });
+    const data = await res.json().catch(() => ({}));
+    adminBackendStatus = {
+      checked: true,
+      adminDeleteConfigured: !!data.adminDeleteConfigured,
+      mode: data.mode || 'unknown',
+      message: data.adminDeleteConfigured
+        ? 'Privileged delete backend is configured.'
+        : 'Privileged delete backend is missing Firebase Admin service account env vars.'
+    };
+  } catch (error) {
+    adminBackendStatus = {
+      checked: true,
+      adminDeleteConfigured: false,
+      mode: 'unreachable',
+      message: error?.message || 'Could not reach privileged delete status endpoint.'
+    };
+  }
+  return adminBackendStatus;
+}
+function adminDeleteBackendNote() {
+  if (TEST_MODE) return 'Test mode simulates permanent delete requests locally.';
+  if (!adminBackendStatus.checked) return 'Checking privileged delete backend status...';
+  if (adminBackendStatus.adminDeleteConfigured) return 'Privileged delete backend is configured for Firebase Admin SDK.';
+  return 'Privileged delete is disabled until Vercel has Firebase Admin service account env vars.';
+}
 function startAdminAuth() {
   if (TEST_MODE || adminAuthStarted) return;
   initFirebase();
@@ -127,7 +162,7 @@ function startAdminAuth() {
     if (user && isAllowedAdmin(user)) {
       adminUser = user;
       adminGateError = '';
-      await loadPublished();
+      await Promise.all([loadPublished(), refreshAdminBackendStatus()]);
       renderMain();
       return;
     }
@@ -169,7 +204,7 @@ async function unlockGate() {
     return;
   }
   if (String(hashOf(`super:${pass}`)) !== localStorage.getItem(GATE_KEY)) {
-    showModal('รหัสไม่ถูกต้อง', 'Phase 1 gate นี้เป็น local gate ชั่วคราว ไม่ใช่ security จริง', [{ label: 'ปิด' }]);
+    showModal('รหัสไม่ถูกต้อง', 'Test mode gate นี้ใช้สำหรับ automated regression เท่านั้น ไม่ใช่ production security', [{ label: 'ปิด' }]);
     return;
   }
   sessionStorage.setItem(GATE_UNLOCK_KEY, '1');
@@ -935,6 +970,11 @@ function renderUserDetail(id) {
   const u = userById(id);
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const renown = userRenown(u);
+  const deleteReady = TEST_MODE || adminBackendStatus.adminDeleteConfigured;
+  const deleteDisabled = deleteReady ? '' : 'disabled';
+  const deleteHint = deleteReady
+    ? 'Requests backend deletion of Auth user, user mapping, character ownership, and username record.'
+    : adminDeleteBackendNote();
   const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor(u.status)}</div><hr class="hr"><div class="kv">
     <div class="kv-row"><span class="k">Overall level (Renown)</span><span class="v"><b>LV ${userLevel(u)}</b> · ${renown.toLocaleString()}</span></div>
     <div class="kv-row"><span class="k">Character</span><span class="v">${u.chars.length}</span></div>
@@ -952,6 +992,7 @@ function renderUserDetail(id) {
   const adminRows = u.adminGroups.map(g => `<div class="card flat card-pad mt12" style="margin-top:0;margin-bottom:12px"><div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:44px;height:44px;font-size:20px;border-radius:11px;margin:0;background:#e7eef9">🛡️</div><div><div style="font-weight:700;font-size:15px">${h(g.adminName || g.adminId || 'Admin')} ${idChip('admin', g.adminId || '-', g.key)}</div><div class="cell-sub" style="margin-top:3px">Owner hash: <span class="mono">${h(g.key)}</span></div></div></div><button class="btn sm btn-ghost" onclick="openDetail('admin',${q(g.key)})">Open →</button></div><div class="mt12"><div class="section-label" style="margin:0 0 7px">🗂️ Boards owned</div><div class="wrap-chips">${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</div></div></div>`).join('') || '<div class="empty"><div class="e-t">Not an admin</div><div class="e-d">This user does not administer any board.</div></div>';
   const lifecyclePanel = card('🧯 Account lifecycle', `<div class="card-pad" style="padding:0">
     <div class="phase-note" style="margin-top:0"><span class="pn-ico">🛡️</span><span>Archive/deactivate keeps account data recoverable. Permanent delete must go through the privileged backend function and never through Firebase client Auth.</span></div>
+    <div class="phase-note" style="margin-top:12px"><span class="pn-ico">${deleteReady ? '✅' : '⚠️'}</span><span>${h(adminDeleteBackendNote())}</span></div>
     <div class="kv mt12">
       <div class="kv-row"><span class="k">Current status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
       <div class="kv-row"><span class="k">Firebase UID</span><span class="v mono">${h(u.uid || 'not linked')}</span></div>
@@ -960,7 +1001,7 @@ function renderUserDetail(id) {
     <div class="danger-zone between mt16" style="border-color:var(--border-strong);background:var(--panel-in)"><div><h4 style="color:var(--ink)">📦 Archive user</h4><div class="cell-sub">Soft-retain the account and mark it as out of active circulation.</div></div><button class="btn btn-gold" onclick="showUserLifecycleModal(${q(u.userId)},'archived')">Archive</button></div>
     <div class="danger-zone between mt12"><div><h4>⛔ Deactivate login</h4><div class="cell-sub">Mark the account unusable; player login guard blocks deactivated users.</div></div><button class="btn btn-danger" onclick="showUserLifecycleModal(${q(u.userId)},'deactivated')">Deactivate</button></div>
     ${normalizeUserStatus(u.status) === 'active' ? '' : `<div class="danger-zone between mt12" style="border-color:var(--green);background:#f0faf3"><div><h4 style="color:var(--green)">✅ Reactivate user</h4><div class="cell-sub">Move the user back to active status.</div></div><button class="btn btn-primary" onclick="showUserLifecycleModal(${q(u.userId)},'active')">Reactivate</button></div>`}
-    <div class="danger-zone between mt12" style="border-color:var(--danger)"><div><h4>🗑️ Permanent delete request</h4><div class="cell-sub">Requests backend deletion of Auth user, user mapping, character ownership, and username record.</div></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})">Request delete</button></div>
+    <div class="danger-zone between mt12" style="border-color:var(--danger)"><div><h4>🗑️ Permanent delete request</h4><div class="cell-sub">${h(deleteHint)}</div></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})" ${deleteDisabled}>Request delete</button></div>
   </div>`);
   const activityRows = auditEntries().filter(a => a.actor === u.name || u.boards.some(b => a.target === b.urlId || a.target === b.originalId)).map(a => `<div class="log-item"><div class="log-ico">📌</div><div class="log-body"><div class="log-text">${h(a.action)}</div><div class="log-meta"><span>${new Date(a.ts).toLocaleString()}</span><span class="dot-sep">·</span><span class="mono">${h(a.target)}</span></div></div></div>`).join('') || '<div class="empty"><div class="e-t">No activity yet</div></div>';
   const body = userDetailTab === 'chars'
@@ -993,7 +1034,7 @@ function renderRevisions() {
   const body = `<div class="log-list">${versionRows.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ' <span class="badge st-active">Published</span>' : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(v.at ? new Date(v.at).toLocaleString() : '—')}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions"><button class="btn tiny btn-ghost">View diff</button>${!v.current ? '<button class="btn tiny btn-ghost" onclick="restoreDraft()">↺ Restore</button>' : ''}</div></div>`).join('')}</div>`;
   const revDetails = revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div></details>`).join('');
   const actions = `<button class="btn btn-ghost" onclick="saveDraft()">💾 Save snapshot</button><button class="btn btn-primary" onclick="publishDraft()">🚀 Publish now${current.length ? ` (${current.length})` : ''}</button>`;
-  return `${pageHead('Versions & Publishing', 'System-wide snapshots: save, restore, and publish', actions)}<div class="phase-note"><span class="pn-ico">⚠️</span><span>Phase 1 local gate is not real security. Publish writes the current admin draft to storage.</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
+  return `${pageHead('Versions & Publishing', 'System-wide snapshots: save, restore, and publish', actions)}<div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode writes the draft to session/local storage for regression.' : 'Super Admin is Google-auth protected. Publish writes the current admin draft to storage.')}</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
 }
 function renderSupportTools() {
   const cards = [
@@ -1038,7 +1079,7 @@ function renderMain() {
     <div class="shell">
       <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${userRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
       <main class="main">
-        <div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}.`)}</span></div>
+        <div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}. ${adminDeleteBackendNote()}`)}</span></div>
         ${body}
       </main>
     </div>
@@ -1214,6 +1255,10 @@ async function performUserLifecycle(userId, status) {
 function showPermanentDeleteModal(userId) {
   const u = userById(userId);
   if (!u) return;
+  if (!TEST_MODE && !adminBackendStatus.adminDeleteConfigured) {
+    portalModal('🗑️ Permanent delete unavailable', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>${h(adminDeleteBackendNote())}</span></div><div class="field"><label>Required Vercel env</label><input class="mono" value="FIREBASE_SERVICE_ACCOUNT_JSON" readonly><div class="hint">Or set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in Vercel Production.</div></div><div class="field"><label>Allowed Gmail</label><input class="mono" value="${h(SUPER_ADMIN_EMAIL)}" readonly></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Got it</button>`);
+    return;
+  }
   const confirmText = `DELETE ${u.userId}`;
   portalModal('🗑️ Permanent delete request', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>This action is backend-only. The browser sends your Google-auth ID token; only ${h(SUPER_ADMIN_EMAIL)} is accepted.</span></div><div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}${u.username ? ' · @' + h(u.username) : ''}" readonly></div><div class="field"><label>Reason</label><textarea id="delete-reason" rows="3" placeholder="Required audit reason"></textarea></div><div class="field"><label>Type to confirm</label><input id="delete-confirm" class="mono" placeholder="${h(confirmText)}"><div class="hint">This requests deletion of Auth uid, user doc, username mapping, and character owner links.</div></div><div class="login-err" id="delete-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="performPermanentDeleteRequest(${q(userId)})">Request permanent delete</button>`);
 }
@@ -1245,6 +1290,7 @@ async function performPermanentDeleteRequest(userId) {
     render();
     return;
   }
+  if (!adminBackendStatus.adminDeleteConfigured) return setError(adminDeleteBackendNote());
   try {
     const token = await adminAuth()?.currentUser?.getIdToken?.();
     if (!token) throw new Error('Google admin session is missing. Sign in again.');

@@ -105,8 +105,10 @@ Work:
 - Preserve the current verified mapping: username -> Firebase Auth credential -> `users/{uid}` public User ID -> active Character ID.
 - Harden recovery/admin reset with server-side Admin SDK or equivalent so credential rotation is no longer purely client-driven.
 - Super Admin allowlist is now `purich.wc@gmail.com` via Firebase Google Auth.
+- Permanent user delete is backend-only via Vercel Serverless Function + Firebase Admin SDK. Configure Vercel env before treating this as live: `FIREBASE_SERVICE_ACCOUNT_JSON` or `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`.
+- Deploy the tightened `firestore.rules` from 2026-06-20 through Firebase CLI/Console. The repo copy now restricts character writes to owner/Super Admin, prevents username takeover, and restricts `adminRevisions` to Super Admin.
 - Add Board Admin permissions scoped to owned boards.
-- Tighten Firestore Security Rules beyond the current Phase 1 `firestore.rules` once Super Admin/Board Admin auth is real.
+- Tighten the still-open board/trip write model once Board Admin auth is real.
 - Add rollback/export plan before rule enforcement.
 
 Important:
