@@ -1607,6 +1607,7 @@
     const boards = profileBoardRows(account);
     const profileHref = `/character/?id=${encodeURIComponent(slayer.id || account.userId || '3720')}${(TEST_MODE || AUTOMATED) ? '&test=1' : ''}`;
     const recoveryCode = String(account.recoveryCode || '').trim();
+    const drawerCopy = s();
     const boardCards = boards.length ? boards.map(board => `<div class="pd-board ${board.archived ? 'arch' : ''}">
       <a class="pd-board-main" href="${h(board.href)}">
         <span class="pdb-crest">${board.archived ? '🗄️' : '🏕️'}</span>
@@ -1638,27 +1639,8 @@
         <div class="pd-setting"><span class="pds-k">${currentTheme() === 'dungeon' ? '🌙 ' + h(s().themeDark) : '☀️ ' + h(s().themeLight)}</span><div class="pd-theme-seg"><button class="${currentTheme() === 'tavern' ? 'on' : ''}" data-theme-pick="tavern">☀️</button><button class="${currentTheme() === 'dungeon' ? 'on' : ''}" data-theme-pick="dungeon">🌙</button></div></div>
         <div class="pd-setting"><span class="pds-k">🧭 ${h(s().takeTour)}</span><button class="btn-ghost xs" type="button" data-tour>${h(s().tourNext)} →</button></div>
         <div class="pd-backup"><div class="pdb-h">💾 ${h(s().backup)}</div><div class="pdb-sub">${h(s().backupSub)}</div><div class="pdb-actions"><button class="btn-ghost sm" type="button" data-export>⬇️ ${h(s().exportData)}</button><button class="btn-ghost sm" type="button" data-import>⬆️ ${h(s().importData)}</button><input type="file" accept="application/json,.json" hidden data-file></div><div class="pdb-msg" hidden></div></div>
-        ${account.signedOut ? '' : `<div class="pd-recovery">
-          <div class="pdb-h">🔐 ${h(s().recoveryPanelTitle)}</div>
-          <div class="pdb-sub">${h(s().recoveryPanelSub)}</div>
-          <div class="pd-recovery-code mono" data-recovery-code>${h(recoveryCode || s().recoveryMissing)}</div>
-          <div class="pdb-actions">
-            <button class="btn-ghost sm" type="button" data-copy-recovery-side ${recoveryCode ? '' : 'disabled'}>📋 ${h(s().copyRecovery)}</button>
-            <button class="btn-ghost sm" type="button" data-regenerate-recovery>↻ ${h(s().regenerateRecovery)}</button>
-          </div>
-          <div class="pdb-msg" data-recovery-msg hidden></div>
-        </div>`}
-        <div class="pd-account">
-          <div class="pda-row">
-            ${avatarMarkup(slayer, 'pda-ava')}
-            <span class="pda-info">
-              <b>${h(account.name || 'Pointy')}</b>
-              <span class="pda-email">@${h(account.username || accountLogin(account) || 'pointy')}</span>
-              <span class="pda-uid">${h(s().userId)} · ${h(account.userId || '3720')}</span>
-            </span>
-          </div>
-          ${account.signedOut ? '' : `<button class="btn-ghost sm pda-logout" type="button" data-sign-out>🚪 ${h(s().signOut)}</button>`}
-        </div>
+        ${window.PointyProfileDrawer.recoveryBlock({ signedOut: account.signedOut, recoveryCode, copy: drawerCopy })}
+        ${window.PointyProfileDrawer.accountBlock({ signedOut: account.signedOut, avatarHtml: avatarMarkup(slayer, 'pda-ava'), name: account.name, username: account.username || accountLogin(account), userId: account.userId, copy: drawerCopy })}
       </div>
     </aside></div>`);
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
