@@ -114,6 +114,23 @@ function adminAuth() {
 function isAllowedAdmin(user) {
   return String(user?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
 }
+function adminAuthErrorMessage(error) {
+  const code = String(error?.code || '');
+  const raw = String(error?.message || '');
+  if (code.includes('operation-not-allowed') || raw.includes('operation-not-allowed')) {
+    return 'Google sign-in provider ยังไม่ได้เปิดใน Firebase Auth. เปิด Sign-in method: Google สำหรับ project pointy-personal-toolkit แล้วลองใหม่';
+  }
+  if (code.includes('unauthorized-domain') || raw.includes('unauthorized-domain')) {
+    return 'Domain นี้ยังไม่อยู่ใน Firebase Auth authorized domains. เพิ่ม coin-quest-ledger.vercel.app แล้วลองใหม่';
+  }
+  if (code.includes('popup-blocked') || raw.includes('popup-blocked')) {
+    return 'Browser บล็อก Google sign-in popup. อนุญาต popup สำหรับเว็บนี้แล้วกด Sign in with Google อีกครั้ง';
+  }
+  if (code.includes('popup-closed-by-user') || raw.includes('popup-closed-by-user')) {
+    return 'ปิดหน้าต่าง Google sign-in ก่อนเข้าสู่ระบบสำเร็จ';
+  }
+  return raw || 'Google sign-in failed.';
+}
 async function refreshAdminBackendStatus() {
   if (TEST_MODE) {
     adminBackendStatus = { checked: true, adminDeleteConfigured: true, mode: 'test' };
@@ -190,7 +207,7 @@ async function unlockGate() {
         renderGate();
       }
     } catch (error) {
-      adminGateError = error?.message || 'Google sign-in failed.';
+      adminGateError = adminAuthErrorMessage(error);
       renderGate();
     }
     return;
