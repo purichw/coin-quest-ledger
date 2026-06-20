@@ -305,14 +305,14 @@
     return window.PointyAuthCore.accountLogin(account);
   }
   function realAuthEnabled() {
-    return !TEST_MODE && !!window.PointyFirebase?.auth?.() && !!window.PointyFirebase?.firestore?.();
+    return window.PointyProfileCloud.enabled({ testMode: TEST_MODE });
   }
   function localAuthEnabled() {
     return TEST_MODE;
   }
-  function cloudDb() { return window.PointyFirebase?.firestore?.() || null; }
-  function cloudAuth() { return window.PointyFirebase?.auth?.() || null; }
-  function cloudNow() { return window.PointyFirebase?.serverTimestamp?.() || Date.now(); }
+  function cloudDb() { return window.PointyProfileCloud.db(); }
+  function cloudAuth() { return window.PointyProfileCloud.auth(); }
+  function cloudNow() { return window.PointyProfileCloud.now(); }
   function recoveryCodeValue() {
     return window.PointyRecovery.generateCode();
   }
