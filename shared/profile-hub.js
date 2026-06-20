@@ -1742,7 +1742,7 @@
     auth.onAuthStateChanged(async user => {
       if (signingOut) return;
       if (!user) {
-        const current = readJson(AUTH_KEY, null);
+        const current = window.PointyProfileSession.readAuth();
         if (current?.provider === 'firebase') {
           clearAuth();
           profile = null;
