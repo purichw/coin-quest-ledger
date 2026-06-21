@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Coin Quest Ledger — Party Ledger</title>
   <link rel="icon" href="data:,">
   <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
@@ -523,6 +523,87 @@
       .admin-row { grid-template-columns: 1fr; }
       .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
       .vc-recap { flex-wrap: wrap; }
+    }
+    @media (max-width: 600px) {
+      .hero-remove,
+      .qr-del,
+      .offer-del {
+        opacity: .92;
+      }
+      .hero-remove,
+      .hc-skin {
+        width: 34px;
+        height: 34px;
+      }
+      .hc-skin {
+        left: 43px;
+        bottom: 8px;
+      }
+      .skin-pop {
+        top: 48px;
+        bottom: 8px;
+        z-index: 10;
+        overflow-y: auto;
+      }
+      .portrait-img,
+      .skin-thumb img {
+        pointer-events: none;
+      }
+      .skin-opt {
+        scroll-margin-top: 90px;
+      }
+      .qr-del,
+      .offer-del {
+        top: -10px;
+        right: -10px;
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+      }
+      .quest-row {
+        padding-right: 32px;
+      }
+      .btn-ghost.xs,
+      .btn-ghost.sm,
+      .btn-primary.sm,
+      .mini-toggle,
+      .hero-chip,
+      .chip-all,
+      .split-seg button {
+        min-height: 40px;
+      }
+      .hero-chip {
+        padding-right: 14px;
+      }
+      .mini-toggle {
+        padding: 7px 12px;
+      }
+      .banner-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+        width: min(100%, 420px);
+        margin-right: auto;
+        margin-left: auto;
+      }
+      #save-status {
+        grid-column: 1 / -1;
+        min-height: 20px;
+      }
+      .banner-actions .btn-ghost,
+      .banner-actions .btn-gold {
+        min-width: 0;
+        min-height: 44px;
+        padding-right: 8px;
+        padding-left: 8px;
+        white-space: normal;
+      }
+      .camp-name {
+        min-height: 42px;
+      }
+      .split-seg button {
+        padding: 6px 10px;
+      }
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
       .tb-logo { width: 44px; height: 44px; border-radius: 12px; }

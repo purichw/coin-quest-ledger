@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Coin Quest Ledger</title>
   <link rel="icon" href="data:,">
   <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
@@ -109,7 +109,7 @@
     .home-hero { text-align: center; padding: 22px 0 26px; }
     .home-crest { width: 74px; height: 74px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 20px; background: linear-gradient(160deg, var(--panel-in), var(--panel-2)); border: 1.5px solid var(--border-strong); box-shadow: var(--shadow); }
     .home-crest img { width: 48px; height: 48px; filter: drop-shadow(0 0 10px color-mix(in oklab, var(--gold), transparent 42%)) drop-shadow(0 4px 3px rgba(0,0,0,.34)); }
-    .home-hi { margin: 0; color: var(--gold); font-family: var(--font-display); font-size: clamp(34px, 6vw, 56px); line-height: 1; font-weight: 800; letter-spacing: 0; text-shadow: 0 3px 18px color-mix(in oklab, var(--gold), transparent 62%); }
+    .home-hi { margin: 0; color: var(--accent); font-family: var(--font-display); font-size: clamp(34px, 6vw, 56px); line-height: 1; font-weight: 800; letter-spacing: 0; text-shadow: 0 3px 18px color-mix(in oklab, var(--accent), transparent 72%); }
     .home-sub { margin: 12px auto 0; max-width: 520px; color: var(--ink-soft); font-size: 16px; line-height: 1.55; }
     .home-renown { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
     .hr-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 4px 12px; border-radius: 999px; background: color-mix(in oklab, var(--panel), var(--panel-2) 22%); border: 1.5px solid var(--border); color: var(--ink); font-family: var(--font-stat); font-size: 12px; font-weight: 700; }
@@ -118,6 +118,7 @@
     .game-card::after { content: ""; position: absolute; inset: auto -40px -64px auto; width: 170px; height: 170px; border-radius: 50%; background: color-mix(in oklab, var(--gc-accent), transparent 86%); pointer-events: none; }
     .game-card:hover { transform: translateY(-3px); border-color: var(--gc-accent); box-shadow: 0 14px 34px -20px var(--gc-accent), var(--shadow); }
     .gc-crest { width: 62px; height: 62px; display: grid; place-items: center; border-radius: 17px; border: 2px solid var(--gc-accent); background: color-mix(in oklab, var(--panel-in), var(--gc-accent) 8%); color: var(--gc-accent); box-shadow: 0 8px 20px -16px var(--gc-accent); font-size: 34px; }
+    .gc-crest img { width: 44px; height: 44px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.28)); }
     .gc-title { margin: 0; color: var(--ink); font-family: var(--font-display); font-size: 24px; line-height: 1.1; font-weight: 800; }
     .gc-desc { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.55; flex: 1; }
     .gc-meta { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -269,6 +270,28 @@
       .draft-extra { padding-top: 0; }
       .num { flex: 1; min-width: 92px; }
       .num input { min-height: 40px; }
+    }
+    @media (max-width: 600px) {
+      .btn-primary,
+      .btn-ghost,
+      .btn-chip,
+      .select,
+      .input,
+      .num,
+      .num input {
+        min-height: 44px;
+      }
+      .card-del,
+      .offer-del {
+        opacity: .92;
+      }
+      .offer-row {
+        padding-right: 34px;
+      }
+      .icon-btn {
+        width: 48px;
+        height: 48px;
+      }
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
       .tb-logo { width: 44px; height: 44px; border-radius: 12px; }
@@ -537,7 +560,7 @@
         <span class="hr-pill">🏆 ${profile.renown || 0} ${LANG === 'en' ? 'Renown' : 'ชื่อเสียง'}</span>
       `;
       const cards = [
-        { id: 'split', icon: '💰', title: hs.splitTitle, desc: hs.splitDesc, accent: '#2f8f5b', chips: [`${tripCount()} ${hs.quests}`], href: '/trip/' },
+        { id: 'split', icon: `<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true">`, title: hs.splitTitle, desc: hs.splitDesc, accent: '#2f8f5b', chips: [`${tripCount()} ${hs.quests}`], href: '/trip/' },
         { id: 'debt', icon: '🐉', title: hs.debtTitle, desc: hs.debtDesc, accent: '#cf4633', chips: [`${debt.total} ${hs.dragons}`, ...(debt.overdue ? [`${debt.overdue} ${hs.overdue}`] : [])], href: '/debt/' },
         { id: 'compare', icon: '⚖️', title: hs.compareTitle, desc: hs.compareDesc, accent: '#2a7fb8', chips: [`${comparisons.length} ${hs.deals}`], href: '/?view=compare' },
         { id: 'treasury', icon: '🏦', title: hs.treasuryTitle, desc: hs.treasuryDesc, accent: '#c79a2e', chips: [`${tr.wards} ${hs.wards}`, `${money(tr.left)} ${hs.left}`], href: '/treasury/' }

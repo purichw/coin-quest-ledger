@@ -14,6 +14,7 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 - Character/Profile surfaces are live: Sign In/Sign Up, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, Character Profile My Boards actions, privacy links, and Recovery ID display/regeneration.
 - Super Admin is live at `/admin/` with Firebase Google Auth allowlisted to `purich.wc@gmail.com`, Admin user lifecycle, backend-only permanent delete, revision/publish tooling, and desktop/tablet/mobile responsive behavior.
 - Responsive baseline is live: Home/Compare, Split, Debt, Treasury use the shared phone shell at `<=600px`; tablet/touch keeps desktop topbars with larger hit targets; Character Profile keeps its standalone `cnav`; Admin Portal uses its admin-specific mobile/tablet pattern.
+- Mobile web parity pass is live for iPhone SE / iPhone / iPhone Pro / Pro Max widths: compact Claude-style phone topbar, Claude bottom-tab labels, Safari safe-area metadata, visible touch-only controls, two-row Split banner actions, smaller first-load eye, and zero-overflow checks at 375/393/430px. Android remains secondary but covered through the same responsive shell and tablet/mobile Playwright smoke.
 - Leveling canon v0 is centralized in `leveling-canon.md` and `shared/pointy-logic.js`.
 - Profile/auth refactor slices are deployed: recovery, auth core, session storage, Firebase boundary, backup, drawer blocks, reminders, tour rendering, login forms, and Character Creation renderers now live in focused `shared/profile-*.js` helpers.
 

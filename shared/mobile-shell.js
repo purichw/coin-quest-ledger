@@ -12,10 +12,10 @@
       app: 'Coin Quest',
       account: 'นักผจญภัย',
       accountSub: 'เครื่องนี้',
-      home: 'Home',
+      home: 'หน้าหลัก',
       compare: 'ราคา',
-      split: 'แบ่งจ่าย',
-      debt: 'มังกรหนี้',
+      split: 'แบ่งเงิน',
+      debt: 'มังกร',
       treasury: 'คลัง',
       profile: 'โปรไฟล์',
       reminders: 'แจ้งเตือน',
@@ -47,7 +47,7 @@
   };
 
   const TABS = [
-    { id: 'home', href: '/', icon: '🏰' },
+    { id: 'home', href: '/', icon: '🏠' },
     { id: 'split', href: '/trip/', icon: '🧰' },
     { id: 'debt', href: '/debt/', icon: '🐉' },
     { id: 'compare', href: '/?view=compare', icon: '⚖️' },
@@ -301,6 +301,8 @@
   }
 
   function refresh() {
+    document.documentElement.classList.remove('cq-mobile-tab-home', 'cq-mobile-tab-split', 'cq-mobile-tab-debt', 'cq-mobile-tab-compare', 'cq-mobile-tab-treasury');
+    document.documentElement.classList.add(`cq-mobile-tab-${activeTabId()}`);
     document.querySelectorAll('.tb-wordmark.mobile-only').forEach(el => { el.textContent = text().app; });
     renderTabs();
   }

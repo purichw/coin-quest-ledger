@@ -71,9 +71,9 @@ html.first-load-boot .first-load {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 34px;
+  gap: 28px;
   width: 100%;
-  height: 82px;
+  height: 66px;
 }
 .first-load-torch {
   position: relative;
@@ -112,26 +112,26 @@ html.first-load-boot .first-load {
 }
 .first-load-eye {
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 48px;
+  height: 48px;
   flex: 0 0 auto;
-  filter: drop-shadow(0 0 16px rgba(236, 193, 78, .45));
+  filter: drop-shadow(0 0 12px rgba(236, 193, 78, .42));
   animation: first-load-breathe 3.2s ease-in-out infinite;
 }
 .first-load-eye::before {
   content: "";
   position: absolute;
-  inset: 17px 0;
+  inset: 12px 0;
   clip-path: polygon(0 50%, 22% 12%, 50% 0, 78% 12%, 100% 50%, 78% 88%, 50% 100%, 22% 88%);
   background: #ecc14e;
 }
 .first-load-eye::after {
   content: "";
   position: absolute;
-  left: 10px;
-  top: 10px;
-  width: 46px;
-  height: 46px;
+  left: 7px;
+  top: 7px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 50%, #fff6c0 0, #ecc14e 34%, #c8431f 70%, #5a1206 100%);
 }
@@ -139,9 +139,9 @@ html.first-load-boot .first-load {
   position: absolute;
   z-index: 1;
   left: 50%;
-  top: 13px;
-  width: 10px;
-  height: 40px;
+  top: 10px;
+  width: 8px;
+  height: 28px;
   border-radius: 50%;
   transform: translateX(-50%);
   background: #150803;
@@ -150,10 +150,10 @@ html.first-load-boot .first-load {
 .first-load-pupil::after {
   content: "";
   position: absolute;
-  left: -6px;
-  top: 11px;
-  width: 8px;
-  height: 10px;
+  left: -4px;
+  top: 7px;
+  width: 6px;
+  height: 8px;
   border-radius: 50%;
   background: rgba(255, 255, 255, .55);
 }
@@ -261,26 +261,26 @@ html.first-load-boot .first-load .first-load-fill {
     width: min(82vw, 340px);
   }
   .first-load-emblem {
-    gap: 28px;
-    height: 74px;
-  }
-  .first-load-eye {
-    width: 58px;
+    gap: 24px;
     height: 58px;
   }
+  .first-load-eye {
+    width: 42px;
+    height: 42px;
+  }
   .first-load-eye::before {
-    inset: 15px 0;
+    inset: 11px 0;
   }
   .first-load-eye::after {
-    left: 9px;
-    top: 9px;
-    width: 40px;
-    height: 40px;
+    left: 6px;
+    top: 6px;
+    width: 30px;
+    height: 30px;
   }
   .first-load-pupil {
-    top: 12px;
-    width: 9px;
-    height: 35px;
+    top: 9px;
+    width: 7px;
+    height: 25px;
   }
   .first-load-title {
     font-size: 28px;
