@@ -23,6 +23,7 @@ Companion docs:
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
 - Build step: none
 - Local preview: `npm run serve`, usually `http://127.0.0.1:4569/`
+- Last verified production snapshot: commit `cf35a35`, deployment `dpl_93oPPcQoi4HWmQs8vm4TYdmfbGbY`, aliased to the canonical domain on 2026-06-21.
 
 Do not preview app pages with `file://`. Pages use absolute paths such as `/shared/pointy-logic.js` and `/character/app.js`; those only resolve correctly through the static server or production host.
 
@@ -100,6 +101,8 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 Shared modules are browser globals. Keep additions conservative and compatible with static script loading order.
 
+Current profile boundary rule: `shared/profile-hub.js` orchestrates flows and event wiring; helper modules own isolated rendering, recovery/auth/session/cloud/backup utilities, and drawer/tour/reminder blocks. Preserve that split so individual slices can be reverted without rolling back the whole auth/profile stack.
+
 ## Identity Model
 
 Current product model has separate identities:
@@ -138,15 +141,15 @@ Local/test mode:
 
 Persistence changes require careful migration thinking and targeted tests at minimum.
 
-See `data-contracts.md` for the practical shape of `trips`, `characters`, `adminRevisions`, mock auth, local stores, and derived Character Profile data.
+See `data-contracts.md` for the practical shape of `trips`, `characters`, `adminRevisions`, production/test auth mirrors, local stores, and derived Character Profile data.
 
 ## Design Sources
 
-Claude Design remains the Holy Grail for requested visual ports:
+Claude Design remains the Holy Grail for requested visual ports. Reference files live outside Git and may be replaced by new exports during a session.
 
-- Party Ledger canon and split references live outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`.
-- Current Character/Profile loop references came from `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`, `/Users/point/Downloads/Character Profile (standalone) (1).html`, and `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`.
-- Admin Portal handoff notes are in `ADMIN.md`; the newest Admin reference files are under `/Users/point/Downloads/Coin Quest Ledger/admin/`, with related standalone HTML at `/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html`.
+- Current verified local Downloads references on 2026-06-21 are `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
+- Older recovery bundles, split zips, standalone Character/Profile HTML, and Admin HTML paths from earlier sessions are historical only unless they still exist on disk. Verify with `ls`/`find` before using them.
+- Admin Portal handoff notes are in `ADMIN.md`.
 
 `CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction. Do not use it unless the user explicitly re-enables it.
 

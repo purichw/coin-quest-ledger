@@ -1,6 +1,6 @@
 # Claude Design Index
 
-Last updated: 2026-06-19
+Last updated: 2026-06-21
 
 ## Purpose
 
@@ -12,30 +12,17 @@ Current user instruction: do not use `CLAUDE_RECOVERY.md` unless explicitly re-e
 
 | Surface | Live files | Claude/reference source | Use for | Notes |
 | --- | --- | --- | --- | --- |
-| Home / module launcher | `index.html` | `Party Ledger HomeView Reference.zip` | Home view layout, launcher cards, mobile handoff details | Use split zip first. |
-| Party Ledger / Split | `trip/index.html`, `trip/app.js`, `trip/pixicons.jsx` | `Party Ledger Internals Source.zip`, `Party Ledger Full Split Reference.zip`, `Party Ledger (offline).html` | Party UI, interactions, animation, category icons, SFX | SFX are WebAudio in `sound.jsx`; do not drop it. |
-| Party assets | `assets/rpg-portraits/`, `assets/icons/` | `Party Ledger Resources.zip` | Extracted PNG/font resources | Keep large resources outside Git unless intentionally adding optimized assets. |
-| Character Profile | `character/index.html`, `character/app.js` | `/Users/point/Downloads/Character Profile (standalone) (1).html`, `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`, `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md` | Character banner, ID card, mobile responsive layout, trophies/account presentation, User ID, My Boards | Latest handoff includes side-panel full-profile route. |
-| Admin Portal | `admin/index.html`, `admin/app.js`, `admin/admin.css` | `/Users/point/Downloads/Coin Quest Ledger/admin/`, `/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html`, and `ADMIN.md` | Admin layout vocabulary, tables, detail panels, tabs, modals, relationship views, ops tools | Phase 1 live gate is local only, not real security. Newer source files supersede older `/Users/point/Downloads/admin/` handoff. |
+| Home / module launcher | `index.html` | Current live repo plus any fresh Claude export supplied by user | Home view layout, launcher cards, mobile handoff details | Historical split zips may be absent; verify before use. |
+| Party Ledger / Split | `trip/index.html`, `trip/app.js`, `trip/pixicons.jsx` | Current live repo plus any fresh Party Ledger export supplied by user | Party UI, interactions, animation, category icons, SFX | If split source includes `sound.jsx`, preserve it; SFX are WebAudio code. |
+| Party assets | `assets/rpg-portraits/`, `assets/icons/` | Current live assets plus any fresh Claude resource export supplied by user | Extracted PNG/font resources | Keep large resources outside Git unless intentionally adding optimized assets. |
+| Character Profile | `character/index.html`, `character/app.js` | Current live repo, `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, and any fresh standalone Character Profile export supplied by user | Character banner, ID card, mobile responsive layout, trophies/account presentation, User ID, My Boards | Latest live loop includes side-panel full-profile route. |
+| Admin Portal | `admin/index.html`, `admin/app.js`, `admin/admin.css` | `ADMIN.md`, current live repo, `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, and any fresh Admin export supplied by user | Admin layout vocabulary, tables, detail panels, tabs, modals, relationship views, ops tools | Production gate is Firebase Google Auth allowlisted to `purich.wc@gmail.com`; local gate exists only under `?test=1`. |
 | Shared mobile shell | `shared/mobile-shell.js`, `shared/mobile-shell.css` | Party Ledger/HomeView mobile references | Phone drawer and bottom tabs | Keep centralized; hidden above `600px`. |
-| Profile/Login | `shared/profile-hub.js`, `shared/profile-hub.css` | Latest `CLAUDE.md` / `HANDOFF.md` plus live implementation | Mock Sign In/Sign Up, Character Creation, profile drawer, My Boards, logout, backup/restore | Real auth is future roadmap work. Mobile profile entry is through hamburger drawer. |
+| Profile/Login | `shared/profile-hub.js`, `shared/profile-hub.css`, `shared/profile-*.js` | Latest `CLAUDE.md` / `HANDOFF.md` plus live implementation | Real username/password Sign In/Sign Up, Character Creation, profile drawer, My Boards, logout, backup/restore, Recovery ID | Production uses Firebase Auth/Firestore with internal `@coinquest.local` emails; local fixtures exist only under `?test=1`. Mobile profile entry is through hamburger drawer. |
 
 ## Party Ledger Recovery Bundle
 
-Folder:
-
-```text
-/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/
-```
-
-Files:
-
-- `Party Ledger HomeView Reference.zip`: small Home/module launcher reference.
-- `Party Ledger Internals Source.zip`: app/module JSX/CSS source, including `sound.jsx`.
-- `Party Ledger Resources.zip`: extracted PNG/font resources.
-- `Party Ledger Full Split Reference.zip`: source, template, and resources together.
-- `Party Ledger (offline).html`: full offline canon; use only when split references are insufficient.
-- `Admin Portal (offline).html`: Admin reference artifact in the bundle.
+Older sessions used split Party Ledger zips and full offline HTML exports. Do not assume those files still exist. When the user re-exports them, prefer the smallest source that covers the requested surface and keep large artifacts out of Git.
 
 Workflow:
 
@@ -46,14 +33,7 @@ Workflow:
 
 ## Character Profile Reference Notes
 
-Source:
-
-```text
-/Users/point/Downloads/Character Profile (standalone) (1).html
-/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html
-/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md
-/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md
-```
+Use current live `/character/`, current Downloads `CLAUDE.md` / `HANDOFF.md`, and any fresh standalone Character Profile export the user supplies.
 
 Known facts:
 
@@ -64,7 +44,7 @@ Known facts:
 - It has a back link to `index.html` in the standalone reference.
 - The newest `CLAUDE.md` / `HANDOFF.md` says `party-ledger/character.html` is linked from the Hero Profile side panel's full-profile button and includes a User ID chip plus My Boards section.
 
-Live implementation:
+Current live implementation:
 
 - `shared/profile-hub.*` now implements the full-profile link from the profile drawer.
 - Mobile access goes through the shared hamburger drawer's Profile item.
@@ -72,19 +52,7 @@ Live implementation:
 
 ## Admin Reference Notes
 
-Primary handoff folder:
-
-```text
-/Users/point/Downloads/Coin Quest Ledger/admin/
-```
-
-Related standalone reference:
-
-```text
-/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html
-```
-
-Files studied:
+If the user supplies a fresh Admin source export, useful files usually include:
 
 - `Admin Portal.html`
 - `admin.css`
@@ -98,7 +66,7 @@ Files studied:
 
 Current conflict resolution:
 
-- The newer source files are more actionable than the older/broken offline HTML.
+- Source files are more actionable than damaged/offline-only HTML when both are available.
 - Older admin copy allowed many Characters per User. The live player/auth canon
   remains one active Character per User ID unless the user explicitly changes it.
 - Relationship Map should show User -> active Character -> Boards and User ->

@@ -1,5 +1,7 @@
 # Leveling Canon
 
+Last updated: 2026-06-21
+
 Status: v0 current implementation canon. This file freezes names, tracks, and source-of-truth helpers before any reward recalibration.
 
 ## Source Of Truth

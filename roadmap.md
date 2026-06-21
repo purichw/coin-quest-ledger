@@ -1,6 +1,6 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## North Star
 
@@ -8,19 +8,14 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 
 ## Current Baseline
 
-Done recently:
-
-- Party Ledger offline zip removed from Git; large Claude references stay outside the repo.
-- Real login gate added through `shared/profile-hub.*`; test account fixtures are restricted to explicit `?test=1`.
-- Sign out fixed so logout clears the real Firebase session and returns to the production login gate.
-- Claude Character Profile design ported to `/character/`.
-- Character banner animation and chip spacing tuned, committed, pushed, and deployed.
-- Latest Claude profile loop partially ported into the static app: Sign In/Sign Up tabs, local account registry, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, and Character Profile My Boards actions.
-- Leveling canon v0 established in `leveling-canon.md` and centralized in `shared/pointy-logic.js` before reward recalibration.
-- Newer Claude Admin source set workback started: Relationship Map, Board Detail tabs/scroll layout, Users/User Detail, Audit Log, Version Control, Support Tools, modal shells, and desktop/tablet/mobile Admin E2E coverage are aligned with the current static implementation.
+- Production domain: `https://coin-quest-ledger.vercel.app`; latest verified production snapshot is commit `cf35a35`.
+- Large Claude references stay outside Git. Current verified Downloads references are the top-level `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, and the iOS/Android standalone HTML exports; older split/reference folders must be filesystem-checked before use.
 - Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
-- Latest responsive pass is implemented: Home/Compare, Split, Debt, Treasury use the shared phone shell at `<=600px`; tablet/touch keeps desktop topbars with 44px hit targets and `601-820px` grid refinements; Character Profile keeps its standalone `cnav`; Admin Portal uses the Claude mobile/tablet export pattern with horizontal admin nav, Relationship Map stacking, compressed phone actions, scrollable dense tables, and phone bottom-sheet modals.
-- Production domain verified at `https://coin-quest-ledger.vercel.app`.
+- Character/Profile surfaces are live: Sign In/Sign Up, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, Character Profile My Boards actions, privacy links, and Recovery ID display/regeneration.
+- Super Admin is live at `/admin/` with Firebase Google Auth allowlisted to `purich.wc@gmail.com`, Admin user lifecycle, backend-only permanent delete, revision/publish tooling, and desktop/tablet/mobile responsive behavior.
+- Responsive baseline is live: Home/Compare, Split, Debt, Treasury use the shared phone shell at `<=600px`; tablet/touch keeps desktop topbars with larger hit targets; Character Profile keeps its standalone `cnav`; Admin Portal uses its admin-specific mobile/tablet pattern.
+- Leveling canon v0 is centralized in `leveling-canon.md` and `shared/pointy-logic.js`.
+- Profile/auth refactor slices are deployed: recovery, auth core, session storage, Firebase boundary, backup, drawer blocks, reminders, tour rendering, login forms, and Character Creation renderers now live in focused `shared/profile-*.js` helpers.
 
 Known constraints:
 
@@ -28,7 +23,7 @@ Known constraints:
 - Super Admin production gate now uses Firebase Google Auth and allowlists only `purich.wc@gmail.com`; `?test=1` keeps the local gate for regression.
 - Firestore rules include the Super Admin email helper for user lifecycle operations. Permanent user deletion requires the backend Firebase Admin function and service-account env vars.
 - App pages require server hosting; `file://` preview is not supported.
-- Claude Design references are fragmented across downloaded bundles and standalone HTML.
+- Claude Design references can move or be replaced between sessions; verify local paths before using old handoff filenames.
 
 ## Decision Log
 
@@ -41,7 +36,7 @@ Known constraints:
 - Admin production access is Google-auth gated to `purich.wc@gmail.com`; keep admin-specific horizontal navigation, not the player bottom tab bar. This matches the latest Admin mobile/tablet export and keeps dense admin tables/tooling usable.
 - Signed-in progress is account-scoped, not browser-scoped. `shared/account-scope.js` derives local module/cache keys from the active account so new real users start at LV1/0 Renown even if the same browser has legacy demo progress.
 - Admin Users now merges Firestore `users/{uid}` records with board-derived participants/admin roles, so real accounts with no board membership still appear in the portal.
-- Admin source of truth is currently `/Users/point/Downloads/Coin Quest Ledger/admin/`; older admin copy that allows many Characters per User is overridden by the current one-account-one-active-character canon.
+- Older admin copies that allow many Characters per User are overridden by the current one-account-one-active-character canon.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
 - Character XP and Profile Renown are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromRenown()`.
 
@@ -68,15 +63,15 @@ Goal: make User Profile, Side Panel profile, and Character Profile feel like one
 Near-term work:
 
 - Continue refining the explicit Character Profile entry point from the profile drawer/side panel.
-- Preserve the current one-account-one-character mock mapping unless the user asks for multiple characters.
+- Preserve the current one-account-one-active-character canon unless the user asks for multiple characters. Production accounts are real Firebase Auth/Firestore accounts; local mock fixtures are `?test=1` only.
 - Keep `/character/?id=####` as the shareable public route.
 - Preserve privacy link behavior with `private=1`.
 - Verify desktop/tablet/mobile after any profile drawer changes.
 
 Open decisions:
 
-- Future product decision: stay one character per user or add multiple characters per user after real auth exists.
-- Should the Character Profile account card deep-link back to User Profile once real auth exists?
+- Future product decision: stay one character per user or add multiple characters per user after the current real-auth loop is stable enough.
+- Should the Character Profile account card deep-link back to a fuller User Profile / account settings surface?
 
 ## Phase 2 - Mobile Design Parity
 
@@ -159,7 +154,7 @@ Goal: improve resilience without changing the static-app spirit.
 
 Work:
 
-- Continue shrinking `shared/profile-hub.js` in reversible slices. Recovery, auth identity, session storage, Firebase boundary, backup, login/character rendering, drawer blocks, reminders, and tour rendering are now split; future slices should target cloud persistence/load-save helpers, profile computation, and full drawer shell rendering only with focused tests.
+- Continue shrinking `shared/profile-hub.js` only in reversible slices. Recovery, auth identity, session storage, Firebase boundary, backup, login/character rendering, drawer blocks, reminders, and tour rendering are now split; future slices should target cloud persistence/load-save helpers, profile computation, and full drawer shell rendering only with focused tests and their own commits.
 - Add clearer local data export/import for users.
 - Keep Cloudinary asset references verified.
 - Improve production smoke checks after deploy.

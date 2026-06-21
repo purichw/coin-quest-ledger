@@ -12,7 +12,7 @@
 - If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
 - If the user asks to commit or deploy, escalate to Production Patch.
 - For profile/auth refactors, keep slices independently revertible. Commit each completed boundary separately after targeted tests, even when the user gives one broad refactor instruction.
-- Keep `Memory.md` updated before intentionally moving work to a new chat.
+- Keep `Memory.md`, `architecture.md`, `roadmap.md`, and any touched contract/reference docs updated before intentionally moving work to a new chat.
 - Current user instruction: ignore `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
 - Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromRenown()` instead of adding local formulas.
 
@@ -98,7 +98,7 @@ When implementing from Claude Design:
 - Port only the relevant UI/asset/interaction surface for the requested area.
 - Keep existing app functionality, data shape, Firebase sync, i18n, and tests intact.
 - If Claude includes assets or sounds, check whether they already exist in the supplied HTML/project before recreating them.
-- For Party Ledger specifically, prefer the smaller split reference zips in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/` for initial study, then fall back to the full offline canon when exact all-in-one behavior must be verified.
+- For Party Ledger specifically, prefer smaller split reference zips when the user supplies them, then fall back to a full offline canon only when exact all-in-one behavior must be verified. Do not assume old Downloads paths still exist.
 - Do not drop `sound.jsx`; the Party Ledger offline bundle stores SFX as WebAudio code there, not as separate `audio/*` files.
 
 ## Architecture And Roadmap
@@ -108,20 +108,16 @@ When implementing from Claude Design:
 - `claude-design-index.md` maps downloaded Claude references to live surfaces and records what each reference does or does not specify.
 - `roadmap.md` is the phased product/engineering plan: profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery polish.
 - Keep these docs current when a change alters product direction, system shape, deployment assumptions, data contracts, reference sources, or major cross-module behavior.
+- When doing a handoff-only docs pass, update the latest production snapshot, recent commits, stale "mock/future auth" wording, and next-slice guidance without changing implementation files.
 
 ## Claude Recovery References
 
 Use these when rebuilding context in a new chat or a new Claude Project:
 
 - Do not use `CLAUDE_RECOVERY.md` by default. It is currently ignored/deprecated by user instruction.
-- Party Ledger canon lives outside Git in `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`; do not commit large offline zip copies.
-- Upload bundle folder: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/`
-- Small HomeView package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger HomeView Reference.zip`
-- Small app/source package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Internals Source.zip`
-- Resource package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Resources.zip`
-- Full split package: `/Users/point/Downloads/Coin Quest Ledger - Claude Recovery Bundle/Party Ledger Full Split Reference.zip`
-- Current Character/Profile sources: `/Users/point/Downloads/Coin Quest Ledger/CLAUDE.md`, `/Users/point/Downloads/Coin Quest Ledger/HANDOFF.md`, `/Users/point/Downloads/Character Profile (standalone) (1).html`, and `/Users/point/Downloads/Coin Quest Ledger/party-ledger/character.html`
-- Current Admin Portal sources: `/Users/point/Downloads/Coin Quest Ledger/admin/` and `/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html`; newer source files supersede older `/Users/point/Downloads/admin/` handoffs.
+- Current verified Downloads references on 2026-06-21: `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
+- Historical recovery bundles, standalone Character/Profile HTML, Admin HTML, and split zips from earlier sessions are not guaranteed to still exist. Check with `ls`/`find` before depending on any older path.
+- Do not commit large offline zip/HTML copies.
 
 ## Expense Splitter Notes
 
@@ -138,7 +134,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 
 - `/admin/` is the Phase 1 Super Admin Portal. Changes here affect admin/persistence behavior, so use Production Patch verification (`npm test`) even if the visible diff looks small.
 - Admin Portal design must stay aligned to the supplied Claude Admin Portal HTML. Keep the Claude component vocabulary and layout primitives (`page-head`, `card`, `stat`, `tbl`, `detail-grid`, `profile-card`, `log-list`, modal patterns) rather than restoring legacy `panel`/ad hoc table markup.
-- Admin Portal now works back from the newer `/Users/point/Downloads/Coin Quest Ledger/admin/` source set. Preserve the current one-user-one-active-character canon when older Admin copy says users can have many characters.
+- Admin Portal should preserve the current one-user-one-active-character canon when any older Admin copy says users can have many characters.
 - Production `/admin/` uses Firebase Google Auth allowlisted to `purich.wc@gmail.com`. The local browser gate exists only under `/admin/?test=1` for automated regression; do not describe it as real access control.
 - Permanent user delete is backend-only and requires Vercel Firebase Admin env vars. The Admin UI must surface `/api/admin-delete-status` readiness instead of letting destructive actions fail silently.
 - Save is local draft storage, Restore discards the draft back to the latest published snapshot, and Publish writes board/admin/user changes plus a revision log.

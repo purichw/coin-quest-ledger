@@ -1,10 +1,12 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Purpose
 
 This file documents the live data shapes that should be preserved when adding features, refactoring, or migrating to real auth/security. These are practical contracts, not strict TypeScript schemas. The app has legacy data and normalization paths, so new code should tolerate missing optional fields and keep migrations backward-compatible.
+
+2026-06-21 profile refactor note: splitting `shared/profile-hub.js` into focused `shared/profile-*.js` modules did not change the persisted Firestore/localStorage contracts below.
 
 ## Global Conventions
 

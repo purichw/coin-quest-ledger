@@ -1,13 +1,10 @@
 # ADMIN.md - Admin Portal Handoff Notes
 
-Last updated: 2026-06-20
+Last updated: 2026-06-21
 
 ## Purpose
 
-This file preserves the current understanding of the newest Admin Portal handoff
-files in `/Users/point/Downloads/Coin Quest Ledger/admin/` so the next
-implementation pass does not need to rediscover the model, screens, and styling
-from scratch.
+This file preserves the current understanding of the Admin Portal handoff and live implementation so the next implementation pass does not need to rediscover the model, screens, and styling from scratch.
 
 These files are a Claude-style Admin Portal prototype/reference. The live app is
 still the static no-build Coin Quest Ledger repo, but the current `/admin/`
@@ -16,13 +13,7 @@ People, Boards, Ops, relationship views, and modal flows.
 
 ## Source Files
 
-Current reference folder:
-
-```text
-/Users/point/Downloads/Coin Quest Ledger/admin/
-```
-
-Files studied:
+If the user supplies a fresh Admin source export, useful files usually include:
 
 ```text
 Admin Portal.html
@@ -36,15 +27,7 @@ screens-people.jsx
 ui.jsx
 ```
 
-Standalone HTML/reference context:
-
-```text
-/Users/point/Downloads/Coin Quest Ledger/Admin Portal.html
-```
-
-The newer `.jsx` source files are the more actionable source of truth than the
-older broken/offline HTML. Work back from the source files when the standalone
-export is stale or damaged.
+Do not assume older Admin export folders still exist locally. On 2026-06-21, the verified top-level Downloads references are `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`. If Admin source files are missing, use the live repo plus `ADMIN.md` and ask for a fresh Admin export when exact Claude fidelity is required.
 
 Offline/source load order:
 
@@ -64,9 +47,7 @@ app.jsx
 
 ## Handoff Rule
 
-- Treat the newest files in `/Users/point/Downloads/Coin Quest Ledger/admin/` as
-  the Admin Portal reference until a newer offline Admin Portal HTML/source set
-  is supplied.
+- Treat the newest Admin files that actually exist on disk as the Admin Portal reference.
 - For this project, newer `.jsx` handoff files should replace older handoff
   files when the user explicitly says to use the new version.
 - Do not edit the Downloads reference files directly.
@@ -93,7 +74,7 @@ Portal implementation work should use Production Patch verification, meaning
 
 ## Security Reality
 
-The Claude prototype included a local mock gate only. The live production `/admin/` now uses Firebase Google Auth and only allows the Gmail `purich.wc@gmail.com`.
+The live production `/admin/` uses Firebase Google Auth and only allows the Gmail `purich.wc@gmail.com`.
 
 Permanent user delete is not a client-side Firebase Auth action. The Admin UI calls `/api/admin-delete-status` to check whether the privileged backend is configured, disables permanent delete if Vercel lacks Firebase Admin service-account env vars, and calls `/api/admin-delete-user` only after the Super Admin signs in with Google. The backend verifies the Firebase ID token and allowlisted Gmail before deleting the Firebase Auth user, `users/{uid}`, and character records. It keeps `usernames/{username}` as a deleted reusable tombstone with the old User ID and Character ID so the same username can be recreated later with the same public identity.
 
@@ -220,7 +201,7 @@ Topbar:
 State:
 
 - `lang` from `localStorage.pointy_admin_lang`
-- `authed` mock gate boolean
+- production auth state from Firebase Google Auth; `?test=1` may use a local mock gate for regression only
 - `route`: `{ screen, id }`
 - `modal`
 - `payload`
@@ -492,7 +473,7 @@ Likely gaps to close later:
 - Deeper board version restore semantics beyond the current revision model.
 - Richer audit diff payloads.
 - Fine visual tuning against future fresh Admin mobile exports.
-- Real backend-backed permissions.
+- Board Admin permissions scoped to owned boards.
 
 ## Persistence Caution
 
@@ -554,19 +535,11 @@ Also ensure existing user-facing modules still pass:
 - Treasury.
 - Character Profile.
 
-## Decisions To Lock Before Full Port
+## Open Decisions
 
-- Whether production Admin Portal should remain no-build static JS or adopt
-  React/Babel for this route.
-- Whether Treasury is fully first-class in Admin Portal for Phase 1 or only a
-  visible board type placeholder.
-- Super Admin auth provider is Firebase Google Auth; the current allowlist is
-  the Gmail `purich.wc@gmail.com`.
-- Whether Super Admin edits publish directly to Firestore or stage in local
-  draft first every time.
-- How merge-users should behave with Character IDs, Admin IDs, and board
-  history.
-- Whether support impersonation is read-only only, or can perform scoped edits.
+- How merge-users should behave with Character IDs, Admin IDs, username tombstones, and board history.
+- Whether support impersonation remains read-only only, or can perform scoped edits later.
+- How deep board version restore should become beyond the current revision model.
 
 ## Implementation Principle
 
