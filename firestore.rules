@@ -52,6 +52,11 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
+    match /playerModules/{uid} {
+      allow read, create, update: if (request.auth != null && request.auth.uid == uid) || isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
     match /adminRevisions/{revisionId} {
       allow read, write: if isSuperAdmin();
     }
