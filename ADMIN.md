@@ -1,6 +1,6 @@
 # ADMIN.md - Admin Portal Handoff Notes
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 ## Purpose
 
@@ -71,6 +71,8 @@ the existing static admin implementation instead of adding a new React island.
 The existing repo already has tests around Admin Portal behavior. Any Admin
 Portal implementation work should use Production Patch verification, meaning
 `npm test`, because admin changes affect persistence and user data.
+
+Native app note: the current `mobile/` project is player-side only. Do not add an Admin native app or Admin WebView wrapper unless the user explicitly changes direction; `/admin/` remains the production Super Admin surface.
 
 ## Security Reality
 

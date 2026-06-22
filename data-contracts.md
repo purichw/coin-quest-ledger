@@ -1,12 +1,14 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 ## Purpose
 
 This file documents the live data shapes that should be preserved when adding features, refactoring, or migrating to real auth/security. These are practical contracts, not strict TypeScript schemas. The app has legacy data and normalization paths, so new code should tolerate missing optional fields and keep migrations backward-compatible.
 
 2026-06-21 profile refactor note: splitting `shared/profile-hub.js` into focused `shared/profile-*.js` modules did not change the persisted Firestore/localStorage contracts below.
+
+2026-06-22 native app note: `mobile/` adds `playerModules/{uid}` as native-owned Firestore state for Debt Dragon, Treasury, and Compare. This keeps the iOS app dynamic without pretending the web app's browser localStorage module stores have already been migrated.
 
 ## Global Conventions
 
@@ -264,7 +266,58 @@ Lookup table for username login without requiring real user email addresses.
 }
 ```
 
-Repo rules now prevent username mapping takeover: an update is allowed only for Super Admin or the current owner UID preserving the same UID. This must be deployed to live Firestore separately.
+Deployed repo rules prevent username mapping takeover: an update is allowed only for Super Admin or the current owner UID preserving the same UID, with deleted tombstone reuse limited to same-ID recovery.
+
+### `playerModules/{uid}`
+
+Native-player module state for Debt Dragon, Treasury, and Compare. The document ID is always the Firebase Auth `uid` of the owner.
+
+```js
+{
+  uid: firebaseAuthUid,
+  characterId: characterId,
+  debt: {
+    strategy: "avalanche" | "snowball",
+    dragons: Array<{
+      id: string,
+      name: string,
+      type: "card" | "autoloan" | "student" | "mortgage" | "medical" | "tax" | "other",
+      original: number,
+      balance: number,
+      apr: number,
+      payment: number,
+      interestMode: "compound" | "simple",
+      payMode: "monthly" | "adhoc",
+      dueDay?: number,
+      log: Array<{ id: string, amount: number, date: string, ts: number, move: string }>,
+      slain: boolean,
+      slainAt?: epochMs | null
+    }>,
+    stats: { interest: number }
+  },
+  treasury: {
+    month: "YYYY-MM",
+    income: number,
+    expenses: Array<{ id: string, name: string, category: string, amount: number, date: "YYYY-MM-DD" }>
+  },
+  comparisons: Array<{
+    id: string,
+    name: string,
+    icon: string,
+    baseUnit: string,
+    offers: Array<{ id: string, merchant: string, price: number, qty: number, unit: string, buy?: number, free?: number }>
+  }>,
+  updatedAt: timestamp
+}
+```
+
+Rules:
+
+- Only the owner UID or Super Admin can read/create/update. Only Super Admin can delete.
+- `mobile/src/gameLogic.ts` owns normalization for this native contract.
+- Do not write `undefined` into nested state; Firestore rejects it. Optional fields should be omitted or set to `null` intentionally.
+- This is not yet the web module contract. Web Debt Dragon/Treasury/Compare still use localStorage until a planned migration maps those stores into Firestore.
+- Native screens must never show static Claude/sample financial data. If a document is absent, create an empty owned module document or show an empty state with a real create/log action.
 
 ### Admin Delete Backend
 

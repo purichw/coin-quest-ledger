@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 ## Project
 
@@ -11,7 +11,8 @@ Last updated: 2026-06-21
 - Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
-- Latest verified production deploy: commit `cf35a35`, deployment `dpl_93oPPcQoi4HWmQs8vm4TYdmfbGbY`, URL `https://coin-quest-ledger-obxucm162-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-21 after full `npm test` passed.
+- Latest pushed commit: `75874f3` (`Add native mobile app MVP`).
+- Latest verified production deploy: commit `75874f3`, deployment `dpl_GbjV8KwadCfdkanY7N4UCP4LQ2Uw`, URL `https://coin-quest-ledger-m30eylv5v-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-22 after full `npm test` passed on rerun.
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
 ## Start Here In A New Chat
@@ -45,6 +46,8 @@ Last updated: 2026-06-21
 - `shared/profile-hub.js` / `.css`: shared profile/auth orchestrator. Keep behavior orchestration here, but new pure helpers or isolated renderers should live in the focused `shared/profile-*.js` modules.
 - `shared/profile-session.js`, `shared/profile-auth.js`, `shared/profile-cloud.js`, `shared/profile-recovery.js`, `shared/profile-backup.js`, `shared/profile-login.js`, `shared/profile-character-create.js`, `shared/profile-drawer.js`, `shared/profile-reminders.js`, and `shared/profile-tour.js`: focused profile helper modules split out from the original hub so auth, recovery, backup, login/character rendering, drawer blocks, reminder rendering, and Welcome Tour slices can be reverted independently.
 - `shared/mobile-shell.css` and `shared/mobile-shell.js`: Claude-style native phone shell shared by Home/Compare, Split, Debt Dragon, and Treasury. It injects the hamburger drawer and bottom tab bar at `max-width: 600px`; desktop/tablet topbars remain controlled by each page.
+- `mobile/`: Expo / React Native player-side native app. Current slice is iOS-first, not a WebView wrapper, and wired to real Firebase Auth/Firestore for username login/signup, Character Creation, Profile, Split board reads/writes, and native-owned `playerModules/{uid}` state for Debt Dragon, Treasury, and Compare.
+- `mobile/IOS_BUILD_NOTES.md`: repeatable iOS native build/install runbook, including design-first gates, Xcode/device signing commands, `devicectl` install/launch, ExpoModulesJSI patch notes, and lessons learned from the first real iPhone install.
 - `trip/pixicons.jsx`: labeled pixel icon registry/renderer/migration helpers.
 - `assets/rpg-portraits/`: current full-body class portrait assets, 18 classes x 2 genders plus skin art.
 - `assets/icons/loot-chest.svg`: app icon.
@@ -60,6 +63,7 @@ The original Claude Design project was accidentally deleted and Claude said it c
 - Use repo docs plus downloaded handoff files to reconstruct Claude context.
 - `CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction; use `Memory.md`, `PLAYBOOK.md`, `architecture.md`, `roadmap.md`, `ADMIN.md`, `claude-design-index.md`, and the actual downloaded references instead.
 - Current local downloaded references verified on 2026-06-21: `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
+- Fresh native-player export folder studied on 2026-06-21: `/Users/point/Downloads/Coin iOS Android/` with `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, `Coin Quest Ledger (iOS App).html`, and `Coin Quest Ledger (Android App).html`. Treat these as the latest iOS/Android player-native visual references when native MVP work resumes; they are player-side only and do not include Admin native.
 - Older recovery bundle paths and split zips from earlier sessions may no longer exist locally. Check the filesystem before relying on them, or ask the user for a fresh Claude export.
 - If Party Ledger split references are reintroduced, preserve `sound.jsx`; SFX are WebAudio code there, not separate `audio/*` files.
 
@@ -75,6 +79,10 @@ Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mo
 
 The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production. Local test accounts exist only behind explicit `?test=1` regression mode; production must never fall back to built-in accounts when Firebase is missing or still loading. Users type a username, not a real email; the profile modules map it to an internal `username@coinquest.local` Firebase Auth email, create/load `users/{uid}`, route accounts without a character through one-time Character Creation, write the active character to `characters/{id}`, and mirror the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
 
+2026-06-22 native player app MVP slice: `mobile/` now uses the same production Firebase project and public username contract as the web app. Sign In and Sign Up use `username@coinquest.local`; Sign Up writes Recovery ID metadata to `users/{uid}` and recovery hash metadata to `usernames/{username}`; Profile displays the current Recovery ID and can regenerate it, overwriting the username recovery hash immediately; Character Creation writes `characters/{id}` and mirrors the active character to `users/{uid}`; Split reads real `trips/{id}` linked by `characterIds` or `admin.characterId`, can create a Firestore board, and can add an equal-split expense. Debt Dragon, Treasury, and Compare read/write native-owned `playerModules/{uid}` Firestore state so they are dynamic and do not use static Claude/sample data. Verification for this slice: `mobile/npm run typecheck` passed, `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export-github` passed, root `npm test` passed on rerun (`65 passed`, `4 skipped`), production deploy/curl passed, and a Release iPhone device build/install succeeded for bundle `com.purichwc.coinquestledger`.
+
+Native design/build rule from the first iPhone install: do not repeat the "build first, discover ugly/static later" failure mode. Before a real device build or install, run a Claude Design parity pass screen by screen against the fresh iOS/Android exports, and verify the same screens use real Firebase/Firestore data. Design fidelity and backend reality are both gates; neither can be deferred until after physical install.
+
 Profile refactor rule: keep changes reversible by slice. When splitting `shared/profile-hub.js`, commit each coherent boundary separately after targeted tests so a broken helper can be reverted without rolling back unrelated auth/recovery/UI work.
 
 Latest profile refactor handoff: `shared/profile-hub.js` is now a smaller orchestrator backed by focused browser-global helpers: `profile-session`, `profile-auth`, `profile-cloud`, `profile-recovery`, `profile-backup`, `profile-login`, `profile-character-create`, `profile-drawer`, `profile-reminders`, and `profile-tour`. Script load order matters: helper modules must load before `shared/profile-hub.js`.
@@ -83,7 +91,7 @@ Admin Users now merges real Firestore `users/{uid}` accounts with board-derived 
 
 Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and `coin-quest-ledger.vercel.app`, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts. As of 2026-06-21, the profile side panel shows the current Recovery ID for the signed-in account and can regenerate it; regeneration overwrites the recovery hash immediately so the old code no longer works.
 
-Security setup note: the repo `firestore.rules` was tightened and deployed on 2026-06-20 through `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`. Character writes require owner/Super Admin, username mapping updates cannot be taken over by another user, deleted username tombstones can only be reclaimed by the newly signed-in user while preserving the same User ID, and `adminRevisions` requires Super Admin.
+Security setup note: the repo `firestore.rules` was tightened and deployed on 2026-06-20 through `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`, then updated/deployed again on 2026-06-22 for native `playerModules/{uid}` owner read/create/update. Character writes require owner/Super Admin, username mapping updates cannot be taken over by another user, deleted username tombstones can only be reclaimed by the newly signed-in user while preserving the same User ID, `playerModules/{uid}` is owner/Super Admin readable/writable, and `adminRevisions` requires Super Admin.
 
 Super Admin production access uses Firebase Google Auth and only allows `purich.wc@gmail.com`. The `google.com` Firebase Auth provider was enabled on 2026-06-20 through the Identity Toolkit API with an OAuth client for `https://pointy-personal-toolkit.firebaseapp.com/__/auth/handler`. The old local gate exists only under `/admin/?test=1` for automated regression. Permanent delete is backend-only through `/api/admin-delete-user`; `/api/admin-delete-status` reports whether Vercel has the required Firebase Admin service account env vars. Production Vercel now has encrypted `FIREBASE_SERVICE_ACCOUNT_JSON` for `vercel-admin-delete@pointy-personal-toolkit.iam.gserviceaccount.com`, with `roles/firebaseauth.admin` and `roles/datastore.user`. Delete keeps `usernames/{username}` as a reusable deleted tombstone with the old User ID/Character ID, so a recreated username gets the same public ID. `firebase-admin` is pinned to `13.10.0` because `14.0.0` currently pulls a `jwks-rsa`/`jose` path that crashes on the Vercel Serverless runtime with `ERR_REQUIRE_ESM`.
 
@@ -190,6 +198,20 @@ npm test
 npm run serve
 ```
 
+Native mobile commands:
+
+```bash
+cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox/mobile"
+npm run typecheck
+npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export
+# Only after design/backend gates pass:
+npx expo prebuild --platform ios
+xcodebuild -workspace ios/CoinQuestLedger.xcworkspace -scheme CoinQuestLedger -configuration Release -destination 'id=<physical-udid>' -derivedDataPath /tmp/coinquest-ios-device-build -allowProvisioningUpdates build
+xcrun devicectl device install app --device <coredevice-id> /tmp/coinquest-ios-device-build/Build/Products/Release-iphoneos/CoinQuestLedger.app
+```
+
+Read `mobile/IOS_BUILD_NOTES.md` before changing native build settings, signing, or install commands.
+
 Local preview:
 
 ```bash
@@ -226,6 +248,9 @@ git push origin main
 
 ## Recent Commits
 
+- `75874f3` Add native mobile app MVP
+- `e07b148` Align mobile web with Claude design
+- `5de54b2` Refresh handoff docs
 - `cf35a35` Document login and character renderer boundaries
 - `678f438` Extract character creation rendering
 - `b3576e6` Extract profile login rendering

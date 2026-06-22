@@ -1,6 +1,6 @@
 # Leveling Canon
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 Status: v0 current implementation canon. This file freezes names, tracks, and source-of-truth helpers before any reward recalibration.
 
@@ -15,6 +15,8 @@ All level math must start in `shared/pointy-logic.js`.
 - `PointyLogic.rewardFor(lvl)` maps level milestones to title/frame rewards.
 
 Do not add new `Math.floor(x / step) + 1` formulas in feature files. Add a helper to `PointyLogic` first, then call it from modules.
+
+Native app note: `mobile/src/gameLogic.ts` currently mirrors only the module-specific native gameplay math needed for Debt Dragon, Treasury, and Compare. It must not invent separate XP/level thresholds. When native surfaces display character/profile levels, port or share the `PointyLogic` canon instead of adding mobile-only formulas.
 
 ## Tracks
 

@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 ## Purpose
 
@@ -23,7 +23,7 @@ Companion docs:
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
 - Build step: none
 - Local preview: `npm run serve`, usually `http://127.0.0.1:4569/`
-- Last verified production snapshot: commit `cf35a35`, deployment `dpl_93oPPcQoi4HWmQs8vm4TYdmfbGbY`, aliased to the canonical domain on 2026-06-21.
+- Last verified production snapshot: commit `75874f3`, deployment `dpl_GbjV8KwadCfdkanY7N4UCP4LQ2Uw`, URL `https://coin-quest-ledger-m30eylv5v-purichwc-1517s-projects.vercel.app`, aliased to the canonical domain on 2026-06-22.
 
 Do not preview app pages with `file://`. Pages use absolute paths such as `/shared/pointy-logic.js` and `/character/app.js`; those only resolve correctly through the static server or production host.
 
@@ -78,6 +78,17 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - Responsive model is admin-specific: below `1000px` the sidebar becomes a horizontal scroll nav; below `900px` Relationship Map stacks; below `760px` topbar/actions compress, dense tables scroll, and modals render as bottom sheets; coarse-pointer tablets get 44px touch targets.
 - Real private admin access requires Firebase Auth and deployed Firestore Security Rules.
 
+### Native Player App
+
+- Files: `mobile/`
+- Runtime: Expo / React Native, currently iOS-first.
+- Scope: player side only, not Admin and not a WebView wrapper.
+- Current state: committed in `75874f3` as an Expo SDK 56 TypeScript app wired to the shared production backend for player identity, character/profile, Split, and native player modules. It includes real username/password Sign In and Sign Up, Recovery ID creation/regeneration, one-time Character Creation, Home Hub, Split board selection, Firestore board creation, equal-split expense creation, Debt Dragon, Treasury, Compare, Profile sheet, and Character page.
+- Persistence/auth: uses the same Firebase project as the web app. Username/password maps to internal `username@coinquest.local`; `users/{uid}`, `usernames/{username}`, `characters/{id}`, `trips/{id}`, and `playerModules/{uid}` are the native runtime contracts.
+- `playerModules/{uid}` is native-owned Firestore state for Debt Dragon, Treasury, and Compare. This keeps native dynamic without pretending the browser localStorage stores for those web modules have already been migrated.
+- Build/install reality: generated `ios/` and `android/` folders are ignored and should be regenerated locally with Expo prebuild when needed. The first physical Release install succeeded on iPhone `Pointy` with bundle `com.purichwc.coinquestledger` using an Apple Development profile for team `365NSPNKXD`.
+- Verification: from `mobile/`, `npm run typecheck` passes and `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export-github` passes. Root `npm test` passed on rerun (`65 passed`, `4 skipped`) before `75874f3` was pushed/deployed. See `mobile/IOS_BUILD_NOTES.md` for the full device build/install runbook and pitfalls.
+
 ## Shared Modules
 
 - `shared/pointy-logic.js`: shared data normalization, split math, price math, class registry, level helpers, and character profile aggregation.
@@ -124,9 +135,10 @@ Normal mode:
 - `users/{uid}`: Firebase Auth account profile, public User ID, username, and active character pointer.
 - `usernames/{username}`: username lookup and recovery pointer for the internal Firebase Auth email currently attached to a public username.
 - `characters/{id}`: character records.
+- `playerModules/{uid}`: native-owned dynamic state for Debt Dragon, Treasury, and Compare.
 - `adminRevisions/{id}`: Super Admin publish logs.
 
-`firestore.rules` is the repository copy of the deployed rules. It keeps the current real-account loop usable, includes a Super Admin helper for the allowlisted Gmail `purich.wc@gmail.com`, restricts character writes to the owning account or Super Admin, prevents username mapping takeover, permits only same-ID reclamation of reusable deleted username tombstones, and restricts `adminRevisions` to Super Admin. Deploy through `firebase.json` with `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`.
+`firestore.rules` is the repository copy of the deployed rules. It keeps the current real-account loop usable, includes a Super Admin helper for the allowlisted Gmail `purich.wc@gmail.com`, restricts character writes to the owning account or Super Admin, prevents username mapping takeover, permits only same-ID reclamation of reusable deleted username tombstones, allows `playerModules/{uid}` owner read/create/update, and restricts `adminRevisions` to Super Admin. Deploy through `firebase.json` with `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`.
 
 Local/test mode:
 
@@ -182,6 +194,13 @@ vercel alias set <deployment-url> coin-quest-ledger.vercel.app
 curl -fsSL https://coin-quest-ledger.vercel.app/<changed-route> | rg "<expected-marker>"
 ```
 
+Native iOS build/install flow is intentionally separate from Vercel production. Before building for a real iPhone, verify both:
+
+- Claude Design parity: compare the relevant native screens against the fresh iOS/Android Claude exports and fix obvious spacing/chrome/content mismatches before install.
+- Backend parity: sign in or create a real Firebase test account and verify Firestore-backed account, character, Split, Debt Dragon, Treasury, and Compare flows are dynamic.
+
+Then follow `mobile/IOS_BUILD_NOTES.md` for `expo export`, `xcodebuild`, `devicectl install`, and `devicectl launch`.
+
 ## Hard Invariants
 
 - Keep the app static/no-build unless the user explicitly chooses a framework migration.
@@ -192,3 +211,4 @@ curl -fsSL https://coin-quest-ledger.vercel.app/<changed-route> | rg "<expected-
 - Preserve newest user requirements over older handoffs.
 - Preserve Firebase state shape unless doing a planned migration with regression coverage.
 - Keep XP/level formulas centralized in `shared/pointy-logic.js` and documented in `leveling-canon.md`.
+- Native app work must stay modular by screen/data/sheet/theme files; do not collapse `mobile/src/*` back into a monolithic `App.tsx`.

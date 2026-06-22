@@ -8,6 +8,7 @@
 - Read `claude-design-index.md` when the request involves Claude Design references, visual parity, mobile handoff files, or finding the right downloaded source.
 - Read `leveling-canon.md` when the request touches XP rewards, level thresholds, title milestones, profile renown, Treasury XP, or Admin level displays.
 - Read `roadmap.md` when the request asks what to build next, how to phase work, or whether Codex vs Claude Design should own a step.
+- Read `mobile/IOS_BUILD_NOTES.md` before native iOS build/signing/install work.
 - Check `git status --short --branch` before editing.
 - If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
 - If the user asks to commit or deploy, escalate to Production Patch.
@@ -159,6 +160,16 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - Claude mobile source expects a hamburger drawer and fixed bottom tab bar at phone width. Keep that behavior centralized in `shared/mobile-shell.*`.
 - Desktop and tablet should retain their current module topbars; verify the mobile shell is `display:none` there.
 - Compare mobile intentionally keeps the visible `Home` back button when active, even though the Claude prototype hides `.tb-back`, because the live app and tests depend on that return path.
+
+## Native Player App Notes
+
+- `mobile/` is the Expo / React Native player app. It is not a WebView wrapper and does not include Admin native.
+- Keep native code modular: `App.tsx` orchestrates; `mobile/src/data.ts`, `gameLogic.ts`, `ui.tsx`, `theme.ts`, `copy.ts`, screen files, and `sheets.tsx` should remain focused so future fixes are point edits.
+- Do not build/install a real iPhone app until design and backend gates are both checked.
+- Design gate: compare the changed native screens against the latest Claude iOS/Android exports and fix obvious mismatches in platform chrome, spacing, card hierarchy, sheets, tabs/FAB, typography scale, and asset usage before device build.
+- Backend gate: verify the screen uses real Firebase Auth/Firestore data. Current native contracts are `users/{uid}`, `usernames/{username}`, `characters/{id}`, `trips/{id}`, and `playerModules/{uid}`.
+- Never fill Debt/Treasury/Compare with static Claude/sample financial data. Empty states are acceptable only when they are tied to real create/log actions.
+- For iOS build/install commands, signing caveats, ExpoModulesJSI patching, and first-install lessons learned, use `mobile/IOS_BUILD_NOTES.md`.
 
 ## Preview Notes
 

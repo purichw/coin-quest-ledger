@@ -9,6 +9,7 @@ Expo / React Native player-side runtime for the future native player app MVP.
 - Real Firestore reads/writes for `users/{uid}`, `usernames/{username}`, `characters/{id}`, `trips/{id}`, and `playerModules/{uid}`.
 - Screens included: Login, Sign Up with Recovery ID, Character Creation, Home Hub, Split board, Add Expense sheet, Create Board sheet, Profile sheet, and Character page.
 - Debt Dragon, Treasury, and Compare use mobile-owned `playerModules/{uid}` Firestore state so native never shows fake static seed data.
+- Admin is intentionally not part of this native app.
 
 ## Web Parity Status
 
@@ -22,6 +23,15 @@ The mobile app now targets the same production backend contracts as the web app:
 
 Known limitation: Firebase Auth state is using the public `firebase/auth` entrypoint that compiles with Firebase 12 in Expo. The RN AsyncStorage persistence helper is present inside Firebase internals but is not exposed by the package export map used by TypeScript here, so persistent login across app restarts should be solved as a focused follow-up.
 
+## Design And Data Gates
+
+Do not make another real iPhone build before these are true:
+
+- Design parity: compare the touched screens against the fresh Claude iOS/Android exports and fix obvious native chrome, spacing, tabs/FAB, sheets, cards, type scale, and asset mismatches first.
+- Backend parity: sign in or sign up with a real Firebase account and verify data is dynamic in Firestore.
+- No static finance data: Debt Dragon, Treasury, and Compare must use `playerModules/{uid}` or show a real empty state.
+- Modularity: keep changes in the focused screen/data/sheet/theme files. Avoid turning `App.tsx` back into a monolith.
+
 ## Commands
 
 ```bash
@@ -31,8 +41,11 @@ npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export
 npm run ios
 ```
 
+For physical iPhone build/install, read `IOS_BUILD_NOTES.md` first.
+
 ## Notes
 
 - Use Expo SDK 56 docs for this project.
 - `expo-linear-gradient`, `expo-crypto`, Firebase JS SDK, and AsyncStorage are installed.
 - The first simulator attempt reached Metro/Expo Go install, but the iPhone 17 Pro simulator stayed on the Apple boot screen. The iOS bundle export succeeds.
+- A Release build was installed on physical iPhone `Pointy` through USB with bundle `com.purichwc.coinquestledger`; launch from Mac requires the iPhone to be unlocked.

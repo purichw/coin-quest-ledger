@@ -1,6 +1,6 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-06-21
+Last updated: 2026-06-22
 
 ## North Star
 
@@ -8,7 +8,7 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 
 ## Current Baseline
 
-- Production domain: `https://coin-quest-ledger.vercel.app`; latest verified production snapshot is commit `cf35a35`.
+- Production domain: `https://coin-quest-ledger.vercel.app`; latest pushed and verified production snapshot is commit `75874f3`, deployment `dpl_GbjV8KwadCfdkanY7N4UCP4LQ2Uw`.
 - Large Claude references stay outside Git. Current verified Downloads references are the top-level `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, and the iOS/Android standalone HTML exports; older split/reference folders must be filesystem-checked before use.
 - Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
 - Character/Profile surfaces are live: Sign In/Sign Up, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, Character Profile My Boards actions, privacy links, and Recovery ID display/regeneration.
@@ -17,6 +17,8 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 - Mobile web parity pass is live for iPhone SE / iPhone / iPhone Pro / Pro Max widths: compact Claude-style phone topbar, Claude bottom-tab labels, Safari safe-area metadata, visible touch-only controls, two-row Split banner actions, smaller first-load eye, and zero-overflow checks at 375/393/430px. Android remains secondary but covered through the same responsive shell and tablet/mobile Playwright smoke.
 - Leveling canon v0 is centralized in `leveling-canon.md` and `shared/pointy-logic.js`.
 - Profile/auth refactor slices are deployed: recovery, auth core, session storage, Firebase boundary, backup, drawer blocks, reminders, tour rendering, login forms, and Character Creation renderers now live in focused `shared/profile-*.js` helpers.
+- Player native app work is committed in `mobile/` as an Expo / React Native iOS-first app. The current slice uses real Firebase Auth/Firestore for username login/signup, Recovery ID, Character Creation, Profile, Split board reads/writes, and native-owned `playerModules/{uid}` state for Debt Dragon, Treasury, and Compare.
+- Native design lesson learned: do not build/install a bland static shell and call it progress. Claude Design parity and real backend parity are both pre-build gates for every meaningful native screen.
 
 Known constraints:
 
@@ -90,6 +92,30 @@ Testing:
 
 - Targeted Playwright checks for affected flows.
 - Full `npm test` when shared shell or routing changes.
+
+## Phase 2N - Player Native App MVP
+
+Goal: build a true native player MVP that shares backend identity/data with the web app.
+
+Current slice:
+
+- `mobile/` exists as an Expo SDK 56 TypeScript app.
+- It is iOS-first and intentionally player-side only.
+- The runtime now uses real Firebase Auth/Firestore for Login, Sign Up, Recovery ID creation/regeneration, Character Creation, Home, Split, Debt Dragon, Treasury, Compare, Profile, and Character Profile.
+- Split reads real `trips/{id}` linked to the active Character ID and can create a Firestore board plus add an equal-split expense.
+- Debt Dragon, Treasury, and Compare read/write `playerModules/{uid}`. These native modules are dynamic today, while the web app's older browser localStorage stores remain separate until a planned migration.
+- It is not a WebView wrapper and does not replace the static web production app.
+- `mobile/IOS_BUILD_NOTES.md` records the repeatable iOS build/install flow and first-install lessons learned.
+
+Near-term work:
+
+- Design-first rebuild pass: compare each screen against the fresh Claude iOS/Android exports and fix the obvious fidelity gaps before the next real-device build. This includes native chrome, large-title spacing, bottom tabs/FAB, sheets, cards, typography scale, icon/art usage, and empty/loading/error states.
+- Keep every screen dynamic. If a feature cannot sync with Firebase yet, label it as unavailable; do not fill it with static Claude/sample data.
+- Add a focused solution for persistent Firebase Auth state across native app restarts. Firebase 12's RN persistence helper exists internally but is not exposed through the package export map used by TypeScript in this Expo project.
+- Decide whether and how to migrate the web Debt Dragon/Treasury/Compare localStorage stores into shared Firestore contracts, or keep `playerModules/{uid}` as a native-only bridge until the web migration is planned.
+- Expand Split beyond equal-split add flow toward the web app's payer/split-mode parity.
+- Add repeatable Simulator/screenshot verification once the local iOS simulator is healthy. Until then, use the physical iPhone only after source-level design review, `expo export`, and backend QA have already passed.
+- Keep `mobile/src/*` modular by data, game logic, UI primitives, screens, and sheets so future fixes are point edits rather than a monolithic `App.tsx` rewrite.
 
 ## Phase 3 - Real Auth And Security
 
