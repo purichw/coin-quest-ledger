@@ -597,6 +597,8 @@
     function openCompare() { activeView = 'compare'; updateView(true); }
     function money(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
     function approxEqual(a, b) { return PointyLogic.approxEqual(a, b); }
+    function fmtInput(value) { return PointyLogic.formatNumberInput(value); }
+    function numInput(value) { return PointyLogic.parseNumberInput(value); }
     function locale() { return LANG === 'th' ? 'th-TH' : 'en-US'; }
     function fmtQty(n) {
       return (Number(n) || 0).toLocaleString(locale(), { maximumFractionDigits: 4 });
@@ -732,11 +734,11 @@
     }
     function draftComplete(draft, cmp) {
       if (!draft) return false;
-      const price = parseFloat(draft.price);
-      const qty = parseFloat(draft.qty);
+      const price = numInput(draft.price);
+      const qty = numInput(draft.qty);
       if (!(price > 0) || !(qty > 0)) return false;
       if (normalizeUnit(draft.unit) === 'แพ็ค/กล่อง') {
-        const perPack = parseFloat(draft.perPack);
+        const perPack = numInput(draft.perPack);
         if (!(perPack > 0)) return false;
       }
       return normalizedOffer({ ...draft, price, qty }, cmp).valid;
@@ -773,8 +775,8 @@
             <input class="input" value="${h(slot.merchant)}" placeholder="${h(t('option_note_ph'))}" oninput="updateDraft(${q(cmp.id)},${i},'merchant',this.value)">
           </div>
           <div class="calc-row">
-            <span class="num"><span>฿</span><input value="${h(slot.price)}" type="number" inputmode="decimal" placeholder="${h(t('price'))}" oninput="updateDraft(${q(cmp.id)},${i},'price',this.value)"></span>
-            <span class="num"><input value="${h(slot.qty)}" type="number" inputmode="decimal" placeholder="${h(t('qty'))}" oninput="updateDraft(${q(cmp.id)},${i},'qty',this.value)"></span>
+            <span class="num"><span>฿</span><input value="${h(fmtInput(slot.price))}" type="text" inputmode="decimal" placeholder="${h(t('price'))}" oninput="updateDraft(${q(cmp.id)},${i},'price',PointyLogic.formatNumberInputElement(this))"></span>
+            <span class="num"><input value="${h(fmtInput(slot.qty))}" type="text" inputmode="decimal" placeholder="${h(t('qty'))}" oninput="updateDraft(${q(cmp.id)},${i},'qty',PointyLogic.formatNumberInputElement(this))"></span>
             <select class="select" onchange="updateDraft(${q(cmp.id)},${i},'unit',this.value)">${unitOptionsFor(cmp, slot.unit)}</select>
           </div>
           <div class="draft-tools">
@@ -785,7 +787,7 @@
         <div class="draft-extra ${advancedOpen ? 'show' : ''}" id="extra-${cmp.id}-${i}">
           <div class="mini-field ${packOpen ? 'show' : ''}" id="pack-${cmp.id}-${i}">
             <span class="mini-label">${t('field_per_pack')}</span>
-            <span class="num"><input value="${h(slot.perPack)}" type="number" inputmode="decimal" placeholder="${h(t('placeholder_per_pack'))}" oninput="updateDraft(${q(cmp.id)},${i},'perPack',this.value)"></span>
+            <span class="num"><input value="${h(fmtInput(slot.perPack))}" type="text" inputmode="decimal" placeholder="${h(t('placeholder_per_pack'))}" oninput="updateDraft(${q(cmp.id)},${i},'perPack',PointyLogic.formatNumberInputElement(this))"></span>
           </div>
           <div class="promo-mini ${slot.advanced ? 'show' : ''}">
             <span class="mini-label">${t('field_promo')}</span>
@@ -889,10 +891,10 @@
       const offers = complete.map(s => ({
         id: uid(),
         merchant: String(s.merchant || '').trim(),
-        price: parseFloat(s.price),
-        qty: parseFloat(s.qty),
+        price: numInput(s.price),
+        qty: numInput(s.qty),
         unit: normalizeUnit(s.unit),
-        perPack: parseFloat(s.perPack) || 0,
+        perPack: numInput(s.perPack),
         buy: Math.max(1, parseInt(s.buy, 10) || 1),
         free: Math.max(0, parseInt(s.free, 10) || 0)
       })).map(o => ({ ...o, merchant: optionLabel(o) }));

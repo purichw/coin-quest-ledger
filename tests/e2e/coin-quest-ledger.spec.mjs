@@ -194,6 +194,40 @@ test('expense splitter requires explicit hero choice and locks the confirmed cha
   await expect(page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' })).toHaveCount(0);
 });
 
+test('expense splitter pins the signed-in account hero and adds others by Character ID', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'split-account-uid',
+      username: 'split.account',
+      email: 'split.account@coinquest.local',
+      userId: '2468',
+      name: 'Split Account',
+      character: { id: '2468', name: 'Profile Hero', class: 'wizard', cls: 'wizard', gender: 'female', skin: '' }
+    }));
+  });
+
+  await page.goto(`/trip/?id=${uniqueTripId('account-hero')}&test=1`);
+  await expect(page.locator('.hero-card').first()).toContainText('Profile Hero');
+  await expect(page.locator('.hero-card').first().locator('.char-id')).toHaveText('#2468');
+
+  await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
+  await page.getByPlaceholder('ชื่อฮีโร่คนอื่น').fill('Guest Hero');
+  await page.getByPlaceholder('Character ID ของคนอื่น').fill('2468');
+  await chooseWarriorMale(page);
+  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await expect(page.locator('#toast')).toContainText('ฮีโร่ของคุณถูกเพิ่มจากโปรไฟล์แล้ว');
+
+  await page.getByPlaceholder('Character ID ของคนอื่น').fill('1357');
+  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toBeVisible();
+  await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
+  await expect(page.locator('.hero-card').nth(0)).toContainText('Profile Hero');
+  await expect(page.locator('.hero-card').nth(1)).toContainText('Guest Hero');
+  await expect(page.locator('.hero-card').nth(1).locator('.char-id')).toHaveText('#1357');
+});
+
 test('expense splitter supports admin URL setup, character IDs, admin unlock, and quick toggles', async ({ page }) => {
   const originalId = await gotoFreshTrip(page, 'admin-setup');
   const takenSlug = `party-taken-${Math.random().toString(36).slice(2, 8)}`;
@@ -496,7 +530,9 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await page.locator('.dragon-card').first().getByRole('button', { name: /จู่โจม/ }).click();
   await expect(page.locator('.dc-move')).toHaveCount(3);
   await page.locator('.dragon-card').first().locator('.dc-move', { hasText: 'สายฟ้า' }).click();
-  await page.locator('.dragon-card').first().locator('input[type="number"]').first().fill('1000');
+  const strikeAmount = page.locator('.dragon-card').first().locator('[id^="strike-amt-"]');
+  await strikeAmount.fill('1000');
+  await expect(strikeAmount).toHaveValue('1,000');
   await page.locator('.dragon-card').first().locator('input[type="date"]').fill('2026-06-14');
   await page.locator('.dragon-card').first().locator('.btn-danger').click();
   await expect(page.locator('.dragon-card').first()).toContainText('฿57,000');

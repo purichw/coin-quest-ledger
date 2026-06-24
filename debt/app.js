@@ -8,6 +8,8 @@ const CLASSES = PointyLogic.CLASSES;
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
 const DRAGON_TYPES = PointyLogic.DRAGON_TYPES;
 const DRAGON_ORDER = PointyLogic.DRAGON_TYPE_ORDER;
+const fmtInput = value => PointyLogic.formatNumberInput(value);
+const numInput = value => PointyLogic.parseNumberInput(value);
 const THEME_KEY = 'pointy_theme';
 const UI_KEY = 'coin_quest_ui_v1';
 const SKIN_DEFS = {
@@ -656,7 +658,7 @@ function renderStrikeForm(d) {
   return `<div class="dc-strike-form">
     <div class="dc-move-pick">${moves.map((m, i) => `<button type="button" class="dc-move ${m[3]} ${i === 0 ? 'on' : ''}" data-move="${m[0]}" onclick="pickMove('${id}','${m[0]}')"><span class="dc-move-ic">${m[1]}</span><span class="dc-move-nm">${h(m[2])}</span></button>`).join('')}</div>
     <div class="dc-strike-row">
-      <div class="dc-strike-amt"><span>฿</span><input id="strike-amt-${id}" type="number" inputmode="decimal" value="${amt}"></div>
+      <div class="dc-strike-amt"><span>฿</span><input id="strike-amt-${id}" type="text" inputmode="decimal" value="${h(fmtInput(amt))}" oninput="PointyLogic.formatNumberInputElement(this)"></div>
       <input id="strike-date-${id}" class="dc-strike-date" type="date" max="${todayISO()}" value="${todayISO()}">
     </div>
     <div class="dc-strike-go">
@@ -690,10 +692,10 @@ function renderDragonForm(form = {}, mode = 'add') {
     </button>`).join('')}</div>
     <input id="${prefix}-type" type="hidden" value="${h(d.type)}">
     <div class="df-grid">
-      <label class="df-field"><span>${tt('dd_balance')}</span><div class="df-num"><span>฿</span><input id="${prefix}-balance" type="number" value="${h(d.balance)}"></div></label>
-      <label class="df-field"><span>${tt('dd_original')}</span><div class="df-num"><span>฿</span><input id="${prefix}-original" type="number" value="${h(d.original)}"></div></label>
+      <label class="df-field"><span>${tt('dd_balance')}</span><div class="df-num"><span>฿</span><input id="${prefix}-balance" type="text" inputmode="decimal" value="${h(fmtInput(d.balance))}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
+      <label class="df-field"><span>${tt('dd_original')}</span><div class="df-num"><span>฿</span><input id="${prefix}-original" type="text" inputmode="decimal" value="${h(fmtInput(d.original))}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
       <label class="df-field"><span>${tt('dd_apr')}</span><div class="df-num"><input id="${prefix}-apr" type="number" value="${h(d.apr)}"><span>%</span></div></label>
-      <label class="df-field" id="${prefix}-payment-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_payment')} (${tt('dd_minpay')})</span><div class="df-num"><span>฿</span><input id="${prefix}-payment" type="number" value="${h(d.payment)}"></div></label>
+      <label class="df-field" id="${prefix}-payment-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_payment')} (${tt('dd_minpay')})</span><div class="df-num"><span>฿</span><input id="${prefix}-payment" type="text" inputmode="decimal" value="${h(fmtInput(d.payment))}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
       <label class="df-field" id="${prefix}-due-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_due_day')}</span><div class="df-num"><input id="${prefix}-dueDay" type="number" min="1" max="31" placeholder="—" value="${h(d.dueDay || '')}"><span class="suf">${tt('dd_due_suffix')}</span></div></label>
     </div>
     ${(belowInterest || originalLow) ? `<div class="df-warns">${belowInterest ? `<div class="df-warn">⚠️ ${tt('dd_warn_below')}</div>` : ''}${originalLow ? `<div class="df-warn">ℹ️ ${tt('dd_warn_orig')}</div>` : ''}</div>` : ''}
@@ -769,7 +771,7 @@ function renderLogRow(d, row) {
   }
   const date = row.ts ? dateISO(new Date(row.ts)) : todayISO();
   return `<div class="dc-log-edit">
-    <div class="dc-le-amt"><span>฿</span><input id="log-amt-${h(d.id)}-${h(row.id)}" type="number" value="${h(row.amount)}"></div>
+    <div class="dc-le-amt"><span>฿</span><input id="log-amt-${h(d.id)}-${h(row.id)}" type="text" inputmode="decimal" value="${h(fmtInput(row.amount))}" oninput="PointyLogic.formatNumberInputElement(this)"></div>
     <input id="log-date-${h(d.id)}-${h(row.id)}" class="dc-le-date" type="date" max="${todayISO()}" value="${h(date)}">
     <button class="dc-le-save" title="${h(tt('dd_save'))}" onclick="saveLogEdit('${h(d.id)}','${h(row.id)}')">✓</button>
     <button class="dc-le-del" title="${h(tt('dd_delete'))}" onclick="deleteStrikeLog('${h(d.id)}','${h(row.id)}')">🗑</button>
@@ -921,7 +923,7 @@ function pickMove(id, move) {
 function strikeDragon(id) {
   const d = S.dragons.find(item => item.id === id);
   if (!d) return;
-  const amount = Math.max(0, Number(document.getElementById(`strike-amt-${id}`)?.value) || 0);
+  const amount = Math.max(0, numInput(document.getElementById(`strike-amt-${id}`)?.value));
   if (amount <= 0) return;
   const date = document.getElementById(`strike-date-${id}`)?.value || todayISO();
   const move = document.querySelector(`[data-dragon-id="${CSS.escape(id)}"] .dc-move.on`)?.dataset.move || 'projectile';
@@ -958,8 +960,8 @@ function openAddDragon() { ADD_OPEN = true; renderAll(false); }
 function closeAddDragon() { ADD_OPEN = false; renderAll(false); }
 function formPayload(prefix) {
   const type = document.getElementById(`${prefix}-type`)?.value || 'card';
-  const balance = Math.max(0, Number(document.getElementById(`${prefix}-balance`)?.value) || 0);
-  const original = Math.max(balance, Number(document.getElementById(`${prefix}-original`)?.value) || balance);
+  const balance = Math.max(0, numInput(document.getElementById(`${prefix}-balance`)?.value));
+  const original = Math.max(balance, numInput(document.getElementById(`${prefix}-original`)?.value) || balance);
   const payMode = document.getElementById(`${prefix}-payMode`)?.value === 'adhoc' ? 'adhoc' : 'monthly';
   return {
     name: (document.getElementById(`${prefix}-name`)?.value || '').trim(),
@@ -967,7 +969,7 @@ function formPayload(prefix) {
     balance,
     original,
     apr: Math.max(0, Number(document.getElementById(`${prefix}-apr`)?.value) || 0),
-    payment: payMode === 'adhoc' ? 0 : Math.max(0, Number(document.getElementById(`${prefix}-payment`)?.value) || 0),
+    payment: payMode === 'adhoc' ? 0 : Math.max(0, numInput(document.getElementById(`${prefix}-payment`)?.value)),
     payMode,
     interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound',
     dueDay: payMode === 'adhoc' ? 0 : Math.max(0, Math.min(31, parseInt(document.getElementById(`${prefix}-dueDay`)?.value, 10) || 0))
@@ -1023,7 +1025,7 @@ function setDragonFormType(prefix, type) {
   const payMode = document.getElementById(`${prefix}-payMode`);
   const payment = document.getElementById(`${prefix}-payment`);
   if (payMode && prefix === 'new') payMode.value = min > 0 ? 'monthly' : 'adhoc';
-  if (payment && prefix === 'new') payment.value = min;
+  if (payment && prefix === 'new') payment.value = fmtInput(min);
   const form = hidden.closest('.dragon-form') || document;
   form.querySelectorAll('.df-type').forEach(btn => {
     const on = btn.dataset.dragonType === type;
@@ -1071,7 +1073,7 @@ function requestStrike(id, amount) {
     }
     if (amount != null) {
       const input = document.getElementById(`strike-amt-${id}`);
-      if (input) input.value = Math.round(Number(amount) || 0);
+      if (input) input.value = fmtInput(Math.round(Number(amount) || 0));
     }
   }, 0);
 }
@@ -1088,7 +1090,7 @@ function closeLogEdit(id) {
   renderAll(false);
 }
 function saveLogEdit(id, logId) {
-  const amount = Math.max(0, Number(document.getElementById(`log-amt-${id}-${logId}`)?.value) || 0);
+  const amount = Math.max(0, numInput(document.getElementById(`log-amt-${id}-${logId}`)?.value));
   const date = document.getElementById(`log-date-${id}-${logId}`)?.value || todayISO();
   S.dragons = S.dragons.map(d => {
     if (d.id !== id) return d;

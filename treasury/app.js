@@ -212,6 +212,8 @@ function lang() { return window.LANG === 'en' ? 'en' : 'th'; }
 function st() { return TR_STR[lang()] || TR_STR.th; }
 function h(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(lang() === 'th' ? 'th-TH' : 'en-US'); }
+const fmtInput = value => PointyLogic.formatNumberInput(value);
+const numInput = value => PointyLogic.parseNumberInput(value);
 function monthKey(d) { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); }
 function daysInMonth(d) { const x = new Date(d); return new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate(); }
 function isoDay(mk, day) { const [y, m] = mk.split('-').map(Number); const dim = new Date(y, m, 0).getDate(); return `${mk}-${String(Math.min(day, dim)).padStart(2, '0')}`; }
@@ -250,6 +252,7 @@ function normalizeTreasury(data) {
   next.history = Array.isArray(next.history) ? next.history : [];
   next.stats = { ...fresh.stats, ...(next.stats || {}) };
   next.month = next.month || monthKey(new Date());
+  next.stats.monthsWon = Math.max(Number(next.stats.monthsWon) || 0, wonMonthCount(next));
   return next;
 }
 function loadTreasury() {
@@ -274,6 +277,14 @@ function save() {
 function catSpent(tr, catId) { return (tr.expenses || []).filter(e => e.catId === catId).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
 function totalSpent(tr) { return (tr.expenses || []).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
 function totalBudget(tr) { return (tr.categories || []).reduce((a, c) => a + (Number(c.budget) || 0), 0); }
+function wonMonthCount(tr = S) {
+  return new Set((tr.history || []).filter(row => row.won && row.month).map(row => row.month)).size;
+}
+function recordMonthClose(won, spent) {
+  const row = { month: S.month, income: S.income, spent, surplus: S.income - spent, won };
+  S.history = [row, ...(S.history || []).filter(item => item.month !== S.month)].slice(0, 12);
+  S.stats = { ...(S.stats || {}), monthsWon: wonMonthCount(S) };
+}
 function billPaidThisMonth(tr, billId, mk = tr.month) { return (tr.expenses || []).some(e => e.billId === billId && monthKey(e.date) === mk); }
 function billDueStatus(bill, tr = S, today = new Date()) {
   const mk = tr.month || monthKey(today);
@@ -333,8 +344,7 @@ function rolloverIfNeeded() {
   if (S.month === cur) return;
   const spent = totalSpent(S);
   const won = spent <= Number(S.income || 0);
-  S.history = [{ month: S.month, income: S.income, spent, surplus: S.income - spent, won }, ...(S.history || [])].slice(0, 12);
-  S.stats = { ...(S.stats || {}), monthsWon: (S.stats?.monthsWon || 0) + (won ? 1 : 0) };
+  recordMonthClose(won, spent);
   S.month = cur;
   S.expenses = [];
   save();
@@ -435,10 +445,10 @@ function renderBill(bill) {
 }
 function editIncome() {
   const L = st();
-  mountModal(L.trSetIncome, `<div class="form-grid"><label class="field">${h(L.trIncome)}<input id="income-input" type="number" value="${h(S.income)}"></label><button class="btn-primary" onclick="saveIncome()">${h(L.trSave)}</button></div>`);
+  mountModal(L.trSetIncome, `<div class="form-grid"><label class="field">${h(L.trIncome)}<input id="income-input" type="text" inputmode="decimal" value="${h(fmtInput(S.income))}" oninput="PointyLogic.formatNumberInputElement(this)"></label><button class="btn-primary" onclick="saveIncome()">${h(L.trSave)}</button></div>`);
 }
 function saveIncome() {
-  S.income = Math.max(0, Number(document.getElementById('income-input').value) || 0);
+  S.income = Math.max(0, numInput(document.getElementById('income-input').value));
   save(); closeModal(); render();
 }
 function openExpenseForm(catId = '') {
@@ -446,7 +456,7 @@ function openExpenseForm(catId = '') {
   const today = new Date().toISOString().slice(0, 10);
   mountModal(L.trAddExpense, `<div class="form-grid">
     <label class="field">${h(L.trCategory)}<select id="expense-cat">${S.categories.map(c => `<option value="${h(c.id)}" ${catId === c.id ? 'selected' : ''}>${h(c.glyph)} ${h(c.name?.[lang()] || c.name?.en || c.name)}</option>`).join('')}</select></label>
-    <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="expense-amount" type="number" inputmode="decimal" placeholder="0"></label><label class="field">Date<input id="expense-date" type="date" value="${today}"></label></div>
+    <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="expense-amount" type="text" inputmode="decimal" placeholder="0" oninput="PointyLogic.formatNumberInputElement(this)"></label><label class="field">Date<input id="expense-date" type="date" value="${today}"></label></div>
     <label class="field">${h(L.trNote)}<input id="expense-note" placeholder="${h(L.trNotePh)}"></label>
     <button class="btn-primary" onclick="saveExpense()">${h(L.trLogExpense)}</button>
   </div>`);
@@ -454,7 +464,7 @@ function openExpenseForm(catId = '') {
 function saveExpense(extra = {}) {
   const L = st();
   const catId = document.getElementById('expense-cat')?.value || S.categories[0]?.id;
-  const amount = Math.max(0, Number(document.getElementById('expense-amount')?.value) || 0);
+  const amount = Math.max(0, numInput(document.getElementById('expense-amount')?.value));
   if (!amount) return;
   S.expenses.push({ id: truid(), catId, amount, note: document.getElementById('expense-note')?.value.trim() || L.trAddExpense, date: document.getElementById('expense-date')?.value || new Date().toISOString().slice(0, 10), ...extra });
   S.stats = { ...(S.stats || {}), logged: (S.stats?.logged || 0) + 1, onTime: (S.stats?.onTime || 0) + (extra.onTime ? 1 : 0) };
@@ -468,14 +478,14 @@ function openCategoryForm(id = '') {
     <label class="field">Icon<select id="cat-glyph">${glyphs.map(g => `<option value="${h(g)}" ${cat?.glyph === g ? 'selected' : ''}>${h(g)}</option>`).join('')}</select></label>
     <label class="field">${h(L.trCatName)}<input id="cat-name" value="${h(cat?.name?.[lang()] || cat?.name?.en || '')}"></label>
     <label class="field">${h(L.trMonster)}<input id="cat-monster" value="${h(cat?.monster?.[lang()] || cat?.monster?.en || '')}"></label>
-    <label class="field">${h(L.trBudget)}<input id="cat-budget" type="number" value="${h(cat?.budget || 3000)}"></label>
+    <label class="field">${h(L.trBudget)}<input id="cat-budget" type="text" inputmode="decimal" value="${h(fmtInput(cat?.budget || 3000))}" oninput="PointyLogic.formatNumberInputElement(this)"></label>
     <div class="ward-actions">${cat ? `<button class="btn-danger" onclick="deleteCategory('${h(cat.id)}')">${h(L.trDelete)}</button>` : ''}<button class="btn-primary" onclick="saveCategory('${h(cat?.id || '')}')">${h(L.trSave)}</button></div>
   </div>`);
 }
 function saveCategory(id = '') {
   const name = document.getElementById('cat-name').value.trim();
   if (!name) return;
-  const data = { name: { th: name, en: name }, glyph: document.getElementById('cat-glyph').value, monster: { th: document.getElementById('cat-monster').value.trim() || name, en: document.getElementById('cat-monster').value.trim() || name }, budget: Math.max(0, Number(document.getElementById('cat-budget').value) || 0) };
+  const data = { name: { th: name, en: name }, glyph: document.getElementById('cat-glyph').value, monster: { th: document.getElementById('cat-monster').value.trim() || name, en: document.getElementById('cat-monster').value.trim() || name }, budget: Math.max(0, numInput(document.getElementById('cat-budget').value)) };
   if (id) S.categories = S.categories.map(c => c.id === id ? { ...c, ...data } : c);
   else S.categories.push({ id: truid(), ...data });
   save(); closeModal(); render();
@@ -495,7 +505,7 @@ function openBillForm(id = '') {
   mountModal(bill ? L.trBills : L.trAddBill, `<div class="form-grid">
     <label class="field">Icon<select id="bill-glyph">${glyphs.map(g => `<option value="${h(g)}" ${bill?.glyph === g ? 'selected' : ''}>${h(g)}</option>`).join('')}</select></label>
     <label class="field">${h(L.trBillName)}<input id="bill-name" value="${h(bill?.name?.[lang()] || bill?.name?.en || '')}"></label>
-    <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="bill-amount" type="number" value="${h(bill?.amount || 0)}"></label><label class="field">${h(L.trDueDay)}<input id="bill-due" type="number" min="1" max="31" value="${h(bill?.dueDay || 1)}"></label></div>
+    <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="bill-amount" type="text" inputmode="decimal" value="${h(fmtInput(bill?.amount || 0))}" oninput="PointyLogic.formatNumberInputElement(this)"></label><label class="field">${h(L.trDueDay)}<input id="bill-due" type="number" min="1" max="31" value="${h(bill?.dueDay || 1)}"></label></div>
     <label class="field">${h(L.trCategory)}<select id="bill-cat">${S.categories.map(c => `<option value="${h(c.id)}" ${bill?.catId === c.id ? 'selected' : ''}>${h(c.glyph)} ${h(c.name?.[lang()] || c.name?.en || c.name)}</option>`).join('')}</select></label>
     <div class="ward-actions">${bill ? `<button class="btn-danger" onclick="deleteBill('${h(bill.id)}')">${h(L.trDelete)}</button>` : ''}<button class="btn-primary" onclick="saveBill('${h(bill?.id || '')}')">${h(L.trSave)}</button></div>
   </div>`);
@@ -503,7 +513,7 @@ function openBillForm(id = '') {
 function saveBill(id = '') {
   const name = document.getElementById('bill-name').value.trim();
   if (!name) return;
-  const data = { name: { th: name, en: name }, amount: Math.max(0, Number(document.getElementById('bill-amount').value) || 0), dueDay: Math.max(1, Math.min(31, Number(document.getElementById('bill-due').value) || 1)), catId: document.getElementById('bill-cat').value, glyph: document.getElementById('bill-glyph').value };
+  const data = { name: { th: name, en: name }, amount: Math.max(0, numInput(document.getElementById('bill-amount').value)), dueDay: Math.max(1, Math.min(31, Number(document.getElementById('bill-due').value) || 1)), catId: document.getElementById('bill-cat').value, glyph: document.getElementById('bill-glyph').value };
   if (id) S.bills = S.bills.map(b => b.id === id ? { ...b, ...data } : b);
   else S.bills.push({ id: truid(), ...data });
   save(); closeModal(); render();
@@ -524,8 +534,7 @@ function closeMonth() {
   if (!confirm(st().trCloseConfirm)) return;
   const spent = totalSpent(S);
   const won = spent <= Number(S.income || 0);
-  S.history = [{ month: S.month, income: S.income, spent, surplus: S.income - spent, won }, ...(S.history || [])].slice(0, 12);
-  S.stats = { ...(S.stats || {}), monthsWon: (S.stats?.monthsWon || 0) + (won ? 1 : 0) };
+  recordMonthClose(won, spent);
   S.month = monthKey(new Date());
   S.expenses = [];
   save(); toast(won ? st().trWon : st().trLost); render();

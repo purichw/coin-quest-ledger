@@ -41,7 +41,7 @@
   PointyLogic.RENOWN_LEVEL_STEP = 1200; // Deprecated compatibility alias; use Reputation naming in UI/docs.
   PointyLogic.LEVEL_STEP = PointyLogic.CHARACTER_LEVEL_STEP;
   PointyLogic.CHARACTER_LEVEL_THRESHOLDS = [0, 300, 800, 1500, 2500, 4000, 6000, 8500, 12000, 16000];
-  PointyLogic.REPUTATION_LEVEL_THRESHOLDS = [0, 1000, 2500, 5000, 9000, 15000, 23000, 34000, 48000, 65000];
+  PointyLogic.REPUTATION_LEVEL_THRESHOLDS = [0, 900, 2200, 4200, 7500, 12000, 18000, 26000, 37000, 50000];
   PointyLogic.RENOWN_LEVEL_THRESHOLDS = PointyLogic.REPUTATION_LEVEL_THRESHOLDS;
   PointyLogic.CHARACTER_LEVEL_TAIL_STEP = 5000;
   PointyLogic.REPUTATION_LEVEL_TAIL_STEP = 20000;
@@ -89,6 +89,26 @@
     if (a === b) return true;
     const mag = Math.max(Math.abs(a), Math.abs(b));
     return mag > 0 && Math.abs(a - b) / mag < 1e-9;
+  }
+
+  function parseNumberInput(value) {
+    return Number(String(value ?? '').replace(/,/g, '')) || 0;
+  }
+
+  function formatNumberInput(value) {
+    const raw = String(value ?? '').replace(/[^\d.]/g, '');
+    if (!raw) return '';
+    const dot = raw.indexOf('.');
+    const intRaw = dot >= 0 ? raw.slice(0, dot) : raw;
+    const decRaw = dot >= 0 ? raw.slice(dot + 1).replace(/\./g, '') : '';
+    const intPart = (intRaw.replace(/^0+(?=\d)/, '') || '0').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return dot >= 0 ? `${intPart}.${decRaw}` : intPart;
+  }
+
+  function formatNumberInputElement(input) {
+    if (!input) return '';
+    input.value = formatNumberInput(input.value);
+    return input.value;
   }
 
   function normalizeUnit(unit, unitAlias = PointyLogic.UNIT_ALIAS) {
@@ -682,6 +702,9 @@
   Object.assign(PointyLogic, {
     hashOf,
     approxEqual,
+    parseNumberInput,
+    formatNumberInput,
+    formatNumberInputElement,
     normalizeUnit,
     groupOf,
     groupForCmp,

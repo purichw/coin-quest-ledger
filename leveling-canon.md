@@ -1,6 +1,6 @@
 # Leveling Canon
 
-Last updated: 2026-06-22
+Last updated: 2026-06-25
 
 Status: v1 current implementation canon. Profile Renown has been reframed as Profile Reputation: a positive-only, credit-bureau-inspired trust signal. Scores can be earned but are not deducted.
 
@@ -55,15 +55,15 @@ Current total Reputation thresholds:
 | Level | Total Reputation Required |
 | ---: | ---: |
 | 1 | 0 |
-| 2 | 1,000 |
-| 3 | 2,500 |
-| 4 | 5,000 |
-| 5 | 9,000 |
-| 6 | 15,000 |
-| 7 | 23,000 |
-| 8 | 34,000 |
-| 9 | 48,000 |
-| 10 | 65,000 |
+| 2 | 900 |
+| 3 | 2,200 |
+| 4 | 4,200 |
+| 5 | 7,500 |
+| 6 | 12,000 |
+| 7 | 18,000 |
+| 8 | 26,000 |
+| 9 | 37,000 |
+| 10 | 50,000 |
 
 After level 10, the current fallback adds 20,000 Reputation per level.
 
@@ -78,6 +78,8 @@ Current values:
 | Log expense day | 10 |
 | Pay a bill on time | 80 |
 | Close an under-budget month | 500 |
+
+Budget-month achievements count unique won months from Treasury history, so repeatedly closing the same month does not farm Trophy Hall unlocks.
 
 ## Activity Rewards
 

@@ -129,7 +129,7 @@ let S = {
   admin: { passwordHash: '', ownerHash: '', createdAt: null, urlLocked: false },
   settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
 };
-let _saveTimer, _toastTimer, _iconOpen = false, _iconDropUp = false, _iconPickerMax = 430, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
+let _saveTimer, _toastTimer, _iconOpen = false, _iconDropUp = false, _iconPickerMax = 430, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCharacterId = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
 let _resetEntryDraft = false;
 let _settledTx = [];
 let _celebrateName = null;
@@ -181,6 +181,8 @@ function questIconLabel(value) {
 }
 function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
 function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
+const fmtInput = value => PointyLogic.formatNumberInput(value);
+const numInput = value => PointyLogic.parseNumberInput(value);
 function ppTLV(tag, value) { const v = String(value); return tag + String(v.length).padStart(2, "0") + v; }
 function ppCRC16(data) {
   let crc = 0xFFFF;
@@ -344,8 +346,105 @@ function ensureCharacterId(name) {
   if (!S.characterIds[name]) S.characterIds[name] = generateCharacterId();
   return S.characterIds[name];
 }
+function readAccount() {
+  try {
+    const account = JSON.parse(localStorage.getItem('pointy_auth_v1') || 'null');
+    return account && !account.signedOut ? account : null;
+  } catch (_) {
+    return null;
+  }
+}
+function accountHero() {
+  const account = readAccount();
+  const c = account?.character;
+  if (!account || !c) return null;
+  const id = String(c.id || account.userId || '').replace(/\D/g, '').slice(0, 4);
+  if (!id) return null;
+  const cls = normalizeClass(c.class || c.cls || 'warrior');
+  return {
+    id,
+    name: String(c.name || account.name || account.username || 'Hero').trim() || 'Hero',
+    cls,
+    gender: c.gender === 'female' ? 'female' : 'male',
+    skin: c.skin || ''
+  };
+}
+function renameParticipantReferences(from, to) {
+  if (!from || !to || from === to) return;
+  S.participants = S.participants.map(name => name === from ? to : name);
+  S.expenses = S.expenses.map(expense => {
+    const payers = expense.payers ? Object.fromEntries(Object.entries(expense.payers).map(([name, amount]) => [name === from ? to : name, amount])) : undefined;
+    const weights = expense.split?.weights ? Object.fromEntries(Object.entries(expense.split.weights).map(([name, weight]) => [name === from ? to : name, weight])) : undefined;
+    const items = expense.split?.items ? expense.split.items.map(item => ({
+      ...item,
+      claimedBy: (item.claimedBy || []).map(name => name === from ? to : name)
+    })) : undefined;
+    return {
+      ...expense,
+      paidBy: expense.paidBy === from ? to : expense.paidBy,
+      payers,
+      sharedBy: (expense.sharedBy || []).map(name => name === from ? to : name),
+      split: expense.split ? { ...expense.split, weights, items } : undefined
+    };
+  });
+  ['budgets', 'heroClasses', 'heroGenders', 'heroSkins', 'characterIds', 'promptpay', 'settleXp'].forEach(key => {
+    if (!S[key] || !Object.prototype.hasOwnProperty.call(S[key], from)) return;
+    S[key][to] = S[key][from];
+    delete S[key][from];
+  });
+  if (S.admin?.adminName === from) S.admin.adminName = to;
+}
+function ensureAccountHero() {
+  const hero = accountHero();
+  if (!hero) return false;
+  let changed = false;
+  S.participants ||= [];
+  S.characterIds ||= {};
+  S.heroClasses ||= {};
+  S.heroGenders ||= {};
+  S.heroSkins ||= {};
+  S.budgets ||= {};
+  const byId = Object.keys(S.characterIds).find(name => String(S.characterIds[name]) === hero.id);
+  const existing = byId || (S.participants.includes(hero.name) ? hero.name : '');
+  if (existing && existing !== hero.name) {
+    renameParticipantReferences(existing, hero.name);
+    changed = true;
+  }
+  if (S.participants[0] !== hero.name) changed = true;
+  S.participants = S.participants.filter(name => name !== hero.name);
+  S.participants.unshift(hero.name);
+  if (S.characterIds[hero.name] !== hero.id) changed = true;
+  S.characterIds[hero.name] = hero.id;
+  if (S.heroClasses[hero.name] !== hero.cls) changed = true;
+  S.heroClasses[hero.name] = hero.cls;
+  if (S.heroGenders[hero.name] !== hero.gender) changed = true;
+  S.heroGenders[hero.name] = hero.gender;
+  if (hero.skin) S.heroSkins[hero.name] = hero.skin;
+  else if (S.heroSkins[hero.name]) { delete S.heroSkins[hero.name]; changed = true; }
+  if (!S.budgets[hero.name]) {
+    S.budgets[hero.name] = 3000;
+    changed = true;
+  }
+  if (S.admin?.adminName === hero.name && S.admin.characterId !== hero.id) {
+    S.admin.characterId = hero.id;
+    changed = true;
+  }
+  persistCharacterRecord({
+    id: hero.id,
+    name: hero.name,
+    class: hero.cls,
+    gender: hero.gender,
+    skin: hero.skin,
+    trips: { ...(_characterRegistry[hero.id]?.trips || {}) },
+    xp: Number(_characterRegistry[hero.id]?.xp) || 0,
+    ownerUid: readAccount()?.uid || '',
+    updatedAt: Date.now()
+  });
+  return changed;
+}
 function ensureAllCharacterIds() {
   let changed = false;
+  if (ensureAccountHero()) changed = true;
   S.participants.forEach(name => {
     if (!S.characterIds?.[name]) {
       ensureCharacterId(name);
@@ -537,7 +636,7 @@ function freshTripState(admin = {}) {
 }
 function resetTripRuntime() {
   _iconOpen = false; _iconDropUp = false; _iconPickerMax = 430;
-  _addHeroOpen = false; _addHeroClass = null; _addHeroGender = null; _addHeroName = ''; _addHeroCustom = null;
+  _addHeroOpen = false; _addHeroClass = null; _addHeroGender = null; _addHeroName = ''; _addHeroCharacterId = ''; _addHeroCustom = null;
   _heroPickerOpen = false; _heroConfirmOpen = false; _pickerGender = 'all'; _skinOpen = '';
   _resetEntryDraft = true; _settledTx = []; _celebrateName = null; _prevLevels = {};
   _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {};
@@ -706,7 +805,8 @@ async function load() {
     } else {
       await loadCharacterRegistry();
       ensureCampaignState();
-      _overlay = 'onboarding';
+      migrated = ensureAllCharacterIds();
+      _overlay = S.participants.length ? null : 'onboarding';
     }
     applySettings();
     setSaveStatus('saved', t('status_saved'));
@@ -775,11 +875,13 @@ async function confirmNewTrip() {
   history.replaceState(null, '', next.pathname + next.search);
   resetTripRuntime();
   ensureCampaignState();
+  ensureAllCharacterIds();
+  syncActiveCampaign();
   applySettings();
   await TripStore.write(S);
   _ownedBoardsFor = '';
   setSaveStatus('saved', t('status_saved'));
-  _overlay = 'onboarding';
+  _overlay = S.participants.length ? null : 'onboarding';
   renderAll(false);
   toast(t('new_trip_created', { id: tripId }));
 }
@@ -868,9 +970,16 @@ function addParticipant() {
   const el = document.getElementById('new-hero-name');
   const name = (el?.value || _addHeroName).trim();
   if (!name || !_addHeroClass || !_addHeroGender) return;
+  const account = accountHero();
+  const characterId = String(_addHeroCharacterId || document.getElementById('new-hero-id')?.value || '').replace(/\D/g, '').slice(0, 4);
+  if (account) {
+    if (!/^\d{4}$/.test(characterId)) { toast(t('err_character_id_required')); return; }
+    if (characterId === account.id) { toast(t('err_account_hero_duplicate')); return; }
+    if (Object.values(S.characterIds || {}).map(String).includes(characterId)) { toast(t('err_character_id_duplicate')); return; }
+  }
   if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
   S.participants.push(name);
-  S.characterIds[name] = generateCharacterId();
+  S.characterIds[name] = characterId || generateCharacterId();
   S.heroClasses[name] = _addHeroClass;
   S.heroGenders[name] = _addHeroGender;
   resetHeroSkin(name);
@@ -881,6 +990,7 @@ function addParticipant() {
   _addHeroOpen = false;
   _heroConfirmOpen = false;
   _addHeroName = '';
+  _addHeroCharacterId = '';
   _addHeroClass = null;
   _addHeroGender = null;
   _addHeroCustom = null;
@@ -888,6 +998,11 @@ function addParticipant() {
   saveNow(); renderAll();
 }
 function removeParticipant(name) {
+  const account = accountHero();
+  if (account && String(S.characterIds?.[name] || '') === account.id) {
+    toast(t('err_remove_account_hero'));
+    return;
+  }
   const removedCharacterId = S.characterIds?.[name] || '';
   const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name) || Number(e.payers?.[name]) > 0);
   if (used && !confirm(t('confirm_remove_hero'))) return;
@@ -913,13 +1028,14 @@ function removeParticipant(name) {
 }
 function saveBudget(name) {
   const el = document.getElementById('budget-' + hashOf(name));
-  const n = parseFloat(el.value);
+  const n = numInput(el.value);
   if (n > 0) { S.budgets[name] = n; save(); renderAll(); }
 }
 function pickClass(cls) { _addHeroClass = normalizeClass(cls); renderParty(); }
 function pickGender(gender) { _addHeroGender = gender === 'female' ? 'female' : 'male'; renderParty(); }
 function openAddHero() {
   _addHeroName = '';
+  _addHeroCharacterId = '';
   _addHeroClass = null;
   _addHeroGender = null;
   _addHeroCustom = null;
@@ -933,6 +1049,7 @@ function openHeroPicker() { _heroPickerOpen = true; renderParty(); }
 function closeHeroPicker() { _heroPickerOpen = false; renderParty(); }
 function cancelAddHero() {
   _addHeroName = '';
+  _addHeroCharacterId = '';
   _addHeroClass = null;
   _addHeroGender = null;
   _addHeroCustom = null;
@@ -944,7 +1061,14 @@ function cancelAddHero() {
 function requestHeroConfirmation() {
   const el = document.getElementById('new-hero-name');
   _addHeroName = (el?.value || _addHeroName).trim();
+  _addHeroCharacterId = String(document.getElementById('new-hero-id')?.value || _addHeroCharacterId || '').replace(/\D/g, '').slice(0, 4);
   if (!_addHeroName || !_addHeroClass || !_addHeroGender) return;
+  const account = accountHero();
+  if (account) {
+    if (!/^\d{4}$/.test(_addHeroCharacterId)) { toast(t('err_character_id_required')); return; }
+    if (_addHeroCharacterId === account.id) { toast(t('err_account_hero_duplicate')); return; }
+    if (Object.values(S.characterIds || {}).map(String).includes(_addHeroCharacterId)) { toast(t('err_character_id_duplicate')); return; }
+  }
   if (S.participants.includes(_addHeroName)) { toast(t('err_duplicate', { name: _addHeroName })); return; }
   _heroConfirmOpen = true;
   renderParty();
@@ -1015,7 +1139,7 @@ function heroConfirmationModal() {
         </div>
         <div>
           <div class="confirm-name">${h(_addHeroName)}</div>
-          <div class="confirm-class">${cls.glyph} ${h(cls[LANG] || cls.th)} · ${_addHeroGender === 'female' ? '♀' : '♂'} ${t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male')}</div>
+          <div class="confirm-class">${cls.glyph} ${h(cls[LANG] || cls.th)} · ${_addHeroGender === 'female' ? '♀' : '♂'} ${t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male')}${_addHeroCharacterId ? ` · #${h(_addHeroCharacterId)}` : ''}</div>
         </div>
       </div>
       <div class="confirm-warning">⚠️ ${t('confirm_hero_warning')}</div>
@@ -1046,6 +1170,8 @@ function skinPickerHtml(hero) {
 }
 
 function renderParty() {
+  const account = accountHero();
+  const needsGuestId = !!account;
   const party = computeParty();
   document.getElementById('party-count').textContent = S.participants.length;
   const grid = document.getElementById('party-grid');
@@ -1095,8 +1221,11 @@ function renderParty() {
       </div>
     </div>`;
   }).join('');
+  const addReadyExpr = `this.formReady=!!(_addHeroName.trim() && _addHeroClass && _addHeroGender${needsGuestId ? " && /^\\d{4}$/.test(_addHeroCharacterId)" : ''});document.getElementById('confirm-hero-btn').disabled=!this.formReady`;
   const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
-    <input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;document.getElementById('confirm-hero-btn').disabled=!(this.value.trim() && _addHeroClass && _addHeroGender)" onkeydown="if(event.key==='Enter' && this.value.trim() && _addHeroClass && _addHeroGender)requestHeroConfirmation()">
+    <input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(needsGuestId ? t('guest_hero_name') : t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
+    ${needsGuestId ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value.replace(/\\D/g,'').slice(0,4);this.value=_addHeroCharacterId;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
+    <div class="lock-note">${t('guest_character_id_note')}</div>` : ''}
     <div class="hero-builder">
       ${(() => {
         if (!_addHeroClass || !_addHeroGender) {
@@ -1132,7 +1261,7 @@ function renderParty() {
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button type="button" class="btn-ghost" onclick="cancelAddHero()">✕</button>
-      <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${_addHeroName.trim() && _addHeroClass && _addHeroGender ? '' : 'disabled'}>${t('confirm_hero')}</button>
+      <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${_addHeroName.trim() && _addHeroClass && _addHeroGender && (!needsGuestId || /^\d{4}$/.test(_addHeroCharacterId)) ? '' : 'disabled'}>${t('confirm_hero')}</button>
     </div>
   </div>` : `<button class="add-hero" onclick="openAddHero()"><span style="font-size:28px;line-height:1">＋</span><span>${t('add_hero')}</span></button>`;
   grid.innerHTML = cards + add + heroPickerModal() + heroConfirmationModal();
@@ -1140,7 +1269,7 @@ function renderParty() {
 function editBudget(name) {
   const id = 'budget-' + hashOf(name);
   const btn = event.currentTarget;
-  btn.outerHTML = `<input class="budget-edit" id="${id}" type="number" value="${Number(S.budgets[name]) || 3000}" onblur="saveBudget(${q(name)})" onkeydown="if(event.key==='Enter')saveBudget(${q(name)})">`;
+  btn.outerHTML = `<input class="budget-edit" id="${id}" type="text" inputmode="decimal" value="${h(fmtInput(Number(S.budgets[name]) || 3000))}" oninput="PointyLogic.formatNumberInputElement(this)" onblur="saveBudget(${q(name)})" onkeydown="if(event.key==='Enter')saveBudget(${q(name)})">`;
   setTimeout(() => document.getElementById(id)?.focus(), 0);
 }
 
@@ -1160,7 +1289,7 @@ function setSplitMode(mode) {
 function setPayerMode(mode) {
   captureEntryDraft();
   _payerMode = mode === 'multi' ? 'multi' : 'one';
-  if (_payerMode === 'multi' && !Object.values(_payerAmounts).some(v => Number(v) > 0)) {
+  if (_payerMode === 'multi' && !Object.values(_payerAmounts).some(v => numInput(v) > 0)) {
     const payer = document.getElementById('exp-payer')?.value || S.participants[0];
     const amount = document.getElementById('exp-amount')?.value || '';
     if (payer) _payerAmounts[payer] = amount;
@@ -1248,7 +1377,7 @@ function captureLootItems() {
 }
 function lootTotal() {
   captureLootItems();
-  return _lootItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  return _lootItems.reduce((sum, item) => sum + numInput(item.amount), 0);
 }
 function addLootItem() {
   captureLootItems();
@@ -1272,7 +1401,7 @@ function toggleLootClaim(id, name) {
 function updateLootTotal() {
   const total = lootTotal();
   const amount = document.getElementById('exp-amount');
-  if (amount && _splitMode === 'items') amount.value = total ? String(total) : '';
+  if (amount && _splitMode === 'items') amount.value = total ? fmtInput(total) : '';
   const label = document.getElementById('loot-total-label');
   if (label) label.textContent = `${t('loot_total')}: ${money2(total)}`;
   updateSplitInfo();
@@ -1283,7 +1412,7 @@ function renderLootItems() {
     <div class="loot-head"><div><div class="loot-title">🎒 ${t('loot_distribution')}</div><div class="settings-sub">${t('loot_unclaimed')}</div></div><div class="loot-total" id="loot-total-label">${t('loot_total')}: ${money2(lootTotal())}</div></div>
     ${_lootItems.map(item => `<div class="loot-row" data-id="${h(item.id)}">
       <input class="field-input loot-name" value="${h(item.name)}" placeholder="${h(t('loot_item_ph'))}">
-      <div class="gold-in"><span>฿</span><input class="field-input loot-amount" type="number" inputmode="decimal" value="${h(item.amount)}" placeholder="0"></div>
+      <div class="gold-in"><span>฿</span><input class="field-input loot-amount" type="text" inputmode="decimal" value="${h(fmtInput(item.amount))}" placeholder="0"></div>
       <button type="button" class="loot-del" data-entry-action="remove-loot" data-id="${h(item.id)}">×</button>
       <div class="loot-claim-label">${t('loot_claimed_by')}</div>
       <div class="loot-claim">${S.participants.map(name => heroChip(name, (item.claimedBy || []).includes(name), false, `toggleLootClaim('${item.id}',${q(name)})`)).join('')}</div>
@@ -1304,18 +1433,18 @@ function selectAllShares() {
 }
 function updateSplitInfo() {
   const n = sharedBy().length;
-  const amt = parseFloat(document.getElementById('exp-amount')?.value) || 0;
+  const amt = numInput(document.getElementById('exp-amount')?.value);
   const info = document.getElementById('split-info');
   if (info) info.textContent = _splitMode === 'items'
     ? `${t('loot_total')}: ${money2(lootTotal())}`
     : (n ? `${n} ${LANG === 'en' ? 'heroes' : 'คน'}${amt > 0 ? ' · ' + money2(amt / n) + ' ' + t('each') : ''}` : '—');
   const weights = {};
-  document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = Number(el.value) || 0; _splitWeights[el.dataset.name] = el.value; });
-  const itemSplit = _splitMode === 'items' ? { mode: 'items', items: _lootItems.map(item => ({ name: item.name, amount: Number(item.amount) || 0, claimedBy: item.claimedBy || [] })) } : null;
+  document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = numInput(el.value); _splitWeights[el.dataset.name] = el.value; });
+  const itemSplit = _splitMode === 'items' ? { mode: 'items', items: _lootItems.map(item => ({ name: item.name, amount: numInput(item.amount), claimedBy: item.claimedBy || [] })) } : null;
   const shares = splitShares({ amount: amt, sharedBy: sharedBy(), split: _splitMode === 'equal' ? undefined : (itemSplit || { mode: _splitMode, weights }) }, S.participants);
   document.querySelectorAll('.wr-share').forEach(el => { el.textContent = money2(shares[el.dataset.name] || 0); });
   let paid = 0;
-  document.querySelectorAll('.payer-value').forEach(el => { _payerAmounts[el.dataset.name] = el.value; paid += Number(el.value) || 0; });
+  document.querySelectorAll('.payer-value').forEach(el => { _payerAmounts[el.dataset.name] = el.value; paid += numInput(el.value); });
   const payTotal = document.getElementById('pay-total');
   if (payTotal) {
     const diff = amt - paid;
@@ -1341,7 +1470,7 @@ function renderEntry() {
   _resetEntryDraft = false;
   if (resetDraft) { _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {}; _lootItems = []; _receiptData = null; _receiptPickerOpen = false; _expenseDate = ''; }
   const prevDesc = resetDraft ? '' : (document.getElementById('exp-desc')?.value || '');
-  const prevAmt = _splitMode === 'items' ? (lootTotal() ? String(lootTotal()) : '') : (resetDraft ? '' : (document.getElementById('exp-amount')?.value || ''));
+  const prevAmt = _splitMode === 'items' ? (lootTotal() ? fmtInput(lootTotal()) : '') : (resetDraft ? '' : (document.getElementById('exp-amount')?.value || ''));
   const prevDate = resetDraft ? '' : (document.getElementById('exp-date')?.value || _expenseDate || '');
   const prevIcon = questIconId(resetDraft ? QUEST_ICONS[0] : (document.getElementById('exp-icon-value')?.value || QUEST_ICONS[0]));
   const prevPayer = resetDraft ? S.participants[0] : (document.getElementById('exp-payer')?.value || S.participants[0]);
@@ -1352,8 +1481,8 @@ function renderEntry() {
     <div class="field-lab-row"><label>${t('who_paid')}</label><button type="button" class="mini-toggle" data-payer-mode="${_payerMode === 'one' ? 'multi' : 'one'}">${_payerMode === 'one' ? '＋ ' + t('multi_payer') : '↩ ' + t('one_payer')}</button></div>
     <input type="hidden" id="exp-payer" value="${h(prevPayer)}">
     ${_payerMode === 'one' ? `<div class="chip-row" id="payer-chip-row"></div>` : `<div class="payer-amts">${S.participants.map(name => `
-      <div class="payer-amt-row">${heroChip(name, Number(_payerAmounts[name]) > 0, !Number(_payerAmounts[name]), 'void(0)')}
-        <div class="mini-gold"><span>฿</span><input class="payer-value" data-name="${h(name)}" type="number" inputmode="decimal" value="${h(_payerAmounts[name] || '')}" placeholder="0"></div>
+      <div class="payer-amt-row">${heroChip(name, numInput(_payerAmounts[name]) > 0, !numInput(_payerAmounts[name]), 'void(0)')}
+        <div class="mini-gold"><span>฿</span><input class="payer-value" data-name="${h(name)}" type="text" inputmode="decimal" value="${h(fmtInput(_payerAmounts[name] || ''))}" placeholder="0"></div>
       </div>`).join('')}<div id="pay-total" class="pay-total"></div></div>`}
   </div>`;
   const modeButtons = [['equal','split_equal'],['shares','split_shares'],['exact','split_exact'],['percent','split_percent'],['items','split_items']]
@@ -1361,7 +1490,7 @@ function renderEntry() {
   const selected = split.length ? split : S.participants.slice();
   const weightRows = (_splitMode === 'equal' || _splitMode === 'items') ? '' : `<div class="weight-rows">${selected.map(name => {
     const suffix = _splitMode === 'percent' ? '%' : _splitMode === 'exact' ? '฿' : t('share_label');
-    return `<div class="weight-row">${heroAvatar(name,26)}<span class="wr-name">${h(name)}</span><div class="weight-in"><input class="weight-value" data-name="${h(name)}" type="number" inputmode="decimal" value="${h(_splitWeights[name] || '')}" placeholder="${_splitMode === 'shares' ? '1' : '0'}"><span class="wr-suffix">${suffix}</span></div><span class="wr-share" data-name="${h(name)}">${money2(0)}</span></div>`;
+    return `<div class="weight-row">${heroAvatar(name,26)}<span class="wr-name">${h(name)}</span><div class="weight-in"><input class="weight-value" data-name="${h(name)}" type="text" inputmode="decimal" value="${h(fmtInput(_splitWeights[name] || ''))}" placeholder="${_splitMode === 'shares' ? '1' : '0'}"><span class="wr-suffix">${suffix}</span></div><span class="wr-share" data-name="${h(name)}">${money2(0)}</span></div>`;
   }).join('')}</div>`;
   const shareBlock = `<div id="hidden-shares" class="hidden">${hiddenShares}</div><div class="field">
     <div class="field-lab-row"><label>${t('split_with')} <span class="lab-hint" id="split-info"></span></label><div class="split-seg">${modeButtons}</div></div>
@@ -1370,7 +1499,7 @@ function renderEntry() {
   const receiptField = renderReceiptField();
   const amountAttrs = _splitMode === 'items' ? 'readonly aria-readonly="true"' : '';
   document.getElementById('entry-body').innerHTML = mode === 'quick' ? `
-    <div class="quick-amount"><span>฿</span><input id="exp-amount" type="number" inputmode="decimal" value="${h(prevAmt)}" placeholder="0" ${amountAttrs}></div>
+    <div class="quick-amount"><span>฿</span><input id="exp-amount" type="text" inputmode="decimal" value="${h(fmtInput(prevAmt))}" placeholder="0" ${amountAttrs}></div>
     <div class="qf-top">${iconPicker}<div class="field grow"><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div></div>
     ${receiptField}
     ${payerBlock}
@@ -1379,7 +1508,7 @@ function renderEntry() {
     <div class="qf-top">
       ${iconPicker}
       <div class="field grow"><label>${t('quest_name')}</label><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div>
-      <div class="field gold-field"><label>${t('gold_spent')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="number" inputmode="decimal" value="${h(prevAmt)}" placeholder="0" ${amountAttrs}></div></div>
+      <div class="field gold-field"><label>${t('gold_spent')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="text" inputmode="decimal" value="${h(fmtInput(prevAmt))}" placeholder="0" ${amountAttrs}></div></div>
       <div class="field date-field"><label>${t('date_label')} <span class="lab-hint">${t('date_optional')}</span></label><input class="field-input" id="exp-date" type="datetime-local" value="${h(prevDate)}"></div>
     </div>
     ${receiptField}
@@ -1475,9 +1604,12 @@ function bindAppShellEvents() {
     if (
       event.target.id === 'exp-amount' ||
       event.target.classList.contains('payer-value') ||
+      event.target.classList.contains('loot-amount') ||
       event.target.classList.contains('weight-value')
     ) {
+      PointyLogic.formatNumberInputElement(event.target);
       updateSplitInfo();
+      if (event.target.classList.contains('loot-amount')) updateLootTotal();
       return;
     }
     if (event.target.classList.contains('loot-name') || event.target.classList.contains('loot-amount')) {
@@ -1505,11 +1637,11 @@ function addExpense() {
   const cleanItems = _splitMode === 'items'
     ? _lootItems.map(item => ({
       name: String(item.name || '').trim() || t('loot_item_name'),
-      amount: Number(item.amount) || 0,
+      amount: numInput(item.amount),
       claimedBy: (item.claimedBy || []).filter(name => S.participants.includes(name))
     })).filter(item => item.amount > 0)
     : [];
-  const amount = _splitMode === 'items' ? cleanItems.reduce((sum, item) => sum + item.amount, 0) : parseFloat(document.getElementById('exp-amount').value);
+  const amount = _splitMode === 'items' ? cleanItems.reduce((sum, item) => sum + item.amount, 0) : numInput(document.getElementById('exp-amount').value);
   const paidBy = document.getElementById('exp-payer').value;
   let shared = sharedBy();
   const icon = questIconId(document.getElementById('exp-icon-value').value || QUEST_ICONS[0]);
@@ -1522,12 +1654,12 @@ function addExpense() {
   }
   const payers = {};
   if (_payerMode === 'multi') {
-    document.querySelectorAll('.payer-value').forEach(el => { const n = Number(el.value) || 0; if (n > 0) payers[el.dataset.name] = n; });
+    document.querySelectorAll('.payer-value').forEach(el => { const n = numInput(el.value); if (n > 0) payers[el.dataset.name] = n; });
     if (!Object.keys(payers).length) { toast(t('err_payer')); return; }
   } else if (!paidBy) { toast(t('err_payer')); return; }
   if (!shared.length) { toast(t('err_sharers')); return; }
   const weights = {};
-  if (_splitMode !== 'equal') document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = Number(el.value) || 0; });
+  if (_splitMode !== 'equal') document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = numInput(el.value); });
   const exp = {
     id: Date.now() + Math.random(), desc, icon, amount,
     paidBy: _payerMode === 'multi' ? Object.keys(payers)[0] : paidBy,

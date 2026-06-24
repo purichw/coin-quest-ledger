@@ -141,12 +141,19 @@ test('leveling canon separates character XP from profile reputation', () => {
   assert.equal(logic.CHARACTER_LEVEL_STEP, 600);
   assert.equal(logic.RENOWN_LEVEL_STEP, 1200);
   assert.deepEqual(plain(logic.CHARACTER_LEVEL_THRESHOLDS.slice(0, 4)), [0, 300, 800, 1500]);
-  assert.deepEqual(plain(logic.REPUTATION_LEVEL_THRESHOLDS.slice(0, 4)), [0, 1000, 2500, 5000]);
+  assert.deepEqual(plain(logic.REPUTATION_LEVEL_THRESHOLDS.slice(0, 4)), [0, 900, 2200, 4200]);
   assert.deepEqual(plain(logic.levelFromXp(150)), { lvl: 1, into: 150, need: 300, pct: 50 });
   assert.deepEqual(plain(logic.levelFromXp(300)), { lvl: 2, into: 0, need: 500, pct: 0 });
-  assert.deepEqual(plain(logic.levelFromReputation(500)), { lvl: 1, into: 500, need: 1000, pct: 50 });
-  assert.deepEqual(plain(logic.levelFromReputation(1000)), { lvl: 2, into: 0, need: 1500, pct: 0 });
-  assert.deepEqual(plain(logic.levelFromRenown(1000)), { lvl: 2, into: 0, need: 1500, pct: 0 });
+  assert.deepEqual(plain(logic.levelFromReputation(450)), { lvl: 1, into: 450, need: 900, pct: 50 });
+  assert.deepEqual(plain(logic.levelFromReputation(900)), { lvl: 2, into: 0, need: 1300, pct: 0 });
+  assert.deepEqual(plain(logic.levelFromRenown(900)), { lvl: 2, into: 0, need: 1300, pct: 0 });
+});
+
+test('number input helpers display commas but parse clean numbers', () => {
+  assert.equal(logic.formatNumberInput('3940000'), '3,940,000');
+  assert.equal(logic.formatNumberInput('001234.50'), '1,234.50');
+  assert.equal(logic.parseNumberInput('3,940,000'), 3940000);
+  assert.equal(logic.parseNumberInput('1,234.50'), 1234.5);
 });
 
 test('normalizeTripState keeps legacy trip data compatible', () => {

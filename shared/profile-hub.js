@@ -252,14 +252,14 @@
     { id: 'party5', icon: '🛡️', th: ['รวมพล', 'ปาร์ตี้ที่มีฮีโร่ 5 คนขึ้นไป'], en: ['Full Party', 'A party of 5+ heroes'], test: c => c.maxPartySize >= 5, prog: c => [Math.min(c.maxPartySize, 5), 5] },
     { id: 'balanced', icon: '⚖️', th: ['สมดุล', 'ปรับสมดุลปาร์ตี้จนจบเควส'], en: ['Even Steven', 'Fully settle a quest'], test: c => c.completed >= 1 },
     { id: 'quest_master', icon: '🗺️', th: ['เจ้าแห่งเควส', 'จบเควสครบ 3 ทริป'], en: ['Quest Master', 'Complete 3 quests'], test: c => c.completed >= 3, prog: c => [Math.min(c.completed, 3), 3] },
-    { id: 'treasurer', icon: '💰', th: ['ขุนคลัง', 'บันทึกค่าใช้จ่ายรวม ฿50,000'], en: ['Treasurer', 'Log ฿50,000 in expenses'], test: c => c.totalLogged >= 50000, prog: c => [Math.min(c.totalLogged, 50000), 50000] },
-    { id: 'generous', icon: '🤝', th: ['ใจบุญ', 'ออกทองให้คนอื่นรวม ฿20,000'], en: ['Generous Soul', 'Front ฿20,000 for others'], test: c => c.fronted >= 20000, prog: c => [Math.min(c.fronted, 20000), 20000] },
+    { id: 'treasurer', icon: '💰', th: ['ขุนคลัง', 'บันทึกค่าใช้จ่ายรวม ฿50,000 ใน 5 รายการ'], en: ['Treasurer', 'Log ฿50,000 across 5 expenses'], test: c => c.totalLogged >= 50000 && c.quests >= 5, prog: c => [Math.min(c.totalLogged, 50000), 50000] },
+    { id: 'generous', icon: '🤝', th: ['ใจบุญ', 'ออกทองให้คนอื่นรวม ฿20,000 และจบเควส'], en: ['Generous Soul', 'Front ฿20,000 and complete a quest'], test: c => c.fronted >= 20000 && c.completed >= 1, prog: c => [Math.min(c.fronted, 20000), 20000] },
     { id: 'first_strike', icon: '⚔️', th: ['ดาบแรก', 'ฟันมังกรครั้งแรก'], en: ['First Strike', 'Land your first dragon strike'], test: c => c.strikes >= 1 },
     { id: 'slayer', icon: '🐉', th: ['นักล่ามังกร', 'ปราบมังกรตัวแรก'], en: ['Dragonslayer', 'Slay your first dragon'], test: c => c.slain >= 1 },
-    { id: 'lair_cleared', icon: '🏆', th: ['ปลอดหนี้', 'ปราบมังกรทุกตัวในถ้ำ'], en: ['Lair Cleared', 'Slay every dragon'], test: c => c.slain >= 1 && c.liveDragons === 0 },
-    { id: 'heavy_hit', icon: '💥', th: ['หมัดหนัก', 'ฟันครั้งเดียว ฿20,000+'], en: ['Heavy Hitter', 'A single strike of ฿20,000+'], test: c => c.biggestHit >= 20000 },
+    { id: 'lair_cleared', icon: '🏆', th: ['ปลอดหนี้', 'ปราบมังกรจริงทุกตัวในถ้ำ'], en: ['Lair Cleared', 'Slay every real dragon'], test: c => c.realDragonsSlain >= 1 && c.liveDragons === 0 },
+    { id: 'heavy_hit', icon: '💥', th: ['หมัดหนัก', 'จ่ายหนี้รวม ฿50,000 ใน 3 ครั้งขึ้นไป'], en: ['Heavy Hitter', 'Pay ฿50,000 across 3+ strikes'], test: c => c.reclaimed >= 50000 && c.strikes >= 3, prog: c => [Math.min(c.reclaimed, 50000), 50000] },
     { id: 'deal_hunter', icon: '🔍', th: ['นักล่าดีล', 'ประลองราคา 3 รายการ'], en: ['Deal Hunter', 'Run 3 price showdowns'], test: c => c.showdowns >= 3, prog: c => [Math.min(c.showdowns, 3), 3] },
-    { id: 'bargain', icon: '👑', th: ['ดีลในตำนาน', 'เจอดีลที่ประหยัด 40%+'], en: ['Bargain Legend', 'Find a deal saving 40%+'], test: c => c.bestRescue >= 40 },
+    { id: 'bargain', icon: '👑', th: ['ดีลในตำนาน', 'เทียบ 3 ร้านแล้วเจอดีลประหยัด 40%+'], en: ['Bargain Legend', 'Compare 3 merchants and save 40%+'], test: c => c.qualifiedBargainRescue >= 40 },
     { id: 'vault_keeper', icon: '🏦', th: ['ผู้พิทักษ์คลัง', 'บันทึกรายจ่ายในคลังหลวงครั้งแรก'], en: ['Vault Keeper', 'Log your first treasury expense'], test: c => (c.trLogged || 0) >= 1 },
     { id: 'under_budget', icon: '🛡️', th: ['คุมงบสำเร็จ', 'ปิดเดือนแบบไม่เกินงบ'], en: ['Under Budget', 'Finish a month under budget'], test: c => (c.monthsWon || 0) >= 1 },
     { id: 'frugal_legend', icon: '💎', th: ['ตำนานประหยัด', 'คุมงบได้ 3 เดือน'], en: ['Frugal Legend', 'Win 3 budget months'], test: c => (c.monthsWon || 0) >= 3, prog: c => [Math.min(c.monthsWon || 0, 3), 3] },
@@ -861,7 +861,7 @@
 
     const debt = loadDebt();
     const dragons = debt.dragons || [];
-    let reclaimed = 0, biggestHit = 0, strikes = 0, slain = 0, debtPaymentRep = 0;
+    let reclaimed = 0, biggestHit = 0, strikes = 0, slain = 0, realDragonsSlain = 0, debtPaymentRep = 0;
     dragons.forEach(d => {
       (d.log || []).forEach(row => {
         const amount = Number(row.amount) || 0;
@@ -871,11 +871,12 @@
         biggestHit = Math.max(biggestHit, amount);
       });
       if (d.slain) slain += 1;
+      if (d.slain && Math.max(Number(d.original) || 0, Number(d.balance) || 0) >= 5000) realDragonsSlain += 1;
     });
     const liveDragons = dragons.filter(d => !d.slain && Number(d.balance) > .5).length;
     const interestFed = Number(debt.stats?.interest) || 0;
 
-    let showdowns = 0, merchants = 0, bestRescue = 0;
+    let showdowns = 0, merchants = 0, bestRescue = 0, qualifiedBargainRescue = 0;
     loadCompare().forEach(cmp => {
       merchants += (cmp.offers || []).length;
       if ((cmp.offers || []).length >= 2) {
@@ -883,12 +884,18 @@
         const ranked = window.PointyLogic?.rankOffers ? window.PointyLogic.rankOffers(cmp.offers, cmp) : [];
         const best = ranked.find(o => o.isBest);
         if (best) bestRescue = Math.max(bestRescue, best.savePct || 0);
+        const meaningfulOffers = (cmp.offers || []).filter(o => Number(o.price) > 0 && Number(o.qty) > 0);
+        const hasMeaningfulSpend = meaningfulOffers.some(o => Number(o.price) >= 100);
+        if (best && meaningfulOffers.length >= 3 && hasMeaningfulSpend) {
+          qualifiedBargainRescue = Math.max(qualifiedBargainRescue, best.savePct || 0);
+        }
       }
     });
 
     const treasury = loadTreasury();
     const trStats = treasury.stats || {};
-    const monthsWon = Number(trStats.monthsWon) || 0;
+    const wonMonths = new Set((treasury.history || []).filter(row => row?.won && row.month).map(row => row.month)).size;
+    const monthsWon = Math.max(Number(trStats.monthsWon) || 0, wonMonths);
     const trLogged = Number(trStats.logged) || 0;
     const trOnTime = Number(trStats.onTime) || 0;
     const treasuryLogDays = new Set((treasury.expenses || []).map(e => e.date).filter(Boolean)).size || trLogged;
@@ -914,12 +921,14 @@
       biggestHit: Math.round(biggestHit),
       strikes,
       slain,
+      realDragonsSlain,
       liveDragons,
       interestFed: Math.round(interestFed),
       debtReputation,
       showdowns,
       merchants,
       bestRescue,
+      qualifiedBargainRescue,
       dragonsTotal: dragons.length,
       monthsWon,
       trLogged,

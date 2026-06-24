@@ -137,7 +137,7 @@ Profiles support Thai/English and responsive desktop/tablet/mobile layouts. Mone
 
 Board admin ownership can store `admin.characterId`. Party Ledger automatically links it when the admin nickname matches a participant and preserves it when that Character ID changes. Legacy boards still fall back to matching `adminName`.
 
-Leveling canon v1: Character XP uses `PointyLogic.levelFromXp()` with total XP thresholds `0, 300, 800, 1500, 2500, 4000, 6000, 8500, 12000, 16000`; Profile Reputation uses `PointyLogic.levelFromReputation()` with total Reputation thresholds `0, 1000, 2500, 5000, 9000, 15000, 23000, 34000, 48000, 65000`. Profile Reputation is positive-only and credit-bureau inspired: good financial behavior earns score, but missed/late/over-budget behavior does not subtract score. `PointyLogic.levelFromRenown()` remains only a compatibility alias. Do not add local level formulas in feature files; update `leveling-canon.md` and `shared/pointy-logic.js` first.
+Leveling canon v1: Character XP uses `PointyLogic.levelFromXp()` with total XP thresholds `0, 300, 800, 1500, 2500, 4000, 6000, 8500, 12000, 16000`; Profile Reputation uses `PointyLogic.levelFromReputation()` with total Reputation thresholds `0, 900, 2200, 4200, 7500, 12000, 18000, 26000, 37000, 50000`. Profile Reputation is positive-only and credit-bureau inspired: good financial behavior earns score, but missed/late/over-budget behavior does not subtract score. `PointyLogic.levelFromRenown()` remains only a compatibility alias. Do not add local level formulas in feature files; update `leveling-canon.md` and `shared/pointy-logic.js` first.
 
 ## Pixel Icon Picker
 
