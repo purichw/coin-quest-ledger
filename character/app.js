@@ -139,8 +139,8 @@ function copy() {
   return en ? {
     title: 'Character Profile',
     back: 'Back',
-    lvl: 'Overall level',
-    renown: 'Renown',
+    lvl: 'Character level',
+    renown: 'XP',
     streakDays: 'days',
     streakLab: 'Day streak',
     best: 'Best',
@@ -183,8 +183,8 @@ function copy() {
   } : {
     title: 'โปรไฟล์ตัวละคร',
     back: 'กลับ',
-    lvl: 'เลเวลรวม',
-    renown: 'ชื่อเสียง',
+    lvl: 'เลเวลตัวละคร',
+    renown: 'XP',
     streakDays: 'วัน',
     streakLab: 'สตรีคต่อเนื่อง',
     best: 'สถิติ',

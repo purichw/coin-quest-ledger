@@ -20,6 +20,7 @@ The mobile app now targets the same production backend contracts as the web app:
 - Character: one active character per account, stored in `characters/{id}` and mirrored into `users/{uid}.character`.
 - Split: reads real `trips/{id}` documents linked by `characterIds` or `admin.characterId`; create-board and add-expense write back to Firestore.
 - Player modules: reads and writes `playerModules/{uid}` for Debt Dragon, Treasury, and Compare. This keeps native dynamic today without pretending the web local-first module storage is already migrated.
+- Character level displays use the same threshold curve as the web app. Do not add native-only XP or Profile Reputation formulas.
 
 Known limitation: Firebase Auth state is using the public `firebase/auth` entrypoint that compiles with Firebase 12 in Expo. The RN AsyncStorage persistence helper is present inside Firebase internals but is not exposed by the package export map used by TypeScript here, so persistent login across app restarts should be solved as a focused follow-up.
 

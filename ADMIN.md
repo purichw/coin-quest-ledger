@@ -110,7 +110,7 @@ Important rules:
   characters per user is a future product decision, not the current live loop.
 - Each Character has its own class, level, XP, and board history.
 - The same Character can gain progress from multiple modules.
-- Admin Portal displays levels from the shared leveling canon: Character rows use `PointyLogic.levelFromXp()` and overall/user rows use `PointyLogic.levelFromRenown()`. Do not add admin-only level thresholds.
+- Admin Portal displays levels from the shared leveling canon: Character rows use `PointyLogic.levelFromXp()` and overall/user rows use `PointyLogic.levelFromReputation()`. Do not add admin-only level thresholds.
 - One User ID can hold multiple Admin IDs.
 - One Admin ID can own multiple Boards.
 - Admin IDs are intentionally reusable across Boards; do not globally de-dupe
@@ -329,7 +329,7 @@ Defined in `screens-people.jsx`.
 `UsersList`:
 
 - Search users.
-- Table shows User ID, display name, active character, board count, renown, admin
+- Table shows User ID, display name, active character, board count, Profile Reputation, admin
   role, and status.
 
 `UserDetail`:

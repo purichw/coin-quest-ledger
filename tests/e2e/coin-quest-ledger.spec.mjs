@@ -390,7 +390,7 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await expect(page.locator('#party-total')).toHaveText('฿1,000');
   await expect(page.locator('#quest-log')).toContainText('Shane ฿300');
   await expect(page.locator('#quest-log')).toContainText('Pointy ฿700');
-  await expect(page.locator('#quest-log')).toContainText('+300 XP');
+  await expect(page.locator('#quest-log')).toContainText('+15 XP');
   await expect(page.locator('#party-grid')).toContainText('ผู้พิทักษ์');
   await expect(page.locator('#party-grid')).toContainText('+฿300');
   await expect(page.locator('#party-grid')).toContainText('ติดหนี้');
@@ -406,8 +406,8 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await page.getByRole('button', { name: /ยืนยันชำระแล้ว/ }).click();
   await expect(page.locator('#settle-body')).toContainText('ปาร์ตี้สมดุลแล้ว');
   await expect(page.getByText('ผ่านเควสแล้ว!')).toBeVisible();
-  await expect(page.locator('#party-grid')).toContainText('500/600');
-  await expect(page.locator('#party-grid')).toContainText('400/600');
+  await expect(page.locator('#party-grid')).toContainText('135/300');
+  await expect(page.locator('#party-grid')).toContainText('180/300');
 });
 
 test('expense splitter supports itemized loot split, receipt date, and quest board campaigns', async ({ page }) => {
@@ -977,6 +977,7 @@ test('profile hub scopes progress to the signed-in account instead of stale brow
   await page.goto('/');
 
   const scoped = await page.evaluate(() => window.PointyProfileHub.computeProfile());
+  expect(scoped.reputation).toBe(0);
   expect(scoped.renown).toBe(0);
   expect(scoped.level.lvl).toBe(1);
   expect(scoped.streak).toBeGreaterThanOrEqual(0);
@@ -984,7 +985,7 @@ test('profile hub scopes progress to the signed-in account instead of stale brow
 
   const homeText = await page.locator('#home-renown').innerText();
   expect(homeText).toContain('LV 1');
-  expect(homeText).toMatch(/0\s+(Renown|ชื่อเสียง)/);
+  expect(homeText).toMatch(/0\s+(Reputation|ความน่าเชื่อถือ)/);
 });
 
 test('price comparison page loads and ranks normalized unit prices', async ({ page }) => {

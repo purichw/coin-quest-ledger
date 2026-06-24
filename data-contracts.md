@@ -181,18 +181,18 @@ Rules:
 - Missing `class`, `gender`, or `skin` should fall back from latest matching board or deterministic defaults.
 - `xp` is preferred when present.
 - If `xp` is absent, profile aggregation can derive XP from `trips`, `debtXp`, fronted money, and settlement XP.
-- Character XP level math is canonical in `PointyLogic.levelFromXp()` and currently uses 600 XP per level. See `leveling-canon.md`.
+- Character XP level math is canonical in `PointyLogic.levelFromXp()` and uses the current threshold curve in `leveling-canon.md`.
 
-### Leveling / Renown
+### Leveling / Reputation
 
 Leveling has two explicit tracks:
 
 ```js
-CharacterXP -> PointyLogic.levelFromXp(xp) // 600 XP per level
-ProfileRenown -> PointyLogic.levelFromRenown(renown) // 1200 Renown per level
+CharacterXP -> PointyLogic.levelFromXp(xp)
+ProfileReputation -> PointyLogic.levelFromReputation(reputation)
 ```
 
-Feature files must not define their own level thresholds. When XP rewards, thresholds, or title milestones change, update `leveling-canon.md`, `shared/pointy-logic.js`, and tests together.
+Feature files must not define their own level thresholds. `PointyLogic.levelFromRenown()` exists only as a compatibility alias. When XP/Reputation rewards, thresholds, or title milestones change, update `leveling-canon.md`, `shared/pointy-logic.js`, and tests together.
 
 ### `adminRevisions/{id}`
 

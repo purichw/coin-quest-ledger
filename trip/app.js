@@ -1569,7 +1569,7 @@ function renderLog(party) {
     const payer = payers.length === 1 ? byName[payers[0]] : null;
     const splitMode = e.split?.mode || 'equal';
     const modeKey = { shares:'split_shares', exact:'split_exact', percent:'split_percent', items:'split_items' }[splitMode];
-    const generosityXp = Math.round(Object.entries(payerMap(e)).reduce((sum, [name, paid]) => sum + Math.max(0, paid - (shares[name] || 0)), 0));
+    const generosityXp = PointyLogic.splitFrontedXp(Object.entries(payerMap(e)).reduce((sum, [name, paid]) => sum + Math.max(0, paid - (shares[name] || 0)), 0));
     const splitLabel = splitMode === 'equal' && parts.length
       ? `${money2(e.amount / parts.length)} ${t('each')}`
       : parts.map(name => `${h(name)} ${money2(shares[name] || 0)}`).join(' · ');

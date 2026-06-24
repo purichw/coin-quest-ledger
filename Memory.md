@@ -29,7 +29,7 @@ Last updated: 2026-06-22
 
 - `architecture.md`: current static app architecture, routes, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
 - `data-contracts.md`: practical Firestore/local/session storage contracts, derived Character Profile shape, and migration rules.
-- `leveling-canon.md`: v0 XP/level canon for Character XP, Profile Renown, Treasury XP contribution, reward titles, and Admin display rules.
+- `leveling-canon.md`: v1 XP/Reputation canon for Character XP, positive-only Profile Reputation, level thresholds, reward titles, and Admin display rules.
 - `claude-design-index.md`: map of Claude reference sources to live surfaces, plus notes on mobile coverage and route wiring.
 - `roadmap.md`: phased roadmap for profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery.
 - `CLAUDE_RECOVERY.md`: deprecated/ignored for now by current user instruction. Do not read/use it unless explicitly re-enabled.
@@ -137,7 +137,7 @@ Profiles support Thai/English and responsive desktop/tablet/mobile layouts. Mone
 
 Board admin ownership can store `admin.characterId`. Party Ledger automatically links it when the admin nickname matches a participant and preserves it when that Character ID changes. Legacy boards still fall back to matching `adminName`.
 
-Leveling canon v0: Character XP uses `PointyLogic.levelFromXp()` at 600 XP per level; overall/profile Renown uses `PointyLogic.levelFromRenown()` at 1200 Renown per level. Do not add local level formulas in feature files; update `leveling-canon.md` and `shared/pointy-logic.js` first.
+Leveling canon v1: Character XP uses `PointyLogic.levelFromXp()` with total XP thresholds `0, 300, 800, 1500, 2500, 4000, 6000, 8500, 12000, 16000`; Profile Reputation uses `PointyLogic.levelFromReputation()` with total Reputation thresholds `0, 1000, 2500, 5000, 9000, 15000, 23000, 34000, 48000, 65000`. Profile Reputation is positive-only and credit-bureau inspired: good financial behavior earns score, but missed/late/over-budget behavior does not subtract score. `PointyLogic.levelFromRenown()` remains only a compatibility alias. Do not add local level formulas in feature files; update `leveling-canon.md` and `shared/pointy-logic.js` first.
 
 ## Pixel Icon Picker
 

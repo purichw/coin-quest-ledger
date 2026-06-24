@@ -6,7 +6,7 @@
 - Read `architecture.md` when the request touches system shape, routing, shared modules, persistence, or deployment.
 - Read `data-contracts.md` when the request touches Firestore, localStorage/sessionStorage, character IDs, admin ownership, imports/exports, or migrations.
 - Read `claude-design-index.md` when the request involves Claude Design references, visual parity, mobile handoff files, or finding the right downloaded source.
-- Read `leveling-canon.md` when the request touches XP rewards, level thresholds, title milestones, profile renown, Treasury XP, or Admin level displays.
+- Read `leveling-canon.md` when the request touches XP rewards, Reputation rewards, level thresholds, title milestones, Profile Reputation, Treasury scoring, or Admin level displays.
 - Read `roadmap.md` when the request asks what to build next, how to phase work, or whether Codex vs Claude Design should own a step.
 - Read `mobile/IOS_BUILD_NOTES.md` before native iOS build/signing/install work.
 - Check `git status --short --branch` before editing.
@@ -15,7 +15,7 @@
 - For profile/auth refactors, keep slices independently revertible. Commit each completed boundary separately after targeted tests, even when the user gives one broad refactor instruction.
 - Keep `Memory.md`, `architecture.md`, `roadmap.md`, and any touched contract/reference docs updated before intentionally moving work to a new chat.
 - Current user instruction: ignore `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
-- Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromRenown()` instead of adding local formulas.
+- Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromReputation()` instead of adding local formulas.
 
 ## Change Modes
 

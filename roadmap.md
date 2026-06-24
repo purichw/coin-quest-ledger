@@ -37,11 +37,11 @@ Known constraints:
 - Character Profile currently keeps its own `cnav`/standalone profile layout; whether to add shared mobile shell is undecided.
 - Admin Portal mobile/tablet decision: keep admin-specific horizontal navigation, not the player bottom tab bar. This matches the latest Admin mobile/tablet export and keeps dense admin tables/tooling usable.
 - Admin production access is Google-auth gated to `purich.wc@gmail.com`; keep admin-specific horizontal navigation, not the player bottom tab bar. This matches the latest Admin mobile/tablet export and keeps dense admin tables/tooling usable.
-- Signed-in progress is account-scoped, not browser-scoped. `shared/account-scope.js` derives local module/cache keys from the active account so new real users start at LV1/0 Renown even if the same browser has legacy demo progress.
+- Signed-in progress is account-scoped, not browser-scoped. `shared/account-scope.js` derives local module/cache keys from the active account so new real users start at LV1/0 Reputation even if the same browser has legacy demo progress.
 - Admin Users now merges Firestore `users/{uid}` records with board-derived participants/admin roles, so real accounts with no board membership still appear in the portal.
 - Older admin copies that allow many Characters per User are overridden by the current one-account-one-active-character canon.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
-- Character XP and Profile Renown are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromRenown()`.
+- Character XP and Profile Reputation are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromReputation()`.
 
 ## Phase 0 - Keep The Canon Stable
 

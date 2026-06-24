@@ -43,6 +43,10 @@ export const CLASSES: Record<string, { glyph: string; th: string; en: string }> 
 };
 
 export const CHARACTER_LEVEL_STEP = 600;
+export const CHARACTER_LEVEL_THRESHOLDS = [0, 300, 800, 1500, 2500, 4000, 6000, 8500, 12000, 16000];
+export const CHARACTER_LEVEL_TAIL_STEP = 5000;
+export const SPLIT_FRONTED_XP_DIVISOR = 20;
+export const SPLIT_FRONTED_XP_CAP = 250;
 
 export function hashOf(value: string): number {
   let x = 0;
@@ -61,10 +65,33 @@ export function normalizeClass(cls?: string): string {
 }
 
 export function levelFromXp(xp: number): LevelInfo {
-  const clean = Math.max(0, Math.round(Number(xp) || 0));
-  const lvl = Math.floor(clean / CHARACTER_LEVEL_STEP) + 1;
-  const into = clean - (lvl - 1) * CHARACTER_LEVEL_STEP;
-  return { lvl, into, need: CHARACTER_LEVEL_STEP, pct: Math.round((into / CHARACTER_LEVEL_STEP) * 100) };
+  return levelFromThresholds(xp, CHARACTER_LEVEL_THRESHOLDS, CHARACTER_LEVEL_TAIL_STEP);
+}
+
+function levelFromThresholds(value: number, thresholds: number[], tailStep: number): LevelInfo {
+  const clean = Math.max(0, Math.round(Number(value) || 0));
+  let lvl = 1;
+  while (lvl < thresholds.length && clean >= thresholds[lvl]) lvl += 1;
+  let prev: number;
+  let next: number;
+  if (lvl < thresholds.length) {
+    prev = thresholds[lvl - 1];
+    next = thresholds[lvl];
+  } else {
+    prev = thresholds[thresholds.length - 1];
+    while (clean >= prev + tailStep) {
+      prev += tailStep;
+      lvl += 1;
+    }
+    next = prev + tailStep;
+  }
+  const need = Math.max(1, next - prev);
+  const into = clean - prev;
+  return { lvl, into, need, pct: Math.round((into / need) * 100) };
+}
+
+export function splitFrontedXp(amount: number): number {
+  return Math.round(Math.min(SPLIT_FRONTED_XP_CAP, Math.max(0, Number(amount) || 0) / SPLIT_FRONTED_XP_DIVISOR));
 }
 
 export function timestampValue(value: unknown): number {
@@ -207,7 +234,7 @@ export function computeParty(state: TripState): PartyHero[] {
     const row = stat[name] || { paid: 0, share: 0, gen: 0, quests: 0 };
     const budget = Number(state.budgets[name]) || 3000;
     const remaining = budget - row.share;
-    const xp = Math.round(row.gen + (Number(state.settleXp[name]) || 0));
+    const xp = Math.round(splitFrontedXp(row.gen) + (Number(state.settleXp[name]) || 0));
     return {
       name,
       cls: normalizeClass(state.heroClasses[name]),
@@ -248,6 +275,7 @@ export function buildCharacterProfile(characterId: string, boards: TripState[], 
   const rec = record || ({} as CharacterRecord);
   const rows: CharacterProfile['boards'] = [];
   const totals = { paid: 0, share: 0, fronted: 0, balance: 0, quests: 0, boards: 0, settledBoards: 0, activeBoards: 0, settlementXp: 0 };
+  let frontedXp = 0;
   boards.forEach((board) => {
     const names = board.participants.filter((name) => String(board.characterIds[name] || '') === id);
     if (!names.length && String(board.admin.characterId || '') === id) names.push(board.admin.adminName || rec.name || id);
@@ -273,6 +301,7 @@ export function buildCharacterProfile(characterId: string, boards: TripState[], 
       totals.paid += hero.paid;
       totals.share += hero.share;
       totals.fronted += hero.gen;
+      frontedXp += splitFrontedXp(hero.gen);
       totals.balance += hero.bal;
       totals.quests += hero.quests;
       totals.settlementXp += Number(board.settleXp[name]) || 0;
@@ -284,7 +313,7 @@ export function buildCharacterProfile(characterId: string, boards: TripState[], 
   totals.activeBoards = Math.max(0, totals.boards - totals.settledBoards);
   const debtXp = Math.round(Number(rec.debtXp) || 0);
   const tripXp = Object.values(rec.trips || {}).reduce((sum, xp) => sum + (Number(xp) || 0), 0);
-  const xp = Math.round(Number(rec.xp) || tripXp + debtXp || totals.fronted + totals.settlementXp + debtXp);
+  const xp = Math.round(Number(rec.xp) || tripXp + debtXp || frontedXp + totals.settlementXp + debtXp);
   const level = levelFromXp(xp);
   const badges: CharacterProfile['badges'] = [];
   if (totals.boards >= 1) badges.push({ id: 'party-member', label: lang === 'en' ? 'Party Member' : 'สมาชิกปาร์ตี้', detail: lang === 'en' ? 'Joined a board' : 'เข้าร่วมบอร์ดแล้ว' });

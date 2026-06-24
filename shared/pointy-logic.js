@@ -38,10 +38,17 @@
     tiderunner:  { glyph:"🌊", hue:225, th:"นักแล่นคลื่น", en:"Tiderunner" }
   };
   PointyLogic.CHARACTER_LEVEL_STEP = 600;
-  PointyLogic.RENOWN_LEVEL_STEP = 1200;
+  PointyLogic.RENOWN_LEVEL_STEP = 1200; // Deprecated compatibility alias; use Reputation naming in UI/docs.
   PointyLogic.LEVEL_STEP = PointyLogic.CHARACTER_LEVEL_STEP;
-  PointyLogic.SETTLE_BONUS_PAYER = 400;
-  PointyLogic.SETTLE_BONUS_PAYEE = 200;
+  PointyLogic.CHARACTER_LEVEL_THRESHOLDS = [0, 300, 800, 1500, 2500, 4000, 6000, 8500, 12000, 16000];
+  PointyLogic.REPUTATION_LEVEL_THRESHOLDS = [0, 1000, 2500, 5000, 9000, 15000, 23000, 34000, 48000, 65000];
+  PointyLogic.RENOWN_LEVEL_THRESHOLDS = PointyLogic.REPUTATION_LEVEL_THRESHOLDS;
+  PointyLogic.CHARACTER_LEVEL_TAIL_STEP = 5000;
+  PointyLogic.REPUTATION_LEVEL_TAIL_STEP = 20000;
+  PointyLogic.SETTLE_BONUS_PAYER = 180;
+  PointyLogic.SETTLE_BONUS_PAYEE = 120;
+  PointyLogic.SPLIT_FRONTED_XP_DIVISOR = 20;
+  PointyLogic.SPLIT_FRONTED_XP_CAP = 250;
   PointyLogic.LEVEL_REWARDS = [
     { lvl:1, frame:"novice", glyph:"", title:{ th:"มือใหม่", en:"Novice" } },
     { lvl:2, frame:"bronze", glyph:"🌿", title:{ th:"น่าเชื่อถือ", en:"Trusted" } },
@@ -176,18 +183,50 @@
     return { lvl, into, need: size, pct: Math.round((into / size) * 100) };
   }
 
+  function levelFromThresholds(value, thresholds, tailStep) {
+    const clean = Math.max(0, Math.round(Number(value) || 0));
+    const marks = Array.isArray(thresholds) && thresholds.length > 1 ? thresholds.map(x => Math.max(0, Math.round(Number(x) || 0))) : [0, Math.max(1, Number(tailStep) || 1)];
+    const step = Math.max(1, Math.round(Number(tailStep) || marks[marks.length - 1] - marks[marks.length - 2] || 1));
+    let lvl = 1;
+    while (lvl < marks.length && clean >= marks[lvl]) lvl += 1;
+    let prev;
+    let next;
+    if (lvl < marks.length) {
+      prev = marks[lvl - 1];
+      next = marks[lvl];
+    } else {
+      prev = marks[marks.length - 1];
+      while (clean >= prev + step) {
+        prev += step;
+        lvl += 1;
+      }
+      next = prev + step;
+    }
+    const need = Math.max(1, next - prev);
+    const into = clean - prev;
+    return { lvl, into, need, pct: Math.round((into / need) * 100) };
+  }
+
   function levelFromXp(xp) {
-    return levelFrom(xp, PointyLogic.CHARACTER_LEVEL_STEP);
+    return levelFromThresholds(xp, PointyLogic.CHARACTER_LEVEL_THRESHOLDS, PointyLogic.CHARACTER_LEVEL_TAIL_STEP);
+  }
+
+  function levelFromReputation(reputation) {
+    return levelFromThresholds(reputation, PointyLogic.REPUTATION_LEVEL_THRESHOLDS, PointyLogic.REPUTATION_LEVEL_TAIL_STEP);
   }
 
   function levelFromRenown(renown) {
-    return levelFrom(renown, PointyLogic.RENOWN_LEVEL_STEP);
+    return levelFromReputation(renown);
   }
 
   function rewardFor(lvl) {
     let r = PointyLogic.LEVEL_REWARDS[0];
     PointyLogic.LEVEL_REWARDS.forEach(x => { if (lvl >= x.lvl) r = x; });
     return r;
+  }
+
+  function splitFrontedXp(amount) {
+    return Math.round(Math.min(PointyLogic.SPLIT_FRONTED_XP_CAP, Math.max(0, Number(amount) || 0) / PointyLogic.SPLIT_FRONTED_XP_DIVISOR));
   }
 
   function dragonType(id) {
@@ -496,7 +535,7 @@
       const budget = Number(budgets[name]) || 3000;
       const remaining = budget - s.share;
       const hp = Math.max(0, Math.min(100, Math.round((remaining / budget) * 100)));
-      const xp = Math.round((Number(baseXp(name)) || 0) + s.gen + (Number(settleXp[name]) || 0));
+      const xp = Math.round((Number(baseXp(name)) || 0) + splitFrontedXp(s.gen) + (Number(settleXp[name]) || 0));
       const level = levelFromXp(xp);
       return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen), quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
     });
@@ -522,7 +561,7 @@
     const lang = opts.lang || 'th';
     const boardFallback = opts.boardFallback || 'Untitled board';
     const names = new Set(record?.name ? [record.name] : []);
-    const totals = { paid: 0, share: 0, fronted: 0, balance: 0, quests: 0, boards: 0, settledBoards: 0, activeBoards: 0, settlementXp: 0 };
+    const totals = { paid: 0, share: 0, fronted: 0, frontedXp: 0, balance: 0, quests: 0, boards: 0, settledBoards: 0, activeBoards: 0, settlementXp: 0 };
     const boardRows = [];
     const adminBoards = [];
     let latest = null;
@@ -575,6 +614,7 @@
         totals.paid += row.paid;
         totals.share += row.share;
         totals.fronted += row.fronted;
+        totals.frontedXp += splitFrontedXp(row.fronted);
         totals.balance += row.balance;
         totals.quests += row.quests;
         totals.settlementXp += Number(state.settleXp?.[name]) || 0;
@@ -590,7 +630,7 @@
     adminBoards.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.id.localeCompare(b.id));
 
     const debtXp = Math.round(Number(record?.debtXp) || 0);
-    const totalXp = Math.round(Number(record?.xp) || (Object.values(record?.trips || {}).reduce((sum, xp) => sum + (Number(xp) || 0), 0) + debtXp) || totals.fronted + totals.settlementXp + debtXp);
+    const totalXp = Math.round(Number(record?.xp) || (Object.values(record?.trips || {}).reduce((sum, xp) => sum + (Number(xp) || 0), 0) + debtXp) || totals.frontedXp + totals.settlementXp + debtXp);
     const level = levelFromXp(totalXp);
     const cls = normalizeClass(record?.class || latest?.class || PointyLogic.CLASS_ORDER[hashOf(id) % PointyLogic.CLASS_ORDER.length]);
     const gender = record?.gender || latest?.gender || (hashOf(id) % 2 ? 'female' : 'male');
@@ -650,9 +690,12 @@
     rankOffers,
     normalizeClass,
     levelFrom,
+    levelFromThresholds,
     levelFromXp,
+    levelFromReputation,
     levelFromRenown,
     rewardFor,
+    splitFrontedXp,
     hpColor,
     statusOf,
     normalizeTripState,

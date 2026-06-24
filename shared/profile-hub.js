@@ -81,9 +81,10 @@
       openBoard: 'เปิดบอร์ด',
       viewFullProfile: 'ดูโปรไฟล์เต็ม',
       profile: 'โปรไฟล์นักผจญภัย',
-      profileSub: 'Renown รวมจาก Compare Prices, Party Ledger, Debt Dragon และคลังหลวง',
+      profileSub: 'Reputation จากพฤติกรรมการเงินที่ดีในทุกโมดูล',
       profileLvl: 'เลเวลรวม',
-      renown: 'Renown',
+      reputation: 'Reputation',
+      renown: 'Reputation',
       trophies: 'Trophy Hall',
       streakDays: 'วัน',
       streakLab: 'สตรีคเข้าใช้งาน',
@@ -114,7 +115,7 @@
       tourNext: 'ถัดไป',
       tourDone: 'เริ่มลุย',
       tourT0: 'ยินดีต้อนรับสู่ Coin Quest',
-      tourB0: 'ทุกโมดูลแชร์ความคืบหน้ากลางผ่าน Renown, Trophy และ Hero Profile',
+      tourB0: 'ทุกโมดูลช่วยสะสม Profile Reputation, Trophy และ Hero Profile',
       tourT1: 'Compare Prices',
       tourB1: 'เทียบดีลต่อหน่วย เก็บสถิตินักล่าดีล แล้วส่งรายการที่ชนะเข้า Party Ledger ได้',
       tourT2: 'Debt Dragon',
@@ -195,9 +196,10 @@
       openBoard: 'Open board',
       viewFullProfile: 'View full profile',
       profile: 'Hero Profile',
-      profileSub: 'Renown from Compare Prices, Party Ledger, Debt Dragon, and Personal Treasury',
-      profileLvl: 'Overall level',
-      renown: 'Renown',
+      profileSub: 'Reputation from positive financial behavior across every module',
+      profileLvl: 'Profile level',
+      reputation: 'Reputation',
+      renown: 'Reputation',
       trophies: 'Trophy Hall',
       streakDays: 'days',
       streakLab: 'Daily streak',
@@ -228,7 +230,7 @@
       tourNext: 'Next',
       tourDone: 'Begin',
       tourT0: 'Welcome to Coin Quest',
-      tourB0: 'Every module feeds one shared profile through Renown, trophies, and reminders.',
+      tourB0: 'Every module feeds Profile Reputation, trophies, and reminders.',
       tourT1: 'Compare Prices',
       tourB1: 'Compare unit prices, track deal-hunting wins, and send winners into Party Ledger.',
       tourT2: 'Debt Dragon',
@@ -649,9 +651,11 @@
     const streak = p.lastVisit === ymd(yesterday) ? (Number(p.streak) || 0) + 1 : 1;
     return patchProfile({ lastVisit: today, streak, bestStreak: Math.max(Number(p.bestStreak) || 0, streak) });
   }
-  function profileLevelFromRenown(renown) {
-    return window.PointyLogic?.levelFromRenown
-      ? window.PointyLogic.levelFromRenown(renown)
+  function profileLevelFromReputation(reputation) {
+    return window.PointyLogic?.levelFromReputation
+      ? window.PointyLogic.levelFromReputation(reputation)
+      : window.PointyLogic?.levelFromRenown
+      ? window.PointyLogic.levelFromRenown(reputation)
       : { lvl: 1, into: 0, need: 0, pct: 0 };
   }
   function rewardFor(lvl) {
@@ -826,6 +830,7 @@
     const scoped = hasScopedAccount();
     const characterId = String(character?.id || account?.userId || '');
     let fronted = 0, settleR = 0, quests = 0, completed = 0, maxPartySize = 0, totalLogged = 0;
+    let splitActivityRep = 0, splitFrontedRep = 0, splitSettledRep = 0, splitMultiRep = 0;
     tripEntries().forEach(entry => {
       campaignsFromTrip(entry.data).forEach(c => {
         const participantName = Object.keys(c.characterIds || {}).find(name => String(c.characterIds?.[name]) === characterId)
@@ -833,15 +838,22 @@
         if (scoped && !participantName) return;
         const party = computePartyForCampaign(c);
         const heroes = scoped ? party.filter(hero => hero.name === participantName) : party;
-        heroes.forEach(hero => {
-          fronted += Number(hero.gen) || 0;
-          settleR += Number(c.settleXp?.[hero.name]) || 0;
-        });
         const visibleExpenses = scoped
           ? (c.expenses || []).filter(e => (e.sharedBy || []).includes(participantName) || e.paidBy === participantName || e.payers?.[participantName])
           : (c.expenses || []);
+        const isSettled = visibleExpenses.length > 0 && window.PointyLogic?.settleUp && window.PointyLogic.settleUp(party).length === 0;
+        heroes.forEach(hero => {
+          fronted += Number(hero.gen) || 0;
+          settleR += Number(c.settleXp?.[hero.name]) || 0;
+          splitFrontedRep += Math.min(100, Math.max(0, Number(hero.gen) || 0) / 50);
+        });
         quests += visibleExpenses.length;
         totalLogged += visibleExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        splitActivityRep += Math.min(50, visibleExpenses.length * 10);
+        if (isSettled) {
+          splitSettledRep += 250;
+          if ((c.participants || []).length >= 3) splitMultiRep += 100;
+        }
         if (c.completedAt) completed += 1;
         maxPartySize = Math.max(maxPartySize, participantName ? (c.participants || []).length : scoped ? 0 : (c.participants || []).length);
       });
@@ -849,11 +861,12 @@
 
     const debt = loadDebt();
     const dragons = debt.dragons || [];
-    let reclaimed = 0, biggestHit = 0, strikes = 0, slain = 0;
+    let reclaimed = 0, biggestHit = 0, strikes = 0, slain = 0, debtPaymentRep = 0;
     dragons.forEach(d => {
       (d.log || []).forEach(row => {
         const amount = Number(row.amount) || 0;
         reclaimed += amount;
+        debtPaymentRep += Math.min(300, amount / 10);
         strikes += 1;
         biggestHit = Math.max(biggestHit, amount);
       });
@@ -878,13 +891,20 @@
     const monthsWon = Number(trStats.monthsWon) || 0;
     const trLogged = Number(trStats.logged) || 0;
     const trOnTime = Number(trStats.onTime) || 0;
-    const treasuryXp = Math.round(monthsWon * 800 + trOnTime * 60 + trLogged * 8);
-
-    const renown = Math.round(fronted + settleR + reclaimed / 10 + slain * 500 + quests * 60 + completed * 400 + showdowns * 120 + treasuryXp);
+    const treasuryLogDays = new Set((treasury.expenses || []).map(e => e.date).filter(Boolean)).size || trLogged;
+    const treasuryReputation = Math.round(monthsWon * 500 + trOnTime * 80 + treasuryLogDays * 10);
+    const compareReputation = Math.round(showdowns * 80 + Math.min(showdowns * 40, merchants * 10));
+    const debtReputation = Math.round(debtPaymentRep + slain * 600);
+    const splitReputation = Math.round(splitActivityRep + splitFrontedRep + splitSettledRep + splitMultiRep);
+    const reputation = Math.round(splitReputation + debtReputation + treasuryReputation + compareReputation);
     return {
-      renown,
-      level: profileLevelFromRenown(renown),
+      reputation,
+      renown: reputation,
+      level: profileLevelFromReputation(reputation),
       fronted: Math.round(fronted),
+      splitReputation,
+      splitFrontedRep: Math.round(splitFrontedRep),
+      splitSettledRep,
       settleR: Math.round(settleR),
       quests,
       completed,
@@ -896,6 +916,7 @@
       slain,
       liveDragons,
       interestFed: Math.round(interestFed),
+      debtReputation,
       showdowns,
       merchants,
       bestRescue,
@@ -903,7 +924,9 @@
       monthsWon,
       trLogged,
       trOnTime,
-      treasuryXp,
+      treasuryXp: treasuryReputation,
+      treasuryReputation,
+      compareReputation,
       streak: profile?.streak || 0
     };
   }
@@ -1501,7 +1524,7 @@
           <div class="pd-hero-info">
             <div class="pd-hero-name">${h(slayer.name || s().hero)}</div>
             <div class="pd-rank rank-${h(reward.frame)}">${h(reward.glyph || '')} ${h(reward.title?.[lang()] || reward.title?.en || '')} · ${h(cls[lang()] || cls.en)}</div>
-            <div class="pd-lvlrow"><span class="pd-lvl-k">${h(s().profileLvl)}</span><span class="pd-lvl-n">${context.level.lvl}</span><span class="pd-renown">${money(context.renown).replace('฿', '')} ${h(s().renown)}</span></div>
+            <div class="pd-lvlrow"><span class="pd-lvl-k">${h(s().profileLvl)}</span><span class="pd-lvl-n">${context.level.lvl}</span><span class="pd-renown">${money(context.reputation || context.renown).replace('฿', '')} ${h(s().reputation || s().renown)}</span></div>
             <div class="pd-bar"><div style="width:${context.level.pct}%"></div></div>
             <a class="pd-fullprofile" href="${h(profileHref)}">${h(s().viewFullProfile)} →</a>
           </div>

@@ -117,7 +117,7 @@ test('computeParty calculates paid, share, balance, XP, and settlement', () => {
   assert.equal(shane.share, 300);
   assert.equal(shane.gen, 300);
   assert.equal(shane.bal, 300);
-  assert.equal(shane.xp, 300);
+  assert.equal(shane.xp, 15);
   assert.equal(pointy.paid, 400);
   assert.equal(pointy.share, 700);
   assert.equal(pointy.gen, 0);
@@ -137,13 +137,16 @@ test('computeParty can add cross-trip base XP for character progress', () => {
   assert.equal(party[0].level.lvl, 2);
 });
 
-test('leveling canon separates character XP from profile renown', () => {
+test('leveling canon separates character XP from profile reputation', () => {
   assert.equal(logic.CHARACTER_LEVEL_STEP, 600);
   assert.equal(logic.RENOWN_LEVEL_STEP, 1200);
-  assert.deepEqual(plain(logic.levelFromXp(300)), { lvl: 1, into: 300, need: 600, pct: 50 });
-  assert.deepEqual(plain(logic.levelFromXp(600)), { lvl: 2, into: 0, need: 600, pct: 0 });
-  assert.deepEqual(plain(logic.levelFromRenown(600)), { lvl: 1, into: 600, need: 1200, pct: 50 });
-  assert.deepEqual(plain(logic.levelFromRenown(1200)), { lvl: 2, into: 0, need: 1200, pct: 0 });
+  assert.deepEqual(plain(logic.CHARACTER_LEVEL_THRESHOLDS.slice(0, 4)), [0, 300, 800, 1500]);
+  assert.deepEqual(plain(logic.REPUTATION_LEVEL_THRESHOLDS.slice(0, 4)), [0, 1000, 2500, 5000]);
+  assert.deepEqual(plain(logic.levelFromXp(150)), { lvl: 1, into: 150, need: 300, pct: 50 });
+  assert.deepEqual(plain(logic.levelFromXp(300)), { lvl: 2, into: 0, need: 500, pct: 0 });
+  assert.deepEqual(plain(logic.levelFromReputation(500)), { lvl: 1, into: 500, need: 1000, pct: 50 });
+  assert.deepEqual(plain(logic.levelFromReputation(1000)), { lvl: 2, into: 0, need: 1500, pct: 0 });
+  assert.deepEqual(plain(logic.levelFromRenown(1000)), { lvl: 2, into: 0, need: 1500, pct: 0 });
 });
 
 test('normalizeTripState keeps legacy trip data compatible', () => {
@@ -214,7 +217,7 @@ test('buildCharacterProfile aggregates board history, money, badges, and admin o
   assert.equal(profile.class, 'archfiend');
   assert.equal(profile.skin, 'archfiend-swimmer-blackred');
   assert.equal(profile.xp, 900);
-  assert.equal(profile.level.lvl, 2);
+  assert.equal(profile.level.lvl, 3);
   assert.equal(profile.totals.boards, 1);
   assert.equal(profile.totals.paid, 1000);
   assert.equal(profile.totals.share, 500);

@@ -48,7 +48,7 @@ function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 function characterLevelFromXp(xp) { return PointyLogic.levelFromXp(xp); }
-function profileLevelFromRenown(renown) { return PointyLogic.levelFromRenown(renown); }
+function profileLevelFromReputation(reputation) { return PointyLogic.levelFromReputation ? PointyLogic.levelFromReputation(reputation) : PointyLogic.levelFromRenown(reputation); }
 function localUserLifecycle() {
   try { return JSON.parse(localStorage.getItem(LOCAL_USER_LIFECYCLE_KEY) || '{}') || {}; } catch (_) { return {}; }
 }
@@ -505,8 +505,8 @@ function boardStats(b) {
   return { expenses: expenses.length, spend, dragons: dragons.length, balance, overdue };
 }
 function fmtMoney(v) { return '฿' + Math.round(Number(v || 0)).toLocaleString('th-TH'); }
-function userRenown(u) { return u.chars.reduce((sum, c) => sum + Number(c.xp || 0), 0) + u.adminGroups.length * 800; }
-function userLevel(u) { return profileLevelFromRenown(userRenown(u)).lvl; }
+function userReputation(u) { return u.chars.reduce((sum, c) => sum + Number(c.xp || 0), 0) + u.adminGroups.length * 800; }
+function userLevel(u) { return profileLevelFromReputation(userReputation(u)).lvl; }
 function idChip(kind, label, id = label, extra = '') {
   const safeKind = kind === 'debt' ? 'debt' : kind;
   const on = kind === 'char' ? '' : ` onclick="openDetail(${q(kind)},${q(id)})"`;
@@ -867,7 +867,7 @@ function renderRelationshipMap() {
   const rules = `<ul class="model-rules">
     <li>One User ID works across Split Expenses, Debt Dragon, Treasury, and Character Profile.</li>
     <li>Current player/auth canon: one User ID has one active Character. Admin can edit that character's name/class/XP.</li>
-    <li>Character XP uses PointyLogic.levelFromXp(); overall Renown uses PointyLogic.levelFromRenown().</li>
+    <li>Character XP uses PointyLogic.levelFromXp(); Profile Reputation uses PointyLogic.levelFromReputation().</li>
     <li>A user can be a board admin through one or more Admin IDs, and one Admin ID can own multiple boards.</li>
     <li>Compare Prices is a tool, not a Board.</li>
   </ul>`;
@@ -980,24 +980,24 @@ function renderUsers() {
       <td><div class="cell-strong">${h(u.name)}</div>${u.username ? `<div class="cell-sub">@${h(u.username)}</div>` : ''}</td>
       <td><div class="wrap-chips">${u.chars.map(c => idChip('char', c.id || '-', c.id, `<span>${h(c.name)}</span>`)).join(' ') || '<span class="muted cell-sub">—</span>'}</div></td>
       <td class="mono">${u.boards.length}</td>
-      <td>${levelBadge(userLevel(u))} <span class="cell-sub mono">${userRenown(u).toLocaleString()}</span></td>
+      <td>${levelBadge(userLevel(u))} <span class="cell-sub mono">${userReputation(u).toLocaleString()}</span></td>
       <td>${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length} Admin roles</span>` : '<span class="muted cell-sub">—</span>'}</td>
       <td>${statusBadgeFor(u.status)}</td>
       <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.chars[0]?.id || ''))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(u.userId)})">Detail</button></td>
     </tr>`).join('');
-  return `${pageHead('Users', `${records.length} global users · one active character per User ID`, `<button class="btn btn-primary" onclick="showAddUserModal()">+ Add user</button>`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Total renown','Admin role','Status',''], rows))}`;
+  return `${pageHead('Users', `${records.length} global users · one active character per User ID`, `<button class="btn btn-primary" onclick="showAddUserModal()">+ Add user</button>`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Profile reputation','Admin role','Status',''], rows))}`;
 }
 function renderUserDetail(id) {
   const u = userById(id);
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
-  const renown = userRenown(u);
+  const reputation = userReputation(u);
   const deleteReady = TEST_MODE || adminBackendStatus.adminDeleteConfigured;
   const deleteDisabled = deleteReady ? '' : 'disabled';
   const deleteHint = deleteReady
     ? 'Requests backend deletion of Auth user, username mapping, character ownership, and legacy board references.'
     : adminDeleteBackendNote();
   const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor(u.status)}</div><hr class="hr"><div class="kv">
-    <div class="kv-row"><span class="k">Overall level (Renown)</span><span class="v"><b>LV ${userLevel(u)}</b> · ${renown.toLocaleString()}</span></div>
+    <div class="kv-row"><span class="k">Profile Reputation</span><span class="v"><b>LV ${userLevel(u)}</b> · ${reputation.toLocaleString()}</span></div>
     <div class="kv-row"><span class="k">Character</span><span class="v">${u.chars.length}</span></div>
     <div class="kv-row"><span class="k">Boards</span><span class="v">${u.boards.length}</span></div>
     <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
