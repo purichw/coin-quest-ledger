@@ -257,6 +257,98 @@
     return (Number(apr) || 0) / 100 / 12;
   }
 
+  function dateOnlyMs(value) {
+    const d = value instanceof Date ? new Date(value) : new Date(value || Date.now());
+    if (Number.isNaN(d.getTime())) {
+      const fallback = new Date();
+      fallback.setHours(0, 0, 0, 0);
+      return fallback.getTime();
+    }
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  function daysBetween(start, end) {
+    const from = dateOnlyMs(start);
+    const to = dateOnlyMs(end);
+    return Math.max(0, Math.round((to - from) / 86400000));
+  }
+
+  function lastDayOfMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  function clampedDueDay(year, monthIndex, dueDay) {
+    const configured = Math.max(1, Math.min(31, parseInt(dueDay, 10) || 1));
+    return Math.min(configured, lastDayOfMonth(year, monthIndex));
+  }
+
+  function dueDateForMonth(year, monthIndex, dueDay) {
+    return new Date(year, monthIndex, clampedDueDay(year, monthIndex, dueDay));
+  }
+
+  function dailyDebtRate(apr) {
+    return (Number(apr) || 0) / 100 / 365;
+  }
+
+  function dailyInterest(d, from, to) {
+    const days = daysBetween(from, to);
+    const rate = dailyDebtRate(d?.apr);
+    if (days <= 0 || rate <= 0) return 0;
+    const base = d?.interestMode === 'simple'
+      ? Math.max(0, Number(d?.original) || 0)
+      : Math.max(0, Number(d?.balance) || 0);
+    return d?.interestMode === 'simple'
+      ? base * rate * days
+      : base * (Math.pow(1 + rate, days) - 1);
+  }
+
+  function accrueDebtToDate(d, to) {
+    const toMs = dateOnlyMs(to);
+    if (!d || d.slain || Number(d.balance) <= 0.5 || !(Number(d.apr) > 0)) {
+      return { debt: d, interest: 0, days: 0 };
+    }
+    const fromMs = Number(d.interestAccruedAt) || Number(d.createdAt) || toMs;
+    const days = daysBetween(fromMs, toMs);
+    if (days <= 0) return { debt: { ...d, interestAccruedAt: Math.max(fromMs, toMs) }, interest: 0, days: 0 };
+    const interest = dailyInterest(d, fromMs, toMs);
+    return {
+      debt: {
+        ...d,
+        balance: Math.max(0, Number(d.balance) || 0) + interest,
+        interestAccruedAt: toMs
+      },
+      interest,
+      days
+    };
+  }
+
+  function applyDebtPayment(d, amount, date) {
+    const accrued = accrueDebtToDate(d, date);
+    const before = Math.max(0, Number(accrued.debt?.balance) || 0);
+    const payment = Math.max(0, Number(amount) || 0);
+    const applied = Math.min(payment, before);
+    const interestPaid = Math.min(applied, Math.max(0, Number(accrued.interest) || 0));
+    const principalPaid = Math.max(0, applied - interestPaid);
+    const after = Math.max(0, before - applied);
+    const debt = {
+      ...accrued.debt,
+      balance: after,
+      slain: !!accrued.debt?.slain || after <= 0.5,
+      slainAt: after <= 0.5 ? (accrued.debt?.slainAt || Date.now()) : null
+    };
+    return {
+      debt,
+      applied,
+      interest: accrued.interest,
+      interestPaid,
+      principalPaid,
+      balanceBefore: before,
+      balanceAfter: after,
+      days: accrued.days
+    };
+  }
+
   function monthlyInterest(d) {
     const rate = monthlyDebtRate(d?.apr);
     const base = d?.interestMode === 'simple' ? Math.max(0, Number(d?.original) || 0) : Math.max(0, Number(d?.balance) || 0);
@@ -347,6 +439,7 @@
       ...(data.slayer || {})
     };
     const dragons = Array.isArray(data.dragons) ? data.dragons : seed.dragons;
+    const legacyAccruedAt = Number(data.lastAccrued) || Date.now();
     return {
       slayer,
       dragons: dragons.map((d, index) => {
@@ -369,9 +462,17 @@
             id: String(row.id || ''),
             date: String(row.date || ''),
             amount: Math.max(0, Number(row.amount) || 0),
+            interest: Math.max(0, Number(row.interest) || 0),
+            principal: Math.max(0, Number(row.principal) || 0),
+            accruedInterest: Math.max(0, Number(row.accruedInterest) || 0),
+            balanceBefore: Math.max(0, Number(row.balanceBefore) || 0),
+            balanceAfter: Math.max(0, Number(row.balanceAfter) || 0),
+            days: Math.max(0, Number(row.days) || 0),
             ts: Number(row.ts) || 0,
             move: row.move || 'projectile'
           })) : [],
+          createdAt: Number(d?.createdAt) || legacyAccruedAt,
+          interestAccruedAt: Number(d?.interestAccruedAt) || Number(d?.createdAt) || legacyAccruedAt,
           slain: !!d?.slain || balance <= 0.5,
           slainAt: d?.slainAt || null
         };
@@ -729,6 +830,14 @@
     buildCharacterProfile,
     dragonType,
     monthlyDebtRate,
+    dailyDebtRate,
+    dateOnlyMs,
+    daysBetween,
+    clampedDueDay,
+    dueDateForMonth,
+    dailyInterest,
+    accrueDebtToDate,
+    applyDebtPayment,
     monthlyInterest,
     payoffMonths,
     strategyTarget,

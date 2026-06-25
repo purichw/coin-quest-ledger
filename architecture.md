@@ -50,6 +50,10 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - Route: `/debt/`
 - Local-first debt payoff game/tool using `localStorage`.
 - Shares theme, profile hub, mobile shell, and character registry concepts.
+- Uses daily interest accrual for the live ledger: each dragon tracks
+  `interestAccruedAt`; strikes accrue interest to the payment date before
+  applying the payment, so early payments reduce the following days' compound
+  interest. The payoff forecast remains a monthly approximation.
 
 ### Treasury
 

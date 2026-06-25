@@ -152,6 +152,7 @@ function fallback(key) {
     dd_balance: 'พลังที่เหลือ',
     dd_reclaimed: 'ทวงคืนแล้ว',
     dd_regen: 'ฟื้น/เดือน',
+    dd_regen_day: 'ฟื้น/วัน',
     dd_slain: 'ปราบมังกรสำเร็จ!',
     dd_slain_tag: 'ปราบแล้ว',
     dd_add: 'เพิ่มมังกร',
@@ -174,6 +175,7 @@ function fallback(key) {
     dd_end_month_sub: 'จำลองเวลาไป 1 เดือน — มังกรพ่นไฟ ดอกเบี้ยงอก',
     dd_month_passed: 'ดอกเบี้ยงอก!',
     dd_accrued: 'ผ่านไป {n} เดือน · ดอกเบี้ยงอกรวม {amt}',
+    dd_accrued_days: 'ผ่านไป {n} วัน · ดอกเบี้ยงอกรวม {amt}',
     dd_weakening: 'มังกรอ่อนแรง!',
     dd_pay_mode: 'การชำระ',
     dd_monthly: 'รายเดือน',
@@ -256,6 +258,7 @@ function fallback(key) {
     dd_balance: 'Remaining',
     dd_reclaimed: 'Reclaimed',
     dd_regen: 'regen/mo',
+    dd_regen_day: 'regen/day',
     dd_slain: 'Dragon slain!',
     dd_slain_tag: 'Slain',
     dd_add: 'Add a dragon',
@@ -278,6 +281,7 @@ function fallback(key) {
     dd_end_month_sub: 'Simulate one month forward — dragons breathe fire, interest accrues',
     dd_month_passed: 'Interest accrued!',
     dd_accrued: 'Advanced {n} mo · {amt} interest accrued',
+    dd_accrued_days: 'Advanced {n}d · {amt} interest accrued',
     dd_weakening: 'Dragon weakening!',
     dd_pay_mode: 'Payment',
     dd_monthly: 'Monthly',
@@ -359,29 +363,19 @@ function nextEndOfMonthISO(iso) {
 function defaultEndMonthISO() {
   return SETTINGS.lastEndMonthDate ? nextEndOfMonthISO(SETTINGS.lastEndMonthDate) : endOfMonthISO();
 }
-function monthsBetween(fromMs, toMs) {
-  if (!fromMs) return 0;
-  const a = new Date(fromMs);
-  const b = new Date(toMs);
-  return Math.max(0, (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()));
+function dateMsFromISO(iso) {
+  return PointyLogic.dateOnlyMs(iso ? new Date(`${iso}T00:00:00`) : new Date());
 }
-function addMonths(ms, n) {
-  const d = new Date(ms);
-  d.setMonth(d.getMonth() + n);
-  return d.getTime();
-}
-function accrueDragons(dragons, n) {
+function accrueDragonsToDate(dragons, date) {
   let added = 0;
+  let days = 0;
   const next = dragons.map(d => {
-    if (d.slain || Number(d.balance) <= .5 || !(Number(d.apr) > 0)) return d;
-    const rate = PointyLogic.monthlyDebtRate(d.apr);
-    const interest = d.interestMode === 'simple'
-      ? Number(d.original) * rate * n
-      : Number(d.balance) * (Math.pow(1 + rate, n) - 1);
-    added += interest;
-    return { ...d, balance: Number(d.balance) + interest };
+    const res = PointyLogic.accrueDebtToDate(d, date);
+    added += Number(res.interest) || 0;
+    days = Math.max(days, Number(res.days) || 0);
+    return res.debt;
   });
-  return { next, added };
+  return { next, added, days };
 }
 function dayStart(d) {
   const x = new Date(d);
@@ -396,11 +390,10 @@ function dueStatus(d, today = new Date()) {
     const t = new Date(row.ts || 0);
     return t.getFullYear() === y && t.getMonth() === m;
   });
-  const dimThis = new Date(y, m + 1, 0).getDate();
-  const dueThis = Math.min(Number(d.dueDay) || 0, dimThis);
+  const dueThis = PointyLogic.clampedDueDay(y, m, d.dueDay);
   if (!paidThisMonth && today.getDate() > dueThis) return { overdue: true };
   const dueDate = paidThisMonth
-    ? new Date(y, m + 1, Math.min(Number(d.dueDay) || 1, new Date(y, m + 2, 0).getDate()))
+    ? PointyLogic.dueDateForMonth(y, m + 1, d.dueDay)
     : new Date(y, m, dueThis);
   return { overdue: false, days: Math.round((dayStart(dueDate) - dayStart(today)) / 86400000) };
 }
@@ -713,6 +706,8 @@ function renderDragonCard(d) {
   const paidPct = Math.max(0, Math.min(100, ((Number(d.original) - Number(d.balance)) / Math.max(1, Number(d.original))) * 100));
   const months = PointyLogic.payoffMonths(d);
   const regen = PointyLogic.monthlyInterest(d);
+  const todayMs = PointyLogic.dateOnlyMs(new Date());
+  const dailyRegen = PointyLogic.dailyInterest(d, todayMs, todayMs + 86400000);
   const adhoc = d.payMode === 'adhoc';
   const never = !adhoc && Number(regen) > 0 && !isFinite(months) && !d.slain;
   const target = d.id === targetId();
@@ -740,7 +735,7 @@ function renderDragonCard(d) {
         <div class="dc-stats">
           <span class="dc-stat"><span class="dc-stat-k">${tt('dd_apr')}</span><span class="dc-stat-v">${d.apr}%</span></span>
           ${d.apr > 0 ? `<span class="pill">${d.interestMode === 'simple' ? '▭ ' + tt('dd_simple') : '⟳ ' + tt('dd_compound')}</span>` : ''}
-          ${regen > 0 ? `<span class="pill regen-pill">🔥 +${money(regen)} ${tt('dd_regen')}</span>` : ''}
+          ${dailyRegen > 0 ? `<span class="pill regen-pill">🔥 +${money(dailyRegen)} ${tt('dd_regen_day')}</span>` : ''}
           ${adhoc ? `<span class="pill">🤝 ${tt('dd_adhoc')}</span>` : `<span class="dc-stat"><span class="dc-stat-k">${tt('dd_payment')}</span><span class="dc-stat-v gold">${money(d.payment)}/${tt('dd_month_short')}</span></span>`}
         </div>
         <div class="dc-forecast">${adhoc ? `🤝 ${tt('dd_adhoc_note')}` : never ? `<span class="dc-never">⚠️ ${tt('dd_never_warn')}</span>` : `⏳ ${months} ${tt('dd_month_short')} · ${tt('dd_debt_free_by')} ${debtFreeLabel(months)}`}${due ? (due.overdue ? ` <span class="dc-due overdue">⚠️ ${tt('dd_overdue')}</span>` : ` <span class="dc-due">📅 ${due.days === 0 ? tt('dd_due_today') : tt('dd_due_in', { n: due.days })}</span>`) : ''}</div>
@@ -886,7 +881,7 @@ function renderAll(shouldSave = true) {
   const sim = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, 0);
   document.getElementById('app').innerHTML = `<section class="banner">
     <div class="banner-crest">🐉</div><h1 class="banner-title">${tt('dd_title')}</h1><div class="banner-sub">${tt('dd_sub')}</div>
-    ${ACCRUAL_NOTE ? `<div class="accrual-note">🔥 ${tt('dd_accrued', { n: ACCRUAL_NOTE.n, amt: money(ACCRUAL_NOTE.added) })}</div>` : ''}
+    ${ACCRUAL_NOTE ? `<div class="accrual-note">🔥 ${tt(ACCRUAL_NOTE.days ? 'dd_accrued_days' : 'dd_accrued', { n: ACCRUAL_NOTE.n, amt: money(ACCRUAL_NOTE.added) })}</div>` : ''}
     <div class="hoard-bar"><div class="hoard-stat"><span class="hs-icon">🐉</span><span class="hs-val">${moneyShort(totalDebt)}</span><span class="hs-lab">${tt('dd_hoard')}</span></div>
     <div class="hoard-stat"><span class="hs-icon">🏆</span><span class="hs-val">${S.dragons.filter(d => d.slain).length}</span><span class="hs-lab">${tt('dd_slain_count')}</span></div>
     <div class="hoard-stat"><span class="hs-icon">🛡️</span><span class="hs-val">${isFinite(sim.months) ? sim.months : '∞'}</span><span class="hs-lab">${tt('dd_free_in')} · ${tt('dd_months')}</span></div></div>
@@ -927,17 +922,33 @@ function strikeDragon(id) {
   if (amount <= 0) return;
   const date = document.getElementById(`strike-date-${id}`)?.value || todayISO();
   const move = document.querySelector(`[data-dragon-id="${CSS.escape(id)}"] .dc-move.on`)?.dataset.move || 'projectile';
-  const damage = Math.min(amount, Number(d.balance) || 0);
-  d.balance = Math.max(0, Number(d.balance) - amount);
-  d.log = [...(d.log || []), { id: uid(), date: dateShort(date), amount: damage, ts: new Date(`${date}T00:00:00`).getTime(), move }];
-  if (d.balance <= .5) { d.slain = true; d.slainAt = Date.now(); flashToken = Date.now(); setTimeout(() => { flashToken = 0; renderAll(false); }, 620); }
-  FX[id] = { id: uid(), dmg: damage, move };
+  const ts = dateMsFromISO(date);
+  const result = PointyLogic.applyDebtPayment(d, amount, ts);
+  if (result.applied <= 0) return;
+  const row = {
+    id: uid(),
+    date: dateShort(date),
+    amount: result.applied,
+    interest: result.interestPaid,
+    principal: result.principalPaid,
+    accruedInterest: result.interest,
+    balanceBefore: result.balanceBefore,
+    balanceAfter: result.balanceAfter,
+    days: result.days,
+    ts,
+    move
+  };
+  const nextDebt = { ...result.debt, log: [...(d.log || []), row] };
+  S.dragons = S.dragons.map(item => item.id === id ? nextDebt : item);
+  if (result.interest > 0) S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + result.interest };
+  if (!d.slain && nextDebt.slain) { flashToken = Date.now(); setTimeout(() => { flashToken = 0; renderAll(false); }, 620); }
+  FX[id] = { id: uid(), dmg: result.applied, move };
   STRIKE_OPEN = '';
   if (move === 'fireball') SFX.fire();
   else if (move === 'lightning') SFX.zap();
   else SFX.clang();
   setTimeout(() => SFX.reclaim(), 120);
-  if (d.slain) setTimeout(() => SFX.win(), 240);
+  if (!d.slain && nextDebt.slain) setTimeout(() => SFX.win(), 240);
   setTimeout(() => { delete FX[id]; renderAll(false); }, 1000);
   renderAll();
 }
@@ -946,10 +957,13 @@ function endMonth() {
   if (!ids.length) return;
   BREATHING = ids;
   SFX.roar();
-  const { next, added } = accrueDragons(S.dragons, 1);
+  const targetIso = defaultEndMonthISO();
+  const { next, added, days } = accrueDragonsToDate(S.dragons, dateMsFromISO(targetIso));
   S.dragons = next;
   S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + added };
-  S.lastAccrued = addMonths(Math.max(Number(S.lastAccrued) || Date.now(), Date.now()), 1);
+  S.lastAccrued = dateMsFromISO(targetIso);
+  SETTINGS.lastEndMonthDate = targetIso;
+  saveSettings();
   toast(`${tt('dd_month_passed')} · ${money(added)}`);
   setTimeout(() => { BREATHING = []; renderAll(false); }, 1150);
   renderAll();
@@ -978,7 +992,8 @@ function formPayload(prefix) {
 function addDragon() {
   const form = formPayload('new');
   if (!form.name || form.balance <= 0) return;
-  S.dragons.push({ id: uid(), name: { th: form.name, en: form.name }, ...form, log: [], slain: false, slainAt: null });
+  const now = PointyLogic.dateOnlyMs(new Date());
+  S.dragons.push({ id: uid(), name: { th: form.name, en: form.name }, ...form, log: [], createdAt: now, interestAccruedAt: now, slain: false, slainAt: null });
   ADD_OPEN = false;
   SFX.click();
   renderAll();
@@ -986,7 +1001,8 @@ function addDragon() {
 function saveDragon(id) {
   const form = formPayload(`edit-${id}`);
   if (!form.name) return;
-  S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, slain: form.balance <= .5 ? d.slain : false } : d);
+  const now = PointyLogic.dateOnlyMs(new Date());
+  S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, interestAccruedAt: now, slain: form.balance <= .5 ? d.slain : false } : d);
   EDIT_OPEN = '';
   SFX.click();
   renderAll();
@@ -1198,14 +1214,13 @@ function renderOverlay() {
 }
 
 function reconcileAccrualOnOpen() {
-  const n = monthsBetween(S.lastAccrued, Date.now());
-  if (n <= 0) return;
-  const { next, added } = accrueDragons(S.dragons, n);
-  S.lastAccrued = addMonths(S.lastAccrued || Date.now(), n);
+  const { next, added, days } = accrueDragonsToDate(S.dragons, PointyLogic.dateOnlyMs(new Date()));
+  if (days <= 0) return;
+  S.lastAccrued = PointyLogic.dateOnlyMs(new Date());
   if (added <= 0) return;
   S.dragons = next;
   S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + added };
-  ACCRUAL_NOTE = { n, added: Math.round(added) };
+  ACCRUAL_NOTE = { n: days, days: true, added: Math.round(added) };
   BREATHING = next.filter(d => !d.slain && Number(d.balance) > .5 && Number(d.apr) > 0).map(d => d.id);
   SFX.roar();
   setTimeout(() => { BREATHING = []; ACCRUAL_NOTE = null; renderAll(false); }, 5000);

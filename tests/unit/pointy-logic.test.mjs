@@ -241,9 +241,36 @@ test('Debt Dragon interest math handles compound and simple modes', () => {
 
   closeTo(logic.monthlyInterest(compound), 600);
   closeTo(logic.monthlyInterest(simple), 1000);
+  closeTo(logic.dailyInterest(compound, new Date('2026-06-01T00:00:00'), new Date('2026-06-02T00:00:00')), 19.73, 0.02);
   assert.equal(logic.payoffMonths(simple), 12);
   assert.equal(logic.payoffMonths({ ...simple, payment: 1000 }), Infinity);
   assert.equal(logic.payoffMonths({ ...compound, payment: 600 }), Infinity);
+});
+
+test('Debt Dragon daily accrual rewards paying before the due date', () => {
+  const start = new Date('2026-06-01T00:00:00');
+  const earlyPayDate = new Date('2026-06-25T00:00:00');
+  const dueDate = new Date('2026-06-30T00:00:00');
+  const mortgage = {
+    id: 'home',
+    original: 1000000,
+    balance: 1000000,
+    apr: 2.5,
+    payment: 25000,
+    payMode: 'monthly',
+    interestMode: 'compound',
+    dueDay: 31,
+    interestAccruedAt: start.getTime()
+  };
+
+  const early = logic.applyDebtPayment(mortgage, 100000, earlyPayDate);
+  const earlyAtDue = logic.accrueDebtToDate(early.debt, dueDate).debt.balance;
+  const late = logic.applyDebtPayment(mortgage, 100000, dueDate);
+
+  assert.equal(logic.clampedDueDay(2026, 1, 31), 28);
+  assert.ok(early.interest > 0);
+  assert.ok(earlyAtDue < late.debt.balance);
+  closeTo(late.debt.balance - earlyAtDue, 34.2, 1);
 });
 
 test('Debt Dragon lair simulation excludes ad-hoc debts and rolls freed payments forward', () => {

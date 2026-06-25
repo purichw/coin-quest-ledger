@@ -498,6 +498,49 @@ Normalization/ranking belongs in `shared/pointy-logic.js`.
 
 Debt Dragon is local-first today. If it starts writing character progress to Firestore, make that a planned migration.
 
+Debt Dragon debts now track daily interest state in addition to the legacy
+monthly forecast fields:
+
+```js
+{
+  dragons: Array<{
+    id: string,
+    original: number,
+    balance: number,
+    apr: number,
+    payment: number,
+    payMode: "monthly" | "adhoc",
+    interestMode: "compound" | "simple",
+    dueDay: 0 | 1..31,
+    createdAt: epochMs,
+    interestAccruedAt: epochMs,
+    log: Array<{
+      id: string,
+      date: string,
+      amount: number,
+      interest?: number,
+      principal?: number,
+      accruedInterest?: number,
+      balanceBefore?: number,
+      balanceAfter?: number,
+      days?: number,
+      ts: epochMs,
+      move: string
+    }>
+  }>,
+  lastAccrued: epochMs,
+  stats: { interest: number }
+}
+```
+
+Rules:
+
+- `interestAccruedAt` is the date through which the current `balance` has already absorbed daily interest.
+- New/legacy debts without `interestAccruedAt` normalize from `lastAccrued`, then `createdAt`, then now.
+- Strike/payment first accrues interest from `interestAccruedAt` to the payment date, then applies the payment to the updated balance.
+- Compound interest uses the current balance as the daily base; simple interest uses the original principal as the daily base.
+- `dueDay: 31` represents "the 31st when it exists"; due display clamps it to the last valid day for shorter months.
+
 ### Treasury
 
 Treasury uses local module storage in `treasury/app.js`. Keep it local-first until a broader persistence/security plan is chosen.
