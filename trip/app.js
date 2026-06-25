@@ -348,7 +348,9 @@ function ensureCharacterId(name) {
 }
 function readAccount() {
   try {
-    const account = JSON.parse(localStorage.getItem('pointy_auth_v1') || 'null');
+    const account = window.PointyScope?.readAuth
+      ? window.PointyScope.readAuth()
+      : JSON.parse(localStorage.getItem('pointy_auth_v1') || 'null');
     return account && !account.signedOut ? account : null;
   } catch (_) {
     return null;

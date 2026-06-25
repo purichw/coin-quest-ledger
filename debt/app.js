@@ -76,8 +76,9 @@ let audioCtx = null;
 function readDebtAccount() {
   if (TEST_MODE) return null;
   try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    const account = raw ? JSON.parse(raw) : null;
+    const account = window.PointyScope?.readAuth
+      ? window.PointyScope.readAuth()
+      : JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
     return account && !account.signedOut ? account : null;
   } catch (_) {
     return null;

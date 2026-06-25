@@ -649,6 +649,32 @@ test('production profile gate ignores stale unsigned character-creation mirrors'
   await expect(page.getByRole('heading', { name: /ยินดีต้อนรับกลับฮีโร่|Welcome back/ })).toBeVisible();
 });
 
+test('player modules ignore stale Firebase mirrors until auth is trusted', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      provider: 'firebase',
+      uid: 'stale-module-uid',
+      username: 'stalehero',
+      email: 'stalehero@coinquest.local',
+      userId: '6622',
+      name: 'Stale Account',
+      character: { id: '6622', name: 'Stale Hero', class: 'wizard', cls: 'wizard', gender: 'female', skin: '' }
+    }));
+    localStorage.setItem('pointy_debt_v5::uid_stale-module-uid', JSON.stringify({
+      dragons: [],
+      slayer: { name: 'Stale Hero', characterId: '6622', class: 'wizard', gender: 'female' },
+      stats: {}
+    }));
+  });
+  await page.goto('/debt/');
+
+  await expect(page.locator('.login-gate')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('#slayer-name')).not.toHaveValue('Stale Hero');
+  await expect(page.locator('.account-hero-note')).toHaveCount(0);
+});
+
 test('super admin portal saves drafts, publishes board edits, and records revisions', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();

@@ -1,11 +1,20 @@
 (function () {
   const AUTH_KEY = 'pointy_auth_v1';
   const TEST_MODE = new URLSearchParams(location.search || '').get('test') === '1';
+  const FIREBASE_AUTH_TRUST_KEY = 'pointy_firebase_auth_trusted_v1';
 
   function readAuth() {
     try {
       const raw = localStorage.getItem(AUTH_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const account = raw ? JSON.parse(raw) : null;
+      if (!TEST_MODE && account?.provider === 'firebase') {
+        try {
+          if (sessionStorage.getItem(FIREBASE_AUTH_TRUST_KEY) !== '1') return null;
+        } catch (_) {
+          return null;
+        }
+      }
+      return account;
     } catch (_) {
       return null;
     }

@@ -280,7 +280,7 @@
   let tourTimer = null;
   let signingOut = false;
   let baselineDone = false;
-  let firebaseAuthResolved = TEST_MODE;
+  let firebaseAuthResolved = TEST_MODE || !!window.PointyProfileSession.isFirebaseAuthTrusted?.();
 
   function lang() { return window.LANG === 'en' ? 'en' : 'th'; }
   function s() { return STR[lang()]; }
@@ -1663,6 +1663,7 @@
     authWatcherStarted = true;
     auth.onAuthStateChanged(async user => {
       firebaseAuthResolved = true;
+      window.PointyProfileSession.markFirebaseAuthTrusted?.();
       if (signingOut) return;
       if (!user) {
         const current = window.PointyProfileSession.readAuth();
