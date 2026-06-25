@@ -628,6 +628,27 @@ test('production player login surfaces never expose test account fallback', asyn
   await expect(page.getByText(/บัญชีทดสอบ|Test accounts/)).toHaveCount(0);
 });
 
+test('production profile gate ignores stale unsigned character-creation mirrors', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      provider: 'firebase',
+      uid: 'stale-uid',
+      username: 'staleuser',
+      email: 'staleuser@coinquest.local',
+      userId: '6616',
+      name: 'purichworawarachai',
+      character: null
+    }));
+  });
+  await page.goto('/');
+
+  await expect(page.locator('.login-gate')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /ยินดีต้อนรับกลับฮีโร่|Welcome back/ })).toBeVisible();
+});
+
 test('super admin portal saves drafts, publishes board edits, and records revisions', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
@@ -811,7 +832,7 @@ test('profile hub completes character creation and links to the full character p
       name: 'Fresh'
     }));
   });
-  await page.goto('/');
+  await page.goto('/?test=1');
 
   await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toBeVisible();
   await expect(page.getByText(/แตะเลือกฮีโร่|Tap to choose your hero/)).toBeVisible();

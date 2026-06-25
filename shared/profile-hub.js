@@ -280,6 +280,7 @@
   let tourTimer = null;
   let signingOut = false;
   let baselineDone = false;
+  let firebaseAuthResolved = TEST_MODE;
 
   function lang() { return window.LANG === 'en' ? 'en' : 'th'; }
   function s() { return STR[lang()]; }
@@ -439,6 +440,12 @@
   function patchProfile(patch) { return saveProfile({ ...loadProfile(), ...patch }); }
   function loadAuth() {
     const auth = window.PointyProfileSession.readAuth();
+    if (!TEST_MODE && auth?.provider === 'firebase' && !firebaseAuthResolved) {
+      return null;
+    }
+    if (!TEST_MODE && auth && !auth.character && auth.provider !== 'firebase') {
+      return null;
+    }
     if (auth && auth.email && auth.userId && !auth.signedOut) {
       const normalized = normalizeAccount(auth);
       if (isBlockedAccountStatus(normalized)) {
@@ -1655,6 +1662,7 @@
     }
     authWatcherStarted = true;
     auth.onAuthStateChanged(async user => {
+      firebaseAuthResolved = true;
       if (signingOut) return;
       if (!user) {
         const current = window.PointyProfileSession.readAuth();
