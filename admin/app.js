@@ -491,6 +491,9 @@ function userRecords() {
     };
   }).sort((a, b) => a.userId.localeCompare(b.userId));
 }
+function visibleUserRecords() {
+  return userRecords().filter(u => normalizeUserStatus(u.status) !== 'deleted');
+}
 function userById(id) { return userRecords().find(u => u.userId === id); }
 function adminGroupByKey(key) { return adminGroups().find(g => g.key === key); }
 function charById(id) {
@@ -973,7 +976,7 @@ function renderAdminDetail(key) {
 }
 function renderUsers() {
   if (detail?.kind === 'user') return renderUserDetail(detail.id);
-  const records = userRecords().filter(u => !query || `${u.name} ${u.username || ''} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
+  const records = visibleUserRecords().filter(u => !query || `${u.name} ${u.username || ''} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
   const rows = records.map(u => `
     <tr>
       <td>${idChip('user', u.userId, u.userId)}</td>
@@ -1098,7 +1101,7 @@ function renderMain() {
       </div>
     </header>
     <div class="shell">
-      <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${userRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
+      <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${visibleUserRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
       <main class="main">
         <div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}. ${adminDeleteBackendNote()}`)}</span></div>
         ${body}
@@ -1120,7 +1123,7 @@ function renderGate() {
 }
 function render() { isUnlocked() ? renderMain() : renderGate(); }
 function userOptions(selected = '') {
-  return userRecords().map(u => `<option value="${h(u.userId)}" ${u.userId === selected ? 'selected' : ''}>${h(u.name)} · ${h(u.userId)}</option>`).join('');
+  return visibleUserRecords().map(u => `<option value="${h(u.userId)}" ${u.userId === selected ? 'selected' : ''}>${h(u.name)} · ${h(u.userId)}</option>`).join('');
 }
 function boardOptions(selected = '') {
   return activeBoards().map(b => `<option value="${h(b.originalId)}" ${b.originalId === selected || b.urlId === selected ? 'selected' : ''}>${h(b.tripName)} · ${h(b.urlId)}</option>`).join('');
@@ -1136,7 +1139,7 @@ function portalModal(title, body, footer = '') {
   root.classList.add('show');
 }
 function showExportModal(target = '') {
-  const body = `<div class="field"><label>Select board / user</label><select id="export-target"><option value="">All</option><optgroup label="Boards">${activeBoards().map(b => `<option value="b:${h(b.originalId)}" ${b.originalId === target || b.urlId === target ? 'selected' : ''}>🗂️ ${h(b.tripName)} · ${h(b.urlId)}</option>`).join('')}</optgroup><optgroup label="Users">${userRecords().map(u => `<option value="u:${h(u.userId)}" ${u.userId === target ? 'selected' : ''}>👤 ${h(u.name)} · ${h(u.userId)}</option>`).join('')}</optgroup></select></div><div class="field"><label>Format</label><select><option>JSON</option><option>CSV</option></select></div>`;
+  const body = `<div class="field"><label>Select board / user</label><select id="export-target"><option value="">All</option><optgroup label="Boards">${activeBoards().map(b => `<option value="b:${h(b.originalId)}" ${b.originalId === target || b.urlId === target ? 'selected' : ''}>🗂️ ${h(b.tripName)} · ${h(b.urlId)}</option>`).join('')}</optgroup><optgroup label="Users">${visibleUserRecords().map(u => `<option value="u:${h(u.userId)}" ${u.userId === target ? 'selected' : ''}>👤 ${h(u.name)} · ${h(u.userId)}</option>`).join('')}</optgroup></select></div><div class="field"><label>Format</label><select><option>JSON</option><option>CSV</option></select></div>`;
   portalModal('📤 Export data', body, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-gold" onclick="supportAction('Export data','Prepared coin-quest-export.json');closePortalModal()">Export JSON</button>`);
 }
 function showImpersonateModal(uid = '') {

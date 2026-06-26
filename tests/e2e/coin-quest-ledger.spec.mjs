@@ -804,6 +804,43 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.getByText('Create / invite flows')).toBeVisible();
 });
 
+test('super admin users list hides deleted account tombstones from board admin links', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    sessionStorage.setItem('pointy_test_trip_4965', JSON.stringify({
+      tripName: 'Deleted Admin Board',
+      participants: [],
+      characterIds: {},
+      expenses: [],
+      admin: {
+        ownerHash: 'deleted-owner-4965',
+        adminId: '4965',
+        adminName: '4965',
+        passwordHash: 'old-hash',
+        urlLocked: true
+      },
+      updatedAt: 300
+    }));
+    localStorage.setItem('pointy_admin_user_lifecycle_v1', JSON.stringify({
+      '4965': { status: 'deleted', deletedAt: Date.now(), reason: 'Regression tombstone' }
+    }));
+  });
+
+  await page.goto('/admin/?test=1');
+  await page.locator('#gate-pass').fill('portal-pass');
+  await page.getByRole('button', { name: /Set & Unlock|Unlock/ }).click();
+
+  await page.getByRole('button', { name: 'Users' }).click();
+  await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
+  await expect(page.locator('.tbl-wrap')).not.toContainText('User 4965');
+  await expect(page.locator('.tbl-wrap')).not.toContainText('deleted');
+
+  await page.getByRole('button', { name: 'Board Admins' }).click();
+  await expect(page.getByRole('heading', { name: 'Board Admins', level: 1 })).toBeVisible();
+  await expect(page.locator('.tbl-wrap')).toContainText('4965');
+});
+
 test('character profile aggregates boards, shows portrait, and supports privacy mode', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
