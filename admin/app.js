@@ -5,7 +5,7 @@ const GATE_KEY = 'pointy_super_admin_gate_hash_v2';
 const GATE_UNLOCK_KEY = 'pointy_super_admin_unlocked_v2';
 const LOCAL_REVISIONS_KEY = 'pointy_super_admin_revisions_v2';
 const LOCAL_USER_LIFECYCLE_KEY = 'pointy_admin_user_lifecycle_v1';
-const VALID_TABS = new Set(['dashboard', 'map', 'boards', 'users', 'admins', 'audit', 'revisions', 'support']);
+const VALID_TABS = new Set(['dashboard', 'map', 'boards', 'users', 'admins', 'tombstones', 'audit', 'revisions', 'support']);
 const SUPER_ADMIN_EMAIL = 'purich.wc@gmail.com';
 
 let published = { boards: [], revisions: [] };
@@ -21,6 +21,7 @@ let userDetailTab = 'chars';
 let boardDetailTab = 'overview';
 let boardDetailView = 'tabbed';
 let cloudUsers = [];
+let cloudTombstones = [];
 let adminUser = null;
 let adminAuthReady = TEST_MODE;
 let adminAuthStarted = false;
@@ -267,6 +268,7 @@ async function loadPublished() {
   let boards = [];
   let revisions = [];
   cloudUsers = [];
+  cloudTombstones = [];
   if (TEST_MODE) {
     boards = Object.keys(sessionStorage)
       .filter(k => k.startsWith('pointy_test_trip_'))
@@ -288,6 +290,13 @@ async function loadPublished() {
     } catch (err) {
       console.warn('Admin cloud users load failed', err);
       cloudUsers = [];
+    }
+    try {
+      const tombSnap = await db.collection('usernames').where('deleteReusable', '==', true).limit(100).get();
+      cloudTombstones = tombSnap.docs.map(doc => normalizeUsernameTombstone(doc.id, doc.data() || {})).filter(Boolean);
+    } catch (err) {
+      console.warn('Admin username tombstones load failed', err);
+      cloudTombstones = [];
     }
   }
   boards.sort((a, b) => a.id.localeCompare(b.id));
@@ -324,10 +333,11 @@ function adminGroups() {
   const map = new Map();
   draft.boards.filter(b => !b.deleted).forEach(b => {
     const key = b.adminOwnerHash || b.adminId || 'unknown';
-    if (!map.has(key)) map.set(key, { key, adminId: b.adminId, adminName: b.adminName, boards: [] });
+    if (!map.has(key)) map.set(key, { key, adminId: b.adminId, adminName: b.adminName, ownerUserId: '', boards: [] });
     const g = map.get(key);
     g.adminId = g.adminId || b.adminId;
     g.adminName = g.adminName || b.adminName;
+    g.ownerUserId = g.ownerUserId || adminOwnerUserId(b);
     g.boards.push(b);
   });
   return [...map.values()].sort((a, b) => String(a.adminId || a.key).localeCompare(String(b.adminId || b.key)));
@@ -375,9 +385,20 @@ function boardTypeIcon(b) {
   return '📜';
 }
 function userKey(name, id) { return id || ('U-' + String(hashOf(String(name || 'user'))).slice(-4)); }
-function adminUserId(b) {
+function participantUserId(name, id) { return userKey(name, id); }
+function adminCharacterId(b) {
+  return String(b?.data?.admin?.characterId || b?.characterIds?.[b?.adminName] || '').trim();
+}
+function adminOwnerUserId(b) {
   const adminChar = b.data?.admin?.characterId || b.characterIds?.[b.adminName] || '';
-  return adminChar ? userKey(b.adminName || b.adminId, adminChar) : userKey(b.adminName || b.adminId || b.adminOwnerHash, b.adminId);
+  if (adminChar) {
+    const participant = b.participants.find(name => String(b.characterIds?.[name] || '') === String(adminChar));
+    if (participant) return participantUserId(participant, adminChar);
+    const cloud = cloudUsers.find(u => (u.chars || []).some(c => String(c.id || '') === String(adminChar)) || String(u.userId || '') === String(adminChar));
+    if (cloud) return cloud.userId;
+  }
+  if (b.adminName && b.characterIds?.[b.adminName]) return participantUserId(b.adminName, b.characterIds[b.adminName]);
+  return '';
 }
 function normalizeCloudUser(uid, data = {}) {
   const character = data.character || {};
@@ -407,6 +428,22 @@ function normalizeCloudUser(uid, data = {}) {
     boards: [],
     adminGroups: [],
     cloud: true
+  };
+}
+function normalizeUsernameTombstone(username, data = {}) {
+  const status = normalizeUserStatus(data.status || data.lifecycleStatus || '');
+  if (status !== 'deleted' && data.deleteReusable !== true) return null;
+  return {
+    username: data.username || username || '',
+    userId: String(data.userId || data.characterId || '').trim(),
+    characterIds: [...new Set([
+      data.characterId,
+      ...(Array.isArray(data.characterIds) ? data.characterIds : [])
+    ].map(id => String(id || '').trim()).filter(Boolean))],
+    previousUid: data.previousUid || '',
+    deletedAt: data.deletedAt || 0,
+    reason: data.deletedReason || '',
+    source: 'username'
   };
 }
 function mergeUserRecord(map, rec) {
@@ -453,7 +490,7 @@ function userRecords() {
   activeBoards().forEach(b => {
     b.participants.forEach(name => {
       const charId = b.characterIds[name] || '';
-      const key = userKey(name, charId);
+      const key = participantUserId(name, charId);
       const u = mergeUserRecord(map, { userId: key, name, chars: [], boards: [], adminGroups: [] });
       if (!u.boards.some(x => x.originalId === b.originalId)) u.boards.push(b);
       let ch = u.chars.find(c => c.id === charId);
@@ -473,8 +510,8 @@ function userRecords() {
     });
   });
   adminGroups().forEach(g => {
-    const b = g.boards[0];
-    const key = b ? adminUserId(b) : userKey(g.adminName, g.adminId);
+    const key = g.ownerUserId || '';
+    if (!key) return;
     const u = mergeUserRecord(map, { userId: key, name: g.adminName || g.adminId || 'Admin', chars: [], boards: [], adminGroups: [] });
     if (!u.adminGroups.some(x => x.key === g.key)) u.adminGroups.push(g);
   });
@@ -493,6 +530,33 @@ function userRecords() {
 }
 function visibleUserRecords() {
   return userRecords().filter(u => normalizeUserStatus(u.status) !== 'deleted');
+}
+function tombstoneRecords() {
+  const map = new Map();
+  const add = rec => {
+    if (!rec?.userId && !rec?.username) return;
+    const key = rec.userId || rec.username;
+    const existing = map.get(key) || { userId: rec.userId || '', username: rec.username || '', characterIds: [], previousUid: '', deletedAt: 0, reason: '', source: '' };
+    existing.username = existing.username || rec.username || '';
+    existing.userId = existing.userId || rec.userId || '';
+    existing.previousUid = existing.previousUid || rec.previousUid || '';
+    existing.deletedAt = existing.deletedAt || rec.deletedAt || 0;
+    existing.reason = existing.reason || rec.reason || '';
+    existing.source = existing.source ? `${existing.source}, ${rec.source}` : rec.source || '';
+    (rec.characterIds || []).forEach(id => { if (!existing.characterIds.includes(id)) existing.characterIds.push(id); });
+    map.set(key, existing);
+  };
+  cloudTombstones.forEach(add);
+  const lifecycle = localUserLifecycle();
+  Object.entries(lifecycle).forEach(([userId, rec]) => {
+    if (normalizeUserStatus(rec?.status) === 'deleted') {
+      add({ userId, characterIds: [userId], deletedAt: rec.deletedAt || 0, reason: rec.reason || '', source: 'local lifecycle' });
+    }
+  });
+  const activeIds = new Set(visibleUserRecords().map(u => u.userId));
+  return [...map.values()]
+    .filter(rec => !activeIds.has(rec.userId))
+    .sort((a, b) => String(a.userId || a.username).localeCompare(String(b.userId || b.username)));
 }
 function userById(id) { return userRecords().find(u => u.userId === id); }
 function adminGroupByKey(key) { return adminGroups().find(g => g.key === key); }
@@ -516,6 +580,12 @@ function idChip(kind, label, id = label, extra = '') {
   const tag = kind === 'board' ? 'Board' : kind === 'admin' ? 'Admin' : kind === 'user' ? 'User' : 'Char';
   const protoKind = kind === 'board' ? 'k-board' : kind === 'admin' ? 'k-admin' : kind === 'user' ? 'k-user' : kind === 'char' ? 'k-char' : safeKind;
   return `<button type="button" class="id-chip idchip ${safeKind} ${protoKind}"${on}><span class="ic-ico">${tag}</span><span>${h(label || '-')}</span>${extra}</button>`;
+}
+function staticIdChip(kind, label, extra = '') {
+  const safeKind = kind === 'debt' ? 'debt' : kind;
+  const tag = kind === 'board' ? 'Board' : kind === 'admin' ? 'Admin' : kind === 'user' ? 'User' : 'Char';
+  const protoKind = kind === 'board' ? 'k-board' : kind === 'admin' ? 'k-admin' : kind === 'user' ? 'k-user' : kind === 'char' ? 'k-char' : safeKind;
+  return `<span class="id-chip idchip ${safeKind} ${protoKind}"><span class="ic-ico">${tag}</span><span>${h(label || '-')}</span>${extra}</span>`;
 }
 function openDetail(kind, id) {
   detail = { kind, id };
@@ -751,6 +821,12 @@ function statusBadgeFor(value) {
     : 'active';
   return `<span class="badge st-${cls}">${h(userLifecycleLabel(value || 'active'))}</span>`;
 }
+function adminDateLabel(value) {
+  if (!value) return '-';
+  if (typeof value?.toDate === 'function') return value.toDate().toLocaleString();
+  if (typeof value === 'number') return new Date(value).toLocaleString();
+  return String(value);
+}
 function levelBadge(level) {
   return `<span class="lvl-badge">LV ${h(level || 1)}</span>`;
 }
@@ -807,7 +883,7 @@ function renderDashboard() {
   const split = boards.filter(b => (b.type || 'split') === 'split').length;
   const debt = boards.filter(b => (b.type || 'split') === 'debt').length;
   const treasury = boards.filter(b => (b.type || 'split') === 'treasury').length;
-  const records = userRecords();
+  const records = visibleUserRecords();
   const totals = boards.reduce((acc, b) => {
     const st = boardStats(b);
     acc.spend += st.spend;
@@ -836,7 +912,7 @@ function renderDashboard() {
   return `${pageHead('Dashboard', 'Super Admin command center', seg('dashMode', dashMode, [['a','A Cards'], ['b','B Command']]))}${command}`;
 }
 function renderRelationshipMap() {
-  const u = userRecords().find(x => x.adminGroups.length) || userRecords()[0];
+  const u = visibleUserRecords().find(x => x.adminGroups.length) || visibleUserRecords()[0];
   if (!u) return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board')} ${card('Relationship Map', '<div class="empty"><div class="e-t">ยังไม่มี user</div></div>')}`;
   const adminCards = u.adminGroups.map(g => `<div class="rel-node admin" style="border-color:#c9d9f1;background:#f1f6fc">
     <div class="rn-top">🛡️ Admin IDs</div>
@@ -901,7 +977,7 @@ function renderBoardDetail(id) {
   const b = boardById(id);
   if (!b) return card('Board not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const st = boardStats(b);
-  const ownerUser = adminUserId(b);
+  const ownerUser = adminOwnerUserId(b);
   const versions = boardVersions(b);
   const adminForm = `${formField('URL', `<input value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})">`)}${formField('Name', `<input value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})">`)}${formField('Admin ID', `<input value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})">`)}${formField('Password reset', `<input type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})">`)}`;
   const overview = `<div class="grid g-2">
@@ -910,7 +986,7 @@ function renderBoardDetail(id) {
       <div class="kv-row"><span class="k">Type</span><span class="v">${modBadge(b.type)}</span></div>
       <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(statusForBoard(b))}</span></div>
       <div class="kv-row"><span class="k">Owner admin</span><span class="v">${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</span></div>
-      <div class="kv-row"><span class="k">Owner user</span><span class="v">${idChip('user', ownerUser, ownerUser)}</span></div>
+      <div class="kv-row"><span class="k">Owner account</span><span class="v">${ownerUser ? idChip('user', ownerUser, ownerUser) : '<span class="badge st-archived">orphaned admin identity</span>'}</span></div>
       <div class="kv-row"><span class="k">Last active</span><span class="v">${h(b.data?.updatedAt ? new Date(b.data.updatedAt).toLocaleString() : '—')}</span></div>
     </div>`)}
     ${card('📈 Stats', `<div class="grid g-2" style="gap:12px">
@@ -957,7 +1033,7 @@ function renderAdmins() {
     <tr>
       <td>${editInput(g.adminId, `updateAdminGroup(${q(g.key)},{adminId:this.value})`, { small:true })}</td>
       <td>${editInput(g.adminName, `updateAdminGroup(${q(g.key)},{adminName:this.value})`)}</td>
-      <td>${idChip('user', g.boards[0] ? adminUserId(g.boards[0]) : userKey(g.adminName, g.adminId), g.boards[0] ? adminUserId(g.boards[0]) : userKey(g.adminName, g.adminId))}</td>
+      <td>${g.ownerUserId ? idChip('user', g.ownerUserId, g.ownerUserId) : '<span class="badge st-archived">orphaned</span>'}</td>
       <td class="muted mono">${h(g.key)}</td>
       <td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td>
       <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('admin',${q(g.key)})">Detail</button></td>
@@ -967,9 +1043,9 @@ function renderAdmins() {
 function renderAdminDetail(key) {
   const g = adminGroupByKey(key);
   if (!g) return card('Admin not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
-  const first = g.boards[0];
-  const userId = first ? adminUserId(first) : userKey(g.adminName, g.adminId);
-  const identity = `${flatCard(`<div class="profile-card"><div class="profile-ava">🛡️</div><div class="profile-name">${h(g.adminName || g.adminId || 'Admin')}</div><div class="profile-id">${idChip('admin', g.adminId || '-', g.key)}</div><div class="mt12">${idChip('user', userId, userId)}</div></div>`)}
+  const userId = g.ownerUserId || '';
+  const ownerChip = userId ? idChip('user', userId, userId) : '<span class="badge st-archived">orphaned admin identity</span>';
+  const identity = `${flatCard(`<div class="profile-card"><div class="profile-ava">🛡️</div><div class="profile-name">${h(g.adminName || g.adminId || 'Admin')}</div><div class="profile-id">${idChip('admin', g.adminId || '-', g.key)}</div><div class="mt12">${ownerChip}</div></div>`)}
     ${card('Identity', `${formField('Admin ID', `<input value="${h(g.adminId)}" oninput="updateAdminGroup(${q(g.key)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(g.adminName)}" oninput="updateAdminGroup(${q(g.key)},{adminName:this.value})">`)}<div class="kv"><div class="kv-row"><span class="k">Owner hash</span><span class="v mono">${h(g.key)}</span></div></div>`)}`;
   const owned = g.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Open</button></td></tr>`).join('');
   return `<div class="crumbs"><button onclick="closeDetail('admins')">Admins</button><span class="sep">/</span><span class="cur">${h(g.adminId || key)}</span></div>${pageHead('Admin Detail', 'Admin identity and board ownership')}<div class="detail-grid"><div>${identity}</div><div>${card('Owned Boards', table(['Board','Name','Type',''], owned))}</div></div>`;
@@ -989,6 +1065,21 @@ function renderUsers() {
       <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.chars[0]?.id || ''))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(u.userId)})">Detail</button></td>
     </tr>`).join('');
   return `${pageHead('Users', `${records.length} global users · one active character per User ID`, `<button class="btn btn-primary" onclick="showAddUserModal()">+ Add user</button>`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Profile reputation','Admin role','Status',''], rows))}`;
+}
+function renderTombstones() {
+  const records = tombstoneRecords().filter(u => !query || `${u.username || ''} ${u.userId || ''} ${(u.characterIds || []).join(' ')}`.toLowerCase().includes(query.toLowerCase()));
+  const rows = records.map(u => `
+    <tr>
+      <td>${u.userId ? staticIdChip('user', u.userId) : '<span class="muted cell-sub">-</span>'}</td>
+      <td>${u.username ? `<span class="mono">@${h(u.username)}</span>` : '<span class="muted cell-sub">-</span>'}</td>
+      <td><div class="wrap-chips">${(u.characterIds || []).map(id => idChip('char', id, id)).join(' ') || '<span class="muted cell-sub">-</span>'}</div></td>
+      <td class="mono">${h(u.previousUid || '-')}</td>
+      <td>${statusBadgeFor('deleted')}</td>
+      <td class="cell-sub">${h(adminDateLabel(u.deletedAt))}</td>
+      <td class="cell-sub">${h(u.source || '-')}</td>
+    </tr>`).join('');
+  const note = '<div class="phase-note"><span class="pn-ico">🧾</span><span>Deleted IDs are tombstones kept for audit and reuse rules. They are intentionally separate from active Users and Board Admin identities.</span></div>';
+  return `${pageHead('Deleted IDs', `${records.length} reusable tombstones · not active accounts`)}${note}<div class="toolbar">${searchBox('Search deleted ID / username')}</div>${card('Deleted IDs', table(['User ID','Username','Character IDs','Previous UID','Status','Deleted at','Source'], rows))}`;
 }
 function renderUserDetail(id) {
   const u = userById(id);
@@ -1073,11 +1164,11 @@ function renderSupportTools() {
 }
 function panel(title, body) { return card(title, body); }
 function renderMain() {
-  const body = tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
+  const body = tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'tombstones' ? renderTombstones() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
   const changes = diffBoards().length;
   const groups = [
     ['Overview', [['dashboard', 'Dashboard', '📊'], ['map', 'Relationship Map', '🕸️']]],
-    ['Manage', [['boards', 'Boards', '🗂️'], ['users', 'Users', '👤'], ['admins', 'Board Admins', '🛡️']]],
+    ['Manage', [['boards', 'Boards', '🗂️'], ['users', 'Users', '👤'], ['admins', 'Board Admins', '🛡️'], ['tombstones', 'Deleted IDs', '🧾']]],
     ['Ops', [['audit', 'Audit Log', '📜'], ['revisions', 'Version Control', '🧾'], ['support', 'Support Tools', '🧰']]]
   ];
   const nav = groups.map(([label, items]) => `

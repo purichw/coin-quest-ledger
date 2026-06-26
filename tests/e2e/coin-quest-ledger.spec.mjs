@@ -804,7 +804,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.getByText('Create / invite flows')).toBeVisible();
 });
 
-test('super admin users list hides deleted account tombstones from board admin links', async ({ page }) => {
+test('super admin separates active users, orphan admin identities, and deleted ID tombstones', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -839,6 +839,12 @@ test('super admin users list hides deleted account tombstones from board admin l
   await page.getByRole('button', { name: 'Board Admins' }).click();
   await expect(page.getByRole('heading', { name: 'Board Admins', level: 1 })).toBeVisible();
   await expect(page.locator('.tbl-wrap')).toContainText('4965');
+  await expect(page.locator('.tbl-wrap')).toContainText('orphaned');
+
+  await page.getByRole('button', { name: 'Deleted IDs' }).click();
+  await expect(page.getByRole('heading', { name: 'Deleted IDs', level: 1 })).toBeVisible();
+  await expect(page.locator('.tbl-wrap')).toContainText('4965');
+  await expect(page.locator('.tbl-wrap')).toContainText('deleted');
 });
 
 test('character profile aggregates boards, shows portrait, and supports privacy mode', async ({ page }) => {
