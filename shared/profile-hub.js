@@ -679,7 +679,10 @@
     const hue = classMeta(cls).hue || 256;
     return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
   }
+  const LOCAL_PORTRAITS = new Set(['tiderunner-female', 'tiderunner-male', 'tiderunner-classic-female', 'tiderunner-classic-male']);
   function assetUrl(path) {
+    const res = String(path || '').match(/assets\/rpg-portraits\/(.+)\.png$/)?.[1];
+    if (LOCAL_PORTRAITS.has(res) && window.PointyAssets?.local) return window.PointyAssets.local(path);
     if (TEST_MODE) return '/' + path;
     return window.PointyAssets?.url ? window.PointyAssets.url(path) : '/' + path;
   }
@@ -689,7 +692,8 @@
     const skinMap = {
       'crimson-regent': 'crimson-regent-male',
       'archfiend-swimmer': 'archfiend-swimmer-male',
-      'archfiend-swimmer-blackred': 'archfiend-swimmer-blackred-male'
+      'archfiend-swimmer-blackred': 'archfiend-swimmer-blackred-male',
+      'tiderunner-classic': `tiderunner-classic-${g}`
     };
     const res = skin && skinMap[skin] ? skinMap[skin] : `${c}-${g}`;
     const path = `assets/rpg-portraits/${res}.png`;

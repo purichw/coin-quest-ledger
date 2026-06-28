@@ -466,6 +466,37 @@
     .board-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
     .board-meta { color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
     .board-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+    .bc-page { display: flex; justify-content: center; }
+    .bc-shell { width: 100%; max-width: 460px; padding-top: 6px; }
+    .bc-back { border: none; background: none; color: var(--ink-soft); font-family: var(--font-display); font-weight: 600; font-size: 14px; cursor: pointer; padding: 6px 4px; margin-bottom: 8px; }
+    .bc-back:hover { color: var(--accent); }
+    .bc-choose,
+    .bc-form { background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 22px; box-shadow: var(--shadow); padding: 30px 26px; text-align: center; }
+    .bc-crest { display: inline-flex; align-items: center; justify-content: center; transform: scale(1.2); margin-bottom: 10px; }
+    .bc-crest img { width: 48px; height: 48px; display: block; }
+    .bc-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--accent); margin: 2px 0 6px; }
+    .bc-sub { color: var(--ink-soft); font-size: 14px; margin: 0 0 22px; text-wrap: pretty; }
+    .bc-options { display: grid; gap: 12px; }
+    .bc-opt { display: flex; align-items: center; gap: 14px; text-align: left; background: var(--panel-2); border: 1.5px solid var(--border-strong); border-radius: 16px; padding: 16px 16px; cursor: pointer; transition: border-color .14s, transform .1s, background .14s; }
+    .bc-opt:hover { border-color: var(--accent); transform: translateY(-2px); background: var(--panel); }
+    .bc-opt-ic { font-size: 30px; width: 52px; height: 52px; border-radius: 14px; background: var(--panel); border: 1.5px solid var(--border); display: grid; place-items: center; flex-shrink: 0; }
+    .bc-opt-ic.big { width: 64px; height: 64px; font-size: 36px; margin: 0 auto 6px; }
+    .bc-opt-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+    .bc-opt-body b { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--ink); }
+    .bc-opt-body i { font-style: normal; font-size: 12.5px; color: var(--ink-soft); line-height: 1.35; text-wrap: pretty; }
+    .bc-opt-go { font-size: 26px; color: var(--ink-soft); font-family: var(--font-display); }
+    .bc-opt:hover .bc-opt-go { color: var(--accent); }
+    .bc-existing { margin-top: 18px; border: none; background: none; color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .bc-existing:hover { color: var(--accent); }
+    .bc-form .field { text-align: left; }
+    .bc-code-input { letter-spacing: 8px; font-family: var(--font-stat); font-weight: 700; font-size: 26px !important; text-align: center; }
+    .bc-samples { margin-top: 22px; border-top: 1px dashed var(--border-strong); padding-top: 16px; text-align: left; }
+    .bc-samples-h { font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
+    .bc-samples-list { display: grid; gap: 8px; }
+    .bc-sample { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--panel-2); border: 1.5px solid var(--border); border-radius: 12px; padding: 9px 13px; cursor: pointer; transition: border-color .12s, background .12s; }
+    .bc-sample:hover { border-color: var(--accent); background: var(--panel); }
+    .bc-sample b { font-family: var(--font-stat); font-weight: 700; font-size: 16px; color: var(--gold); letter-spacing: 2px; }
+    .bc-sample span { font-size: 12.5px; color: var(--ink-soft); }
     .lightbox-img { max-width: min(86vw, 860px); max-height: 78vh; border-radius: 14px; border: 1.5px solid var(--border-strong); box-shadow: 0 24px 60px -20px rgba(0,0,0,.7); background: var(--panel); }
     .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--topbar); color: var(--topbar-ink); padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s; z-index: 50; font-weight: 600; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -603,6 +634,23 @@
       }
       .split-seg button {
         padding: 6px 10px;
+      }
+      .bc-choose,
+      .bc-form {
+        padding: 24px 18px;
+        border-radius: 18px;
+      }
+      .bc-opt {
+        padding: 14px;
+        gap: 12px;
+      }
+      .bc-opt-ic {
+        width: 46px;
+        height: 46px;
+        font-size: 26px;
+      }
+      .bc-opt-body b {
+        font-size: 16px;
       }
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {

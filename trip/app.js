@@ -1,12 +1,15 @@
 const _params = new URLSearchParams(window.location.search);
 const TEST_MODE = _params.get('test') === '1';
-let tripId = _params.get('id');
+const INITIAL_TRIP_ID = _params.get('id');
+const LAST_TRIP_KEY = window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id';
+const LAST_TRIP_ID = localStorage.getItem(LAST_TRIP_KEY);
+let _boardLanding = !INITIAL_TRIP_ID;
+let _boardChooseMode = 'choose';
+let tripId = INITIAL_TRIP_ID;
 if (!tripId) {
-  const lastId = localStorage.getItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id');
-  tripId = lastId || makeTripCode();
-  history.replaceState(null, '', '?id=' + tripId);
+  tripId = LAST_TRIP_ID || makeTripCode();
 }
-if (!TEST_MODE) localStorage.setItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id', tripId);
+if (!TEST_MODE && INITIAL_TRIP_ID) localStorage.setItem(LAST_TRIP_KEY, tripId);
 let tripRef = tripRefFor(tripId);
 const TripStore = {
   read() {
@@ -59,6 +62,12 @@ const SKIN_DEFS = {
     { id: 'crimson-regent', res: 'crimson-regent-male', th: 'ราชันเลือด', en: 'Crimson Regent' },
     { id: 'archfiend-swimmer', res: 'archfiend-swimmer-male', th: 'อาร์คฟีนด์นักว่ายน้ำ', en: 'Archfiend Swimmer' },
     { id: 'archfiend-swimmer-blackred', res: 'archfiend-swimmer-blackred-male', th: 'อาร์คฟีนด์นักว่ายน้ำดำแดง', en: 'Archfiend Swimmer Black/Red' }
+  ],
+  'tiderunner-female': [
+    { id: 'tiderunner-classic', res: 'tiderunner-classic-female', th: 'นักแล่นคลื่นคลาสสิก', en: 'Classic Tiderunner' }
+  ],
+  'tiderunner-male': [
+    { id: 'tiderunner-classic', res: 'tiderunner-classic-male', th: 'นักแล่นคลื่นคลาสสิก', en: 'Classic Tiderunner' }
   ]
 };
 const LEVEL_STEP = PointyLogic.LEVEL_STEP;
@@ -490,7 +499,12 @@ function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDE
 function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
 function avatarId(clsId, gender) { return `${normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
 function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
-function portraitFile(res) { return assetUrl(`assets/rpg-portraits/${res}.png`); }
+const LOCAL_PORTRAITS = new Set(['tiderunner-female', 'tiderunner-male', 'tiderunner-classic-female', 'tiderunner-classic-male']);
+function portraitFile(res) {
+  const path = `assets/rpg-portraits/${res}.png`;
+  if (LOCAL_PORTRAITS.has(res) && window.PointyAssets?.local) return window.PointyAssets.local(path);
+  return assetUrl(path);
+}
 function avatarSrc(clsId, gender, skinId = '') { return resolveAvatarFile(avatarId(clsId, gender), skinId); }
 function avatarSkins(id) {
   if (!/^[a-z-]+-(female|male)$/.test(String(id || ''))) return [];
@@ -829,6 +843,170 @@ function newTrip() {
   SFX.click();
   renderOverlay();
 }
+function boardChooseSamples() {
+  return [
+    { code: '4821', name: LANG === 'en' ? 'Khao Yai food run' : 'ทริปเขาใหญ่' },
+    { code: '7359', name: LANG === 'en' ? 'Condo party' : 'ปาร์ตี้คอนโด' },
+    { code: '9184', name: LANG === 'en' ? 'Japan squad' : 'ทีมญี่ปุ่น' }
+  ];
+}
+function renderBoardChoose() {
+  const main = document.querySelector('main.page');
+  if (!main) return;
+  document.getElementById('quick-toggles').innerHTML = '';
+  document.querySelector('.settings-fab')?.classList.add('hidden');
+  document.getElementById('app-overlays').innerHTML = '';
+  main.className = 'page bc-page';
+  const crest = `<span class="bc-crest"><img src="/assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>`;
+  const back = `<button class="bc-back" type="button" onclick="goHome()">‹ ${h(t('bd_back'))}</button>`;
+  const current = LAST_TRIP_ID ? `<button class="bc-existing" type="button" onclick="openCurrentBoardFromChoose()">${h(t('bd_open_current'))}</button>` : '';
+  if (_boardChooseMode === 'new') {
+    main.innerHTML = `<div class="bc-shell">${back}
+      <div class="bc-form">
+        <span class="bc-opt-ic big" aria-hidden="true">🏕️</span>
+        <h1 class="bc-title">${h(t('bd_start_new'))}</h1>
+        <p class="bc-sub">${h(t('bd_start_new_sub'))}</p>
+        <div class="field">
+          <label for="bc-board-name">${h(t('bd_new_name'))}</label>
+          <input id="bc-board-name" class="field-input" value="" placeholder="${h(t('bd_new_name_ph'))}">
+        </div>
+        <button class="btn-primary big" type="button" onclick="createBoardFromChoose()">✚ ${h(t('bd_create_btn'))}</button>
+      </div>
+    </div>`;
+    requestAnimationFrame(() => document.getElementById('bc-board-name')?.focus());
+    return;
+  }
+  if (_boardChooseMode === 'join') {
+    main.innerHTML = `<div class="bc-shell">${back}
+      <div class="bc-form">
+        <span class="bc-opt-ic big" aria-hidden="true">🔑</span>
+        <h1 class="bc-title">${h(t('bd_join'))}</h1>
+        <p class="bc-sub">${h(t('bd_join_sub'))}</p>
+        <div class="field">
+          <label for="bc-code">${h(t('bd_enter_code'))}</label>
+          <input id="bc-code" class="field-input bc-code-input" inputmode="numeric" maxlength="4" value="" placeholder="${h(t('bd_code_placeholder'))}">
+        </div>
+        <button class="btn-primary big" type="button" onclick="joinBoardFromChoose()">🔑 ${h(t('bd_join_btn'))}</button>
+        <div class="bc-samples">
+          <div class="bc-samples-h">${h(t('bd_try_codes'))}</div>
+          <div class="bc-samples-list">${boardChooseSamples().map(sample => `<button class="bc-sample" type="button" onclick="fillBoardChooseCode('${sample.code}')"><b>${sample.code}</b><span>${h(sample.name)}</span></button>`).join('')}</div>
+        </div>
+      </div>
+    </div>`;
+    requestAnimationFrame(() => document.getElementById('bc-code')?.focus());
+    return;
+  }
+  main.innerHTML = `<div class="bc-shell">${back}
+    <div class="bc-choose">
+      ${crest}
+      <h1 class="bc-title">${h(t('bd_choose_title'))}</h1>
+      <p class="bc-sub">${h(t('bd_choose_sub'))}</p>
+      <div class="bc-options">
+        <button class="bc-opt" type="button" onclick="setBoardChooseMode('new')">
+          <span class="bc-opt-ic" aria-hidden="true">🏕️</span>
+          <span class="bc-opt-body"><b>${h(t('bd_start_new'))}</b><i>${h(t('bd_start_new_sub'))}</i></span>
+          <span class="bc-opt-go" aria-hidden="true">›</span>
+        </button>
+        <button class="bc-opt" type="button" onclick="setBoardChooseMode('join')">
+          <span class="bc-opt-ic" aria-hidden="true">🔑</span>
+          <span class="bc-opt-body"><b>${h(t('bd_join'))}</b><i>${h(t('bd_join_sub'))}</i></span>
+          <span class="bc-opt-go" aria-hidden="true">›</span>
+        </button>
+      </div>
+      ${current}
+    </div>
+  </div>`;
+}
+function setBoardChooseMode(mode) {
+  _boardChooseMode = mode || 'choose';
+  SFX.click();
+  renderBoardChoose();
+}
+function goHome() {
+  const url = new URL('/', window.location.origin);
+  if (TEST_MODE) url.searchParams.set('test', '1');
+  window.location.href = url.pathname + url.search;
+}
+function openCurrentBoardFromChoose() {
+  if (!LAST_TRIP_ID) return;
+  SFX.click();
+  window.location.href = tripLinkFor(LAST_TRIP_ID);
+}
+function fillBoardChooseCode(code) {
+  const input = document.getElementById('bc-code');
+  if (!input) return;
+  input.value = sanitizeTripCode(code);
+  input.focus();
+}
+function sampleTripState(code) {
+  const state = freshTripState({
+    passwordHash: adminHash('demo'),
+    ownerHash: ownerHash(adminOwnerToken()),
+    adminId: `ADM-${code}`,
+    adminName: 'Demo Admin',
+    createdAt: Date.now(),
+    urlLocked: true
+  });
+  const sample = boardChooseSamples().find(item => item.code === code);
+  state.tripName = sample?.name || t('trip_default_name');
+  state.participants = LANG === 'en' ? ['Pointy', 'Shane', 'Nok'] : ['พอยท์ตี้', 'เชน', 'นก'];
+  state.expenses = [
+    { id: 1, desc: LANG === 'en' ? 'Dinner' : 'มื้อค่ำ', icon: '🍜', amount: 1260, paidBy: state.participants[0], sharedBy: state.participants.slice() },
+    { id: 2, desc: LANG === 'en' ? 'Fuel' : 'ค่าน้ำมัน', icon: '⛽', amount: 720, paidBy: state.participants[1], sharedBy: state.participants.slice(0, 2) }
+  ];
+  state.heroClasses = { [state.participants[0]]: 'mage', [state.participants[1]]: 'warrior', [state.participants[2]]: 'rogue' };
+  state.heroGenders = { [state.participants[0]]: 'female', [state.participants[1]]: 'male', [state.participants[2]]: 'female' };
+  state.characterIds = { [state.participants[0]]: '1001', [state.participants[1]]: '1002', [state.participants[2]]: '1003' };
+  return state;
+}
+async function createBoardFromChoose() {
+  const input = document.getElementById('bc-board-name');
+  const name = String(input?.value || '').trim() || t('trip_default_name');
+  const profile = adminOwnerProfile();
+  const ownerToken = adminOwnerToken();
+  let code = makeTripCode();
+  for (let i = 0; i < 8 && await tripExists(code); i++) code = makeTripCode();
+  tripId = code;
+  tripRef = tripRefFor(tripId);
+  S = freshTripState({
+    passwordHash: '',
+    ownerHash: ownerHash(ownerToken),
+    adminId: profile.adminId,
+    adminName: profile.adminName,
+    createdAt: Date.now(),
+    urlLocked: true
+  });
+  S.tripName = name;
+  sessionStorage.setItem(ownerSessionKey(tripId), ownerToken);
+  sessionStorage.setItem(adminSessionKey(), '1');
+  sessionStorage.removeItem(adminLockKey());
+  resetTripRuntime();
+  ensureCampaignState();
+  ensureAllCharacterIds();
+  syncActiveCampaign();
+  applySettings();
+  await TripStore.write(S);
+  if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, tripId);
+  window.location.href = tripLinkFor(tripId);
+}
+async function joinBoardFromChoose() {
+  const code = sanitizeTripCode(document.getElementById('bc-code')?.value || '');
+  if (!/^\d{4}$/.test(code)) {
+    toast(t('bd_code_bad'));
+    return;
+  }
+  if (TEST_MODE && boardChooseSamples().some(item => item.code === code) && !sessionStorage.getItem('pointy_test_trip_' + code)) {
+    await tripRefFor(code).set(sampleTripState(code));
+  }
+  const exists = await tripExists(code);
+  if (!exists) {
+    toast(t('bd_code_bad'));
+    return;
+  }
+  if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, code);
+  toast(t('bd_joined_toast'));
+  window.location.href = tripLinkFor(code);
+}
 function randomizeNewTripCode() {
   _newTripCode = makeTripCode();
   renderOverlay();
@@ -872,7 +1050,7 @@ async function confirmNewTrip() {
   sessionStorage.setItem(ownerSessionKey(tripId), ownerToken);
   sessionStorage.setItem(adminSessionKey(), '1');
   sessionStorage.removeItem(adminLockKey());
-  if (!TEST_MODE) localStorage.setItem(window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id', tripId);
+  if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, tripId);
   const next = new URL(tripLinkFor(tripId));
   history.replaceState(null, '', next.pathname + next.search);
   resetTripRuntime();
@@ -2194,6 +2372,13 @@ function renderOverlay() {
   }
 }
 function renderAll(checkLevels = true) {
+  if (_boardLanding) {
+    renderBoardChoose();
+    translatePage();
+    return;
+  }
+  document.querySelector('main.page')?.classList.remove('bc-page');
+  document.querySelector('.settings-fab')?.classList.remove('hidden');
   ensureAllCharacterIds();
   syncActiveCampaign();
   cacheProfileSnapshot();
@@ -2368,5 +2553,10 @@ async function importExcel(input) {
 
 bindAppShellEvents();
 translatePage();
-renderAll(false);
-load().then(() => { renderAll(false); translatePage(); });
+if (_boardLanding) {
+  renderBoardChoose();
+  translatePage();
+} else {
+  renderAll(false);
+  load().then(() => { renderAll(false); translatePage(); });
+}

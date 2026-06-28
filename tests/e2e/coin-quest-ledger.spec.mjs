@@ -347,6 +347,35 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
   await expect(page.locator('.admin-table')).toBeVisible();
 });
 
+test('expense splitter opens board chooser before uncoded boards', async ({ page }) => {
+  await page.goto('/?test=1');
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto('/trip/?test=1');
+
+  await expect(page.locator('.bc-choose')).toBeVisible();
+  await expect(page.locator('.bc-title')).toHaveText('แบ่งค่าใช้จ่าย');
+  await expect(page.locator('.banner')).toHaveCount(0);
+  await expect(page.locator('#quick-toggles')).toBeEmpty();
+  await expect(page.locator('.settings-fab')).toHaveClass(/hidden/);
+
+  const landingOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(landingOverflow).toBe(false);
+
+  await page.locator('.bc-opt').nth(1).click();
+  await expect(page.locator('.bc-form')).toBeVisible();
+  await page.locator('.bc-sample').first().click();
+  await expect(page.locator('#bc-code')).toHaveValue('4821');
+  await page.locator('.bc-form .btn-primary').click();
+
+  await expect(page).toHaveURL(/id=4821/);
+  await expect(page.locator('.banner')).toBeVisible();
+  await expect(page.locator('#trip-name-display')).toContainText('ทริปเขาใหญ่');
+  await expect(page.locator('#party-count')).toHaveText('3');
+});
+
 test('expense splitter exposes 18 avatar classes and persists archfiend skins', async ({ page }) => {
   const tripId = await gotoFreshTrip(page, 'avatar-skins');
   await startAddHero(page);
@@ -387,6 +416,20 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
   await page.getByRole('button', { name: 'อาร์คฟีนด์นักว่ายน้ำดำแดง', exact: true }).click();
   await expect(page.locator('.portrait-img').first()).toHaveAttribute('src', /archfiend-swimmer-blackred-male\.png$/);
   await expect(page.locator('.portrait-img').first()).toHaveClass(/portrait-img/);
+
+  await startAddHero(page);
+  await page.getByPlaceholder('ตั้งชื่อฮีโร่ใหม่').fill('Tide');
+  await page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' }).click();
+  await page.locator('.picker-cell[data-class="tiderunner"][data-gender="female"]').click();
+  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
+
+  const tideCard = page.locator('.hero-card').filter({ hasText: 'Tide' });
+  await expect(tideCard.locator('.portrait-img')).toHaveAttribute('src', /assets\/rpg-portraits\/tiderunner-female\.png$/);
+  await tideCard.locator('.hc-skin').click();
+  await expect(tideCard.locator('.skin-pop')).toContainText('นักแล่นคลื่นคลาสสิก');
+  await tideCard.getByRole('button', { name: 'นักแล่นคลื่นคลาสสิก' }).click();
+  await expect(tideCard.locator('.portrait-img')).toHaveAttribute('src', /assets\/rpg-portraits\/tiderunner-classic-female\.png$/);
 });
 
 test('expense splitter supports duplicate avatars, multi-payer exact split, settlement XP, and victory', async ({ page }) => {

@@ -35,6 +35,8 @@ const avatars: Record<string, ImageSourcePropType> = {
   'summoner-male': require('../assets/avatars/summoner-male.png'),
   'thief-female': require('../assets/avatars/thief-female.png'),
   'thief-male': require('../assets/avatars/thief-male.png'),
+  'tiderunner-classic-female': require('../assets/avatars/tiderunner-classic-female.png'),
+  'tiderunner-classic-male': require('../assets/avatars/tiderunner-classic-male.png'),
   'tiderunner-female': require('../assets/avatars/tiderunner-female.png'),
   'tiderunner-male': require('../assets/avatars/tiderunner-male.png'),
   'warrior-female': require('../assets/avatars/warrior-female.png'),
