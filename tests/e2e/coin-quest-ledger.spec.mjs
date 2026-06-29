@@ -206,6 +206,9 @@ test('expense splitter pins the signed-in account hero and adds others by Charac
       name: 'Split Account',
       character: { id: '2468', name: 'Profile Hero', class: 'wizard', cls: 'wizard', gender: 'female', skin: '' }
     }));
+    localStorage.setItem('pointy_character_registry_v1', JSON.stringify({
+      1357: { id: '1357', name: 'Guest Hero', class: 'tiderunner', cls: 'tiderunner', gender: 'male', skin: 'tiderunner-classic' }
+    }));
   });
 
   await page.goto(`/trip/?id=${uniqueTripId('account-hero')}&test=1`);
@@ -213,19 +216,45 @@ test('expense splitter pins the signed-in account hero and adds others by Charac
   await expect(page.locator('.hero-card').first().locator('.char-id')).toHaveText('#2468');
 
   await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
-  await page.getByPlaceholder('ชื่อฮีโร่คนอื่น').fill('Guest Hero');
+  await expect(page.getByPlaceholder('ชื่อฮีโร่คนอื่น')).toHaveCount(0);
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('2468');
-  await chooseWarriorMale(page);
   await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
   await expect(page.locator('#toast')).toContainText('ฮีโร่ของคุณถูกเพิ่มจากโปรไฟล์แล้ว');
+
+  await page.getByPlaceholder('Character ID ของคนอื่น').fill('9999');
+  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await expect(page.locator('#toast')).toContainText('ไม่พบ Character ID นี้');
 
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('1357');
   await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
   await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toContainText('Guest Hero');
+  await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toContainText('นักแล่นคลื่น');
   await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
   await expect(page.locator('.hero-card').nth(0)).toContainText('Profile Hero');
   await expect(page.locator('.hero-card').nth(1)).toContainText('Guest Hero');
   await expect(page.locator('.hero-card').nth(1).locator('.char-id')).toHaveText('#1357');
+  await expect(page.locator('.hero-card').nth(1).locator('.portrait-img')).toHaveAttribute('src', /tiderunner-classic-male\.png$/);
+
+  await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
+  await page.getByRole('button', { name: 'เพิ่ม Guest' }).click();
+  await page.getByPlaceholder('ตั้งชื่อฮีโร่ใหม่').fill('Guest Hero');
+  await chooseWarriorMale(page);
+  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
+  await expect(page.locator('#party-count')).toHaveText('3');
+  await expect(page.locator('.hero-card').filter({ has: page.locator('.char-id', { hasText: 'Guest' }) })).toHaveCount(1);
+
+  const guestState = await page.evaluate(() => {
+    const id = new URL(location.href).searchParams.get('id');
+    const raw = sessionStorage.getItem(`pointy_test_trip_${id}`);
+    const state = raw ? JSON.parse(raw) : {};
+    const guestName = Object.keys(state.guestHeroes || {})[0];
+    return { guestName, guestId: state.characterIds?.[guestName], registry: JSON.parse(localStorage.getItem('pointy_character_registry_v1') || '{}') };
+  });
+  expect(guestState.guestName).toMatch(/^Guest Hero/);
+  expect(guestState.guestId).toBeFalsy();
+  expect(Object.values(guestState.registry).some(rec => rec.name === guestState.guestName)).toBe(false);
 });
 
 test('expense splitter supports admin URL setup, character IDs, admin unlock, and quick toggles', async ({ page }) => {
@@ -543,6 +572,33 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
   await expect(page.getByRole('menuitem', { name: '🖼️ เลือกจากคลัง' })).toBeVisible();
   await expect(page.locator('#receipt-camera-input')).toHaveAttribute('capture', 'environment');
   await expect(page.locator('#receipt-library-input')).not.toHaveAttribute('capture');
+
+  const cosmeticControls = await page.evaluate(() => {
+    function css(selector, props) {
+      const el = document.querySelector(selector);
+      const st = getComputedStyle(el);
+      return Object.fromEntries(props.map(prop => [prop, st.getPropertyValue(prop)]));
+    }
+    const closeRect = document.querySelector('.qr-del').getBoundingClientRect();
+    return {
+      receipt: css('.receipt-btn', ['border-top-style', 'padding-top', 'padding-right', 'font-size', 'font-weight']),
+      whole: css('.chip-all', ['border-top-style', 'border-radius', 'padding-top', 'padding-right', 'font-size', 'font-weight']),
+      split: css('.split-seg button', ['font-size']),
+      close: {
+        width: closeRect.width,
+        height: closeRect.height,
+        display: getComputedStyle(document.querySelector('.qr-del')).display,
+        placeItems: getComputedStyle(document.querySelector('.qr-del')).placeItems,
+      },
+    };
+  });
+  expect(cosmeticControls.receipt).toMatchObject({ 'border-top-style': 'dashed', 'padding-top': '9px', 'padding-right': '14px', 'font-size': '13px', 'font-weight': '600' });
+  expect(cosmeticControls.whole).toMatchObject({ 'border-top-style': 'dashed', 'border-radius': '999px', 'padding-top': '6px', 'padding-right': '14px', 'font-size': '13px', 'font-weight': '600' });
+  expect(cosmeticControls.split['font-size']).toBe('11.5px');
+  expect(cosmeticControls.close.width).toBe(22);
+  expect(cosmeticControls.close.height).toBe(22);
+  expect(cosmeticControls.close.display).toBe('grid');
+  expect(cosmeticControls.close.placeItems).toContain('center');
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);

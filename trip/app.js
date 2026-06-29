@@ -83,6 +83,7 @@ const QUEST_TEMPLATES = [
 const LEVEL_REWARDS = PointyLogic.LEVEL_REWARDS;
 const THEME_KEY = 'pointy_theme';
 const UI_KEY = 'coin_quest_ui_v1';
+const NAME_KEY_SEP = '\u2063';
 
 function readJsonSetting(key, fallback = {}) {
   try {
@@ -131,6 +132,7 @@ let S = {
   heroGenders: {},
   heroSkins: {},
   characterIds: {},
+  guestHeroes: {},
   promptpay: {},
   settleXp: {},
   activeCampaignId: '',
@@ -138,7 +140,7 @@ let S = {
   admin: { passwordHash: '', ownerHash: '', createdAt: null, urlLocked: false },
   settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true }
 };
-let _saveTimer, _toastTimer, _iconOpen = false, _iconDropUp = false, _iconPickerMax = 430, _addHeroOpen = false, _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCharacterId = '', _addHeroCustom = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
+let _saveTimer, _toastTimer, _iconOpen = false, _iconDropUp = false, _iconPickerMax = 430, _addHeroOpen = false, _addHeroMode = 'id', _addHeroClass = null, _addHeroGender = null, _addHeroName = '', _addHeroCharacterId = '', _addHeroCustom = null, _addHeroResolvedRecord = null, _heroPickerOpen = false, _heroConfirmOpen = false, _pickerGender = 'all', _skinOpen = '';
 let _resetEntryDraft = false;
 let _settledTx = [];
 let _celebrateName = null;
@@ -319,8 +321,26 @@ async function loadCharacterRegistry(ids = []) {
   }
   writeLocalRegistry(_characterRegistry);
 }
+async function resolveCharacterRecord(id) {
+  const characterId = String(id || '').replace(/\D/g, '').slice(0, 4);
+  if (!/^\d{4}$/.test(characterId)) return null;
+  _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry };
+  if (!_characterRegistry[characterId]) await loadCharacterRegistry([characterId]);
+  const rec = _characterRegistry[characterId] || readLocalRegistry()[characterId] || null;
+  if (!rec) return null;
+  const cls = normalizeClass(rec.class || rec.cls || 'warrior');
+  return {
+    ...rec,
+    id: characterId,
+    name: String(rec.name || `Hero #${characterId}`).trim() || `Hero #${characterId}`,
+    class: cls,
+    cls,
+    gender: rec.gender === 'female' ? 'female' : 'male',
+    skin: rec.skin || ''
+  };
+}
 function persistCharacterRecord(rec) {
-  _characterRegistry[rec.id] = rec;
+  _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry, [rec.id]: rec };
   writeLocalRegistry(_characterRegistry);
   if (!TEST_MODE) {
     firebase.firestore().collection('characters').doc(rec.id).set({ ...rec, updatedAt: Date.now() }, { merge: true }).catch(err => {
@@ -339,7 +359,7 @@ function deleteCharacterRecord(id) {
 }
 function generateCharacterId() {
   const registry = { ...readLocalRegistry(), ..._characterRegistry };
-  const used = new Set([...Object.keys(registry), ...Object.values(S.characterIds || {})].map(String));
+  const used = new Set([...Object.keys(registry), ...Object.values(S.characterIds || {}).filter(Boolean)].map(String));
   for (let i = 0; i < 2000; i++) {
     const id = String(Math.floor(1000 + Math.random() * 9000));
     if (!used.has(id)) return id;
@@ -352,6 +372,7 @@ function generateCharacterId() {
 }
 function ensureCharacterId(name) {
   S.characterIds ||= {};
+  if (S.guestHeroes?.[name]) return '';
   if (!S.characterIds[name]) S.characterIds[name] = generateCharacterId();
   return S.characterIds[name];
 }
@@ -398,7 +419,7 @@ function renameParticipantReferences(from, to) {
       split: expense.split ? { ...expense.split, weights, items } : undefined
     };
   });
-  ['budgets', 'heroClasses', 'heroGenders', 'heroSkins', 'characterIds', 'promptpay', 'settleXp'].forEach(key => {
+  ['budgets', 'heroClasses', 'heroGenders', 'heroSkins', 'characterIds', 'guestHeroes', 'promptpay', 'settleXp'].forEach(key => {
     if (!S[key] || !Object.prototype.hasOwnProperty.call(S[key], from)) return;
     S[key][to] = S[key][from];
     delete S[key][from];
@@ -411,6 +432,7 @@ function ensureAccountHero() {
   let changed = false;
   S.participants ||= [];
   S.characterIds ||= {};
+  S.guestHeroes ||= {};
   S.heroClasses ||= {};
   S.heroGenders ||= {};
   S.heroSkins ||= {};
@@ -456,7 +478,16 @@ function ensureAccountHero() {
 function ensureAllCharacterIds() {
   let changed = false;
   if (ensureAccountHero()) changed = true;
+  S.characterIds ||= {};
+  S.guestHeroes ||= {};
   S.participants.forEach(name => {
+    if (S.guestHeroes[name]) {
+      if (S.characterIds[name]) {
+        delete S.characterIds[name];
+        changed = true;
+      }
+      return;
+    }
     if (!S.characterIds?.[name]) {
       ensureCharacterId(name);
       changed = true;
@@ -468,9 +499,16 @@ function ensureAllCharacterIds() {
       changed = true;
     }
   });
+  Object.keys(S.guestHeroes || {}).forEach(name => {
+    if (!S.participants.includes(name)) {
+      delete S.guestHeroes[name];
+      changed = true;
+    }
+  });
   return changed;
 }
 function characterBaseXp(name) {
+  if (S.guestHeroes?.[name]) return 0;
   const id = S.characterIds?.[name];
   if (!id) return 0;
   const rec = _characterRegistry[id] || readLocalRegistry()[id];
@@ -479,6 +517,7 @@ function characterBaseXp(name) {
 }
 function syncCharacterRegistry(party) {
   party.forEach(hero => {
+    if (S.guestHeroes?.[hero.name]) return;
     const id = ensureCharacterId(hero.name);
     if (S.admin?.adminName === hero.name && S.admin.characterId !== id) S.admin.characterId = id;
     const rec = _characterRegistry[id] || { id, trips: {}, createdAt: Date.now() };
@@ -642,6 +681,7 @@ function freshTripState(admin = {}) {
     heroGenders: {},
     heroSkins: {},
     characterIds: {},
+    guestHeroes: {},
     promptpay: {},
     settleXp: {},
     activeCampaignId: '',
@@ -652,7 +692,7 @@ function freshTripState(admin = {}) {
 }
 function resetTripRuntime() {
   _iconOpen = false; _iconDropUp = false; _iconPickerMax = 430;
-  _addHeroOpen = false; _addHeroClass = null; _addHeroGender = null; _addHeroName = ''; _addHeroCharacterId = ''; _addHeroCustom = null;
+  _addHeroOpen = false; _addHeroMode = 'id'; _addHeroClass = null; _addHeroGender = null; _addHeroName = ''; _addHeroCharacterId = ''; _addHeroCustom = null; _addHeroResolvedRecord = null;
   _heroPickerOpen = false; _heroConfirmOpen = false; _pickerGender = 'all'; _skinOpen = '';
   _resetEntryDraft = true; _settledTx = []; _celebrateName = null; _prevLevels = {};
   _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {};
@@ -674,6 +714,7 @@ function snapshotCampaign(extra = {}) {
     heroGenders: { ...S.heroGenders },
     heroSkins: { ...(S.heroSkins || {}) },
     characterIds: { ...S.characterIds },
+    guestHeroes: { ...(S.guestHeroes || {}) },
     promptpay: { ...(S.promptpay || {}) },
     settleXp: { ...S.settleXp },
     createdAt: activeCampaign()?.createdAt || Date.now(),
@@ -692,6 +733,7 @@ function profileCampaignSnapshot(c) {
     heroGenders: { ...(c.heroGenders || {}) },
     heroSkins: { ...(c.heroSkins || {}) },
     characterIds: { ...(c.characterIds || {}) },
+    guestHeroes: { ...(c.guestHeroes || {}) },
     settleXp: { ...(c.settleXp || {}) },
     createdAt: c.createdAt || null,
     completedAt: c.completedAt || null
@@ -707,6 +749,7 @@ function profileSnapshotState() {
     heroGenders: { ...S.heroGenders },
     heroSkins: { ...(S.heroSkins || {}) },
     characterIds: { ...S.characterIds },
+    guestHeroes: { ...(S.guestHeroes || {}) },
     settleXp: { ...S.settleXp },
     admin: { ...(S.admin || {}) },
     activeCampaignId: S.activeCampaignId,
@@ -732,6 +775,7 @@ function applyCampaign(c) {
   S.heroGenders = { ...(c.heroGenders || {}) };
   S.heroSkins = { ...(c.heroSkins || {}) };
   S.characterIds = { ...(c.characterIds || {}) };
+  S.guestHeroes = { ...(c.guestHeroes || {}) };
   S.promptpay = { ...(c.promptpay || {}) };
   S.settleXp = { ...(c.settleXp || {}) };
 }
@@ -760,7 +804,7 @@ function ensureCampaignState() {
 function payerMap(e) { return PointyLogic.payerMap(e); }
 function splitShares(e, validNames = null) { return PointyLogic.splitShares(e, validNames); }
 function computeParty() { return PointyLogic.computeParty(S, { classOf, baseXp: characterBaseXp }); }
-function settleUp(party) { return PointyLogic.settleUp(party); }
+function settleUp(party) { return PointyLogic.settleUp(party, S); }
 function detectLevelUps(party) {
   party.forEach(p => {
     const prev = _prevLevels[p.name];
@@ -1146,26 +1190,56 @@ function renderTripName() {
   document.title = `${S.tripName || t('title_split')} — Party Ledger`;
 }
 
-function addParticipant() {
-  const el = document.getElementById('new-hero-name');
-  const name = (el?.value || _addHeroName).trim();
-  if (!name || !_addHeroClass || !_addHeroGender) return;
+function uniqueParticipantName(baseName, characterId = '') {
+  const base = String(baseName || '').split(NAME_KEY_SEP)[0].trim() || `Hero #${characterId || generateCharacterId()}`;
+  if (!S.participants.includes(base)) return base;
+  const tagged = characterId ? `${base}${NAME_KEY_SEP}${characterId}` : base;
+  if (!S.participants.includes(tagged)) return tagged;
+  for (let i = 2; i < 50; i++) {
+    const next = `${base}${NAME_KEY_SEP}${characterId || i}`;
+    if (!S.participants.includes(next)) return next;
+  }
+  return `${base}${NAME_KEY_SEP}${Date.now().toString(36).slice(-4)}`;
+}
+async function addParticipant() {
   const account = accountHero();
+  const idMode = account && _addHeroMode !== 'guest';
   const characterId = String(_addHeroCharacterId || document.getElementById('new-hero-id')?.value || '').replace(/\D/g, '').slice(0, 4);
-  if (account) {
+  if (idMode) {
     if (!/^\d{4}$/.test(characterId)) { toast(t('err_character_id_required')); return; }
     if (characterId === account.id) { toast(t('err_account_hero_duplicate')); return; }
     if (Object.values(S.characterIds || {}).map(String).includes(characterId)) { toast(t('err_character_id_duplicate')); return; }
+    const rec = _addHeroResolvedRecord?.id === characterId ? _addHeroResolvedRecord : await resolveCharacterRecord(characterId);
+    if (!rec) { toast(t('err_character_id_not_found')); return; }
+    _addHeroResolvedRecord = rec;
+    _addHeroName = uniqueParticipantName(rec.name, rec.id);
+    _addHeroClass = normalizeClass(rec.class || rec.cls);
+    _addHeroGender = rec.gender === 'female' ? 'female' : 'male';
   }
-  if (S.participants.includes(name)) { toast(t('err_duplicate', { name })); return; }
-  S.participants.push(name);
-  S.characterIds[name] = characterId || generateCharacterId();
-  S.heroClasses[name] = _addHeroClass;
-  S.heroGenders[name] = _addHeroGender;
-  resetHeroSkin(name);
-  S.budgets[name] = 3000;
+  const el = document.getElementById('new-hero-name');
+  const name = (el?.value || _addHeroName).trim();
+  if (!name || !_addHeroClass || !_addHeroGender) return;
+  const finalName = idMode ? name : uniqueParticipantName(name);
+  if (!idMode && !account && finalName !== name) _addHeroName = finalName;
+  S.participants.push(finalName);
+  S.guestHeroes ||= {};
+  if (idMode) {
+    S.characterIds[finalName] = characterId;
+    delete S.guestHeroes[finalName];
+  } else if (account && _addHeroMode === 'guest') {
+    delete S.characterIds[finalName];
+    S.guestHeroes[finalName] = true;
+  } else {
+    S.characterIds[finalName] = generateCharacterId();
+    delete S.guestHeroes[finalName];
+  }
+  S.heroClasses[finalName] = _addHeroClass;
+  S.heroGenders[finalName] = _addHeroGender;
+  resetHeroSkin(finalName);
+  if (idMode && _addHeroResolvedRecord?.skin) S.heroSkins[finalName] = _addHeroResolvedRecord.skin;
+  S.budgets[finalName] = 3000;
   if (_addHeroCustom) {
-    try { localStorage.setItem(customAvatarKey(name), _addHeroCustom); } catch (_) {}
+    try { localStorage.setItem(customAvatarKey(finalName), _addHeroCustom); } catch (_) {}
   }
   _addHeroOpen = false;
   _heroConfirmOpen = false;
@@ -1174,6 +1248,7 @@ function addParticipant() {
   _addHeroClass = null;
   _addHeroGender = null;
   _addHeroCustom = null;
+  _addHeroResolvedRecord = null;
   SFX.click();
   saveNow(); renderAll();
 }
@@ -1200,7 +1275,7 @@ function removeParticipant(name) {
       sharedBy: e.sharedBy.filter(p => p !== name)
     };
   }).filter(e => e.sharedBy.length > 0 && (e.paidBy !== name || Object.keys(e.payers || {}).length > 0));
-  delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.heroSkins?.[name]; delete S.settleXp[name];
+  delete S.budgets[name]; delete S.heroClasses[name]; delete S.heroGenders[name]; delete S.heroSkins?.[name]; delete S.guestHeroes?.[name]; delete S.settleXp[name];
   delete S.characterIds[name]; delete S.promptpay?.[name];
   if (S.admin?.characterId === removedCharacterId) S.admin.characterId = '';
   try { localStorage.removeItem(customAvatarKey(name)); } catch (_) {}
@@ -1214,51 +1289,76 @@ function saveBudget(name) {
 function pickClass(cls) { _addHeroClass = normalizeClass(cls); renderParty(); }
 function pickGender(gender) { _addHeroGender = gender === 'female' ? 'female' : 'male'; renderParty(); }
 function openAddHero() {
+  _addHeroMode = accountHero() ? 'id' : 'guest';
   _addHeroName = '';
   _addHeroCharacterId = '';
   _addHeroClass = null;
   _addHeroGender = null;
   _addHeroCustom = null;
+  _addHeroResolvedRecord = null;
   _heroPickerOpen = false;
   _heroConfirmOpen = false;
   _addHeroOpen = true;
   renderParty();
-  setTimeout(() => document.getElementById('new-hero-name')?.focus(), 0);
+  setTimeout(() => document.getElementById(accountHero() ? 'new-hero-id' : 'new-hero-name')?.focus(), 0);
 }
 function openHeroPicker() { _heroPickerOpen = true; renderParty(); }
 function closeHeroPicker() { _heroPickerOpen = false; renderParty(); }
 function cancelAddHero() {
+  _addHeroMode = accountHero() ? 'id' : 'guest';
   _addHeroName = '';
   _addHeroCharacterId = '';
   _addHeroClass = null;
   _addHeroGender = null;
   _addHeroCustom = null;
+  _addHeroResolvedRecord = null;
   _heroPickerOpen = false;
   _heroConfirmOpen = false;
   _addHeroOpen = false;
   renderParty();
 }
-function requestHeroConfirmation() {
+async function requestHeroConfirmation() {
   const el = document.getElementById('new-hero-name');
   _addHeroName = (el?.value || _addHeroName).trim();
   _addHeroCharacterId = String(document.getElementById('new-hero-id')?.value || _addHeroCharacterId || '').replace(/\D/g, '').slice(0, 4);
-  if (!_addHeroName || !_addHeroClass || !_addHeroGender) return;
   const account = accountHero();
-  if (account) {
+  const idMode = account && _addHeroMode !== 'guest';
+  if (idMode) {
     if (!/^\d{4}$/.test(_addHeroCharacterId)) { toast(t('err_character_id_required')); return; }
     if (_addHeroCharacterId === account.id) { toast(t('err_account_hero_duplicate')); return; }
     if (Object.values(S.characterIds || {}).map(String).includes(_addHeroCharacterId)) { toast(t('err_character_id_duplicate')); return; }
+    const rec = await resolveCharacterRecord(_addHeroCharacterId);
+    if (!rec) { toast(t('err_character_id_not_found')); return; }
+    _addHeroResolvedRecord = rec;
+    _addHeroName = uniqueParticipantName(rec.name, rec.id);
+    _addHeroClass = normalizeClass(rec.class || rec.cls);
+    _addHeroGender = rec.gender === 'female' ? 'female' : 'male';
+  } else {
+    if (!_addHeroName || !_addHeroClass || !_addHeroGender) return;
+    _addHeroName = uniqueParticipantName(_addHeroName);
   }
-  if (S.participants.includes(_addHeroName)) { toast(t('err_duplicate', { name: _addHeroName })); return; }
   _heroConfirmOpen = true;
   renderParty();
 }
 function closeHeroConfirmation() { _heroConfirmOpen = false; renderParty(); }
+function setAddHeroMode(mode) {
+  _addHeroMode = mode === 'guest' ? 'guest' : 'id';
+  _addHeroName = '';
+  _addHeroCharacterId = '';
+  _addHeroClass = null;
+  _addHeroGender = null;
+  _addHeroCustom = null;
+  _addHeroResolvedRecord = null;
+  _heroPickerOpen = false;
+  _heroConfirmOpen = false;
+  renderParty();
+}
 function setPickerGender(gender) { _pickerGender = ['all','female','male'].includes(gender) ? gender : 'all'; renderParty(); }
 function pickHeroVariant(cls, gender) {
   _addHeroClass = normalizeClass(cls);
   _addHeroGender = gender === 'female' ? 'female' : 'male';
   _addHeroCustom = null;
+  _addHeroResolvedRecord = null;
   _heroPickerOpen = false;
   SFX.click();
   renderParty();
@@ -1352,6 +1452,8 @@ function skinPickerHtml(hero) {
 function renderParty() {
   const account = accountHero();
   const needsGuestId = !!account;
+  const idAddMode = needsGuestId && _addHeroMode !== 'guest';
+  const guestAddMode = !needsGuestId || _addHeroMode === 'guest';
   const party = computeParty();
   document.getElementById('party-count').textContent = S.participants.length;
   const grid = document.getElementById('party-grid');
@@ -1363,6 +1465,8 @@ function renderParty() {
     const reward = hero.reward;
     const rankTitle = reward.title[LANG] || reward.title.th;
     const frameClass = reward.frame === 'legend' ? 'legend' : reward.frame === 'gold' ? 'gold' : '';
+    const isGuestHero = !!S.guestHeroes?.[hero.name];
+    const heroId = isGuestHero ? '' : ensureCharacterId(hero.name);
     return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${S.settings.stats && reward.frame === 'bronze' ? '#c08a4a' : S.settings.stats && reward.frame === 'silver' ? '#b6c0cf' : S.settings.stats && (reward.frame === 'gold' || reward.frame === 'legend') ? 'var(--gold)' : 'var(--border)'}">
       ${isAdminUnlocked() && S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
       <div class="portrait ${S.settings.stats ? frameClass : ''}" style="--avatar-bg:${avatarBg(hero.cls)}">
@@ -1376,7 +1480,7 @@ function renderParty() {
           <strong>${t('level_up')}</strong><div class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</div>
         </div>` : ''}
       </div>
-      <div class="hero-name">${h(hero.name)}<a class="char-id" href="${h(characterProfileLink(ensureCharacterId(hero.name)))}" title="Character Profile">#${h(ensureCharacterId(hero.name))}</a></div>
+      <div class="hero-name">${h(hero.name)}${isGuestHero ? `<span class="char-id">${h(t('guest_badge'))}</span>` : `<a class="char-id" href="${h(characterProfileLink(heroId))}" title="Character Profile">#${h(heroId)}</a>`}</div>
       <div class="hero-class-row">
         <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
         ${S.settings.stats ? `<span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>` : ''}
@@ -1401,12 +1505,15 @@ function renderParty() {
       </div>
     </div>`;
   }).join('');
-  const addReadyExpr = `this.formReady=!!(_addHeroName.trim() && _addHeroClass && _addHeroGender${needsGuestId ? " && /^\\d{4}$/.test(_addHeroCharacterId)" : ''});document.getElementById('confirm-hero-btn').disabled=!this.formReady`;
+  const addReadyExpr = idAddMode
+    ? `this.formReady=/^\\d{4}$/.test(_addHeroCharacterId);document.getElementById('confirm-hero-btn').disabled=!this.formReady`
+    : `this.formReady=!!(_addHeroName.trim() && _addHeroClass && _addHeroGender);document.getElementById('confirm-hero-btn').disabled=!this.formReady`;
   const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
-    <input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(needsGuestId ? t('guest_hero_name') : t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
-    ${needsGuestId ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value.replace(/\\D/g,'').slice(0,4);this.value=_addHeroCharacterId;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
-    <div class="lock-note">${t('guest_character_id_note')}</div>` : ''}
-    <div class="hero-builder">
+    ${needsGuestId ? `<div class="seg" style="width:100%"><button type="button" class="${idAddMode ? 'on' : ''}" onclick="setAddHeroMode('id')">${h(t('add_by_character_id'))}</button><button type="button" class="${guestAddMode ? 'on' : ''}" onclick="setAddHeroMode('guest')">${h(t('add_guest'))}</button></div>` : ''}
+    ${idAddMode ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value.replace(/\\D/g,'').slice(0,4);this.value=_addHeroCharacterId;_addHeroResolvedRecord=null;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
+    <div class="lock-note">${t('guest_character_id_note')}</div>` : `<input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">`}
+    ${guestAddMode && needsGuestId ? `<div class="lock-note">${t('add_guest_note')}</div>` : ''}
+    ${idAddMode ? '' : `<div class="hero-builder">
       ${(() => {
         if (!_addHeroClass || !_addHeroGender) {
           return `<div class="avatar-preview empty">
@@ -1438,10 +1545,10 @@ function renderParty() {
         <div class="field-label">${_addHeroClass && _addHeroGender ? `${CLASSES[_addHeroClass].glyph} ${h(CLASSES[_addHeroClass][LANG] || CLASSES[_addHeroClass].th)} · ${_addHeroGender === 'female' ? '♀' : '♂'}` : h(t('hero_not_selected'))}</div>
         <div class="lock-note">${t('hero_choice_locked')}</div>
       </div>
-    </div>
+    </div>`}
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button type="button" class="btn-ghost" onclick="cancelAddHero()">✕</button>
-      <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${_addHeroName.trim() && _addHeroClass && _addHeroGender && (!needsGuestId || /^\d{4}$/.test(_addHeroCharacterId)) ? '' : 'disabled'}>${t('confirm_hero')}</button>
+      <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${idAddMode ? (/^\d{4}$/.test(_addHeroCharacterId) ? '' : 'disabled') : (_addHeroName.trim() && _addHeroClass && _addHeroGender ? '' : 'disabled')}>${t('confirm_hero')}</button>
     </div>
   </div>` : `<button class="add-hero" onclick="openAddHero()"><span style="font-size:28px;line-height:1">＋</span><span>${t('add_hero')}</span></button>`;
   grid.innerHTML = cards + add + heroPickerModal() + heroConfirmationModal();
@@ -1962,7 +2069,7 @@ function renderSettlement(party) {
     const from = byName[tx.from], to = byName[tx.to], key = tx.from + '>' + tx.to;
     return `<div class="tribute">
       <div class="tr-person">${heroAvatar(tx.from, 38, from?.hp ?? null)}<span>${h(tx.from)}</span></div>
-      <div class="tr-mid"><div class="tr-amt">${money(tx.amount)}</div><div>⮕</div></div>
+      <div class="tr-mid"><div class="tr-amt">${money2(tx.amount)}</div><div>⮕</div></div>
       <div class="tr-person">${heroAvatar(tx.to, 38)}<span>${h(tx.to)}</span></div>
       <button class="btn-primary sm" onclick="openTribute(${q(tx.from)},${q(tx.to)},${Number(tx.amount) || 0})">💸 ${t('send_tribute')}</button>
     </div>`;

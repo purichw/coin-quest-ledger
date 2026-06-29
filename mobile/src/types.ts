@@ -63,6 +63,7 @@ export type TripState = {
   heroSkins: Record<string, string>;
   settleXp: Record<string, number>;
   characterIds: Record<string, string>;
+  guestHeroes: Record<string, boolean>;
   promptpay: Record<string, string>;
   activeCampaignId: string;
   campaigns: unknown[];

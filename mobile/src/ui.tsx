@@ -104,7 +104,7 @@ export function EmptyState({ title, body, action, onAction }: { title: string; b
 }
 
 export function formatMoney(value: number): string {
-  return Math.round(Number(value) || 0).toLocaleString('th-TH');
+  return (Number(value) || 0).toLocaleString('th-TH', { maximumFractionDigits: 2 });
 }
 
 const styles = StyleSheet.create({

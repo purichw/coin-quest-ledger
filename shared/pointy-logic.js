@@ -532,6 +532,7 @@
       heroGenders: c?.heroGenders || {},
       heroSkins: c?.heroSkins && typeof c.heroSkins === 'object' ? c.heroSkins : {},
       characterIds: c?.characterIds || {},
+      guestHeroes: c?.guestHeroes && typeof c.guestHeroes === 'object' ? c.guestHeroes : {},
       promptpay: c?.promptpay || {},
       settleXp: c?.settleXp || {},
       createdAt: c?.createdAt || Date.now(),
@@ -547,6 +548,7 @@
       heroSkins: data?.heroSkins && typeof data.heroSkins === 'object' ? data.heroSkins : {},
       settleXp: data?.settleXp || {},
       characterIds: data?.characterIds || {},
+      guestHeroes: data?.guestHeroes && typeof data.guestHeroes === 'object' ? data.guestHeroes : {},
       promptpay: data?.promptpay || {},
       activeCampaignId: data?.activeCampaignId || data?.activeId || '',
       campaigns: Array.isArray(data?.campaigns) ? data.campaigns.map(normalizeCampaign) : [],
@@ -784,7 +786,7 @@
     };
   }
 
-  function settleUp(party) {
+  function globalSettleUp(party) {
     const cred = party.filter(p => p.bal > 0.5).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
     const debt = party.filter(p => p.bal < -0.5).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
     const out = [];
@@ -798,6 +800,54 @@
       if (cred[j].amt < 0.5) j++;
     }
     return out;
+  }
+
+  function settleUp(party, state = null) {
+    if (!state?.expenses?.length || !state?.participants?.length) return globalSettleUp(party);
+    const participants = state.participants || [];
+    const valid = new Set(participants);
+    const pair = {};
+    state.expenses.forEach(expense => {
+      const shares = splitShares(expense, participants);
+      const payers = Object.entries(payerMap(expense)).filter(([name, amount]) => valid.has(name) && Number(amount) > 0);
+      const totalPaid = payers.reduce((sum, [, amount]) => sum + (Number(amount) || 0), 0);
+      if (totalPaid <= 0) return;
+      Object.entries(shares).forEach(([from, share]) => {
+        const owedShare = Number(share) || 0;
+        if (!valid.has(from) || owedShare <= 0) return;
+        payers.forEach(([to, paid]) => {
+          if (from === to) return;
+          const amount = owedShare * ((Number(paid) || 0) / totalPaid);
+          if (amount <= 0) return;
+          const key = `${from}\u0000${to}`;
+          pair[key] = (pair[key] || 0) + amount;
+        });
+      });
+    });
+    const out = [];
+    const seen = new Set();
+    Object.keys(pair).forEach(key => {
+      if (seen.has(key)) return;
+      const [from, to] = key.split('\u0000');
+      const reverse = `${to}\u0000${from}`;
+      seen.add(key);
+      seen.add(reverse);
+      const net = (pair[key] || 0) - (pair[reverse] || 0);
+      const amount = Math.round(Math.abs(net) * 100) / 100;
+      if (amount <= 0.005) return;
+      out.push(net > 0 ? { from, to, amount } : { from: to, to: from, amount });
+    });
+    if (!out.length) return [];
+    const totalOut = out.reduce((acc, tx) => {
+      acc[tx.from] = (acc[tx.from] || 0) + tx.amount;
+      return acc;
+    }, {});
+    return out.sort((a, b) =>
+      (totalOut[b.from] || 0) - (totalOut[a.from] || 0) ||
+      b.amount - a.amount ||
+      participants.indexOf(a.from) - participants.indexOf(b.from) ||
+      participants.indexOf(a.to) - participants.indexOf(b.to)
+    );
   }
 
   Object.assign(PointyLogic, {

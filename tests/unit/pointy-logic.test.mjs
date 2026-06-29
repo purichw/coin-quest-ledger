@@ -125,6 +125,32 @@ test('computeParty calculates paid, share, balance, XP, and settlement', () => {
   assert.deepEqual(plain(logic.settleUp(party)), [{ from: 'Pointy', to: 'Shane', amount: 300 }]);
 });
 
+test('settleUp nets pairwise payer obligations instead of globally rerouting debt', () => {
+  const state = {
+    participants: ['Pointy', 'PP', 'PPP'],
+    budgets: {},
+    settleXp: {},
+    expenses: [
+      { desc: 'Gift', amount: 1000, paidBy: 'PP', sharedBy: ['Pointy', 'PP', 'PPP'] },
+      { desc: 'Coffee', amount: 2000, paidBy: 'Pointy', sharedBy: ['Pointy', 'PP', 'PPP'] },
+      { desc: 'Food 1', amount: 1000, paidBy: 'Pointy', sharedBy: ['Pointy', 'PP', 'PPP'] }
+    ]
+  };
+
+  const party = logic.computeParty(state, { classOf: () => 'warrior' });
+  const txns = logic.settleUp(party, state);
+
+  assert.equal(txns[0].from, 'PPP');
+  assert.equal(txns[0].to, 'Pointy');
+  closeTo(txns[0].amount, 1000, 0.01);
+  assert.equal(txns[1].from, 'PPP');
+  assert.equal(txns[1].to, 'PP');
+  closeTo(txns[1].amount, 333.33, 0.01);
+  assert.equal(txns[2].from, 'PP');
+  assert.equal(txns[2].to, 'Pointy');
+  closeTo(txns[2].amount, 666.67, 0.01);
+});
+
 test('computeParty can add cross-trip base XP for character progress', () => {
   const party = logic.computeParty({
     participants: ['Shane'],

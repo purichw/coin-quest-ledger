@@ -23,7 +23,7 @@ export function SplitScreen({
     return <EmptyState title={lang === 'en' ? 'Split Expenses' : 'แบ่งค่าใช้จ่าย'} body={lang === 'en' ? 'No synced board is linked to this Character ID yet.' : 'ยังไม่มีบอร์ดที่ผูกกับ Character ID นี้'} action={lang === 'en' ? 'Create Board' : 'สร้างบอร์ดใหม่'} onAction={onNewBoard} />;
   }
   const party = computeParty(trip);
-  const settlements = settleUp(party);
+  const settlements = settleUp(party, trip);
   const total = trip.expenses.reduce((sum, item) => sum + item.amount, 0);
   return (
     <View style={{ gap: 14 }}>
