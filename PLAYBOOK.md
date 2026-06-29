@@ -101,6 +101,8 @@ When implementing from Claude Design:
 - If Claude includes assets or sounds, check whether they already exist in the supplied HTML/project before recreating them.
 - For Party Ledger specifically, prefer smaller split reference zips when the user supplies them, then fall back to a full offline canon only when exact all-in-one behavior must be verified. Do not assume old Downloads paths still exist.
 - Do not drop `sound.jsx`; the Party Ledger offline bundle stores SFX as WebAudio code there, not as separate `audio/*` files.
+- If the user says "TO A TEE", run a micro-cosmetic audit, not just a screen-level glance. Compare offline Claude CSS/DOM values for padding, radius, font size/weight, border style, button dimensions, icon alignment, and mobile overrides. Recent Party Ledger regressions to guard: centered 22px quest-row `x`, compact dashed `Attach receipt`, compact dashed `Whole party`, and split segment sizing on iPhone SE / iPhone / Pro Max.
+- Exact keyword expansion: "to a tee" means `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
 
 ## Architecture And Roadmap
 
@@ -130,6 +132,8 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - `tests/e2e/coin-quest-ledger.spec.mjs` covers critical Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison flows.
 - `trip/index.legacy.html` and `index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
 - Keep refactors incremental. The shell and expense entry controls use delegated events, but some dynamic hero/admin/overlay renderers still use inline handlers; migrate those only in focused slices with full `npm test`.
+- Signed-in "other hero" add flow is Character-ID-only for real characters. It must resolve an existing character, never generate one from arbitrary input, never ask for "Other hero's name", and never block duplicate visible names. Use "Add Guest" when a board-only participant is needed; guests get name + hero selection only and no real Character ID.
+- Settlement logic must preserve pairwise per-expense payer obligations. Do not simplify it back to global net creditor/debtor routing; that breaks cases where one participant owes different people from different expenses.
 
 ## Admin Portal Notes
 

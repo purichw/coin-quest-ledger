@@ -1,6 +1,6 @@
 # Claude Design Index
 
-Last updated: 2026-06-22
+Last updated: 2026-06-29
 
 ## Purpose
 
@@ -31,6 +31,14 @@ Workflow:
 2. Inspect DOM/component structure, class names, spacing, interactions, animations, and assets.
 3. Fall back to the full offline HTML only when all-in-one behavior must be verified.
 4. Do not commit the zips or giant offline HTML.
+
+## Party Ledger 2026-06-29 Locked Notes
+
+- Claude Design fidelity means component-level fidelity. For the expense form and quest log, compare the live components against the offline HTML/CSS values for padding, radius, font size/weight, border style, dimensions, and mobile overrides.
+- Exact keyword expansion: whenever the user says "to a tee", treat it as `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
+- Locked micro-cosmetic examples: quest-row close button is a centered 22px circle; `Attach receipt` is the compact dashed button; `Whole party` is the compact dashed pill; split segments should retain Claude mobile proportions and must not cause page-level horizontal overflow on iPhone SE / iPhone / iPhone Pro Max.
+- Character add flow: real account-linked heroes are added by existing Character ID only. Guest heroes are board-local only and do not create Character IDs or registry records.
+- Settlement flow: use pairwise per-expense obligations and reciprocal netting, not global net rerouting.
 
 ## Character Profile Reference Notes
 

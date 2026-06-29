@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-22
+Last updated: 2026-06-29
 
 ## Project
 
@@ -11,8 +11,8 @@ Last updated: 2026-06-22
 - Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
-- Latest pushed commit: `75874f3` (`Add native mobile app MVP`).
-- Latest verified production deploy: commit `75874f3`, deployment `dpl_GbjV8KwadCfdkanY7N4UCP4LQ2Uw`, URL `https://coin-quest-ledger-m30eylv5v-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-22 after full `npm test` passed on rerun.
+- Latest pushed commit: `8a04515` (`Fix guest hero flow and pairwise settlements`).
+- Latest verified production deploy: commit `8a04515`, deployment `dpl_H1AhXk7CxMLtUtvzccgMiu3gCgD8`, URL `https://coin-quest-ledger-5c6vjbooo-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger-purichwc-1517s-projects.vercel.app` on 2026-06-29 after full `npm test` passed (`80 passed`, `4 skipped`).
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
 ## Start Here In A New Chat
@@ -76,6 +76,12 @@ The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now sp
 Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. Tablet/touch uses the Claude `hover:none` / `pointer:coarse` tier from the 2026-06-20 exports: larger 44px tap targets, single-column Compare cards at `601-820px`, and module-specific touch polish without adopting the phone shell. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
 
 2026-06-21 mobile web parity note: the live shared phone shell was aligned with the newest Claude mobile-web exports for iPhone SE / iPhone / iPhone Pro / Pro Max widths. Phone topbars are one compact row with burger, `Coin Quest`, and reminder bell; player module topbar back pills are hidden on Split/Debt/Treasury while Compare keeps its explicit Home back path; bottom tabs use the Claude labels `หน้าหลัก / แบ่งเงิน / มังกร / ราคา / คลัง`; Home uses the green hero title and chest Split card icon; the first-load eye is intentionally small. The iPhone touch pass also keeps hover-only controls visible on touch, protects Split banner actions from ragged wrapping, and preserves zero horizontal overflow at 375/393/430px.
+
+2026-06-29 Party Ledger character/settlement/design note: adding a real "other hero" while signed in is Character-ID-only and must resolve an existing character record. It must not show or validate "Other hero's name", must not generate a new Character ID from arbitrary input, and duplicate visible names are allowed. The alternate path is "Add Guest": user enters a display name and chooses class/gender/skin, but no real Character ID or character registry record is created. Guest participants are flagged in `guestHeroes` and omitted from Character XP/registry sync. Settlement must use pairwise per-expense obligations with reciprocal pair netting, not global creditor/debtor rerouting; the known regression case is `PPP -> Pointy ฿1,000`, `PPP -> PP ฿333.33`, and `PP -> Pointy ฿666.67`. Web and native/mobile logic should stay in parity for this calculation.
+
+2026-06-29 Claude Design micro-cosmetic rule: when the user says "TO A TEE" for Claude Design, do not stop at broad layout similarity. Audit component-level geometry against the offline HTML/CSS: exact-ish padding, font size/weight, radius, border style, hit target, icon centering, and mobile overrides. Recent locked examples: quest-row close button is a 22px circle with centered `x`; `Attach receipt` is the small dashed Claude-style button; `Whole party` is a compact dashed pill, not a large touch-expanded button; split segment sizing must preserve the Claude mobile proportions and avoid page-level horizontal overflow on iPhone SE / iPhone / iPhone Pro Max.
+
+Keyword memory: whenever the user says "to a tee" about Claude Design, expand it internally to: `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
 
 The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production. Local test accounts exist only behind explicit `?test=1` regression mode; production must never fall back to built-in accounts when Firebase is missing or still loading. Users type a username, not a real email; the profile modules map it to an internal `username@coinquest.local` Firebase Auth email, create/load `users/{uid}`, route accounts without a character through one-time Character Creation, write the active character to `characters/{id}`, and mirror the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
 
@@ -178,6 +184,7 @@ When implementing Claude handoff:
 - Preserve app functionality, Firebase state shape, i18n, and tests.
 - Before recreating assets or sounds, inspect the supplied Claude HTML/project because assets are often embedded or already present there.
 - Admin Portal specifically must follow Claude Design structure closely (`page-head`, `card`, `stat`, `tbl`, `detail-grid`, `profile-card`, `log-list`, modal patterns). Do not use legacy markup with broad compatibility CSS if it diverges visually.
+- For Party Ledger micro-components, verify live CSS/DOM geometry against the offline Claude HTML before finishing. Do not let touch-comfort overrides silently enlarge Claude-compact controls such as receipt buttons, `Whole party`, split segments, or quest-row close buttons.
 
 ## Testing Workflow
 
