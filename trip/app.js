@@ -1509,7 +1509,7 @@ function renderParty() {
     ? `this.formReady=/^\\d{4}$/.test(_addHeroCharacterId);document.getElementById('confirm-hero-btn').disabled=!this.formReady`
     : `this.formReady=!!(_addHeroName.trim() && _addHeroClass && _addHeroGender);document.getElementById('confirm-hero-btn').disabled=!this.formReady`;
   const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
-    ${needsGuestId ? `<div class="seg" style="width:100%"><button type="button" class="${idAddMode ? 'on' : ''}" onclick="setAddHeroMode('id')">${h(t('add_by_character_id'))}</button><button type="button" class="${guestAddMode ? 'on' : ''}" onclick="setAddHeroMode('guest')">${h(t('add_guest'))}</button></div>` : ''}
+    ${needsGuestId ? `<div class="seg add-mode-seg"><button type="button" class="${idAddMode ? 'on' : ''}" onclick="setAddHeroMode('id')">${h(t('add_by_character_id'))}</button><button type="button" class="${guestAddMode ? 'on' : ''}" onclick="setAddHeroMode('guest')">${h(t('add_guest'))}</button></div>` : ''}
     ${idAddMode ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value.replace(/\\D/g,'').slice(0,4);this.value=_addHeroCharacterId;_addHeroResolvedRecord=null;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
     <div class="lock-note">${t('guest_character_id_note')}</div>` : `<input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">`}
     ${guestAddMode && needsGuestId ? `<div class="lock-note">${t('add_guest_note')}</div>` : ''}
@@ -1546,7 +1546,7 @@ function renderParty() {
         <div class="lock-note">${t('hero_choice_locked')}</div>
       </div>
     </div>`}
-    <div style="display:flex;gap:8px;justify-content:flex-end">
+    <div class="add-hero-actions">
       <button type="button" class="btn-ghost" onclick="cancelAddHero()">✕</button>
       <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${idAddMode ? (/^\d{4}$/.test(_addHeroCharacterId) ? '' : 'disabled') : (_addHeroName.trim() && _addHeroClass && _addHeroGender ? '' : 'disabled')}>${t('confirm_hero')}</button>
     </div>
