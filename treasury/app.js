@@ -143,7 +143,7 @@ const TR_STR = {
 };
 
 const SEED_TREASURY = {
-  keeper: { name: 'Pointy', avatar: 'engineer-male' },
+  keeper: { name: 'Treasurer', avatar: 'engineer-male' },
   income: 45000,
   categories: [
     { id: 'home', name: { th: 'บ้าน & บิล', en: 'Home & Bills' }, glyph: '🏠', monster: { th: 'โทรลล์ค่าเช่า', en: 'Rent Troll' }, budget: 16000 },

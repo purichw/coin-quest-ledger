@@ -69,7 +69,7 @@
     other: { th: 'หนี้อื่น ๆ', en: 'Other debt', glyph: '⛓️', hue: 300, minPay: 0 }
   };
   PointyLogic.SEED_DEBT = {
-    slayer: { name: 'Pointy', characterId: '', class: 'dragoon', gender: 'male', skin: '' },
+    slayer: { name: 'Hero', characterId: '', class: 'dragoon', gender: 'male', skin: '' },
     dragons: [
       { id: 'd1', name: { th: 'บัตรเครดิต', en: 'Credit card' }, type: 'card', original: 72000, balance: 58000, apr: 22, payment: 3000, interestMode: 'compound', payMode: 'monthly', log: [], slain: false, slainAt: null },
       { id: 'd2', name: { th: 'สินเชื่อรถยนต์', en: 'Auto loan' }, type: 'autoloan', original: 540000, balance: 312000, apr: 3.5, payment: 9600, interestMode: 'simple', payMode: 'monthly', log: [], slain: false, slainAt: null },

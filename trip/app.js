@@ -921,6 +921,10 @@ function renderBoardChoose() {
     return;
   }
   if (_boardChooseMode === 'join') {
+    const sampleBlock = TEST_MODE ? `<div class="bc-samples">
+          <div class="bc-samples-h">${h(t('bd_try_codes'))}</div>
+          <div class="bc-samples-list">${boardChooseSamples().map(sample => `<button class="bc-sample" type="button" onclick="fillBoardChooseCode('${sample.code}')"><b>${sample.code}</b><span>${h(sample.name)}</span></button>`).join('')}</div>
+        </div>` : '';
     main.innerHTML = `<div class="bc-shell">${back}
       <div class="bc-form">
         <span class="bc-opt-ic big" aria-hidden="true">🔑</span>
@@ -931,10 +935,7 @@ function renderBoardChoose() {
           <input id="bc-code" class="field-input bc-code-input" inputmode="numeric" maxlength="4" value="" placeholder="${h(t('bd_code_placeholder'))}">
         </div>
         <button class="btn-primary big" type="button" onclick="joinBoardFromChoose()">🔑 ${h(t('bd_join_btn'))}</button>
-        <div class="bc-samples">
-          <div class="bc-samples-h">${h(t('bd_try_codes'))}</div>
-          <div class="bc-samples-list">${boardChooseSamples().map(sample => `<button class="bc-sample" type="button" onclick="fillBoardChooseCode('${sample.code}')"><b>${sample.code}</b><span>${h(sample.name)}</span></button>`).join('')}</div>
-        </div>
+        ${sampleBlock}
       </div>
     </div>`;
     requestAnimationFrame(() => document.getElementById('bc-code')?.focus());
@@ -2606,7 +2607,7 @@ async function downloadTemplate() {
   ws1.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FF2f8f5b' } };
   ws1.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFefe0b6' } };
   ws1.addRow([]); xlHeaderRow(ws1.addRow(['Description', 'Amount (฿)', 'Paid By', 'Split With']));
-  [['Dinner',900,'Shane','Shane, Pointy, Arm'],['Gas',500,'Pointy','Shane, Pointy'],['Hotel',3000,'Arm','Shane, Pointy, Arm']].forEach((data, i) => {
+  [['Dinner',900,'Alice','Alice, Ben, Casey'],['Gas',500,'Ben','Alice, Ben'],['Hotel',3000,'Casey','Alice, Ben, Casey']].forEach((data, i) => {
     const row = ws1.addRow(data); row.getCell(2).numFmt = '#,##0.00'; xlDataRow(row, i % 2 === 1);
   });
   const ws2 = wb.addWorksheet('Expenses');

@@ -253,7 +253,7 @@ function renderSearch(message = '') {
     <section class="search-card">
       <h1>${h(t('profile_title'))}</h1>
       <div class="sub">${h(message || t('profile_search_hint'))}</div>
-      <div class="search-row"><input id="profile-id-input" inputmode="numeric" maxlength="4" placeholder="1234" onkeydown="if(event.key==='Enter')openProfileSearch()"><button class="cback" onclick="openProfileSearch()">${h(t('profile_open'))}</button></div>
+      <div class="search-row"><input id="profile-id-input" inputmode="numeric" maxlength="4" placeholder="${h(t('character_id'))}" onkeydown="if(event.key==='Enter')openProfileSearch()"><button class="cback" onclick="openProfileSearch()">${h(t('profile_open'))}</button></div>
     </section>
   </main>`;
 }
