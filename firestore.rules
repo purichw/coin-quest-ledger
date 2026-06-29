@@ -27,6 +27,22 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if (request.auth != null && request.auth.uid == uid) || isSuperAdmin();
       allow delete: if isSuperAdmin();
+
+      match /boardInvites/{inviteId} {
+        allow read: if (request.auth != null && request.auth.uid == uid) || isSuperAdmin();
+        allow create: if request.auth != null
+          && request.resource.data.targetOwnerUid == uid
+          && request.resource.data.status == 'pending';
+        allow update: if isSuperAdmin() || (
+          request.auth != null
+          && request.auth.uid == uid
+          && resource.data.targetOwnerUid == uid
+          && request.resource.data.targetOwnerUid == resource.data.targetOwnerUid
+          && request.resource.data.tripId == resource.data.tripId
+          && request.resource.data.targetCharacterId == resource.data.targetCharacterId
+        );
+        allow delete: if isSuperAdmin();
+      }
     }
 
     match /usernames/{username} {

@@ -4,6 +4,7 @@
   const THEME_KEY = 'pointy_theme';
   const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
+  const BOARD_INVITES_KEY = 'pointy_board_invites_v1';
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const PENDING_RECOVERY_KEY = 'pointy_pending_recovery_code_v1';
   const TEST_MODE = window.PointyProfileSession.isTestMode();
@@ -111,6 +112,15 @@
       remDueIn: 'ครบกำหนดใน {n} วัน',
       remSettleUp: 'มีบรรณาการที่ยังไม่เคลียร์',
       remJump: 'ไป',
+      remInviteTitle: 'คำเชิญเข้าบอร์ด',
+      remInviteSub: '{from} ชวนคุณเข้าร่วม "{board}" หมดอายุใน {hours} ชม.',
+      remInviteAccept: 'Accept',
+      remInviteDecline: 'Decline',
+      remInviteDeclineConfirm: 'ยืนยันปฏิเสธคำเชิญนี้?',
+      remInviteAccepted: 'เข้าร่วมบอร์ดแล้ว',
+      remInviteDeclined: 'ปฏิเสธคำเชิญแล้ว',
+      remInviteExpired: 'คำเชิญนี้หมดอายุแล้ว',
+      remInviteFailed: 'จัดการคำเชิญไม่สำเร็จ ลองใหม่อีกครั้ง',
       tributes: 'รายการ',
       newTrophy: 'ปลดล็อก Trophy',
       tourSkip: 'ข้าม',
@@ -229,6 +239,15 @@
       remDueIn: 'Due in {n} days',
       remSettleUp: 'Pending settle-ups',
       remJump: 'Go',
+      remInviteTitle: 'Board invitation',
+      remInviteSub: '{from} invited you to "{board}" · expires in {hours}h',
+      remInviteAccept: 'Accept',
+      remInviteDecline: 'Decline',
+      remInviteDeclineConfirm: 'Decline this invitation?',
+      remInviteAccepted: 'Joined the board',
+      remInviteDeclined: 'Invitation declined',
+      remInviteExpired: 'This invitation has expired',
+      remInviteFailed: 'Could not update this invitation. Try again.',
       tributes: 'items',
       newTrophy: 'Trophy Unlocked',
       tourSkip: 'Skip',
@@ -278,6 +297,9 @@
   let profile = null;
   let context = null;
   let reminders = [];
+  let boardInvites = [];
+  let inviteLoadKey = '';
+  let inviteLoading = false;
   let overlay = null;
   let loginGate = null;
   let loginMode = 'in';
@@ -749,6 +771,158 @@
     });
     return out;
   }
+  function readBoardInviteStore() {
+    const list = readJson(BOARD_INVITES_KEY, []);
+    return Array.isArray(list) ? list : [];
+  }
+  function writeBoardInviteStore(list) {
+    writeJson(BOARD_INVITES_KEY, Array.isArray(list) ? list : []);
+  }
+  function ownCharacterId(account = loadAccount()) {
+    const character = accountCharacter(account);
+    return String(character?.id || account?.userId || '').replace(/\D/g, '').slice(0, 4);
+  }
+  function activeBoardInvites() {
+    const now = Date.now();
+    return boardInvites
+      .filter(invite => invite && invite.status === 'pending' && timestampValue(invite.expiresAt) > now)
+      .sort((a, b) => timestampValue(a.expiresAt) - timestampValue(b.expiresAt));
+  }
+  async function loadBoardInvites({ force = false } = {}) {
+    const account = loadAuth();
+    const characterId = account ? ownCharacterId(account) : '';
+    const key = `${account?.uid || 'local'}:${characterId}`;
+    if (!force && inviteLoadKey === key && boardInvites.length) return boardInvites;
+    if (inviteLoading) return boardInvites;
+    inviteLoading = true;
+    try {
+      let list = [];
+      if (TEST_MODE) {
+        list = readBoardInviteStore().filter(invite => String(invite.targetCharacterId || '') === characterId);
+      } else if (account?.uid && cloudDb()) {
+        const snap = await cloudDb().collection('users').doc(account.uid).collection('boardInvites').where('status', '==', 'pending').get();
+        list = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() || {}) }));
+      }
+      const now = Date.now();
+      boardInvites = list.filter(invite => timestampValue(invite.expiresAt) > now);
+      inviteLoadKey = key;
+      return boardInvites;
+    } catch (err) {
+      console.warn('Board invite load failed', err);
+      return boardInvites;
+    } finally {
+      inviteLoading = false;
+    }
+  }
+  function refreshBoardInvites({ force = false } = {}) {
+    loadBoardInvites({ force }).then(() => {
+      reminders = computeReminders();
+      renderTopbar();
+      if (overlay?.querySelector('.rem-panel:not(.recovery-panel)')) renderRemindersOverlay();
+    });
+  }
+  function uniqueInviteParticipantName(data, baseName, characterId = '') {
+    const sep = '\u2063';
+    const existing = new Set(data.participants || []);
+    const base = String(baseName || '').split(sep)[0].trim() || `Hero #${characterId || '0000'}`;
+    if (!existing.has(base)) return base;
+    const tagged = characterId ? `${base}${sep}${characterId}` : base;
+    if (!existing.has(tagged)) return tagged;
+    for (let i = 2; i < 50; i++) {
+      const next = `${base}${sep}${characterId || i}`;
+      if (!existing.has(next)) return next;
+    }
+    return `${base}${sep}${Date.now().toString(36).slice(-4)}`;
+  }
+  function addInviteToCampaign(campaign, invite, account) {
+    const character = accountCharacter(account);
+    const characterId = String(invite.targetCharacterId || character.id || '').replace(/\D/g, '').slice(0, 4);
+    campaign.participants = Array.isArray(campaign.participants) ? campaign.participants : [];
+    campaign.characterIds = { ...(campaign.characterIds || {}) };
+    const existing = Object.keys(campaign.characterIds).find(name => String(campaign.characterIds[name]) === characterId);
+    if (existing) return existing;
+    const name = uniqueInviteParticipantName(campaign, invite.targetName || character.name || account.name, characterId);
+    campaign.participants.push(name);
+    campaign.characterIds[name] = characterId;
+    campaign.heroClasses = { ...(campaign.heroClasses || {}), [name]: invite.targetClass || character.class || character.cls || 'warrior' };
+    campaign.heroGenders = { ...(campaign.heroGenders || {}), [name]: invite.targetGender === 'female' ? 'female' : 'male' };
+    campaign.heroSkins = { ...(campaign.heroSkins || {}) };
+    if (invite.targetSkin || character.skin) campaign.heroSkins[name] = invite.targetSkin || character.skin;
+    campaign.guestHeroes = { ...(campaign.guestHeroes || {}) };
+    delete campaign.guestHeroes[name];
+    campaign.budgets = { ...(campaign.budgets || {}), [name]: campaign.budgets?.[name] || 3000 };
+    campaign.settleXp = { ...(campaign.settleXp || {}) };
+    return name;
+  }
+  async function readTripForInvite(tripId) {
+    if (TEST_MODE) {
+      const raw = sessionStorage.getItem('pointy_test_trip_' + tripId);
+      return raw ? JSON.parse(raw) : null;
+    }
+    const snap = await cloudDb().collection('trips').doc(tripId).get();
+    return snap.exists ? (snap.data() || {}) : null;
+  }
+  async function writeTripForInvite(tripId, data) {
+    if (TEST_MODE) {
+      sessionStorage.setItem('pointy_test_trip_' + tripId, JSON.stringify({ ...data, updatedAt: Date.now() }));
+      return;
+    }
+    await cloudDb().collection('trips').doc(tripId).set({ ...data, updatedAt: cloudNow() }, { merge: true });
+  }
+  async function updateInviteStatus(invite, status) {
+    const account = loadAuth();
+    if (TEST_MODE) {
+      const list = readBoardInviteStore().map(item => item.id === invite.id ? { ...item, status, respondedAt: Date.now() } : item);
+      writeBoardInviteStore(list);
+      boardInvites = boardInvites.filter(item => item.id !== invite.id);
+      return;
+    }
+    if (!account?.uid || !cloudDb()) throw new Error('missing-account');
+    await cloudDb().collection('users').doc(account.uid).collection('boardInvites').doc(invite.id).set({ status, respondedAt: Date.now() }, { merge: true });
+    boardInvites = boardInvites.filter(item => item.id !== invite.id);
+  }
+  async function acceptBoardInvite(inviteId) {
+    const account = loadAuth();
+    const invite = boardInvites.find(item => item.id === inviteId);
+    if (!account || !invite) return;
+    if (timestampValue(invite.expiresAt) <= Date.now()) {
+      await updateInviteStatus(invite, 'expired').catch(() => {});
+      showMiniToast(s().remInviteExpired);
+      refresh({ toast: false });
+      return;
+    }
+    try {
+      const data = await readTripForInvite(invite.tripId);
+      if (!data) throw new Error('missing-trip');
+      const activeId = data.activeCampaignId || (Array.isArray(data.campaigns) && data.campaigns[0]?.id) || '';
+      addInviteToCampaign(data, invite, account);
+      if (Array.isArray(data.campaigns) && data.campaigns.length) {
+        const idx = activeId ? data.campaigns.findIndex(c => c.id === activeId) : 0;
+        addInviteToCampaign(data.campaigns[idx >= 0 ? idx : 0], invite, account);
+      }
+      await writeTripForInvite(invite.tripId, data);
+      await updateInviteStatus(invite, 'accepted');
+      showMiniToast(s().remInviteAccepted);
+      location.href = `/trip/?id=${encodeURIComponent(invite.tripId)}${TEST_MODE ? '&test=1' : ''}`;
+    } catch (err) {
+      console.warn('Board invite accept failed', err);
+      showMiniToast(s().remInviteFailed);
+    }
+  }
+  async function declineBoardInvite(inviteId) {
+    const invite = boardInvites.find(item => item.id === inviteId);
+    if (!invite) return;
+    if (!confirm(s().remInviteDeclineConfirm)) return;
+    try {
+      await updateInviteStatus(invite, 'declined');
+      showMiniToast(s().remInviteDeclined);
+      refresh({ toast: false });
+      showReminders();
+    } catch (err) {
+      console.warn('Board invite decline failed', err);
+      showMiniToast(s().remInviteFailed);
+    }
+  }
   function timestampValue(value) {
     if (!value) return 0;
     if (typeof value === 'number') return value;
@@ -1002,6 +1176,21 @@
   }
   function computeReminders() {
     const copy = [];
+    activeBoardInvites().forEach(invite => {
+      const hours = Math.max(1, Math.ceil((timestampValue(invite.expiresAt) - Date.now()) / 3600000));
+      copy.push({
+        id: 'invite-' + invite.id,
+        kind: 'invite',
+        icon: '✉️',
+        title: s().remInviteTitle,
+        sub: s().remInviteSub.replace('{from}', invite.inviterName || s().hero).replace('{board}', boardName({ tripName: invite.tripName })).replace('{hours}', hours),
+        inviteId: invite.id,
+        actions: [
+          { action: 'acceptInvite', label: s().remInviteAccept, primary: true },
+          { action: 'declineInvite', label: s().remInviteDecline, danger: true }
+        ]
+      });
+    });
     const debt = loadDebt();
     (debt.dragons || []).forEach(d => {
       const due = dueStatus(d);
@@ -1022,7 +1211,7 @@
     const txns = window.PointyLogic?.settleUp ? window.PointyLogic.settleUp(party) : [];
     if (txns.length) copy.push({ id: 'settle', kind: 'settle', icon: '⚖️', title: s().remSettleUp, sub: txns.length + ' ' + s().tributes, href: '/trip/' });
     return copy.sort((a, b) => {
-      const rank = r => r.kind === 'overdue' ? 0 : r.kind === 'due' ? 1 + (r.days || 0) / 100 : 50;
+      const rank = r => r.kind === 'overdue' ? 0 : r.kind === 'invite' ? 0.5 : r.kind === 'due' ? 1 + (r.days || 0) / 100 : 50;
       return rank(a) - rank(b);
     });
   }
@@ -1505,10 +1694,27 @@
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 2200);
   }
-  function showReminders() {
+  function bindReminderOverlay() {
     mountOverlay(window.PointyProfileReminders.render({ reminders, copy: s() }));
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
     overlay.querySelectorAll('[data-href]').forEach(btn => btn.addEventListener('click', () => { location.href = btn.dataset.href; }));
+    overlay.querySelectorAll('[data-rem-action]').forEach(btn => btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.inviteId || '';
+      if (btn.dataset.remAction === 'acceptInvite') acceptBoardInvite(id);
+      if (btn.dataset.remAction === 'declineInvite') declineBoardInvite(id);
+    }));
+  }
+  function renderRemindersOverlay() {
+    bindReminderOverlay();
+  }
+  function showReminders() {
+    bindReminderOverlay();
+    loadBoardInvites({ force: true }).then(() => {
+      reminders = computeReminders();
+      renderTopbar();
+      if (overlay?.querySelector('.rem-panel')) renderRemindersOverlay();
+    });
   }
   function trophyMarkup() {
     const trophies = evalAchievements(context);
@@ -1661,6 +1867,7 @@
       if (item) showAchievementToast(item);
     }
     renderTopbar();
+    refreshBoardInvites({ force: !!opts.forceInviteRefresh });
   }
   let authWatcherStarted = false;
   function watchFirebaseAuth() {
@@ -1722,6 +1929,7 @@
     refresh({ toast: false });
     showLoginGate();
     window.addEventListener('storage', () => refresh({ toast: false }));
+    window.addEventListener('pointy-board-invites-changed', () => refreshBoardInvites({ force: true }));
     window.addEventListener('coin-quest-state-changed', () => refresh({ toast: true }));
     window.addEventListener('pointy-treasury-changed', () => refresh({ toast: true }));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });

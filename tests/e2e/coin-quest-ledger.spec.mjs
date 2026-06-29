@@ -194,10 +194,12 @@ test('expense splitter requires explicit hero choice and locks the confirmed cha
   await expect(page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' })).toHaveCount(0);
 });
 
-test('expense splitter pins the signed-in account hero and adds others by Character ID', async ({ page }) => {
+test('expense splitter pins the signed-in account hero and invites others by Character ID', async ({ page }) => {
   await page.addInitScript(() => {
+    if (sessionStorage.getItem('split_invite_seeded') === '1') return;
     localStorage.clear();
     sessionStorage.clear();
+    sessionStorage.setItem('split_invite_seeded', '1');
     localStorage.setItem('pointy_auth_v1', JSON.stringify({
       uid: 'split-account-uid',
       username: 'split.account',
@@ -207,34 +209,81 @@ test('expense splitter pins the signed-in account hero and adds others by Charac
       character: { id: '2468', name: 'Profile Hero', class: 'wizard', cls: 'wizard', gender: 'female', skin: '' }
     }));
     localStorage.setItem('pointy_character_registry_v1', JSON.stringify({
-      1357: { id: '1357', name: 'Guest Hero', class: 'tiderunner', cls: 'tiderunner', gender: 'male', skin: 'tiderunner-classic' }
+      1357: { id: '1357', name: 'Guest Hero', class: 'tiderunner', cls: 'tiderunner', gender: 'male', skin: 'tiderunner-classic' },
+      1358: { id: '1358', name: 'Decline Hero', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' }
     }));
   });
 
-  await page.goto(`/trip/?id=${uniqueTripId('account-hero')}&test=1`);
+  const tripId = uniqueTripId('account-hero');
+  await page.goto(`/trip/?id=${tripId}&test=1`);
   await expect(page.locator('.hero-card').first()).toContainText('Profile Hero');
   await expect(page.locator('.hero-card').first().locator('.char-id')).toHaveText('#2468');
 
   await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
   await expect(page.getByPlaceholder('ชื่อฮีโร่คนอื่น')).toHaveCount(0);
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('2468');
-  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await page.getByRole('button', { name: 'Invite' }).click();
   await expect(page.locator('#toast')).toContainText('ฮีโร่ของคุณถูกเพิ่มจากโปรไฟล์แล้ว');
 
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('9999');
-  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
+  await page.getByRole('button', { name: 'Invite' }).click();
   await expect(page.locator('#toast')).toContainText('ไม่พบ Character ID นี้');
 
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('1357');
-  await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
-  await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toBeVisible();
-  await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toContainText('Guest Hero');
-  await expect(page.getByRole('dialog', { name: /ยืนยันฮีโร่/ })).toContainText('นักแล่นคลื่น');
-  await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
-  await expect(page.locator('.hero-card').nth(0)).toContainText('Profile Hero');
-  await expect(page.locator('.hero-card').nth(1)).toContainText('Guest Hero');
-  await expect(page.locator('.hero-card').nth(1).locator('.char-id')).toHaveText('#1357');
-  await expect(page.locator('.hero-card').nth(1).locator('.portrait-img')).toHaveAttribute('src', /tiderunner-classic-male\.png$/);
+  await page.getByRole('button', { name: 'Invite' }).click();
+  await expect(page.getByRole('dialog', { name: /ส่งคำเชิญ/ })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /ส่งคำเชิญ/ })).toContainText('Guest Hero');
+  await expect(page.getByRole('dialog', { name: /ส่งคำเชิญ/ })).toContainText('นักแล่นคลื่น');
+  await page.getByRole('button', { name: 'ส่งคำเชิญ' }).click();
+  await expect(page.locator('#toast')).toContainText('ส่งคำเชิญแล้ว');
+  await expect(page.locator('#party-count')).toHaveText('1');
+
+  await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
+  await page.getByPlaceholder('Character ID ของคนอื่น').fill('1358');
+  await page.getByRole('button', { name: 'Invite' }).click();
+  await page.getByRole('button', { name: 'ส่งคำเชิญ' }).click();
+  await expect(page.evaluate(() => JSON.parse(localStorage.getItem('pointy_board_invites_v1') || '[]').filter(i => i.status === 'pending').length)).resolves.toBe(2);
+
+  await page.evaluate(() => {
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'decline-hero-uid',
+      username: 'decline.hero',
+      email: 'decline.hero@coinquest.local',
+      userId: '1358',
+      name: 'Decline Account',
+      character: { id: '1358', name: 'Decline Hero', class: 'ranger', cls: 'ranger', gender: 'female', skin: '' }
+    }));
+  });
+  await page.goto('/?test=1');
+  await page.locator('[data-profile-hub="reminders"]').click();
+  await expect(page.locator('.rem-panel')).toContainText('คำเชิญเข้าบอร์ด');
+  page.once('dialog', async dialog => {
+    expect(dialog.message()).toContain('ปฏิเสธ');
+    await dialog.accept();
+  });
+  await page.getByRole('button', { name: 'Decline' }).click();
+  await expect(page.evaluate(() => JSON.parse(localStorage.getItem('pointy_board_invites_v1') || '[]').find(i => i.targetCharacterId === '1358')?.status)).resolves.toBe('declined');
+
+  await page.evaluate(() => {
+    localStorage.setItem('pointy_auth_v1', JSON.stringify({
+      uid: 'guest-hero-uid',
+      username: 'guest.hero',
+      email: 'guest.hero@coinquest.local',
+      userId: '1357',
+      name: 'Guest Account',
+      character: { id: '1357', name: 'Guest Hero', class: 'tiderunner', cls: 'tiderunner', gender: 'male', skin: 'tiderunner-classic' }
+    }));
+  });
+  await page.goto('/?test=1');
+  await page.locator('[data-profile-hub="reminders"]').click();
+  await expect(page.locator('.rem-panel')).toContainText('คำเชิญเข้าบอร์ด');
+  await expect(page.locator('.rem-panel')).toContainText('Profile Hero');
+  await page.getByRole('button', { name: 'Accept' }).click();
+  await expect(page).toHaveURL(new RegExp(`/trip/\\?id=${tripId}&test=1`));
+  await expect(page.locator('.hero-card').nth(0)).toContainText('Guest Hero');
+  await expect(page.locator('.hero-card').nth(0).locator('.char-id')).toHaveText('#1357');
+  await expect(page.locator('.hero-card').nth(0).locator('.portrait-img')).toHaveAttribute('src', /tiderunner-classic-male\.png$/);
+  await expect(page.locator('.hero-card').filter({ hasText: 'Profile Hero' })).toHaveCount(1);
 
   await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
   await page.getByRole('button', { name: 'เพิ่ม Guest' }).click();
