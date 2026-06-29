@@ -22,9 +22,9 @@
       <div class="pda-row">
         ${avatarHtml}
         <span class="pda-info">
-          <b>${h(name || 'Pointy')}</b>
-          <span class="pda-email">@${h(username || 'pointy')}</span>
-          <span class="pda-uid">${h(copy.userId)} · ${h(userId || '3720')}</span>
+          <b>${h(name || 'Hero')}</b>
+          <span class="pda-email">@${h(username || 'username')}</span>
+          <span class="pda-uid">${h(copy.userId)} · ${h(userId || '0000')}</span>
         </span>
       </div>
       ${signedOut ? '' : `<button class="btn-ghost sm pda-logout" type="button" data-sign-out>🚪 ${h(copy.signOut)}</button>`}

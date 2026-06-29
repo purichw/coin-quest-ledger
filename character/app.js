@@ -518,7 +518,7 @@ function renderProfile(profile) {
     ${account ? `<section class="acct">
       <div class="acct-ava">&#128100;</div>
       <div class="acct-info">
-        <b>${h(account.name || 'Pointy')}</b>
+        <b>${h(account.name || 'Hero')}</b>
         <span>@${h(account.username || String(account.email || '').split('@')[0] || '')}</span>
         <span>${h(c.userId)} &middot; ${h(account.userId || '')}</span>
       </div>

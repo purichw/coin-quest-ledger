@@ -11,7 +11,7 @@
         <p class="login-sub">${h(copy.resetSub)}</p>
         <label class="login-field"><span>${h(copy.loginEmail)}</span><input type="text" autocomplete="username" data-recovery-username placeholder="${h(copy.loginEmailPlaceholder)}"></label>
         <label class="login-field"><span>${h(copy.recoveryCode)}</span><input type="text" autocomplete="one-time-code" data-recovery-code placeholder="XXXX-XXXX-XXXX"></label>
-        <label class="login-field"><span>${h(copy.newPassword)}</span><input type="password" autocomplete="new-password" data-recovery-password placeholder="${h(copy.loginPasswordPlaceholder)}"></label>
+        <label class="login-field"><span>${h(copy.newPassword)}</span><input type="password" autocomplete="new-password" data-recovery-password placeholder="${h(copy.newPasswordPlaceholder || copy.loginPasswordPlaceholder)}"></label>
         <div class="login-err" data-recovery-error hidden></div>
         <button type="submit" class="login-btn">🔑 ${h(copy.resetConfirm)}</button>
         <button type="button" class="btn-ghost sm" data-back-login style="width:100%;margin-top:10px">${h(copy.loginSignIn)}</button>
@@ -44,11 +44,11 @@
         </label>
         <label class="login-field">
           <span>${h(copy.loginPassword)}</span>
-          <input type="password" autocomplete="${isSignup ? 'new-password' : 'current-password'}" data-login-password placeholder="${h(copy.loginPasswordPlaceholder)}">
+          <input type="password" autocomplete="${isSignup ? 'new-password' : 'current-password'}" data-login-password placeholder="${h(isSignup ? (copy.signupPasswordPlaceholder || copy.loginPasswordPlaceholder) : copy.loginPasswordPlaceholder)}">
         </label>
         ${isSignup ? `<label class="login-field">
           <span>${h(copy.signupConfirm)}</span>
-          <input type="password" autocomplete="new-password" data-login-password2 placeholder="${h(copy.loginPasswordPlaceholder)}">
+          <input type="password" autocomplete="new-password" data-login-password2 placeholder="${h(copy.signupConfirmPasswordPlaceholder || copy.loginPasswordPlaceholder)}">
         </label>` : ''}
         <div class="login-err" data-login-error hidden></div>
         <button type="submit" class="login-btn">${isSignup ? '✨ ' + h(copy.signupCreate) : '⚔️ ' + h(copy.loginEnter)}</button>
