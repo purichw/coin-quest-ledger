@@ -1,6 +1,6 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-06-22
+Last updated: 2026-06-30
 
 ## North Star
 
@@ -8,7 +8,7 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 
 ## Current Baseline
 
-- Production domain: `https://coin-quest-ledger.vercel.app`; latest pushed and verified production snapshot is commit `75874f3`, deployment `dpl_GbjV8KwadCfdkanY7N4UCP4LQ2Uw`.
+- Production domain: `https://coin-quest-ledger.vercel.app`; latest pushed and verified production snapshot is commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`.
 - Large Claude references stay outside Git. Current verified Downloads references are the top-level `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, and the iOS/Android standalone HTML exports; older split/reference folders must be filesystem-checked before use.
 - Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
 - Character/Profile surfaces are live: Sign In/Sign Up, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, Character Profile My Boards actions, privacy links, and Recovery ID display/regeneration.
@@ -19,6 +19,8 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 - Profile/auth refactor slices are deployed: recovery, auth core, session storage, Firebase boundary, backup, drawer blocks, reminders, tour rendering, login forms, and Character Creation renderers now live in focused `shared/profile-*.js` helpers.
 - Player native app work is committed in `mobile/` as an Expo / React Native iOS-first app. The current slice uses real Firebase Auth/Firestore for username login/signup, Recovery ID, Character Creation, Profile, Split board reads/writes, and native-owned `playerModules/{uid}` state for Debt Dragon, Treasury, and Compare.
 - Native design lesson learned: do not build/install a bland static shell and call it progress. Claude Design parity and real backend parity are both pre-build gates for every meaningful native screen.
+- CI/CD is active through `.github/workflows/test.yml`: pull requests run the full test suite, and pushes to `main` deploy production through Vercel when GitHub secrets are present.
+- Documentation canon now includes `SITE_MAP_AND_INTERACTIONS.md`, `PROJECT_STRUCTURE_GUIDE.md`, `INVITES_AND_GUESTS.md`, and `CLAUDE_TO_A_TEE_QA.md` so future chats can recover route, module, invite, and exact-design context quickly.
 
 Known constraints:
 
@@ -42,12 +44,17 @@ Known constraints:
 - Older admin copies that allow many Characters per User are overridden by the current one-account-one-active-character canon.
 - `pointy-personal-toolkit` remains the Firebase project id unless a planned infrastructure migration is explicitly chosen.
 - Character XP and Profile Reputation are separate tracks. Character XP uses `PointyLogic.levelFromXp()`; overall/profile displays use `PointyLogic.levelFromReputation()`.
+- Character-ID board additions are invites, not immediate adds. Guests are board-local and do not create real Character IDs. See `INVITES_AND_GUESTS.md`.
 
 ## Phase 0 - Keep The Canon Stable
 
 Goal: make every future chat easy to resume without rediscovery.
 
 - Keep `Memory.md`, `PLAYBOOK.md`, `architecture.md`, and `roadmap.md` current after meaningful changes.
+- Keep `SITE_MAP_AND_INTERACTIONS.md` current when route wiring, cross-module flows, shared dependencies, reminders, or side effects change.
+- Keep `PROJECT_STRUCTURE_GUIDE.md` current when files move, helper modules split, or common task ownership changes.
+- Keep `INVITES_AND_GUESTS.md` current when participant entry, invite/reminder, direct-link join, or settlement behavior changes.
+- Keep `CLAUDE_TO_A_TEE_QA.md` current when exact-design audit expectations or locked cosmetic regressions change.
 - Keep `data-contracts.md` current when storage keys, Firestore fields, or derived profile shapes change.
 - Keep `claude-design-index.md` current when new Claude reference files arrive.
 - Keep Claude reference files outside Git.
@@ -194,3 +201,4 @@ Work:
 - Shared logic/data/admin/routing: full `npm test`.
 - Responsive/mobile shell: check desktop, tablet, mobile.
 - Claude Design port: inspect source, match DOM/style semantics, preserve live behavior.
+- "To a tee" Claude Design request: follow `CLAUDE_TO_A_TEE_QA.md`, including component-level and mobile/tablet/desktop verification before commit/deploy.

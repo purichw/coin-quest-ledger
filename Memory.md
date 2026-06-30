@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 ## Project
 
@@ -11,8 +11,8 @@ Last updated: 2026-06-29
 - Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
-- Latest pushed commit: `8a04515` (`Fix guest hero flow and pairwise settlements`).
-- Latest verified production deploy: commit `8a04515`, deployment `dpl_H1AhXk7CxMLtUtvzccgMiu3gCgD8`, URL `https://coin-quest-ledger-5c6vjbooo-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger-purichwc-1517s-projects.vercel.app` on 2026-06-29 after full `npm test` passed (`80 passed`, `4 skipped`).
+- Latest pushed commit: `4a04d71` (`Add GitHub Actions CI CD`).
+- Latest verified production deploy: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-30 after GitHub Actions `CI/CD` passed full `npm test`.
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
 ## Start Here In A New Chat
@@ -22,13 +22,17 @@ Last updated: 2026-06-29
 3. For small visual tweaks, default to Fast UI Patch unless the user asks to commit/deploy.
 4. Preserve newest user requirements over any older Claude prototype/handoff behavior.
 5. Never modify legacy inactive snapshots unless explicitly asked.
-6. For system shape, read `architecture.md`; for data shape, read `data-contracts.md`; for leveling/XP, read `leveling-canon.md`; for Claude references, read `claude-design-index.md`; for next-step planning, read `roadmap.md`.
+6. For system shape, read `architecture.md`; for route/module interactions, read `SITE_MAP_AND_INTERACTIONS.md`; for file lookup, read `PROJECT_STRUCTURE_GUIDE.md`; for data shape, read `data-contracts.md`; for invites/guests, read `INVITES_AND_GUESTS.md`; for leveling/XP, read `leveling-canon.md`; for Claude references and exact visual work, read `claude-design-index.md` plus `CLAUDE_TO_A_TEE_QA.md`; for next-step planning, read `roadmap.md`.
 7. Current user instruction: ignore `CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
 
 ## Important Files
 
 - `architecture.md`: current static app architecture, routes, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
+- `SITE_MAP_AND_INTERACTIONS.md`: route map, module dependency graph, cross-surface flows, side effects, and regression risks.
+- `PROJECT_STRUCTURE_GUIDE.md`: practical file map for common edit tasks, shared modules, tests, assets, and do-not-edit-blindly areas.
 - `data-contracts.md`: practical Firestore/local/session storage contracts, derived Character Profile shape, and migration rules.
+- `INVITES_AND_GUESTS.md`: canon for Character-ID invites, Add Guest, Reminders accept/decline, direct invite links, and pairwise settlement regression.
+- `CLAUDE_TO_A_TEE_QA.md`: exact Claude Design component-level fidelity and mobile/tablet/desktop audit protocol.
 - `leveling-canon.md`: v1 XP/Reputation canon for Character XP, positive-only Profile Reputation, level thresholds, reward titles, and Admin display rules.
 - `claude-design-index.md`: map of Claude reference sources to live surfaces, plus notes on mobile coverage and route wiring.
 - `roadmap.md`: phased roadmap for profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery.
@@ -77,7 +81,7 @@ Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mo
 
 2026-06-21 mobile web parity note: the live shared phone shell was aligned with the newest Claude mobile-web exports for iPhone SE / iPhone / iPhone Pro / Pro Max widths. Phone topbars are one compact row with burger, `Coin Quest`, and reminder bell; player module topbar back pills are hidden on Split/Debt/Treasury while Compare keeps its explicit Home back path; bottom tabs use the Claude labels `หน้าหลัก / แบ่งเงิน / มังกร / ราคา / คลัง`; Home uses the green hero title and chest Split card icon; the first-load eye is intentionally small. The iPhone touch pass also keeps hover-only controls visible on touch, protects Split banner actions from ragged wrapping, and preserves zero horizontal overflow at 375/393/430px.
 
-2026-06-29 Party Ledger character/settlement/design note: adding a real "other hero" while signed in is Character-ID-only and must resolve an existing character record. It must not show or validate "Other hero's name", must not generate a new Character ID from arbitrary input, and duplicate visible names are allowed. The alternate path is "Add Guest": user enters a display name and chooses class/gender/skin, but no real Character ID or character registry record is created. Guest participants are flagged in `guestHeroes` and omitted from Character XP/registry sync. Settlement must use pairwise per-expense obligations with reciprocal pair netting, not global creditor/debtor rerouting; the known regression case is `PPP -> Pointy ฿1,000`, `PPP -> PP ฿333.33`, and `PP -> Pointy ฿666.67`. Web and native/mobile logic should stay in parity for this calculation.
+2026-06-30 Party Ledger character/invite/settlement note: adding a real "other hero" while signed in is Character-ID-only and must resolve an existing character record. It must not show or validate "Other hero's name", must not generate a new Character ID from arbitrary input, and duplicate visible names are allowed. The action is `Invite`, not `Confirm Character`; the board admin confirms the invite, then the target account receives a Reminders notification and can Accept or Decline within 24 hours. Decline requires confirmation. A direct party invite link can join immediately, but unauthenticated users must be sent to login first. The alternate path is "Add Guest": user enters a display name and chooses class/gender/skin, but no real Character ID or character registry record is created. Guest participants are flagged in `guestHeroes` and omitted from Character XP/registry sync. Settlement must use pairwise per-expense obligations with reciprocal pair netting, not global creditor/debtor rerouting; the known regression case is `PPP -> Pointy ฿1,000`, `PPP -> PP ฿333.33`, and `PP -> Pointy ฿666.67`. Web and native/mobile logic should stay in parity for this calculation. See `INVITES_AND_GUESTS.md`.
 
 2026-06-29 Claude Design micro-cosmetic rule: when the user says "TO A TEE" for Claude Design, do not stop at broad layout similarity. Audit component-level geometry against the offline HTML/CSS: exact-ish padding, font size/weight, radius, border style, hit target, icon centering, and mobile overrides. Recent locked examples: quest-row close button is a 22px circle with centered `x`; `Attach receipt` is the small dashed Claude-style button; `Whole party` is a compact dashed pill, not a large touch-expanded button; split segment sizing must preserve the Claude mobile proportions and avoid page-level horizontal overflow on iPhone SE / iPhone / iPhone Pro Max.
 
@@ -259,6 +263,11 @@ git push origin main
 
 ## Recent Commits
 
+- `4a04d71` Add GitHub Actions CI CD
+- `fe02309` Extract board invite helpers
+- `c6dcbbf` Add board invite approval flow
+- `757fde0` Audit production-facing placeholder copy
+- `85ad304` Polish auth placeholders
 - `75874f3` Add native mobile app MVP
 - `e07b148` Align mobile web with Claude design
 - `5de54b2` Refresh handoff docs

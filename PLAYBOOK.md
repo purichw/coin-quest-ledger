@@ -4,8 +4,12 @@
 
 - Read `Memory.md` first in a new chat or after a long context reset.
 - Read `architecture.md` when the request touches system shape, routing, shared modules, persistence, or deployment.
+- Read `SITE_MAP_AND_INTERACTIONS.md` when the request touches how routes, shared modules, reminders, board invites, or user flows connect.
+- Read `PROJECT_STRUCTURE_GUIDE.md` when the request is "where do I edit this?" or when onboarding into an unfamiliar part of the repo.
 - Read `data-contracts.md` when the request touches Firestore, localStorage/sessionStorage, character IDs, admin ownership, imports/exports, or migrations.
+- Read `INVITES_AND_GUESTS.md` when the request touches Add by Character ID, Add Guest, board invites, Reminders accept/decline, direct invite links, or settlement regressions.
 - Read `claude-design-index.md` when the request involves Claude Design references, visual parity, mobile handoff files, or finding the right downloaded source.
+- Read `CLAUDE_TO_A_TEE_QA.md` whenever the user says "to a tee" or asks for exact Claude Design implementation.
 - Read `leveling-canon.md` when the request touches XP rewards, Reputation rewards, level thresholds, title milestones, Profile Reputation, Treasury scoring, or Admin level displays.
 - Read `roadmap.md` when the request asks what to build next, how to phase work, or whether Codex vs Claude Design should own a step.
 - Read `mobile/IOS_BUILD_NOTES.md` before native iOS build/signing/install work.
@@ -100,6 +104,7 @@ When the user asks to commit, push, or deploy:
 
 When implementing from Claude Design:
 
+- Follow the detailed audit protocol in `CLAUDE_TO_A_TEE_QA.md` for any "to a tee" request.
 - Treat Claude HTML/source as the visual and interaction Holy Grail for the requested surface.
 - Aim for almost pixel-perfect output. Study the HTML/source thoroughly enough to understand its DOM/component structure, spacing model, class semantics, interactions, animations, assets, and sounds before patching.
 - Match the reference structure, not only the reference colors. Do not paste Claude CSS onto incompatible legacy markup and call it done.
@@ -116,7 +121,11 @@ When implementing from Claude Design:
 ## Architecture And Roadmap
 
 - `architecture.md` is the current technical map: app surfaces, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
+- `SITE_MAP_AND_INTERACTIONS.md` maps routes, shared dependencies, user flows, side effects, and cross-module risks.
+- `PROJECT_STRUCTURE_GUIDE.md` maps common tasks to files and tests.
 - `data-contracts.md` documents the practical persisted shapes for Firestore, local/session storage, and derived Character Profile data.
+- `INVITES_AND_GUESTS.md` is the participant-entry canon for real-character invites, guests, reminders, direct invite links, and settlement regression cases.
+- `CLAUDE_TO_A_TEE_QA.md` defines the component-level Claude Design fidelity and responsive QA protocol.
 - `claude-design-index.md` maps downloaded Claude references to live surfaces and records what each reference does or does not specify.
 - `roadmap.md` is the phased product/engineering plan: profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery polish.
 - Keep these docs current when a change alters product direction, system shape, deployment assumptions, data contracts, reference sources, or major cross-module behavior.
@@ -142,6 +151,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - `trip/index.legacy.html` and `index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
 - Keep refactors incremental. The shell and expense entry controls use delegated events, but some dynamic hero/admin/overlay renderers still use inline handlers; migrate those only in focused slices with full `npm test`.
 - Signed-in "other hero" add flow is Character-ID-only for real characters. It must resolve an existing character, never generate one from arbitrary input, never ask for "Other hero's name", and never block duplicate visible names. Use "Add Guest" when a board-only participant is needed; guests get name + hero selection only and no real Character ID.
+- Character-ID add now sends an invite rather than immediately adding someone else's real character. The target accepts or declines from Reminders within 24 hours; decline requires confirmation. See `INVITES_AND_GUESTS.md`.
 - Settlement logic must preserve pairwise per-expense payer obligations. Do not simplify it back to global net creditor/debtor routing; that breaks cases where one participant owes different people from different expenses.
 
 ## Admin Portal Notes

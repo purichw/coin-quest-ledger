@@ -248,6 +248,48 @@ Rules:
 - This is Phase 1 client-driven recovery. Future security hardening should move
   reset authority behind server-side Admin SDK or a stricter admin identity.
 
+### `users/{uid}/boardInvites/{inviteId}`
+
+Board invite subcollection for adding another account's real character to a
+Party Ledger board. The document lives under the target account owner, not the
+inviter.
+
+`shared/board-invites.js` owns payload construction and status updates.
+
+```js
+{
+  id: `${tripId}_${targetCharacterId}`,
+  tripId: boardId,
+  tripName: boardName,
+  targetCharacterId: characterId,
+  targetOwnerUid: firebaseAuthUid,
+  targetName: characterDisplayName,
+  targetClass: classId,
+  targetGender: "male" | "female",
+  targetSkin: skinId | "",
+  inviterUid: firebaseAuthUid | "",
+  inviterName: displayName,
+  inviterCharacterId: characterId | userId | "",
+  status: "pending" | "accepted" | "declined" | "expired",
+  createdAt: epochMs,
+  expiresAt: epochMs,
+  respondedAt?: epochMs
+}
+```
+
+Rules:
+
+- Created when a board admin invites by an existing four-digit Character ID.
+- Real-character invite does not add the participant to the board until the
+  target account accepts from Reminders.
+- Pending invites expire after 24 hours.
+- Decline requires user confirmation before status becomes `declined`.
+- Accept writes the target character into the board and marks the invite
+  `accepted`.
+- Test mode mirrors this collection in `localStorage.pointy_board_invites_v1`.
+- This flow is distinct from `Add Guest`, which is board-local and creates no
+  real Character ID.
+
 ### `usernames/{username}`
 
 Lookup table for username login without requiring real user email addresses.

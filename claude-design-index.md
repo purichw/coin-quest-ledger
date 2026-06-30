@@ -1,12 +1,15 @@
 # Claude Design Index
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 ## Purpose
 
 This index maps Claude Design reference files to live app surfaces so future work can start from the right source without re-opening giant artifacts first. Claude references are source-of-truth for requested visual/interaction ports, but the live implementation must preserve newer user requirements, data contracts, i18n, and tests.
 
 Current user instruction: do not use `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
+
+For exact implementation requests, especially when the user says "to a tee",
+follow `CLAUDE_TO_A_TEE_QA.md` before commit or deploy.
 
 ## Reference Map
 
@@ -32,12 +35,12 @@ Workflow:
 3. Fall back to the full offline HTML only when all-in-one behavior must be verified.
 4. Do not commit the zips or giant offline HTML.
 
-## Party Ledger 2026-06-29 Locked Notes
+## Party Ledger Locked Notes
 
 - Claude Design fidelity means component-level fidelity. For the expense form and quest log, compare the live components against the offline HTML/CSS values for padding, radius, font size/weight, border style, dimensions, and mobile overrides.
-- Exact keyword expansion: whenever the user says "to a tee", treat it as `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
+- Exact keyword expansion lives in `CLAUDE_TO_A_TEE_QA.md`: whenever the user says "to a tee", treat it as `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
 - Locked micro-cosmetic examples: quest-row close button is a centered 22px circle; `Attach receipt` is the compact dashed button; `Whole party` is the compact dashed pill; split segments should retain Claude mobile proportions and must not cause page-level horizontal overflow on iPhone SE / iPhone / iPhone Pro Max.
-- Character add flow: real account-linked heroes are added by existing Character ID only. Guest heroes are board-local only and do not create Character IDs or registry records.
+- Character add flow: real account-linked heroes are invited by existing Character ID only. Guest heroes are board-local only and do not create Character IDs or registry records. See `INVITES_AND_GUESTS.md`.
 - Settlement flow: use pairwise per-expense obligations and reciprocal netting, not global net rerouting.
 
 ## Character Profile Reference Notes
@@ -142,3 +145,4 @@ Avoid dumping embedded base64/PNG data into the terminal.
 - Rework live DOM when needed for fidelity; do not paste CSS onto incompatible markup and call it done.
 - Preserve live state shape, Firebase sync, i18n, tests, newer user requirements, and accessibility basics.
 - Before recreating assets/sounds, inspect the reference because they are often embedded or already extracted.
+- When the request is exact/fidelity-sensitive, document the checked viewports and components using `CLAUDE_TO_A_TEE_QA.md`.

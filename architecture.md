@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-06-22
+Last updated: 2026-06-30
 
 ## Purpose
 
@@ -11,6 +11,10 @@ Claude Design handoffs are the visual/interaction source of truth for surfaces t
 Companion docs:
 
 - `data-contracts.md`: persisted data shapes and migration rules.
+- `SITE_MAP_AND_INTERACTIONS.md`: route/module dependency map, interaction flows, side effects, and cross-module risks.
+- `PROJECT_STRUCTURE_GUIDE.md`: practical file-finding guide for common tasks.
+- `INVITES_AND_GUESTS.md`: Party Ledger participant-entry canon for invites, guests, reminders, direct links, and settlement risks.
+- `CLAUDE_TO_A_TEE_QA.md`: exact Claude Design component-level QA protocol.
 - `claude-design-index.md`: Claude reference map and inspection notes.
 - `leveling-canon.md`: current XP/level tracks, rewards, thresholds, and recalibration backlog.
 - `roadmap.md`: phased product/engineering plan and open decisions.
@@ -23,7 +27,7 @@ Companion docs:
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
 - Build step: none
 - Local preview: `npm run serve`, usually `http://127.0.0.1:4569/`
-- Last verified production snapshot: commit `75874f3`, deployment `dpl_GbjV8KwadCfdkanY7N4UCP4LQ2Uw`, URL `https://coin-quest-ledger-m30eylv5v-purichwc-1517s-projects.vercel.app`, aliased to the canonical domain on 2026-06-22.
+- Last verified production snapshot: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to the canonical domain on 2026-06-30.
 
 Do not preview app pages with `file://`. Pages use absolute paths such as `/shared/pointy-logic.js` and `/character/app.js`; those only resolve correctly through the static server or production host.
 
@@ -41,6 +45,8 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - Files: `trip/index.html`, `trip/app.js`, `trip/pixicons.jsx`
 - Route: `/trip/?id=1234`
 - Owns trip state, expense entry, split modes, hero party cards, admin setup, import/export, board history, and Firestore trip sync.
+- Real-character participant add is an invite flow by Character ID; guests are board-only and do not create Character IDs. See `INVITES_AND_GUESTS.md`.
+- Settlement uses pairwise per-expense obligations with reciprocal pair netting, not global debtor/creditor routing.
 - Uses `?test=1` with `sessionStorage.pointy_test_trip_*` in Playwright tests.
 - Uses Firestore `trips/{id}` in normal mode.
 
@@ -99,6 +105,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `lang.js`: Thai/English shared labels.
 - `shared/firebase-client.js`: shared Firebase app/Auth/Firestore initializer for static pages.
 - `shared/account-scope.js`: account-scoped local storage helper. Module progress/cache keys derive from the active `pointy_auth_v1` account (`uid`, then User ID, then username) so a signed-in account does not inherit stale browser-wide progress.
+- `shared/board-invites.js`: board invite payloads, 24-hour expiry, test-mode localStorage persistence, production `users/{uid}/boardInvites` writes, status updates, and active filtering.
 - `shared/profile-hub.js` / `.css`: profile orchestrator for username/password Sign In/Sign Up, Firebase Auth + Firestore user/character binding, one-time Character Creation, topbar/mobile-drawer profile entry, My Boards, theme/language helpers, profile drawer events, and sign out.
 - `shared/profile-session.js`: `?test=1` mode detection plus local auth/account storage helpers for `pointy_auth_v1` and `pointy_accounts_v1`.
 - `shared/profile-auth.js`: username normalization, internal `@coinquest.local` email formatting, account login keys, and blocked account status helpers.
@@ -141,6 +148,7 @@ Normal mode:
 - `characters/{id}`: character records.
 - `playerModules/{uid}`: native-owned dynamic state for Debt Dragon, Treasury, and Compare.
 - `adminRevisions/{id}`: Super Admin publish logs.
+- `users/{uid}/boardInvites/{inviteId}`: pending/responded board invites for real-character additions.
 
 `firestore.rules` is the repository copy of the deployed rules. It keeps the current real-account loop usable, includes a Super Admin helper for the allowlisted Gmail `purich.wc@gmail.com`, restricts character writes to the owning account or Super Admin, prevents username mapping takeover, permits only same-ID reclamation of reusable deleted username tombstones, allows `playerModules/{uid}` owner read/create/update, and restricts `adminRevisions` to Super Admin. Deploy through `firebase.json` with `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`.
 
@@ -197,6 +205,10 @@ vercel --prod --yes
 vercel alias set <deployment-url> coin-quest-ledger.vercel.app
 curl -fsSL https://coin-quest-ledger.vercel.app/<changed-route> | rg "<expected-marker>"
 ```
+
+CI/CD is also active through `.github/workflows/test.yml`: pull requests run the
+full test suite, and pushes to `main` run tests then deploy production to Vercel
+when the required GitHub secrets are present.
 
 Native iOS build/install flow is intentionally separate from Vercel production. Before building for a real iPhone, verify both:
 
