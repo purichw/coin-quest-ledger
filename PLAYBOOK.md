@@ -87,6 +87,15 @@ When the user asks to commit, push, or deploy:
 9. Re-check `git status --short --branch`.
 10. Report commit hash, tests, push, deploy URL, alias status, and any remaining dirty files.
 
+## CI/CD
+
+- GitHub Actions workflow lives at `.github/workflows/test.yml`.
+- Pull requests run the full test suite: syntax, assets, unit tests, and Playwright desktop/tablet/mobile.
+- Pushes to `main` run the same tests, then deploy production to Vercel and refresh the canonical `coin-quest-ledger.vercel.app` alias.
+- Required GitHub Actions secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`.
+- If `VERCEL_TOKEN` is missing, CI still runs and the deploy job exits successfully after a warning; add the token to activate CD.
+- Current Vercel IDs for this project: `VERCEL_ORG_ID=team_YrvoFhGxq1xp83XzkHci5rNx`, `VERCEL_PROJECT_ID=prj_ZhaR03b1Ukx5Tzi8FPDH4IFI1fM3`. Store them as GitHub secrets rather than committing `.vercel/project.json`.
+
 ## Claude Handoff Rule
 
 When implementing from Claude Design:
