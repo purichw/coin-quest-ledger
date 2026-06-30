@@ -13,6 +13,7 @@ const htmlFiles = [
   'debt/index.html',
 ];
 const scriptFiles = [
+  'shared/board-invites.js',
   'trip/app.js',
   'admin/app.js',
   'character/app.js',

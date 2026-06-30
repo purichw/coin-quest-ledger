@@ -53,8 +53,6 @@ function tripRefFor(id) {
 
 const QUEST_ICONS = window.QUEST_ICON_IDS || window.QUEST_ICONS || ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
 const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
-const BOARD_INVITES_KEY = 'pointy_board_invites_v1';
-const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
 const ADMIN_OWNER_PROFILE_KEY = 'pointy_admin_owner_profile_v1';
 const CLASS_ORDER = PointyLogic.CLASS_ORDER;
@@ -341,59 +339,15 @@ async function resolveCharacterRecord(id) {
     skin: rec.skin || ''
   };
 }
-function inviteDocId(boardId, characterId) {
-  return `${String(boardId || '').replace(/[^a-zA-Z0-9_-]/g, '-')}_${String(characterId || '').replace(/\D/g, '').slice(0, 4)}`;
-}
-function readBoardInvites() {
-  try {
-    const raw = localStorage.getItem(BOARD_INVITES_KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list : [];
-  } catch (_) {
-    return [];
-  }
-}
-function writeBoardInvites(list) {
-  try { localStorage.setItem(BOARD_INVITES_KEY, JSON.stringify(Array.isArray(list) ? list : [])); } catch (_) {}
-}
-function boardInvitePayload(rec) {
-  const account = readAccount() || {};
-  const now = Date.now();
-  return {
-    id: inviteDocId(tripId, rec.id),
-    tripId,
-    tripName: S.tripName || t('trip_fallback_name'),
-    targetCharacterId: rec.id,
-    targetOwnerUid: rec.ownerUid || rec.uid || '',
-    targetName: rec.name || `Hero #${rec.id}`,
-    targetClass: normalizeClass(rec.class || rec.cls || 'warrior'),
-    targetGender: rec.gender === 'female' ? 'female' : 'male',
-    targetSkin: rec.skin || '',
-    inviterUid: account.uid || '',
-    inviterName: account.character?.name || account.name || account.username || 'Hero',
-    inviterCharacterId: account.character?.id || account.userId || '',
-    status: 'pending',
-    createdAt: now,
-    expiresAt: now + INVITE_TTL_MS
-  };
-}
 async function createBoardInvite(rec) {
-  const invite = boardInvitePayload(rec);
-  if (!TEST_MODE && !invite.targetOwnerUid) throw new Error('missing-target-owner');
-  if (TEST_MODE) {
-    const list = readBoardInvites().filter(item => item.id !== invite.id);
-    list.unshift(invite);
-    writeBoardInvites(list);
-    window.dispatchEvent(new CustomEvent('pointy-board-invites-changed'));
-    return invite;
-  }
-  await firebase.firestore()
-    .collection('users')
-    .doc(invite.targetOwnerUid)
-    .collection('boardInvites')
-    .doc(invite.id)
-    .set(invite, { merge: true });
-  return invite;
+  const invite = window.PointyBoardInvites.buildInvitePayload({
+    boardId: tripId,
+    boardName: S.tripName || t('trip_fallback_name'),
+    character: rec,
+    inviter: readAccount() || {},
+    normalizeClass
+  });
+  return window.PointyBoardInvites.create({ invite, testMode: TEST_MODE, db: firebase.firestore() });
 }
 function persistCharacterRecord(rec) {
   _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry, [rec.id]: rec };

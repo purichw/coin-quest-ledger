@@ -4,7 +4,6 @@
   const THEME_KEY = 'pointy_theme';
   const CHARACTER_REGISTRY_KEY = 'pointy_character_registry_v1';
   const TRIP_CACHE_KEY = 'coin_quest_trip_snapshots_v1';
-  const BOARD_INVITES_KEY = 'pointy_board_invites_v1';
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const PENDING_RECOVERY_KEY = 'pointy_pending_recovery_code_v1';
   const TEST_MODE = window.PointyProfileSession.isTestMode();
@@ -771,22 +770,12 @@
     });
     return out;
   }
-  function readBoardInviteStore() {
-    const list = readJson(BOARD_INVITES_KEY, []);
-    return Array.isArray(list) ? list : [];
-  }
-  function writeBoardInviteStore(list) {
-    writeJson(BOARD_INVITES_KEY, Array.isArray(list) ? list : []);
-  }
   function ownCharacterId(account = loadAccount()) {
     const character = accountCharacter(account);
-    return String(character?.id || account?.userId || '').replace(/\D/g, '').slice(0, 4);
+    return window.PointyBoardInvites.cleanCharacterId(character?.id || account?.userId || '');
   }
   function activeBoardInvites() {
-    const now = Date.now();
-    return boardInvites
-      .filter(invite => invite && invite.status === 'pending' && timestampValue(invite.expiresAt) > now)
-      .sort((a, b) => timestampValue(a.expiresAt) - timestampValue(b.expiresAt));
+    return window.PointyBoardInvites.active(boardInvites);
   }
   async function loadBoardInvites({ force = false } = {}) {
     const account = loadAuth();
@@ -796,15 +785,8 @@
     if (inviteLoading) return boardInvites;
     inviteLoading = true;
     try {
-      let list = [];
-      if (TEST_MODE) {
-        list = readBoardInviteStore().filter(invite => String(invite.targetCharacterId || '') === characterId);
-      } else if (account?.uid && cloudDb()) {
-        const snap = await cloudDb().collection('users').doc(account.uid).collection('boardInvites').where('status', '==', 'pending').get();
-        list = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() || {}) }));
-      }
-      const now = Date.now();
-      boardInvites = list.filter(invite => timestampValue(invite.expiresAt) > now);
+      const list = await window.PointyBoardInvites.loadForAccount({ account, characterId, testMode: TEST_MODE, db: cloudDb() });
+      boardInvites = window.PointyBoardInvites.active(list);
       inviteLoadKey = key;
       return boardInvites;
     } catch (err) {
@@ -871,14 +853,7 @@
   }
   async function updateInviteStatus(invite, status) {
     const account = loadAuth();
-    if (TEST_MODE) {
-      const list = readBoardInviteStore().map(item => item.id === invite.id ? { ...item, status, respondedAt: Date.now() } : item);
-      writeBoardInviteStore(list);
-      boardInvites = boardInvites.filter(item => item.id !== invite.id);
-      return;
-    }
-    if (!account?.uid || !cloudDb()) throw new Error('missing-account');
-    await cloudDb().collection('users').doc(account.uid).collection('boardInvites').doc(invite.id).set({ status, respondedAt: Date.now() }, { merge: true });
+    await window.PointyBoardInvites.updateStatus({ invite, status, account, testMode: TEST_MODE, db: cloudDb() });
     boardInvites = boardInvites.filter(item => item.id !== invite.id);
   }
   async function acceptBoardInvite(inviteId) {
