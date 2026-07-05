@@ -105,6 +105,8 @@ When the user asks to commit, push, or deploy:
 When implementing from Claude Design:
 
 - Follow the detailed audit protocol in `CLAUDE_TO_A_TEE_QA.md` for any "to a tee" request.
+- Invoke the reusable Personal Skill `$claude-to-a-tee`; combine its generic workflow with the Coin Quest-specific locks in `CLAUDE_TO_A_TEE_QA.md`.
+- Use `browser:control-in-app-browser` to render and inspect the offline Claude HTML, then use `vercel:agent-browser` to verify the implementation across the required responsive viewports and interaction states. These are complementary source-inspection and implementation-verification steps.
 - Treat Claude HTML/source as the visual and interaction Holy Grail for the requested surface.
 - Aim for almost pixel-perfect output. Study the HTML/source thoroughly enough to understand its DOM/component structure, spacing model, class semantics, interactions, animations, assets, and sounds before patching.
 - Match the reference structure, not only the reference colors. Do not paste Claude CSS onto incompatible legacy markup and call it done.

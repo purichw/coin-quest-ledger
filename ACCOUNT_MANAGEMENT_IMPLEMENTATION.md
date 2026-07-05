@@ -1,0 +1,384 @@
+# Account Management Implementation
+
+Last verified: 2026-07-02
+
+This document describes the current implementation path from account creation to
+password recovery and Super Admin user management. It documents the code that
+exists today; it is not a proposal for the final hardened auth system.
+
+## Source Files
+
+- `shared/profile-hub.js`: auth orchestration, signup, login, recovery reset,
+  character creation handoff, and local auth mirror.
+- `shared/profile-login.js`: Sign In, Sign Up, and recovery form HTML.
+- `shared/profile-auth.js`: username normalization, internal auth email mapping,
+  and blocked-account helpers.
+- `shared/profile-cloud.js`: Firebase Auth/Firestore access boundary.
+- `shared/profile-session.js`: local auth/session mirror and Firebase trust flag.
+- `shared/profile-recovery.js`: recovery code generation and hashing.
+- `admin/app.js`: Super Admin Portal gate, user list, lifecycle actions, admin
+  password reset, draft board/user tools, and publish flow.
+- `api/admin-delete-status.js`: reports whether privileged delete backend env
+  vars are present.
+- `api/admin-delete-user.js`: backend-only permanent delete using Firebase Admin
+  SDK.
+- `firestore.rules`: deployed access rules for users, usernames, characters,
+  invites, player modules, and admin revisions.
+- `data-contracts.md`: canonical Firestore/localStorage shape.
+
+## Platform Shape
+
+The project uses Firebase Auth and Firestore under project
+`pointy-personal-toolkit`. Current billing state is Spark: `billingEnabled:
+false`. Spark still allows Firebase Auth and Firestore CRUD inside free quotas;
+Blaze is not required merely for users to sign up or for admins to edit
+Firestore documents.
+
+Privileged permanent delete does not run in Firebase Cloud Functions. It runs as
+Vercel Serverless API code using `firebase-admin` and service-account env vars.
+
+```mermaid
+flowchart LR
+  "Player Browser" --> "Firebase Auth"
+  "Player Browser" --> "Firestore Client SDK"
+  "Admin Portal" --> "Firebase Google Auth"
+  "Admin Portal" --> "Firestore Client SDK"
+  "Admin Portal" --> "Vercel API /api/admin-delete-user"
+  "Vercel API /api/admin-delete-user" --> "Firebase Admin SDK"
+  "Firebase Admin SDK" --> "Firebase Auth"
+  "Firebase Admin SDK" --> "Firestore"
+```
+
+## Identity Model
+
+Core identifiers:
+
+- `uid`: Firebase Auth UID. This is the durable owner key for `users/{uid}` and
+  owner checks.
+- `username`: user-facing login name. The player types this instead of an email.
+- `authEmail`: internal Firebase Auth email generated from username. Normal
+  signup uses `username@coinquest.local`; recovery/admin reset may use a unique
+  suffix so a new Firebase Auth credential can be created.
+- `userId`: public four-digit app identity.
+- `characterId`: active character identity. Current player loop is one active
+  character per user.
+
+Important collections:
+
+- `users/{uid}`: account profile, public User ID, display name, active
+  character, status, recovery data, provider.
+- `usernames/{username}`: lookup from username to current `uid`, `authEmail`,
+  `userId`, `characterId`, recovery hash, and lifecycle/tombstone status.
+- `characters/{characterId}`: active character profile with `ownerUid`.
+- `trips/{tripId}`: Party Ledger boards and participant links.
+- `adminRevisions/{revisionId}`: Admin Portal publish/change log.
+
+## User Creates Account
+
+Entry:
+
+- `shared/profile-login.js` renders the Sign Up form.
+- `shared/profile-hub.js` handles `[data-login-form]` submit when
+  `loginMode === "up"`.
+
+Implementation flow:
+
+1. Normalize the typed username with `normalizeUsername`.
+2. Validate display name, username, password length, and password confirmation.
+3. Read `usernames/{username}` through `usernameRecord`.
+4. Reject existing active usernames. A reusable deleted tombstone can be reused
+   so the same username can regain the same public User ID.
+5. Generate a recovery code with `PointyRecovery.generateCode`.
+6. Hash it as `sha256(username + ":" + recoveryCode)`.
+7. Create Firebase Auth user:
+   `createUserWithEmailAndPassword(username@coinquest.local, password)`.
+8. Set Firebase Auth display name to the normalized username.
+9. Allocate `userId`:
+   - reuse `existing.userId` when signing up through a reusable tombstone;
+   - otherwise derive a stable four-digit ID from UID and fall back to random
+     four-digit probes if already taken.
+10. Write `users/{uid}` via `saveCloudUser`.
+11. Write `usernames/{username}` via `saveUsernameRecord`.
+12. Mirror account into `localStorage.pointy_auth_v1` through `saveAuth`.
+13. Route the new account into Character Creation because `character` is still
+    `null`.
+14. After class/gender/name selection, `saveCloudCharacter` writes
+    `characters/{characterId}` and updates `users/{uid}.character` plus
+    `usernames/{username}.characterId`.
+15. Show the recovery code once from
+    `sessionStorage.pointy_pending_recovery_code_v1`.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Browser
+  participant Auth as Firebase Auth
+  participant DB as Firestore
+
+  User->>Browser: Submit Sign Up
+  Browser->>DB: get usernames/{username}
+  Browser->>Auth: createUserWithEmailAndPassword(authEmail, password)
+  Browser->>DB: set users/{uid}
+  Browser->>DB: set usernames/{username}
+  Browser->>Browser: saveAuth local mirror
+  Browser->>User: Character Creation
+  User->>Browser: Confirm Character
+  Browser->>DB: set characters/{characterId}
+  Browser->>DB: update users/{uid} and username pointer
+  Browser->>User: Show recovery code
+```
+
+## User Signs In
+
+Entry:
+
+- `shared/profile-login.js` renders the Sign In form.
+- `shared/profile-hub.js` handles the same `[data-login-form]` submit when
+  `loginMode === "in"`.
+
+Implementation flow:
+
+1. Normalize typed username.
+2. Resolve Auth email through `usernames/{username}.authEmail`; fall back to
+   `username@coinquest.local`.
+3. Call `signInWithEmailAndPassword(authEmail, password)`.
+4. Load `users/{uid}` through `loadCloudAccount`.
+5. If the account document is missing, create a minimal `users/{uid}` document
+   from the Firebase Auth user.
+6. Reject blocked lifecycle statuses through `isBlockedAccountStatus`.
+7. Mirror the loaded account into local session/auth storage.
+8. If no active character exists, route to Character Creation; otherwise refresh
+   the app shell/profile UI.
+
+## User Resets Password With Recovery Code
+
+Entry:
+
+- Sign In screen `Forgot password?` opens the recovery form rendered by
+  `shared/profile-login.js`.
+- `shared/profile-hub.js` handles `[data-recovery-form]` and calls
+  `recoverWithCode(username, code, password)`.
+
+Current implementation is credential rotation, not an in-place Firebase Auth
+password update.
+
+Flow:
+
+1. Normalize username.
+2. Read `usernames/{username}`.
+3. Require `recoveryHash`.
+4. Hash the submitted recovery code and compare with stored `recoveryHash`.
+5. Read the old `users/{oldUid}` document if the username points to an old UID.
+6. Create a new Firebase Auth user with an internal email suffix such as
+   `username+r<timestamp>@coinquest.local`.
+7. Preserve public identity from old data:
+   - `userId`
+   - display name
+   - active `character`
+   - `characterId`
+8. Generate a new recovery code and hash.
+9. Write a new `users/{newUid}` document.
+10. Update `usernames/{username}` to point at `newUid` and the new auth email.
+11. If a character exists, update `characters/{characterId}.ownerUid` to
+    `newUid`.
+12. Save the new account locally and show the new recovery code.
+
+Important caveat: the old Firebase Auth user is not deleted by this player-side
+reset path. The username pointer moves to the new UID, so normal username login
+uses the new credential. Permanent cleanup of old Auth users is a separate admin
+backend concern.
+
+## User Regenerates Recovery Code
+
+Entry:
+
+- Profile drawer recovery block in `shared/profile-hub.js`.
+
+Flow:
+
+1. Current signed-in account calls `regenerateRecoveryCode`.
+2. New code and hash are generated.
+3. Local auth mirror is updated.
+4. In production, `saveCloudUser` updates `users/{uid}` and
+   `usernames/{username}` with the new recovery hash/code metadata.
+
+The profile drawer can display the current recovery code for the signed-in
+owner. This is an intentional small-private-app convenience tradeoff documented
+in `data-contracts.md`; it should be revisited before any broader/public launch.
+
+## Admin Portal Access
+
+Entry:
+
+- `/admin/` loads `admin/index.html` and `admin/app.js`.
+
+Production gate:
+
+1. Firebase compat Auth is initialized.
+2. Admin signs in through `firebase.auth.GoogleAuthProvider`.
+3. `isAllowedAdmin` only accepts `purich.wc@gmail.com`.
+4. `isUnlocked()` returns true only for that allowlisted Google-auth user.
+5. `?test=1` uses a local test gate for automated regression only. It is not
+   production security.
+
+Data load:
+
+1. `loadPublished()` reads `trips`.
+2. It reads recent `adminRevisions`.
+3. It reads all `users` into `cloudUsers`.
+4. It reads reusable username tombstones from `usernames` where
+   `deleteReusable == true`.
+5. It merges cloud users with board-derived participant/admin data for the User
+   Management screens.
+
+## Admin Portal User Management
+
+Primary surfaces:
+
+- Users list: `renderUsers`
+- User detail: `renderUserDetail`
+- Support tools: reset password, export, merge placeholder, invite admin,
+  add user placeholder
+
+### Add User
+
+`showAddUserModal()` currently opens a support-style modal for selecting an
+existing user and board. Its Confirm path only records a local support action:
+`supportAction("Add user", "Prepared board user link")`.
+
+Board-detail `addUser(boardId)` is a draft-board helper that appends a typed
+participant name and random four-digit character ID to that board draft.
+
+Current limitation: Admin Portal Add User is not a full Firebase Auth account
+creation path. Real account creation is still the player Sign Up flow, while
+admin reset can create a new credential for an existing/recovering username.
+
+### Edit Character
+
+`showEditCharModal` and `saveEditedCharacter` edit character presentation inside
+Admin Portal draft board data:
+
+- participant display name;
+- class in `board.data.heroClasses`;
+- XP in `board.data.characterXp`.
+
+After publish, these changes are written into `trips/{tripId}`. This does not
+currently update the canonical `users/{uid}.character` or
+`characters/{characterId}` document.
+
+### Lifecycle: Archive, Deactivate, Delete Requested
+
+`showUserLifecycleModal` and `applyUserLifecycle` update local lifecycle state
+and, in production, patch:
+
+- `users/{uid}` with status fields;
+- `usernames/{username}.lifecycleStatus`.
+
+Login blocks deactivated/deleted-style statuses through
+`isBlockedAccountStatus`. These lifecycle changes are client SDK writes allowed
+by Super Admin rules, not Admin SDK operations.
+
+### Admin Password Reset
+
+`showResetPwModal` collects:
+
+- username;
+- temporary password;
+- optional User ID to preserve.
+
+`performAdminPasswordReset` currently uses the browser Firebase client SDK:
+
+1. Read `usernames/{username}`.
+2. Read old `users/{oldUid}` if present.
+3. Create a new Firebase Auth user with an admin-specific internal email:
+   `username.admin-<timestamp>@coinquest.local`.
+4. Generate new recovery code and hash.
+5. Preserve old `userId`, display name, character, and character pointer when
+   available.
+6. Write `users/{newUid}`.
+7. Update `usernames/{username}` to point at `newUid`.
+8. Update `characters/{characterId}.ownerUid` if a character exists.
+9. Show temporary password and new recovery code for handoff to the user.
+
+Important caveat: because this uses `createUserWithEmailAndPassword` from the
+client SDK, it can replace the current browser Firebase Auth session with the
+newly created user. For a hardened production reset, move this operation behind
+the Vercel backend with Firebase Admin SDK so the Super Admin session is not
+mutated and old Auth users can be explicitly disabled/deleted.
+
+### Permanent Delete
+
+Permanent delete is backend-only.
+
+Admin UI:
+
+1. `checkAdminDeleteBackend()` calls `/api/admin-delete-status`.
+2. If service-account env vars are missing, permanent delete is disabled.
+3. `showPermanentDeleteModal` requires an audit reason and exact text
+   confirmation: `DELETE <userId>`.
+4. `performPermanentDeleteRequest` sends the Google-auth Firebase ID token to
+   `/api/admin-delete-user`.
+
+Backend:
+
+1. `api/admin-delete-user.js` verifies the ID token.
+2. It rejects anyone except verified `purich.wc@gmail.com`.
+3. It resolves the target by UID/User ID/username/character IDs.
+4. For Auth-linked accounts, it deletes the Firebase Auth user, deletes
+   `users/{uid}`, deletes character docs, writes `usernames/{username}` as a
+   reusable deleted tombstone, writes `adminDeleteRequests`, and cleans trip
+   references.
+5. For legacy no-auth references, it attempts legacy board/character cleanup and
+   writes audit status.
+
+## Firestore Rules Summary
+
+Current rule shape:
+
+- `characters`: public read; owner or Super Admin create/update; Super Admin
+  delete.
+- `users`: public read; owner or Super Admin create/update; Super Admin delete.
+- `usernames`: public get, no list; owner/Super Admin create; owner can preserve
+  same UID; deleted reusable tombstone can be reclaimed only while preserving
+  same username/User ID; Super Admin delete.
+- `playerModules`: owner or Super Admin read/create/update; Super Admin delete.
+- `adminRevisions`: Super Admin only.
+- `trips`: currently `allow read, write: if true`.
+
+The `trips` rule remains intentionally permissive in the current repo state.
+Tightening board permissions needs a planned migration and regression coverage.
+
+## Spark vs Blaze Reality
+
+This account system does not require Blaze just because it creates accounts or
+lets the Admin Portal edit Firestore user data.
+
+Spark supports:
+
+- email/password Firebase Auth signup/login;
+- Google sign-in provider when configured;
+- Firestore reads/writes/deletes within free quotas;
+- client SDK writes allowed by security rules;
+- Vercel-hosted backend routes using Firebase Admin SDK credentials.
+
+Blaze becomes relevant when a selected Firebase/Google Cloud feature explicitly
+requires billing, the app needs paid overflow beyond free quotas, or a chosen
+server/runtime requires a billing-enabled Google Cloud project.
+
+## Invariants And Caveats
+
+- Username is the login handle; real external email is not required for player
+  accounts.
+- `usernames/{username}` is the login pointer. When it moves, future username
+  login follows the new UID/auth email.
+- Current recovery/admin reset rotates credentials by creating a new Firebase
+  Auth user instead of updating the old one.
+- Public `userId` and `characterId` should be preserved across recovery/reset.
+- One active character per user is current canon.
+- Admin Portal Add User is not yet true account creation.
+- Admin character edits mostly affect board draft/published board data, not the
+  canonical character document.
+- `?test=1` is regression-only and should never be described as production
+  security.
+- Any change to account flow should run `npm test` and should include targeted
+  auth/admin/manual browser verification.

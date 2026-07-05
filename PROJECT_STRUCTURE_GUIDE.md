@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-06-30
+Last updated: 2026-07-02
 
 ## Purpose
 
@@ -9,6 +9,9 @@ concrete than `architecture.md`.
 
 Use `SITE_MAP_AND_INTERACTIONS.md` when the question is how modules interact.
 Use `data-contracts.md` when the question is what gets persisted.
+Use `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md` when the question is how signup,
+recovery reset, Firebase user/profile documents, and Admin Portal user
+management actually work.
 
 ## Root Files
 
@@ -95,6 +98,7 @@ Use `data-contracts.md` when the question is what gets persisted.
 | Change Reminders UI | `shared/profile-reminders.js`, `shared/profile-hub.js` | invite accept/decline e2e |
 | Change login/signup copy | `shared/profile-login.js`, `shared/profile-hub.js`, `lang.js` | neutral placeholder audit |
 | Change account/session behavior | `shared/profile-auth.js`, `shared/profile-session.js`, `shared/profile-cloud.js` | Firestore rules, auth tests |
+| Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
 | Change Character Profile | `character/app.js`, `character/index.html` | `shared/pointy-logic.js` aggregation |
 | Change Admin Portal | `admin/app.js`, `admin/index.html`, `admin/admin.css` | `ADMIN.md`, full `npm test` |
@@ -119,4 +123,3 @@ Use `data-contracts.md` when the question is what gets persisted.
 - Calculation patch: `npm run test:unit`.
 - Invite/guest/profile/mobile patch: targeted Playwright test.
 - Production patch, commit, or deploy: `npm test`.
-

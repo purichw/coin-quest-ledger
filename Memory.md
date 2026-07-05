@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-06-30
+Last updated: 2026-07-05
 
 ## Project
 
@@ -22,15 +22,16 @@ Last updated: 2026-06-30
 3. For small visual tweaks, default to Fast UI Patch unless the user asks to commit/deploy.
 4. Preserve newest user requirements over any older Claude prototype/handoff behavior.
 5. Never modify legacy inactive snapshots unless explicitly asked.
-6. For system shape, read `architecture.md`; for route/module interactions, read `SITE_MAP_AND_INTERACTIONS.md`; for file lookup, read `PROJECT_STRUCTURE_GUIDE.md`; for data shape, read `data-contracts.md`; for invites/guests, read `INVITES_AND_GUESTS.md`; for leveling/XP, read `leveling-canon.md`; for Claude references and exact visual work, read `claude-design-index.md` plus `CLAUDE_TO_A_TEE_QA.md`; for next-step planning, read `roadmap.md`.
+6. For system shape, read `architecture.md`; for route/module interactions, read `SITE_MAP_AND_INTERACTIONS.md`; for file lookup, read `PROJECT_STRUCTURE_GUIDE.md`; for data shape, read `data-contracts.md`; for account creation/recovery/Admin user management, read `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`; for invites/guests, read `INVITES_AND_GUESTS.md`; for leveling/XP, read `leveling-canon.md`; for Claude references and exact visual work, read `claude-design-index.md` plus `CLAUDE_TO_A_TEE_QA.md`; for next-step planning, read `roadmap.md`.
 7. Current user instruction: ignore `CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
 
 ## Important Files
 
 - `architecture.md`: current static app architecture, routes, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
-- `SITE_MAP_AND_INTERACTIONS.md`: route map, module dependency graph, cross-surface flows, side effects, and regression risks.
+- `SITE_MAP_AND_INTERACTIONS.md`: canonical player/admin site map, user journey map, interaction map, route/deep-link map, state-store side effects, and verification map.
 - `PROJECT_STRUCTURE_GUIDE.md`: practical file map for common edit tasks, shared modules, tests, assets, and do-not-edit-blindly areas.
 - `data-contracts.md`: practical Firestore/local/session storage contracts, derived Character Profile shape, and migration rules.
+- `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`: implementation-level flow from Sign Up to recovery reset and Admin Portal user management, including Firebase Spark/Blaze reality, username pointers, credential rotation, lifecycle actions, and permanent delete.
 - `INVITES_AND_GUESTS.md`: canon for Character-ID invites, Add Guest, Reminders accept/decline, direct invite links, and pairwise settlement regression.
 - `CLAUDE_TO_A_TEE_QA.md`: exact Claude Design component-level fidelity and mobile/tablet/desktop audit protocol.
 - `leveling-canon.md`: v1 XP/Reputation canon for Character XP, positive-only Profile Reputation, level thresholds, reward titles, and Admin display rules.
@@ -86,6 +87,10 @@ Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mo
 2026-06-29 Claude Design micro-cosmetic rule: when the user says "TO A TEE" for Claude Design, do not stop at broad layout similarity. Audit component-level geometry against the offline HTML/CSS: exact-ish padding, font size/weight, radius, border style, hit target, icon centering, and mobile overrides. Recent locked examples: quest-row close button is a 22px circle with centered `x`; `Attach receipt` is the small dashed Claude-style button; `Whole party` is a compact dashed pill, not a large touch-expanded button; split segment sizing must preserve the Claude mobile proportions and avoid page-level horizontal overflow on iPhone SE / iPhone / iPhone Pro Max.
 
 Keyword memory: whenever the user says "to a tee" about Claude Design, expand it internally to: `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
+
+Claude-to-a-tee skill memory: use `browser:control-in-app-browser` to render and inspect the offline Claude HTML as the design source, then use `vercel:agent-browser` to verify the implementation at desktop, tablet, and required mobile viewports, including interactions, screenshots, overflow, and console errors. Source inspection and implementation verification are both required when the browser skills are available.
+
+Reusable skill memory: invoke `$claude-to-a-tee` from any workspace. The Personal Skill lives at `~/.codex/skills/claude-to-a-tee`; pair it with this repository's `CLAUDE_TO_A_TEE_QA.md` for Coin Quest-specific locked regressions.
 
 The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production. Local test accounts exist only behind explicit `?test=1` regression mode; production must never fall back to built-in accounts when Firebase is missing or still loading. Users type a username, not a real email; the profile modules map it to an internal `username@coinquest.local` Firebase Auth email, create/load `users/{uid}`, route accounts without a character through one-time Character Creation, write the active character to `characters/{id}`, and mirror the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
 

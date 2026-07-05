@@ -1,6 +1,6 @@
 # Claude To A Tee QA
 
-Last updated: 2026-06-30
+Last updated: 2026-07-01
 
 ## Purpose
 
@@ -20,6 +20,34 @@ CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at compone
 
 This is not a loose visual polish request. It means component-level fidelity.
 
+The reusable Personal Skill is `$claude-to-a-tee`, installed at
+`~/.codex/skills/claude-to-a-tee`. Invoke it explicitly in any project to load
+the generic inspect, implement, responsive-verify, and release-gate workflow.
+This file remains the project-specific supplement for Coin Quest fidelity locks.
+
+## Required Browser Skills
+
+For a Claude-to-a-tee implementation, use these browser skills as part of the
+workflow whenever they are available:
+
+1. `browser:control-in-app-browser` - open and inspect the supplied offline
+   Claude HTML in the in-app browser. Use it to study the rendered reference,
+   DOM/component structure, computed geometry, assets, animation, responsive
+   behavior, and interaction states.
+2. `vercel:agent-browser` - exercise the implementation across the required
+   viewport matrix, capture comparable screenshots, inspect console/runtime
+   errors, and verify interactions and responsive behavior.
+
+These skills have different jobs: the in-app browser establishes what Claude
+actually designed; agent-browser proves that the implementation reproduces it.
+Reading source files or looking at one screenshot does not replace either half
+of this workflow when rendered browser verification is possible.
+
+Skill invocation does not lower the fidelity requirement. The implementation
+must still be compared at component level, including DOM structure, computed
+size and spacing, typography, icon alignment, states, assets, animation, and
+mobile overrides.
+
 ## Source Of Truth Order
 
 1. The newest explicit user requirement in the current chat.
@@ -33,12 +61,14 @@ requirement and document the divergence.
 ## Required Audit Flow
 
 1. Identify the exact Claude offline file(s) for the surface.
-2. Read the relevant HTML/CSS/JS deeply enough to understand component structure.
-3. Compare live DOM/CSS structure against the Claude component, not just colors.
-4. Patch the smallest surface that can faithfully match the design.
-5. Verify desktop, tablet, and mobile when the component can render responsively.
-6. Run the test level required by `PLAYBOOK.md`.
-7. Before commit/deploy, re-check the specific components named by the user.
+2. Use `browser:control-in-app-browser` to render and inspect the offline source.
+3. Read the relevant HTML/CSS/JS deeply enough to understand component structure.
+4. Compare live DOM/CSS structure against the Claude component, not just colors.
+5. Patch the smallest surface that can faithfully match the design.
+6. Use `vercel:agent-browser` to verify desktop, tablet, and mobile rendering,
+   interaction states, screenshots, overflow, and browser console health.
+7. Run the test level required by `PLAYBOOK.md`.
+8. Before commit/deploy, re-check the specific components named by the user.
 
 ## Component Checklist
 
@@ -110,4 +140,3 @@ For a production-level Claude-to-a-tee task, capture or report:
 
 Do not commit/deploy a Claude-to-a-tee change after only a broad screenshot
 glance when the request is about component-level fidelity.
-
