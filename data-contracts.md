@@ -1,6 +1,6 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-06-22
+Last updated: 2026-07-07
 
 ## Purpose
 
@@ -9,6 +9,10 @@ This file documents the live data shapes that should be preserved when adding fe
 2026-06-21 profile refactor note: splitting `shared/profile-hub.js` into focused `shared/profile-*.js` modules did not change the persisted Firestore/localStorage contracts below.
 
 2026-06-22 native app note: `mobile/` adds `playerModules/{uid}` as native-owned Firestore state for Debt Dragon, Treasury, and Compare. This keeps the iOS app dynamic without pretending the web app's browser localStorage module stores have already been migrated.
+
+For account lifecycle implementation details, see `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`
+and `ADMIN_PORTAL_IMPLEMENTATION.md`. For access control and rule deploy
+assumptions, see `SECURITY_AND_FIREBASE_RULES.md`.
 
 ## Global Conventions
 

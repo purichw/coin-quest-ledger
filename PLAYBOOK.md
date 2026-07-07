@@ -7,6 +7,12 @@
 - Read `SITE_MAP_AND_INTERACTIONS.md` when the request touches how routes, shared modules, reminders, board invites, or user flows connect.
 - Read `PROJECT_STRUCTURE_GUIDE.md` when the request is "where do I edit this?" or when onboarding into an unfamiliar part of the repo.
 - Read `data-contracts.md` when the request touches Firestore, localStorage/sessionStorage, character IDs, admin ownership, imports/exports, or migrations.
+- Read `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md` when the request touches signup, login, recovery reset, account status, user recreation, or Admin user management.
+- Read `ADMIN_PORTAL_IMPLEMENTATION.md` when the request touches `/admin/`, Super Admin operations, lifecycle, reset, delete, publish, or Admin UI/data boundaries.
+- Read `SECURITY_AND_FIREBASE_RULES.md` when the request touches Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze assumptions, service-account env vars, or production access guarantees.
+- Read `TESTING_MATRIX.md` when choosing verification for a patch.
+- Read `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` when committing, pushing, deploying, rolling back, or changing CI/CD.
+- Read `NATIVE_WEB_PARITY.md` when the request touches the Expo native app, native/web data parity, or iOS/Android build gates.
 - Read `INVITES_AND_GUESTS.md` when the request touches Add by Character ID, Add Guest, board invites, Reminders accept/decline, direct invite links, or settlement regressions.
 - Read `claude-design-index.md` when the request involves Claude Design references, visual parity, mobile handoff files, or finding the right downloaded source.
 - Read `CLAUDE_TO_A_TEE_QA.md` whenever the user says "to a tee" or asks for exact Claude Design implementation.
@@ -18,7 +24,7 @@
 - If the user asks to commit or deploy, escalate to Production Patch.
 - For profile/auth refactors, keep slices independently revertible. Commit each completed boundary separately after targeted tests, even when the user gives one broad refactor instruction.
 - Keep `Memory.md`, `architecture.md`, `roadmap.md`, and any touched contract/reference docs updated before intentionally moving work to a new chat.
-- Current user instruction: ignore `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
+- Current user instruction: ignore `archive/CLAUDE_RECOVERY.md` unless explicitly re-enabled.
 - Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromReputation()` instead of adding local formulas.
 
 ## Change Modes
@@ -126,6 +132,12 @@ When implementing from Claude Design:
 - `SITE_MAP_AND_INTERACTIONS.md` maps routes, shared dependencies, user flows, side effects, and cross-module risks.
 - `PROJECT_STRUCTURE_GUIDE.md` maps common tasks to files and tests.
 - `data-contracts.md` documents the practical persisted shapes for Firestore, local/session storage, and derived Character Profile data.
+- `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md` documents signup/login/recovery and Admin user management.
+- `ADMIN_PORTAL_IMPLEMENTATION.md` documents the live `/admin/` implementation.
+- `SECURITY_AND_FIREBASE_RULES.md` documents Auth, rules, Admin SDK endpoints, Spark/Blaze assumptions, and hardening gaps.
+- `TESTING_MATRIX.md` maps change types to verification commands.
+- `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` documents CI/CD, deploy, alias, rules deploy, and rollback.
+- `NATIVE_WEB_PARITY.md` documents web/native contracts and native design/backend gates.
 - `INVITES_AND_GUESTS.md` is the participant-entry canon for real-character invites, guests, reminders, direct invite links, and settlement regression cases.
 - `CLAUDE_TO_A_TEE_QA.md` defines the component-level Claude Design fidelity and responsive QA protocol.
 - `claude-design-index.md` maps downloaded Claude references to live surfaces and records what each reference does or does not specify.
@@ -133,11 +145,19 @@ When implementing from Claude Design:
 - Keep these docs current when a change alters product direction, system shape, deployment assumptions, data contracts, reference sources, or major cross-module behavior.
 - When doing a handoff-only docs pass, update the latest production snapshot, recent commits, stale "mock/future auth" wording, and next-slice guidance without changing implementation files.
 
+## Project Skills
+
+- Use `$claude-to-a-tee` for exact Claude Design implementation and verification.
+- Use `$coin-quest-ledger-logic` for Party Ledger split math, invites, guests, Character IDs, Reminders, and settlement regressions.
+- Use `$coin-quest-admin-ops` for Admin Portal auth, lifecycle, reset, delete, publish/restore, revisions, and Firebase-backed admin operations.
+- Use `$coin-quest-native-parity` for Expo native work, web/native contract checks, and iOS/Android build gates.
+- Use `$firebase-security-rules` for Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze assumptions, and production access guarantees.
+
 ## Claude Recovery References
 
 Use these when rebuilding context in a new chat or a new Claude Project:
 
-- Do not use `CLAUDE_RECOVERY.md` by default. It is currently ignored/deprecated by user instruction.
+- Do not use `archive/CLAUDE_RECOVERY.md` by default. It is currently ignored/deprecated by user instruction.
 - Current verified Downloads references on 2026-06-21: `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
 - Historical recovery bundles, standalone Character/Profile HTML, Admin HTML, and split zips from earlier sessions are not guaranteed to still exist. Check with `ls`/`find` before depending on any older path.
 - Do not commit large offline zip/HTML copies.

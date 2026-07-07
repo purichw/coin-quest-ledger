@@ -1,6 +1,14 @@
 # Claude Design Recovery Pack
 
-Last updated: 2026-06-18
+Archived/deprecated: do not use this file by default. The current handoff canon
+lives in `Memory.md`, `PLAYBOOK.md`, `architecture.md`, `roadmap.md`,
+`claude-design-index.md`, `CLAUDE_TO_A_TEE_QA.md`, `SITE_MAP_AND_INTERACTIONS.md`,
+`PROJECT_STRUCTURE_GUIDE.md`, `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`,
+`ADMIN_PORTAL_IMPLEMENTATION.md`, `SECURITY_AND_FIREBASE_RULES.md`, and the
+fresh Claude reference files the user supplies. This file remains only as
+historical recovery context.
+
+Last updated: 2026-07-07
 
 Use this file when the original Claude Design project is lost or inaccessible.
 It is not a backup of Claude's internal project state. It is a reconstruction
@@ -23,7 +31,9 @@ starting from zero.
 ## How To Recreate The Claude Project
 
 1. Create a new Claude Project named `Coin Quest Ledger / Claude Design Recovery`.
-2. Add these repo files to the project knowledge:
+2. Historical instruction only: this old bundle originally added these repo
+   files to project knowledge, but current work should start from the docs
+   listed in the archive banner above instead:
    - `/Users/point/toolbox/CLAUDE_RECOVERY.md`
    - `/Users/point/toolbox/Memory.md`
    - `/Users/point/toolbox/PLAYBOOK.md`
@@ -86,6 +96,11 @@ Recommended usage:
 ## Recovery Prompt
 
 ```text
+Historical prompt only. For current work, read `Memory.md`, `PLAYBOOK.md`,
+`architecture.md`, `roadmap.md`, `claude-design-index.md`, `CLAUDE_TO_A_TEE_QA.md`,
+`SITE_MAP_AND_INTERACTIONS.md`, `PROJECT_STRUCTURE_GUIDE.md`, and the relevant
+implementation runbooks first.
+
 Read CLAUDE_RECOVERY.md, Memory.md, PLAYBOOK.md, and ADMIN.md first.
 
 You are helping with Coin Quest Ledger. Treat the listed Claude Design HTML,

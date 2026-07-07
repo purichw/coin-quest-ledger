@@ -1,5 +1,8 @@
 # Coin Quest Ledger Mobile
 
+For the web/native backend contract map, intentional parity differences, and
+required design/backend gates before builds, see `../NATIVE_WEB_PARITY.md`.
+
 Expo / React Native player-side runtime for the future native player app MVP.
 
 ## Current Scope

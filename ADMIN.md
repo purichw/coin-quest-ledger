@@ -1,10 +1,15 @@
 # ADMIN.md - Admin Portal Handoff Notes
 
-Last updated: 2026-06-22
+Last updated: 2026-07-07
 
 ## Purpose
 
-This file preserves the current understanding of the Admin Portal handoff and live implementation so the next implementation pass does not need to rediscover the model, screens, and styling from scratch.
+This file preserves Admin Portal prototype/handoff notes so the next implementation pass does not need to rediscover the model, screens, and styling from scratch.
+
+For the live implementation map, source boundaries, auth gate, lifecycle
+operations, reset/delete behavior, and verification commands, start with
+`ADMIN_PORTAL_IMPLEMENTATION.md`. Treat this file as historical/reference
+context, not the primary live implementation runbook.
 
 These files are a Claude-style Admin Portal prototype/reference. The live app is
 still the static no-build Coin Quest Ledger repo, but the current `/admin/`

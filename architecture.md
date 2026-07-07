@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-06-30
+Last updated: 2026-07-07
 
 ## Purpose
 
@@ -13,6 +13,12 @@ Companion docs:
 - `data-contracts.md`: persisted data shapes and migration rules.
 - `SITE_MAP_AND_INTERACTIONS.md`: route/module dependency map, interaction flows, side effects, and cross-module risks.
 - `PROJECT_STRUCTURE_GUIDE.md`: practical file-finding guide for common tasks.
+- `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`: account creation, recovery reset, and Admin Portal user-management implementation flow.
+- `ADMIN_PORTAL_IMPLEMENTATION.md`: live Admin Portal source map, behavior boundaries, lifecycle operations, reset/delete flows, and verification.
+- `SECURITY_AND_FIREBASE_RULES.md`: Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze reality, and hardening notes.
+- `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: CI/CD, deploy, alias, Firebase rules deploy, and rollback runbook.
+- `TESTING_MATRIX.md`: targeted test selection by change type.
+- `NATIVE_WEB_PARITY.md`: web/native backend contract map and native design/backend gates.
 - `INVITES_AND_GUESTS.md`: Party Ledger participant-entry canon for invites, guests, reminders, direct links, and settlement risks.
 - `CLAUDE_TO_A_TEE_QA.md`: exact Claude Design component-level QA protocol.
 - `claude-design-index.md`: Claude reference map and inspection notes.
@@ -27,7 +33,8 @@ Companion docs:
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
 - Build step: none
 - Local preview: `npm run serve`, usually `http://127.0.0.1:4569/`
-- Last verified production snapshot: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to the canonical domain on 2026-06-30.
+- Latest pushed commit at this doc update: `755eb5e` (`Document account and journey maps`).
+- Last verified production snapshot: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to the canonical domain on 2026-06-30. Later docs-only commits may have been auto-deployed; verify live before claiming a newer production code snapshot.
 
 Do not preview app pages with `file://`. Pages use absolute paths such as `/shared/pointy-logic.js` and `/character/app.js`; those only resolve correctly through the static server or production host.
 
@@ -82,6 +89,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - Files: `admin/index.html`, `admin/app.js`, `admin/admin.css`
 - Route: `/admin/`
 - Admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, relationship views, and user lifecycle.
+- Live implementation details are maintained in `ADMIN_PORTAL_IMPLEMENTATION.md`; `ADMIN.md` is retained as prototype/handoff history.
 - Production access uses Firebase Google Auth and only allows `purich.wc@gmail.com`. The old local gate remains only under `?test=1` for automated tests.
 - User lifecycle is two-stage: recoverable `archived` / `deactivated` / `active` status is written to Firestore by the Super Admin UI, and permanent delete is delegated to `/api/admin-delete-user` using Firebase Admin SDK after verifying the Google-auth ID token. Permanent delete removes the Auth user, user doc, and character docs, but keeps a deleted reusable username tombstone so recreating the same username restores the same public User ID/Character ID.
 - `/api/admin-delete-status` is a non-secret readiness endpoint for the Admin UI. It reports whether Vercel has the Firebase Admin service-account env vars needed for privileged delete, so production can disable permanent delete when backend credentials are missing.
@@ -175,7 +183,7 @@ Claude Design remains the Holy Grail for requested visual ports. Reference files
 - Older recovery bundles, split zips, standalone Character/Profile HTML, and Admin HTML paths from earlier sessions are historical only unless they still exist on disk. Verify with `ls`/`find` before using them.
 - Admin Portal handoff notes are in `ADMIN.md`.
 
-`CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction. Do not use it unless the user explicitly re-enables it.
+`archive/CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction. Do not use it unless the user explicitly re-enables it.
 
 See `claude-design-index.md` for the full reference map and per-surface notes.
 
@@ -192,9 +200,9 @@ npm test
 npm run serve
 ```
 
-Playwright projects cover desktop Chromium, tablet, and mobile. Responsive or shared-shell work should be checked across breakpoints.
+Playwright projects cover desktop Chromium, tablet, and mobile. Responsive or shared-shell work should be checked across breakpoints. Use `TESTING_MATRIX.md` to choose the narrowest sufficient checks.
 
-Production deploy flow:
+Manual production deploy flow, when not relying on CI/CD:
 
 ```bash
 npm test
@@ -209,6 +217,9 @@ curl -fsSL https://coin-quest-ledger.vercel.app/<changed-route> | rg "<expected-
 CI/CD is also active through `.github/workflows/test.yml`: pull requests run the
 full test suite, and pushes to `main` run tests then deploy production to Vercel
 when the required GitHub secrets are present.
+
+See `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` for CI/CD secrets, manual deploy, alias,
+Firebase rules deploy, and rollback steps.
 
 Native iOS build/install flow is intentionally separate from Vercel production. Before building for a real iPhone, verify both:
 

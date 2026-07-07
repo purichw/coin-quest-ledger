@@ -1,6 +1,9 @@
 # Coin Quest Ledger iOS Build Notes
 
-Last updated: 2026-06-22
+Last updated: 2026-07-07
+
+Before any new physical-device build, read `../NATIVE_WEB_PARITY.md` and verify
+both the Claude Design parity gate and the real Firebase backend gate.
 
 This is the repeatable native iOS runbook. It exists because the first real-device pass proved that "it builds" is not enough: the app must look like Claude Design and use real backend data before a physical install is worth doing.
 

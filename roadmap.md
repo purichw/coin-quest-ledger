@@ -1,6 +1,6 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-06-30
+Last updated: 2026-07-07
 
 ## North Star
 
@@ -8,7 +8,7 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 
 ## Current Baseline
 
-- Production domain: `https://coin-quest-ledger.vercel.app`; latest pushed and verified production snapshot is commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`.
+- Production domain: `https://coin-quest-ledger.vercel.app`; latest pushed commit at this doc update is `755eb5e` (`Document account and journey maps`). Last verified production code snapshot remains commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`; later docs-only commits may have deployed through CI and should be verified before being cited as the live snapshot.
 - Large Claude references stay outside Git. Current verified Downloads references are the top-level `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, and the iOS/Android standalone HTML exports; older split/reference folders must be filesystem-checked before use.
 - Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
 - Character/Profile surfaces are live: Sign In/Sign Up, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, Character Profile My Boards actions, privacy links, and Recovery ID display/regeneration.
@@ -20,7 +20,7 @@ Coin Quest Ledger should feel like Claude Design's playful RPG finance suite whi
 - Player native app work is committed in `mobile/` as an Expo / React Native iOS-first app. The current slice uses real Firebase Auth/Firestore for username login/signup, Recovery ID, Character Creation, Profile, Split board reads/writes, and native-owned `playerModules/{uid}` state for Debt Dragon, Treasury, and Compare.
 - Native design lesson learned: do not build/install a bland static shell and call it progress. Claude Design parity and real backend parity are both pre-build gates for every meaningful native screen.
 - CI/CD is active through `.github/workflows/test.yml`: pull requests run the full test suite, and pushes to `main` deploy production through Vercel when GitHub secrets are present.
-- Documentation canon now includes `SITE_MAP_AND_INTERACTIONS.md`, `PROJECT_STRUCTURE_GUIDE.md`, `INVITES_AND_GUESTS.md`, and `CLAUDE_TO_A_TEE_QA.md` so future chats can recover route, module, invite, and exact-design context quickly.
+- Documentation canon now includes `SITE_MAP_AND_INTERACTIONS.md`, `PROJECT_STRUCTURE_GUIDE.md`, `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `ADMIN_PORTAL_IMPLEMENTATION.md`, `SECURITY_AND_FIREBASE_RULES.md`, `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md`, `NATIVE_WEB_PARITY.md`, `INVITES_AND_GUESTS.md`, and `CLAUDE_TO_A_TEE_QA.md` so future chats can recover route, module, account, admin, security, deploy, native, invite, and exact-design context quickly.
 
 Known constraints:
 
@@ -32,7 +32,7 @@ Known constraints:
 
 ## Decision Log
 
-- `CLAUDE_RECOVERY.md` is ignored/deprecated for now by current user instruction.
+- `archive/CLAUDE_RECOVERY.md` is ignored/deprecated for now by current user instruction.
 - Character Profile route remains `/character/?id=####`.
 - The latest Claude handoff specifies a profile side panel full-profile entry; the live shared profile drawer now links to `/character/?id=####`.
 - Current loop is one account = one active character. Demo User ID `3720` maps to Character ID `3720`; real users get a Firebase Auth `uid`, public four-digit User ID, and active Character ID.
@@ -53,6 +53,10 @@ Goal: make every future chat easy to resume without rediscovery.
 - Keep `Memory.md`, `PLAYBOOK.md`, `architecture.md`, and `roadmap.md` current after meaningful changes.
 - Keep `SITE_MAP_AND_INTERACTIONS.md` current when route wiring, cross-module flows, shared dependencies, reminders, or side effects change.
 - Keep `PROJECT_STRUCTURE_GUIDE.md` current when files move, helper modules split, or common task ownership changes.
+- Keep `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md` and `ADMIN_PORTAL_IMPLEMENTATION.md` current when signup, recovery, account lifecycle, user reset, delete, publish, or admin screens change.
+- Keep `SECURITY_AND_FIREBASE_RULES.md` current when Auth, Firestore Rules, Admin SDK endpoints, service-account env vars, Spark/Blaze assumptions, or hardening gaps change.
+- Keep `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` and `TESTING_MATRIX.md` current when CI/CD, Vercel deploy, Firebase rules deploy, rollback, or verification commands change.
+- Keep `NATIVE_WEB_PARITY.md` current when native contracts, playerModules, web/native divergence, or native build gates change.
 - Keep `INVITES_AND_GUESTS.md` current when participant entry, invite/reminder, direct-link join, or settlement behavior changes.
 - Keep `CLAUDE_TO_A_TEE_QA.md` current when exact-design audit expectations or locked cosmetic regressions change.
 - Keep `data-contracts.md` current when storage keys, Firestore fields, or derived profile shapes change.

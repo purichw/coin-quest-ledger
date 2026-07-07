@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-07-02
+Last updated: 2026-07-07
 
 ## Purpose
 
@@ -12,6 +12,9 @@ Use `data-contracts.md` when the question is what gets persisted.
 Use `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md` when the question is how signup,
 recovery reset, Firebase user/profile documents, and Admin Portal user
 management actually work.
+Use `ADMIN_PORTAL_IMPLEMENTATION.md` for live `/admin/` behavior, `SECURITY_AND_FIREBASE_RULES.md`
+for access control, `TESTING_MATRIX.md` for verification, `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`
+for release flow, and `NATIVE_WEB_PARITY.md` for native/web parity.
 
 ## Root Files
 
@@ -27,6 +30,11 @@ management actually work.
 - `lang.js`: shared Thai/English copy.
 - `firestore.rules`: deployed Firestore security rules.
 - `firebase.json`: Firebase deploy config.
+- `SECURITY_AND_FIREBASE_RULES.md`: Firebase Auth/rules/Admin SDK security map.
+- `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: deploy, CI/CD, alias, rules deploy, rollback.
+- `TESTING_MATRIX.md`: change-type-to-test-command map.
+- `ADMIN_PORTAL_IMPLEMENTATION.md`: live Admin Portal implementation map.
+- `NATIVE_WEB_PARITY.md`: native/web contract and build-gate map.
 - `package.json`: test scripts and runtime dependency list.
 - `.github/workflows/test.yml`: CI/CD test and production deploy workflow.
 
@@ -101,10 +109,12 @@ management actually work.
 | Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
 | Change Character Profile | `character/app.js`, `character/index.html` | `shared/pointy-logic.js` aggregation |
-| Change Admin Portal | `admin/app.js`, `admin/index.html`, `admin/admin.css` | `ADMIN.md`, full `npm test` |
+| Change Admin Portal | `admin/app.js`, `admin/index.html`, `admin/admin.css` | `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, full `npm test` |
+| Change Firebase rules/security | `firestore.rules`, `api/*.js` | `SECURITY_AND_FIREBASE_RULES.md`, rules deploy |
+| Change CI/deploy/rollback | `.github/workflows/test.yml`, Vercel/Firebase config | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md` |
 | Change mobile shell | `shared/mobile-shell.*` | Home, Split, Debt, Prices, Treasury mobile |
 | Change native app | `mobile/src/*` | `mobile/IOS_BUILD_NOTES.md`, typecheck/export |
-| Change deploy/CI | `.github/workflows/test.yml`, `PLAYBOOK.md` | GitHub secrets, Vercel alias |
+| Change deploy/CI | `.github/workflows/test.yml`, `PLAYBOOK.md` | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, GitHub secrets, Vercel alias |
 
 ## Do Not Edit Blindly
 

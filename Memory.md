@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-07-05
+Last updated: 2026-07-07
 
 ## Project
 
@@ -11,8 +11,8 @@ Last updated: 2026-07-05
 - Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
-- Latest pushed commit: `4a04d71` (`Add GitHub Actions CI CD`).
-- Latest verified production deploy: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-30 after GitHub Actions `CI/CD` passed full `npm test`.
+- Latest pushed commit: `755eb5e` (`Document account and journey maps`).
+- Latest verified production deploy: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-30 after GitHub Actions `CI/CD` passed full `npm test`. Later docs-only commits may have been deployed by CI; verify live status before claiming the production code snapshot moved.
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
 ## Start Here In A New Chat
@@ -22,8 +22,8 @@ Last updated: 2026-07-05
 3. For small visual tweaks, default to Fast UI Patch unless the user asks to commit/deploy.
 4. Preserve newest user requirements over any older Claude prototype/handoff behavior.
 5. Never modify legacy inactive snapshots unless explicitly asked.
-6. For system shape, read `architecture.md`; for route/module interactions, read `SITE_MAP_AND_INTERACTIONS.md`; for file lookup, read `PROJECT_STRUCTURE_GUIDE.md`; for data shape, read `data-contracts.md`; for account creation/recovery/Admin user management, read `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`; for invites/guests, read `INVITES_AND_GUESTS.md`; for leveling/XP, read `leveling-canon.md`; for Claude references and exact visual work, read `claude-design-index.md` plus `CLAUDE_TO_A_TEE_QA.md`; for next-step planning, read `roadmap.md`.
-7. Current user instruction: ignore `CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
+6. For system shape, read `architecture.md`; for route/module interactions, read `SITE_MAP_AND_INTERACTIONS.md`; for file lookup, read `PROJECT_STRUCTURE_GUIDE.md`; for data shape, read `data-contracts.md`; for account creation/recovery/Admin user management, read `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`; for Admin live implementation, read `ADMIN_PORTAL_IMPLEMENTATION.md`; for security/rules, read `SECURITY_AND_FIREBASE_RULES.md`; for deploy/rollback, read `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`; for testing, read `TESTING_MATRIX.md`; for web/native parity, read `NATIVE_WEB_PARITY.md`; for invites/guests, read `INVITES_AND_GUESTS.md`; for leveling/XP, read `leveling-canon.md`; for Claude references and exact visual work, read `claude-design-index.md` plus `CLAUDE_TO_A_TEE_QA.md`; for next-step planning, read `roadmap.md`.
+7. Current user instruction: ignore `archive/CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
 
 ## Important Files
 
@@ -32,12 +32,17 @@ Last updated: 2026-07-05
 - `PROJECT_STRUCTURE_GUIDE.md`: practical file map for common edit tasks, shared modules, tests, assets, and do-not-edit-blindly areas.
 - `data-contracts.md`: practical Firestore/local/session storage contracts, derived Character Profile shape, and migration rules.
 - `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`: implementation-level flow from Sign Up to recovery reset and Admin Portal user management, including Firebase Spark/Blaze reality, username pointers, credential rotation, lifecycle actions, and permanent delete.
+- `ADMIN_PORTAL_IMPLEMENTATION.md`: live `/admin/` implementation map, source boundaries, auth gate, screens, draft/publish behavior, account lifecycle, reset, delete, and verification.
+- `SECURITY_AND_FIREBASE_RULES.md`: Firebase Auth/Firestore Rules/Admin SDK security map, Spark/Blaze reality, privileged endpoint contract, rule deploy runbook, and hardening backlog.
+- `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: CI/CD, manual Vercel deploy, Firebase rules deploy, rollback, and release-report runbook.
+- `TESTING_MATRIX.md`: targeted command matrix for docs, syntax, visual, mobile, Party Ledger, invites, settlement, auth, admin, rules, native, and production changes.
+- `NATIVE_WEB_PARITY.md`: native/web boundary map for shared Firebase contracts, intentional differences, design/backend gates, and native verification.
 - `INVITES_AND_GUESTS.md`: canon for Character-ID invites, Add Guest, Reminders accept/decline, direct invite links, and pairwise settlement regression.
 - `CLAUDE_TO_A_TEE_QA.md`: exact Claude Design component-level fidelity and mobile/tablet/desktop audit protocol.
 - `leveling-canon.md`: v1 XP/Reputation canon for Character XP, positive-only Profile Reputation, level thresholds, reward titles, and Admin display rules.
 - `claude-design-index.md`: map of Claude reference sources to live surfaces, plus notes on mobile coverage and route wiring.
 - `roadmap.md`: phased roadmap for profile integration, mobile parity, real auth/security, admin maturity, character progress, and recovery.
-- `CLAUDE_RECOVERY.md`: deprecated/ignored for now by current user instruction. Do not read/use it unless explicitly re-enabled.
+- `archive/CLAUDE_RECOVERY.md`: deprecated/ignored historical recovery pack. Do not read/use it unless explicitly re-enabled.
 - Claude/offline design exports are kept outside Git; do not commit large offline HTML or zip copies.
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
@@ -66,7 +71,7 @@ Last updated: 2026-07-05
 The original Claude Design project was accidentally deleted and Claude said it cannot be directly recovered. The recovery strategy is now:
 
 - Use repo docs plus downloaded handoff files to reconstruct Claude context.
-- `CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction; use `Memory.md`, `PLAYBOOK.md`, `architecture.md`, `roadmap.md`, `ADMIN.md`, `claude-design-index.md`, and the actual downloaded references instead.
+- `archive/CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction; use `Memory.md`, `PLAYBOOK.md`, `architecture.md`, `roadmap.md`, `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, `claude-design-index.md`, and the actual downloaded references instead.
 - Current local downloaded references verified on 2026-06-21: `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
 - Fresh native-player export folder studied on 2026-06-21: `/Users/point/Downloads/Coin iOS Android/` with `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, `Coin Quest Ledger (iOS App).html`, and `Coin Quest Ledger (Android App).html`. Treat these as the latest iOS/Android player-native visual references when native MVP work resumes; they are player-side only and do not include Admin native.
 - Older recovery bundle paths and split zips from earlier sessions may no longer exist locally. Check the filesystem before relying on them, or ask the user for a fresh Claude export.
@@ -91,6 +96,13 @@ Keyword memory: whenever the user says "to a tee" about Claude Design, expand it
 Claude-to-a-tee skill memory: use `browser:control-in-app-browser` to render and inspect the offline Claude HTML as the design source, then use `vercel:agent-browser` to verify the implementation at desktop, tablet, and required mobile viewports, including interactions, screenshots, overflow, and console errors. Source inspection and implementation verification are both required when the browser skills are available.
 
 Reusable skill memory: invoke `$claude-to-a-tee` from any workspace. The Personal Skill lives at `~/.codex/skills/claude-to-a-tee`; pair it with this repository's `CLAUDE_TO_A_TEE_QA.md` for Coin Quest-specific locked regressions.
+
+Project skill memory: use `$coin-quest-ledger-logic` for Party Ledger split,
+invite, guest, Character ID, and settlement work; `$coin-quest-admin-ops` for
+Admin Portal lifecycle/reset/delete/publish work; `$coin-quest-native-parity` for
+Expo native/web parity and iOS/Android gates; and `$firebase-security-rules` for
+Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze assumptions, and
+security hardening.
 
 The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production. Local test accounts exist only behind explicit `?test=1` regression mode; production must never fall back to built-in accounts when Firebase is missing or still loading. Users type a username, not a real email; the profile modules map it to an internal `username@coinquest.local` Firebase Auth email, create/load `users/{uid}`, route accounts without a character through one-time Character Creation, write the active character to `characters/{id}`, and mirror the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
 
@@ -268,6 +280,8 @@ git push origin main
 
 ## Recent Commits
 
+- `755eb5e` Document account and journey maps
+- `6bae981` Document project maps and QA canon
 - `4a04d71` Add GitHub Actions CI CD
 - `fe02309` Extract board invite helpers
 - `c6dcbbf` Add board invite approval flow

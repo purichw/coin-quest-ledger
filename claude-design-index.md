@@ -1,15 +1,18 @@
 # Claude Design Index
 
-Last updated: 2026-06-30
+Last updated: 2026-07-07
 
 ## Purpose
 
 This index maps Claude Design reference files to live app surfaces so future work can start from the right source without re-opening giant artifacts first. Claude references are source-of-truth for requested visual/interaction ports, but the live implementation must preserve newer user requirements, data contracts, i18n, and tests.
 
-Current user instruction: do not use `CLAUDE_RECOVERY.md` unless explicitly re-enabled.
+Current user instruction: do not use `archive/CLAUDE_RECOVERY.md` unless explicitly re-enabled.
 
 For exact implementation requests, especially when the user says "to a tee",
-follow `CLAUDE_TO_A_TEE_QA.md` before commit or deploy.
+invoke `$claude-to-a-tee` and follow `CLAUDE_TO_A_TEE_QA.md` before commit or
+deploy. Use `browser:control-in-app-browser` to inspect the offline Claude HTML
+source and `vercel:agent-browser` to verify the live/local implementation across
+desktop, tablet, and mobile viewports.
 
 ## Reference Map
 
