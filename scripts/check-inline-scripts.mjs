@@ -1,23 +1,40 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
 const root = process.cwd();
 const htmlFiles = [
   'index.html',
-  'index.legacy.html',
+  'archive/legacy/index.legacy.html',
   'trip/index.html',
-  'trip/index.legacy.html',
+  'archive/legacy/trip-index.legacy.html',
   'admin/index.html',
   'character/index.html',
   'debt/index.html',
+  'treasury/index.html',
 ];
 const scriptFiles = [
-  'shared/board-invites.js',
+  ...fs.readdirSync(path.join(root, 'shared'))
+    .filter(file => file.endsWith('.js'))
+    .sort()
+    .map(file => `shared/${file}`),
+  'lang.js',
   'trip/app.js',
   'admin/app.js',
   'character/app.js',
   'debt/app.js',
+  'treasury/app.js',
+];
+const moduleFiles = [
+  ...fs.readdirSync(path.join(root, 'api'))
+    .filter(file => file.endsWith('.js'))
+    .sort()
+    .map(file => `api/${file}`),
+  ...fs.readdirSync(path.join(root, 'scripts'))
+    .filter(file => file.endsWith('.mjs'))
+    .sort()
+    .map(file => `scripts/${file}`),
 ];
 
 let checked = 0;
@@ -41,4 +58,19 @@ for (const rel of scriptFiles) {
   checked += 1;
 }
 
-console.log(`Checked ${checked} browser script(s).`);
+let moduleChecked = 0;
+for (const rel of moduleFiles) {
+  const file = path.join(root, rel);
+  if (!fs.existsSync(file)) continue;
+  const result = spawnSync(process.execPath, ['--check', file], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr || result.stdout || `Syntax check failed for ${rel}\n`);
+    process.exit(result.status || 1);
+  }
+  moduleChecked += 1;
+}
+
+console.log(`Checked ${checked} browser script(s) and ${moduleChecked} module file(s).`);

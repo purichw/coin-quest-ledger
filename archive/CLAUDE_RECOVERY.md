@@ -294,8 +294,8 @@ Known file sizes and timestamps at recovery time:
 - For responsive changes, verify desktop, tablet, and mobile.
 - For Claude handoff changes, compare before/after visually.
 - Do not modify inactive legacy snapshots unless explicitly requested:
-  - `/Users/point/toolbox/trip/index.legacy.html`
-  - `/Users/point/toolbox/index.legacy.html`
+  - `/Users/point/toolbox/archive/legacy/trip-index.legacy.html`
+  - `/Users/point/toolbox/archive/legacy/index.legacy.html`
 - Do not edit reference files in `/Users/point/Downloads` directly.
 - If a new Claude source file is supplied for this project, prefer the newer
   `.jsx`, `.css`, or offline HTML over older handoff files for the same surface.

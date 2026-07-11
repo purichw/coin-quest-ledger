@@ -170,7 +170,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - `lang.js` is shared across the toolbox; every new UI string needs Thai and English keys.
 - `shared/pointy-logic.js` owns shared calculation and normalization logic.
 - `tests/e2e/coin-quest-ledger.spec.mjs` covers critical Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison flows.
-- `trip/index.legacy.html` and `index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
+- `archive/legacy/trip-index.legacy.html` and `archive/legacy/index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
 - Keep refactors incremental. The shell and expense entry controls use delegated events, but some dynamic hero/admin/overlay renderers still use inline handlers; migrate those only in focused slices with full `npm test`.
 - Signed-in "other hero" add flow is Character-ID-only for real characters. It must resolve an existing character, never generate one from arbitrary input, never ask for "Other hero's name", and never block duplicate visible names. Use "Add Guest" when a board-only participant is needed; guests get name + hero selection only and no real Character ID.
 - Character-ID add now sends an invite rather than immediately adding someone else's real character. The target accepts or declines from Reminders within 24 hours; decline requires confirmation. See `INVITES_AND_GUESTS.md`.

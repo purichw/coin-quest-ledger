@@ -1,9 +1,8 @@
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-
 const SUPER_ADMIN_EMAIL = 'purich.wc@gmail.com';
 const USERNAME_DOMAIN = 'coinquest.local';
+let adminAppModulePromise;
+let adminAuthModulePromise;
+let adminFirestoreModulePromise;
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -46,9 +45,32 @@ function serviceAccount() {
   return null;
 }
 
-function adminDb() {
+async function adminAppModule() {
+  adminAppModulePromise ||= import('firebase-admin/app');
+  return adminAppModulePromise;
+}
+
+async function adminAuth() {
+  adminAuthModulePromise ||= import('firebase-admin/auth');
+  const { getAuth } = await adminAuthModulePromise;
+  return getAuth();
+}
+
+async function adminFirestoreModule() {
+  adminFirestoreModulePromise ||= import('firebase-admin/firestore');
+  return adminFirestoreModulePromise;
+}
+
+async function serverTimestamp() {
+  const { FieldValue } = await adminFirestoreModule();
+  return FieldValue.serverTimestamp();
+}
+
+async function adminDb() {
   const account = serviceAccount();
   if (!account) return null;
+  const { cert, getApps, initializeApp } = await adminAppModule();
+  const { getFirestore } = await adminFirestoreModule();
   if (!getApps().length) initializeApp({ credential: cert(account) });
   return getFirestore();
 }
@@ -427,25 +449,25 @@ async function cleanTripReferences(db, target, context = {}) {
   if (!targetIds.length && !targetNames.length) return { ops, trips };
 
   const tripsSnap = await db.collection('trips').get();
-  tripsSnap.docs.forEach(doc => {
+  for (const doc of tripsSnap.docs) {
     const cleaned = cleanLegacyTripData(doc.data() || {}, { targetIds, targetNames });
-    if (!cleaned.changed) return;
+    if (!cleaned.changed) continue;
     if (isEmptyLegacyScope(cleaned.data)) {
       ops.push({ type: 'delete', ref: doc.ref });
       trips.push({ id: doc.id, removedNames: cleaned.removedNames, status: 'deleted_empty_legacy_board' });
-      return;
+      continue;
     }
     ops.push({
       type: 'set',
       ref: doc.ref,
       data: {
         ...cleaned.data,
-        updatedAt: FieldValue.serverTimestamp()
+        updatedAt: await serverTimestamp()
       },
       options: { merge: false }
     });
     trips.push({ id: doc.id, removedNames: cleaned.removedNames, status: context.status || 'cleaned' });
-  });
+  }
   return { ops, trips };
 }
 
@@ -493,8 +515,8 @@ async function deleteLegacyOrphan(db, body, context) {
         deleteReusable: true,
         deletedBy: context.deletedBy,
         deletedReason: context.reason,
-        deletedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp()
+        deletedAt: await serverTimestamp(),
+        updatedAt: await serverTimestamp()
       },
       options: { merge: true }
     });
@@ -521,7 +543,7 @@ export default async function handler(req, res) {
 
   let db;
   try {
-    db = adminDb();
+    db = await adminDb();
   } catch (error) {
     console.error('Firebase Admin service account initialization failed', error);
     return json(res, 500, { error: 'Firebase Admin service account could not be initialized.' });
@@ -530,7 +552,7 @@ export default async function handler(req, res) {
 
   let decoded;
   try {
-    decoded = await getAuth().verifyIdToken(token);
+    decoded = await (await adminAuth()).verifyIdToken(token);
   } catch (_) {
     return json(res, 401, { error: 'Invalid Firebase ID token.' });
   }
@@ -565,7 +587,7 @@ export default async function handler(req, res) {
       requestedByUid: decoded.uid,
       status: 'running',
       legacy: true,
-      createdAt: FieldValue.serverTimestamp()
+      createdAt: await serverTimestamp()
     });
     const results = await deleteLegacyOrphan(db, body, {
       userId,
@@ -576,7 +598,7 @@ export default async function handler(req, res) {
     if (!results) {
       await auditRef.set({
         status: 'not_found',
-        failedAt: FieldValue.serverTimestamp(),
+        failedAt: await serverTimestamp(),
         error: 'No Firebase Auth UID or legacy no-auth references were found.'
       }, { merge: true });
       return json(res, 404, {
@@ -586,7 +608,7 @@ export default async function handler(req, res) {
     await auditRef.set({
       status: 'deleted',
       legacy: true,
-      deletedAt: FieldValue.serverTimestamp(),
+      deletedAt: await serverTimestamp(),
       results
     }, { merge: true });
     return json(res, 200, {
@@ -627,13 +649,13 @@ export default async function handler(req, res) {
     requestedBy: decoded.email,
     requestedByUid: decoded.uid,
     status: 'running',
-    createdAt: FieldValue.serverTimestamp()
+    createdAt: await serverTimestamp()
   });
 
   try {
     const results = { auth: 'skipped', userDoc: 'skipped', usernameDoc: 'skipped', characters: [] };
     try {
-      await getAuth().deleteUser(uid);
+      await (await adminAuth()).deleteUser(uid);
       results.auth = 'deleted';
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
@@ -657,8 +679,8 @@ export default async function handler(req, res) {
         deleteReusable: true,
         deletedBy: decoded.email,
         deletedReason: reason,
-        deletedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp()
+        deletedAt: await serverTimestamp(),
+        updatedAt: await serverTimestamp()
       });
       results.usernameDoc = 'tombstoned';
     }
@@ -668,7 +690,7 @@ export default async function handler(req, res) {
     });
     batch.set(auditRef, {
       status: 'deleted',
-      deletedAt: FieldValue.serverTimestamp(),
+      deletedAt: await serverTimestamp(),
       results
     }, { merge: true });
     await batch.commit();
@@ -687,7 +709,7 @@ export default async function handler(req, res) {
   } catch (error) {
     await auditRef.set({
       status: 'failed',
-      failedAt: FieldValue.serverTimestamp(),
+      failedAt: await serverTimestamp(),
       error: error?.message || String(error)
     }, { merge: true });
     return json(res, 500, { error: error?.message || 'Permanent delete failed.' });

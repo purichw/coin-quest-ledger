@@ -64,7 +64,7 @@ Last updated: 2026-07-07
 - `tests/e2e/coin-quest-ledger.spec.mjs`: critical browser flows for Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison.
 - `tests/unit/pointy-logic.test.mjs`: unit coverage for calculations and normalization.
 - `PLAYBOOK.md`: workflow rules and change modes.
-- `trip/index.legacy.html` and `index.legacy.html`: inactive legacy snapshots; do not touch unless requested.
+- `archive/legacy/trip-index.legacy.html` and `archive/legacy/index.legacy.html`: inactive legacy snapshots; do not touch unless requested.
 
 ## Claude Design / Recovery State
 

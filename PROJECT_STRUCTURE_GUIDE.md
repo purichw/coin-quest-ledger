@@ -123,7 +123,7 @@ for release flow, and `NATIVE_WEB_PARITY.md` for native/web parity.
 - `trip/app.js`: large stateful renderer; read the affected flow before patching.
 - `firestore.rules`: deploy rules before expecting production behavior to work.
 - Script order in HTML pages: helper browser globals must load before consumers.
-- Legacy snapshots: `trip/index.legacy.html` and `index.legacy.html` are inactive.
+- Legacy snapshots: `archive/legacy/trip-index.legacy.html` and `archive/legacy/index.legacy.html` are inactive.
 - Offline Claude exports in Downloads: inspect them, do not edit or commit them.
 
 ## Test Map
