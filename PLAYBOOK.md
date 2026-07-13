@@ -138,6 +138,7 @@ When implementing from Claude Design:
 - `TESTING_MATRIX.md` maps change types to verification commands.
 - `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` documents CI/CD, deploy, alias, rules deploy, and rollback.
 - `NATIVE_WEB_PARITY.md` documents web/native contracts and native design/backend gates.
+- `REFACTOR_READINESS_AUDIT.md` documents when large refactors are safe, which slices to do first, and which regression gates prove safety.
 - `INVITES_AND_GUESTS.md` is the participant-entry canon for real-character invites, guests, reminders, direct invite links, and settlement regression cases.
 - `CLAUDE_TO_A_TEE_QA.md` defines the component-level Claude Design fidelity and responsive QA protocol.
 - `claude-design-index.md` maps downloaded Claude references to live surfaces and records what each reference does or does not specify.
@@ -165,11 +166,12 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 ## Expense Splitter Notes
 
 - `trip/index.html` is the live Expense Splitter app shell and styles.
+- `trip/trip-utils.js` holds small Party Ledger browser-global helpers and must load before `trip/app.js`.
 - `trip/app.js` owns Expense Splitter behavior, state, rendering, Firebase/test persistence, event delegation, imports/exports, and overlays.
 - `shared/mobile-shell.css` and `shared/mobile-shell.js` provide the Claude native phone shell across Home/Compare, Split, Debt Dragon, and Treasury. They should stay hidden above `600px`; do not duplicate this shell per page unless a page truly needs custom behavior.
 - `lang.js` is shared across the toolbox; every new UI string needs Thai and English keys.
 - `shared/pointy-logic.js` owns shared calculation and normalization logic.
-- `tests/e2e/coin-quest-ledger.spec.mjs` covers critical Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison flows.
+- `tests/e2e/coin-quest-ledger.spec.mjs` covers critical Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison flows; shared helpers live in `tests/e2e/helpers/coin-quest-helpers.mjs`.
 - `archive/legacy/trip-index.legacy.html` and `archive/legacy/index.legacy.html` are legacy/inactive snapshots and should not be modified unless explicitly requested.
 - Keep refactors incremental. The shell and expense entry controls use delegated events, but some dynamic hero/admin/overlay renderers still use inline handlers; migrate those only in focused slices with full `npm test`.
 - Signed-in "other hero" add flow is Character-ID-only for real characters. It must resolve an existing character, never generate one from arbitrary input, never ask for "Other hero's name", and never block duplicate visible names. Use "Add Guest" when a board-only participant is needed; guests get name + hero selection only and no real Character ID.
@@ -179,6 +181,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 ## Admin Portal Notes
 
 - `/admin/` is the Phase 1 Super Admin Portal. Changes here affect admin/persistence behavior, so use Production Patch verification (`npm test`) even if the visible diff looks small.
+- `admin/admin-utils.js` holds small Admin browser-global helpers and must load before `admin/app.js`.
 - Admin Portal design must stay aligned to the supplied Claude Admin Portal HTML. Keep the Claude component vocabulary and layout primitives (`page-head`, `card`, `stat`, `tbl`, `detail-grid`, `profile-card`, `log-list`, modal patterns) rather than restoring legacy `panel`/ad hoc table markup.
 - Admin Portal should preserve the current one-user-one-active-character canon when any older Admin copy says users can have many characters.
 - Production `/admin/` uses Firebase Google Auth allowlisted to `purich.wc@gmail.com`. The local browser gate exists only under `/admin/?test=1` for automated regression; do not describe it as real access control.

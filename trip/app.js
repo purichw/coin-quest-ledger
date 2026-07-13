@@ -3,6 +3,25 @@ const TEST_MODE = _params.get('test') === '1';
 const INITIAL_TRIP_ID = _params.get('id');
 const LAST_TRIP_KEY = window.PointyScope?.key ? window.PointyScope.key('last_trip_id') : 'last_trip_id';
 const LAST_TRIP_ID = localStorage.getItem(LAST_TRIP_KEY);
+const {
+  readJsonSetting,
+  writeJsonSetting,
+  currentGlobalTheme,
+  persistGlobalTheme,
+  applyGlobalTheme,
+  makeId,
+  makeTripCode,
+  makeAdminCode,
+  makeOwnerToken,
+  makeAdminId,
+  h,
+  q,
+  money,
+  money2,
+  hashOf,
+  adminHash,
+  ownerHash
+} = window.CoinQuestTripUtils;
 let _boardLanding = !INITIAL_TRIP_ID;
 let _boardChooseMode = 'choose';
 let tripId = INITIAL_TRIP_ID;
@@ -81,47 +100,7 @@ const QUEST_TEMPLATES = [
   { id:'party', icon:'🎉', th:'ปาร์ตี้/เลี้ยงสังสรรค์', en:'House Party', items:[['🍕','อาหาร','Food',1500],['🍺','เครื่องดื่ม','Drinks',1800],['🧊','น้ำแข็ง+ของจุกจิก','Ice & snacks',400],['🎁','ของขวัญ','Gift',800]] }
 ];
 const LEVEL_REWARDS = PointyLogic.LEVEL_REWARDS;
-const THEME_KEY = 'pointy_theme';
-const UI_KEY = 'coin_quest_ui_v1';
 const NAME_KEY_SEP = '\u2063';
-
-function readJsonSetting(key, fallback = {}) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch (_) {
-    return fallback;
-  }
-}
-function writeJsonSetting(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
-}
-function normalizeThemeValue(theme) {
-  return theme === 'dungeon' ? 'dungeon' : 'tavern';
-}
-function currentGlobalTheme(fallback = 'tavern') {
-  try {
-    const saved = localStorage.getItem(THEME_KEY);
-    if (saved === 'dungeon' || saved === 'tavern') return saved;
-  } catch (_) {}
-  const uiTheme = readJsonSetting(UI_KEY, {}).theme;
-  if (uiTheme === 'dungeon' || uiTheme === 'tavern') return uiTheme;
-  const domTheme = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme');
-  if (domTheme === 'dungeon' || domTheme === 'tavern') return domTheme;
-  return normalizeThemeValue(fallback);
-}
-function persistGlobalTheme(theme) {
-  const next = normalizeThemeValue(theme);
-  try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
-  writeJsonSetting(UI_KEY, { ...readJsonSetting(UI_KEY, {}), theme: next });
-  return next;
-}
-function applyGlobalTheme(theme) {
-  const next = persistGlobalTheme(theme);
-  document.documentElement.setAttribute('data-theme', next);
-  document.body.dataset.theme = next;
-  return next;
-}
 
 let S = {
   tripName: t('trip_default_name'),
@@ -153,12 +132,6 @@ let _audioCtx = null;
 let _characterRegistry = {};
 let _ownedBoards = [], _ownedBoardsFor = '', _ownedBoardsLoading = false;
 
-function makeId() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36); }
-function makeTripCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
-function makeAdminCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
-function makeOwnerToken() {
-  return (window.crypto?.randomUUID?.() || `${makeId()}-${Date.now().toString(36)}`);
-}
 function adminOwnerToken() {
   const existing = localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
   if (existing) return existing;
@@ -166,7 +139,6 @@ function adminOwnerToken() {
   localStorage.setItem(ADMIN_OWNER_TOKEN_KEY, token);
   return token;
 }
-function makeAdminId() { return 'ADM-' + makeAdminCode(); }
 function adminOwnerProfile() {
   let profile = {};
   try { profile = JSON.parse(localStorage.getItem(ADMIN_OWNER_PROFILE_KEY) || '{}') || {}; } catch (_) {}
@@ -179,8 +151,6 @@ function saveAdminOwnerProfile(profile) {
   try { localStorage.setItem(ADMIN_OWNER_PROFILE_KEY, JSON.stringify(next)); } catch (_) {}
   return next;
 }
-function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
 function questIconId(value) { return window.migrateIcon ? window.migrateIcon(value) : (value || QUEST_ICONS[0]); }
 function questIconMarkup(value, size = 30, className = '') {
   const icon = questIconId(value);
@@ -190,8 +160,6 @@ function questIconLabel(value) {
   const icon = questIconId(value);
   return window.iconLabel ? window.iconLabel(icon, LANG || 'th') : '';
 }
-function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
-function money2(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
 const fmtInput = value => PointyLogic.formatNumberInput(value);
 const numInput = value => PointyLogic.parseNumberInput(value);
 function ppTLV(tag, value) { const v = String(value); return tag + String(v.length).padStart(2, "0") + v; }
@@ -246,9 +214,6 @@ function qrSvg(text, size = 240) {
   }
   return `<svg class="qr-svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="PromptPay QR"><rect width="${size}" height="${size}" fill="#fff"/><g fill="#111">${rects}</g></svg>`;
 }
-function hashOf(name) { return PointyLogic.hashOf(name); }
-function adminHash(pass) { return String(hashOf(`pointy:${pass || ''}:admin`)); }
-function ownerHash(token) { return String(hashOf(`pointy:${token || ''}:owner`)); }
 function currentOwnerHash() {
   const token = localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
   return token ? ownerHash(token) : '';

@@ -4,6 +4,15 @@ import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
 const root = process.cwd();
+function filesIn(dir, extension) {
+  const full = path.join(root, dir);
+  if (!fs.existsSync(full)) return [];
+  return fs.readdirSync(full)
+    .filter(file => file.endsWith(extension))
+    .sort()
+    .map(file => `${dir}/${file}`);
+}
+
 const htmlFiles = [
   'index.html',
   'archive/legacy/index.legacy.html',
@@ -15,26 +24,21 @@ const htmlFiles = [
   'treasury/index.html',
 ];
 const scriptFiles = [
-  ...fs.readdirSync(path.join(root, 'shared'))
-    .filter(file => file.endsWith('.js'))
-    .sort()
-    .map(file => `shared/${file}`),
+  ...filesIn('shared', '.js'),
   'lang.js',
+  'trip/trip-utils.js',
   'trip/app.js',
+  'admin/admin-utils.js',
   'admin/app.js',
   'character/app.js',
   'debt/app.js',
   'treasury/app.js',
 ];
 const moduleFiles = [
-  ...fs.readdirSync(path.join(root, 'api'))
-    .filter(file => file.endsWith('.js'))
-    .sort()
-    .map(file => `api/${file}`),
-  ...fs.readdirSync(path.join(root, 'scripts'))
-    .filter(file => file.endsWith('.mjs'))
-    .sort()
-    .map(file => `scripts/${file}`),
+  ...filesIn('api', '.js'),
+  ...filesIn('scripts', '.mjs'),
+  ...filesIn('tests/e2e', '.mjs'),
+  ...filesIn('tests/e2e/helpers', '.mjs'),
 ];
 
 let checked = 0;

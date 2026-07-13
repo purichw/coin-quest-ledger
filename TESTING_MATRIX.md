@@ -1,6 +1,6 @@
 # Testing Matrix
 
-Last updated: 2026-07-07
+Last updated: 2026-07-14
 
 ## Purpose
 
@@ -19,6 +19,9 @@ npm run serve
 ```
 
 `npm test` runs syntax, asset, unit, and Playwright e2e tests.
+
+`npm run test:syntax` checks live browser globals plus Node/API/script/E2E
+module syntax, including `tests/e2e/helpers/`.
 
 Playwright runs desktop Chromium, tablet `820 x 1180`, and mobile Pixel 5 by
 default. For Claude-to-a-tee or mobile-web work, add browser screenshots with
@@ -40,6 +43,7 @@ the relevant iPhone widths from `$mobile-web-qa` / `CLAUDE_TO_A_TEE_QA.md`.
 | Auth/signup/recovery | targeted profile e2e, browser sanity, Firestore rules awareness |
 | Admin Portal | Admin e2e group; usually full `npm test` |
 | Admin delete backend | `tests/unit/admin-delete-user.test.mjs`; real Firebase e2e only with env |
+| Large refactor | targeted slice checks plus full `npm test`; update `REFACTOR_READINESS_AUDIT.md` when gates change |
 | Firestore rules | affected auth/admin/invite/manual live checks after explicit rules deploy |
 | Asset/class/skin registry | `npm run test:assets`, render affected picker/profile |
 | Debt Dragon math | Debt unit tests and Debt e2e |
@@ -85,7 +89,16 @@ POINTY_REAL_FIREBASE_E2E=1 FIREBASE_SERVICE_ACCOUNT_JSON='<json>' npm run test:e
 ```
 
 Use this only when intentionally testing live Firebase account lifecycle. It can
-create and delete real test accounts.
+create and delete real dummy accounts through the Admin SDK cleanup path.
+
+Do not run client-only live signup as a default substitute: owners can create and
+update their own profile documents, but only Super Admin can fully delete the
+Auth user and Firestore `users`, `characters`, `usernames`, and `playerModules`
+records. The self-cleaning real-account test needs the service account env.
+
+Admin Portal production auth is Firebase Google Auth. Browser regression should
+use the existing `/admin/?test=1` harness rather than adding a broad production
+dev-login path.
 
 ## Reporting
 

@@ -7,6 +7,24 @@ const LOCAL_REVISIONS_KEY = 'pointy_super_admin_revisions_v2';
 const LOCAL_USER_LIFECYCLE_KEY = 'pointy_admin_user_lifecycle_v1';
 const VALID_TABS = new Set(['dashboard', 'map', 'boards', 'users', 'admins', 'tombstones', 'audit', 'revisions', 'support']);
 const SUPER_ADMIN_EMAIL = 'purich.wc@gmail.com';
+const {
+  hashOf,
+  adminHash,
+  h,
+  q,
+  uid,
+  clone,
+  characterLevelFromXp,
+  profileLevelFromReputation,
+  normalizeUserStatus,
+  mergeUserStatus,
+  userLifecycleLabel,
+  normalizeUsername,
+  adminAuthEmail,
+  tempPassword,
+  recoveryHash,
+  recoveryCodeValue
+} = window.CoinQuestAdminUtils;
 
 let published = { boards: [], revisions: [] };
 let draft = { boards: [] };
@@ -42,65 +60,11 @@ function initFirebase() {
     appId: "1:901775387853:web:030f47acc78c71a5548d84"
   });
 }
-function hashOf(v) { return PointyLogic.hashOf(v); }
-function adminHash(pass) { return String(hashOf(`pointy:${pass || ''}:admin`)); }
-function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function q(s) { return JSON.stringify(String(s ?? '')).replace(/"/g, '&quot;'); }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
-function clone(x) { return JSON.parse(JSON.stringify(x)); }
-function characterLevelFromXp(xp) { return PointyLogic.levelFromXp(xp); }
-function profileLevelFromReputation(reputation) { return PointyLogic.levelFromReputation ? PointyLogic.levelFromReputation(reputation) : PointyLogic.levelFromRenown(reputation); }
 function localUserLifecycle() {
   try { return JSON.parse(localStorage.getItem(LOCAL_USER_LIFECYCLE_KEY) || '{}') || {}; } catch (_) { return {}; }
 }
 function saveLocalUserLifecycle(data) {
   localStorage.setItem(LOCAL_USER_LIFECYCLE_KEY, JSON.stringify(data || {}));
-}
-function normalizeUserStatus(value) {
-  const key = String(value || 'active').toLowerCase();
-  return ['active', 'archived', 'deactivated', 'delete_requested', 'deleted'].includes(key) ? key : 'active';
-}
-function statusWeight(value) {
-  return { active: 0, archived: 1, deactivated: 2, delete_requested: 3, deleted: 4 }[normalizeUserStatus(value)] || 0;
-}
-function mergeUserStatus(a, b) {
-  return statusWeight(b) > statusWeight(a) ? normalizeUserStatus(b) : normalizeUserStatus(a);
-}
-function userLifecycleLabel(status) {
-  return {
-    active: 'active',
-    archived: 'archived',
-    deactivated: 'deactivated',
-    delete_requested: 'delete requested',
-    deleted: 'deleted'
-  }[normalizeUserStatus(status)] || 'active';
-}
-function normalizeUsername(value) {
-  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
-}
-function adminAuthEmail(username) {
-  const clean = normalizeUsername(username);
-  return `${clean}.admin-${Date.now().toString(36)}@coinquest.local`;
-}
-function tempPassword() {
-  return 'CQ-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-}
-async function sha256(text) {
-  const data = new TextEncoder().encode(String(text || ''));
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-function cleanRecoveryCode(code) {
-  return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-async function recoveryHash(username, code) {
-  return sha256(`${normalizeUsername(username)}:${cleanRecoveryCode(code)}`);
-}
-function recoveryCodeValue() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const bytes = new Uint8Array(12);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('').replace(/(.{4})/g, '$1-').replace(/-$/, '');
 }
 
 function isUnlocked() {

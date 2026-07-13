@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-07-07
+Last updated: 2026-07-14
 
 ## Purpose
 
@@ -15,18 +15,20 @@ management actually work.
 Use `ADMIN_PORTAL_IMPLEMENTATION.md` for live `/admin/` behavior, `SECURITY_AND_FIREBASE_RULES.md`
 for access control, `TESTING_MATRIX.md` for verification, `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`
 for release flow, and `NATIVE_WEB_PARITY.md` for native/web parity.
+Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 
 ## Root Files
 
 - `index.html`: Home, toolbox launcher, and Price Arena.
 - `trip/index.html`: Party Ledger shell, CSS, static markup, script loading.
+- `trip/trip-utils.js`: Party Ledger utility helpers loaded before the app.
 - `trip/app.js`: Party Ledger behavior and rendering.
 - `trip/pixicons.jsx`: compact quest icon registry and migration helpers.
 - `character/index.html`: Character Profile shell and styles.
 - `character/app.js`: Character Profile loading and rendering.
 - `debt/index.html`, `debt/app.js`: Debt Dragon web module.
 - `treasury/index.html`, `treasury/app.js`: Treasury web module.
-- `admin/index.html`, `admin/app.js`, `admin/admin.css`: Super Admin Portal.
+- `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css`: Super Admin Portal.
 - `lang.js`: shared Thai/English copy.
 - `firestore.rules`: deployed Firestore security rules.
 - `firebase.json`: Firebase deploy config.
@@ -35,6 +37,7 @@ for release flow, and `NATIVE_WEB_PARITY.md` for native/web parity.
 - `TESTING_MATRIX.md`: change-type-to-test-command map.
 - `ADMIN_PORTAL_IMPLEMENTATION.md`: live Admin Portal implementation map.
 - `NATIVE_WEB_PARITY.md`: native/web contract and build-gate map.
+- `REFACTOR_READINESS_AUDIT.md`: refactor hotspot map, slice order, and regression gates.
 - `package.json`: test scripts and runtime dependency list.
 - `.github/workflows/test.yml`: CI/CD test and production deploy workflow.
 
@@ -88,6 +91,7 @@ for release flow, and `NATIVE_WEB_PARITY.md` for native/web parity.
 ## Tests And Scripts
 
 - `tests/e2e/coin-quest-ledger.spec.mjs`: browser regression flows.
+- `tests/e2e/helpers/coin-quest-helpers.mjs`: shared Playwright helpers and real Firebase dummy-account harness.
 - `tests/unit/pointy-logic.test.mjs`: shared logic and settlement tests.
 - `tests/unit/admin-delete-user.test.mjs`: admin delete backend tests.
 - `scripts/check-inline-scripts.mjs`: syntax and inline script checks.
@@ -100,16 +104,16 @@ for release flow, and `NATIVE_WEB_PARITY.md` for native/web parity.
 | Task | Start here | Also check |
 | --- | --- | --- |
 | Change Party Ledger layout | `trip/index.html` | `CLAUDE_TO_A_TEE_QA.md`, Playwright mobile/tablet |
-| Change Party Ledger behavior | `trip/app.js` | `shared/pointy-logic.js`, e2e tests |
+| Change Party Ledger behavior | `trip/app.js` | `trip/trip-utils.js`, `shared/pointy-logic.js`, e2e tests |
 | Change settlement math | `shared/pointy-logic.js` | `tests/unit/pointy-logic.test.mjs` |
 | Change invite/guest flow | `trip/app.js`, `shared/board-invites.js` | `INVITES_AND_GUESTS.md`, reminders tests |
 | Change Reminders UI | `shared/profile-reminders.js`, `shared/profile-hub.js` | invite accept/decline e2e |
 | Change login/signup copy | `shared/profile-login.js`, `shared/profile-hub.js`, `lang.js` | neutral placeholder audit |
 | Change account/session behavior | `shared/profile-auth.js`, `shared/profile-session.js`, `shared/profile-cloud.js` | Firestore rules, auth tests |
-| Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
+| Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `admin/admin-utils.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
 | Change Character Profile | `character/app.js`, `character/index.html` | `shared/pointy-logic.js` aggregation |
-| Change Admin Portal | `admin/app.js`, `admin/index.html`, `admin/admin.css` | `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, full `npm test` |
+| Change Admin Portal | `admin/app.js`, `admin/admin-utils.js`, `admin/index.html`, `admin/admin.css` | `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, full `npm test` |
 | Change Firebase rules/security | `firestore.rules`, `api/*.js` | `SECURITY_AND_FIREBASE_RULES.md`, rules deploy |
 | Change CI/deploy/rollback | `.github/workflows/test.yml`, Vercel/Firebase config | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md` |
 | Change mobile shell | `shared/mobile-shell.*` | Home, Split, Debt, Prices, Treasury mobile |

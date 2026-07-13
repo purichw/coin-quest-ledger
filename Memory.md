@@ -1,6 +1,6 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-07-07
+Last updated: 2026-07-14
 
 ## Project
 
@@ -11,7 +11,7 @@ Last updated: 2026-07-07
 - Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
-- Latest pushed commit: `755eb5e` (`Document account and journey maps`).
+- For the current pushed source snapshot, run `git log -1 --oneline origin/main`.
 - Latest verified production deploy: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-30 after GitHub Actions `CI/CD` passed full `npm test`. Later docs-only commits may have been deployed by CI; verify live status before claiming the production code snapshot moved.
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
@@ -37,6 +37,7 @@ Last updated: 2026-07-07
 - `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: CI/CD, manual Vercel deploy, Firebase rules deploy, rollback, and release-report runbook.
 - `TESTING_MATRIX.md`: targeted command matrix for docs, syntax, visual, mobile, Party Ledger, invites, settlement, auth, admin, rules, native, and production changes.
 - `NATIVE_WEB_PARITY.md`: native/web boundary map for shared Firebase contracts, intentional differences, design/backend gates, and native verification.
+- `REFACTOR_READINESS_AUDIT.md`: current refactor readiness verdict, hotspot list, slice plan, real dummy-account policy, and regression gates.
 - `INVITES_AND_GUESTS.md`: canon for Character-ID invites, Add Guest, Reminders accept/decline, direct invite links, and pairwise settlement regression.
 - `CLAUDE_TO_A_TEE_QA.md`: exact Claude Design component-level fidelity and mobile/tablet/desktop audit protocol.
 - `leveling-canon.md`: v1 XP/Reputation canon for Character XP, positive-only Profile Reputation, level thresholds, reward titles, and Admin display rules.
@@ -46,8 +47,10 @@ Last updated: 2026-07-07
 - Claude/offline design exports are kept outside Git; do not commit large offline HTML or zip copies.
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
+- `trip/trip-utils.js`: Party Ledger browser-global utility helpers for IDs, theme persistence, escaping, money formatting, and board/admin hashes. Must load before `trip/app.js`.
 - `admin/index.html`: Phase 1 Super Admin Portal shell, responsive table/modal styling, and Firebase compat script loader.
 - `admin/app.js`: Super Admin Portal behavior for Google-auth allowlist, board/admin/user editing, account lifecycle, drafts, publish, restore, and revision logs.
+- `admin/admin-utils.js`: Super Admin browser-global utility helpers for escaping, cloning, user lifecycle status, username/reset helpers, recovery hash, and level display. Must load before `admin/app.js`.
 - `character/index.html`: responsive Character Profile shell and portrait/stats/history layout.
 - `character/app.js`: Character Profile loading, board aggregation, privacy/share mode, i18n, and rendering.
 - `index.html`: live toolbox home and price comparison entry.
@@ -62,6 +65,7 @@ Last updated: 2026-07-07
 - `assets/rpg-portraits/`: current full-body class portrait assets, 18 classes x 2 genders plus skin art.
 - `assets/icons/loot-chest.svg`: app icon.
 - `tests/e2e/coin-quest-ledger.spec.mjs`: critical browser flows for Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison.
+- `tests/e2e/helpers/coin-quest-helpers.mjs`: shared Playwright helpers, real Firebase dummy-account harness, and Split hero helpers imported by the main E2E spec.
 - `tests/unit/pointy-logic.test.mjs`: unit coverage for calculations and normalization.
 - `PLAYBOOK.md`: workflow rules and change modes.
 - `archive/legacy/trip-index.legacy.html` and `archive/legacy/index.legacy.html`: inactive legacy snapshots; do not touch unless requested.
@@ -79,9 +83,11 @@ The original Claude Design project was accidentally deleted and Claude said it c
 
 ## Current App Shape
 
-The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now split between `trip/index.html` and `trip/app.js`. Firebase Firestore compat SDK is loaded from CDN in `trip/index.html`; app behavior loads from `/trip/app.js`. Trip ID comes from `?id=`; if absent, it can redirect to `localStorage.getItem('last_trip_id')`. Auto-save is debounced at 800ms.
+The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now split between `trip/index.html`, `trip/trip-utils.js`, and `trip/app.js`. Firebase Firestore compat SDK is loaded from CDN in `trip/index.html`; helpers load from `/trip/trip-utils.js`; app behavior loads from `/trip/app.js`. Trip ID comes from `?id=`; if absent, it can redirect to `localStorage.getItem('last_trip_id')`. Auto-save is debounced at 800ms.
 
 `trip/app.js` owns the shell event delegation and the expense-entry dynamic controls. Some dynamic hero/admin/overlay renderers still use inline handlers; do not rewrite all of them casually unless doing a focused refactor with full tests.
+
+2026-07-14 refactor note: `trip/trip-utils.js` and `admin/admin-utils.js` are the first large-file extraction slice. They intentionally hold small browser-global helpers only; stateful rendering, persistence, and event handlers still live in the page app files. The E2E suite now imports common helpers from `tests/e2e/helpers/coin-quest-helpers.mjs`, and `scripts/check-inline-scripts.mjs` checks that helper module syntax as part of `npm run test:syntax`.
 
 Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. Tablet/touch uses the Claude `hover:none` / `pointer:coarse` tier from the 2026-06-20 exports: larger 44px tap targets, single-column Compare cards at `601-820px`, and module-specific touch polish without adopting the phone shell. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
 

@@ -1,6 +1,6 @@
 # Site, Journey, And Interaction Map
 
-Last updated: 2026-07-05
+Last updated: 2026-07-14
 
 ## Purpose
 
@@ -56,12 +56,12 @@ the user explicitly changes direction.
 | Route | Audience | Primary files | Owns | Key shared dependencies |
 | --- | --- | --- | --- | --- |
 | `/` | Player | `index.html` | Home Hub, toolbox launcher, Price Arena | `shared/profile-hub.*`, `shared/mobile-shell.*`, `shared/pointy-logic.js` |
-| `/trip/?id=...` | Player / Board Admin | `trip/index.html`, `trip/app.js`, `trip/pixicons.jsx` | Party Ledger board, expenses, participants, campaigns, settlement, imports/exports | `shared/pointy-logic.js`, `shared/board-invites.js`, profile modules |
-| `/trip/` | Player | `trip/index.html`, `trip/app.js` | new/open board chooser and generated board IDs | profile modules, Firestore/test storage |
+| `/trip/?id=...` | Player / Board Admin | `trip/index.html`, `trip/trip-utils.js`, `trip/app.js`, `trip/pixicons.jsx` | Party Ledger board, expenses, participants, campaigns, settlement, imports/exports | `shared/pointy-logic.js`, `shared/board-invites.js`, profile modules |
+| `/trip/` | Player | `trip/index.html`, `trip/trip-utils.js`, `trip/app.js` | new/open board chooser and generated board IDs | profile modules, Firestore/test storage |
 | `/character/?id=...` | Player / Admin reference | `character/index.html`, `character/app.js` | public character profile, board aggregation, privacy view | `shared/pointy-logic.js`, Firebase compat SDK |
 | `/debt/` | Player | `debt/index.html`, `debt/app.js` | web Debt Dragon local-first module | profile modules, account scope, assets |
 | `/treasury/` | Player | `treasury/index.html`, `treasury/app.js` | web Treasury local-first module | profile modules, account scope |
-| `/admin/` | Super Admin | `admin/index.html`, `admin/app.js`, `admin/admin.css` | board/user/admin management, relationship map, lifecycle, revisions, support tools | Firebase Google Auth, Firestore, `api/admin-delete-*` |
+| `/admin/` | Super Admin | `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css` | board/user/admin management, relationship map, lifecycle, revisions, support tools | Firebase Google Auth, Firestore, `api/admin-delete-*` |
 | `mobile/` | Player native | `mobile/App.tsx`, `mobile/src/*` | Expo player app for auth, profile, Split, native-owned modules | Firebase modular SDK |
 | `/api/admin-delete-status` | Admin backend | `api/admin-delete-status.js` | reports privileged delete readiness | Vercel env |
 | `/api/admin-delete-user` | Admin backend | `api/admin-delete-user.js` | verifies Super Admin token and permanently deletes account data | Firebase Admin SDK |
@@ -630,4 +630,3 @@ For commit/deploy after meaningful behavior changes, run full `npm test`.
   test authority only in `?test=1`.
 - Duplicate visible hero names are allowed as product behavior; only internal
   board object-key collisions should be resolved locally.
-

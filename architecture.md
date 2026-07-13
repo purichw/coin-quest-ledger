@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-07-07
+Last updated: 2026-07-14
 
 ## Purpose
 
@@ -33,8 +33,8 @@ Companion docs:
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
 - Build step: none
 - Local preview: `npm run serve`, usually `http://127.0.0.1:4569/`
-- Latest pushed commit at this doc update: `755eb5e` (`Document account and journey maps`).
-- Last verified production snapshot: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to the canonical domain on 2026-06-30. Later docs-only commits may have been auto-deployed; verify live before claiming a newer production code snapshot.
+- For the current pushed source snapshot, run `git log -1 --oneline origin/main`.
+- Verify live production with the deploy runbook before claiming a deployment snapshot.
 
 Do not preview app pages with `file://`. Pages use absolute paths such as `/shared/pointy-logic.js` and `/character/app.js`; those only resolve correctly through the static server or production host.
 
@@ -49,7 +49,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ### Party Ledger / Expense Splitter
 
-- Files: `trip/index.html`, `trip/app.js`, `trip/pixicons.jsx`
+- Files: `trip/index.html`, `trip/trip-utils.js`, `trip/app.js`, `trip/pixicons.jsx`
 - Route: `/trip/?id=1234`
 - Owns trip state, expense entry, split modes, hero party cards, admin setup, import/export, board history, and Firestore trip sync.
 - Real-character participant add is an invite flow by Character ID; guests are board-only and do not create Character IDs. See `INVITES_AND_GUESTS.md`.
@@ -86,7 +86,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ### Super Admin Portal
 
-- Files: `admin/index.html`, `admin/app.js`, `admin/admin.css`
+- Files: `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css`
 - Route: `/admin/`
 - Admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, relationship views, and user lifecycle.
 - Live implementation details are maintained in `ADMIN_PORTAL_IMPLEMENTATION.md`; `ADMIN.md` is retained as prototype/handoff history.
@@ -128,6 +128,16 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury. Tablet/touch remains CSS-only in each surface plus shared profile CSS.
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.
+
+Page-local helper globals:
+
+- `trip/trip-utils.js`: Party Ledger utility layer for ID/code generation,
+  theme persistence, HTML/attribute escaping, money formatting, and admin hash
+  helpers. It deliberately avoids trip state and rendering.
+- `admin/admin-utils.js`: Super Admin utility layer for escaping, cloning,
+  user lifecycle status normalization, username/reset helpers, recovery hashing,
+  and level display helpers. It deliberately avoids Firebase reads/writes and
+  app state.
 
 Shared modules are browser globals. Keep additions conservative and compatible with static script loading order.
 
