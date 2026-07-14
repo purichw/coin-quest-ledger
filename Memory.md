@@ -266,6 +266,7 @@ Production deploy:
 cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox"
 vercel --prod --yes
 vercel alias set <deployment-url> coin-quest-ledger.vercel.app
+npm run smoke:prod
 ```
 
 Push:

@@ -513,11 +513,8 @@ function classOf(name) { return normalizeClass(S.heroClasses[name] || CLASS_ORDE
 function genderOf(name) { return S.heroGenders[name] || (hashOf(name) % 2 ? 'female' : 'male'); }
 function avatarId(clsId, gender) { return `${normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
 function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
-const LOCAL_PORTRAITS = new Set(['tiderunner-female', 'tiderunner-male', 'tiderunner-classic-female', 'tiderunner-classic-male']);
 function portraitFile(res) {
-  const path = `assets/rpg-portraits/${res}.png`;
-  if (LOCAL_PORTRAITS.has(res) && window.PointyAssets?.local) return window.PointyAssets.local(path);
-  return assetUrl(path);
+  return assetUrl(`assets/rpg-portraits/${res}.png`);
 }
 function avatarSrc(clsId, gender, skinId = '') { return resolveAvatarFile(avatarId(clsId, gender), skinId); }
 function avatarSkins(id) {

@@ -14,11 +14,16 @@ npm run test:syntax
 npm run test:assets
 npm run test:unit
 npm run test:e2e
+npm run smoke:prod
 npm test
 npm run serve
 ```
 
 `npm test` runs syntax, asset, unit, and Playwright e2e tests.
+
+`npm run smoke:prod` runs the non-mutating production browser smoke harness
+documented in `PROD_SMOKE_HARNESS.md`. Run it after production deploys or
+production-facing asset/route/admin-shell changes.
 
 `npm run test:syntax` checks live browser globals plus Node/API/script/E2E
 module syntax, including `tests/e2e/helpers/`.
@@ -46,6 +51,7 @@ the relevant iPhone widths from `$mobile-web-qa` / `CLAUDE_TO_A_TEE_QA.md`.
 | Large refactor | targeted slice checks plus full `npm test`; update `REFACTOR_READINESS_AUDIT.md` when gates change |
 | Firestore rules | affected auth/admin/invite/manual live checks after explicit rules deploy |
 | Asset/class/skin registry | `npm run test:assets`, render affected picker/profile |
+| Production asset resolver or `.vercelignore` | `npm run test:assets`, local browser smoke, deploy, then `npm run smoke:prod` |
 | Debt Dragon math | Debt unit tests and Debt e2e |
 | Treasury web | Home/Treasury e2e |
 | Native TypeScript | from `mobile/`: `npm run typecheck` |

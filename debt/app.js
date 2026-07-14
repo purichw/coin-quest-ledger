@@ -63,6 +63,7 @@ let SETTINGS = loadSettings();
 let STRIKE_OPEN = '';
 let EDIT_OPEN = '';
 let EDIT_LOG = {};
+let EDIT_LOG_DRAFTS = {};
 let ADD_OPEN = false;
 let FX = {};
 let BREATHING = [];
@@ -765,13 +766,16 @@ function renderLogRow(d, row) {
   if (!edit) {
     return `<button type="button" class="dc-log-row" title="${h(tt('dd_edit_strike'))}" onclick="openLogEdit('${h(d.id)}','${h(row.id)}')"><span class="dc-log-date">${h(row.date)}</span><span class="dc-log-dmg">−${money(row.amount)}</span></button>`;
   }
+  const draft = EDIT_LOG_DRAFTS[logDraftKey(d.id, row.id)] || {};
   const date = row.ts ? dateISO(new Date(row.ts)) : todayISO();
+  const amountValue = draft.amount ?? fmtInput(row.amount);
+  const dateValue = draft.date ?? date;
   return `<div class="dc-log-edit">
-    <div class="dc-le-amt"><span>฿</span><input id="log-amt-${h(d.id)}-${h(row.id)}" type="text" inputmode="decimal" value="${h(fmtInput(row.amount))}" oninput="PointyLogic.formatNumberInputElement(this)"></div>
-    <input id="log-date-${h(d.id)}-${h(row.id)}" class="dc-le-date" type="date" max="${todayISO()}" value="${h(date)}">
-    <button class="dc-le-save" title="${h(tt('dd_save'))}" onclick="saveLogEdit('${h(d.id)}','${h(row.id)}')">✓</button>
-    <button class="dc-le-del" title="${h(tt('dd_delete'))}" onclick="deleteStrikeLog('${h(d.id)}','${h(row.id)}')">🗑</button>
-    <button class="dc-le-x" onclick="closeLogEdit('${h(d.id)}')">✕</button>
+    <div class="dc-le-amt"><span>฿</span><input id="log-amt-${h(d.id)}-${h(row.id)}" type="text" inputmode="decimal" value="${h(amountValue)}" oninput="PointyLogic.formatNumberInputElement(this); setLogEditDraft('${h(d.id)}','${h(row.id)}','amount',this.value)"></div>
+    <input id="log-date-${h(d.id)}-${h(row.id)}" class="dc-le-date" type="date" max="${todayISO()}" value="${h(dateValue)}" oninput="setLogEditDraft('${h(d.id)}','${h(row.id)}','date',this.value)" onchange="setLogEditDraft('${h(d.id)}','${h(row.id)}','date',this.value)">
+    <button type="button" class="dc-le-save" title="${h(tt('dd_save'))}" onclick="saveLogEdit('${h(d.id)}','${h(row.id)}')">✓</button>
+    <button type="button" class="dc-le-del" title="${h(tt('dd_delete'))}" onclick="deleteStrikeLog('${h(d.id)}','${h(row.id)}')">🗑</button>
+    <button type="button" class="dc-le-x" onclick="closeLogEdit('${h(d.id)}')">✕</button>
   </div>`;
 }
 
@@ -1026,6 +1030,7 @@ function clearLair() {
   STRIKE_OPEN = '';
   EDIT_OPEN = '';
   EDIT_LOG = {};
+  EDIT_LOG_DRAFTS = {};
   ADD_OPEN = false;
   FX = {};
   BREATHING = [];
@@ -1098,17 +1103,34 @@ function updatePowerAttack(value) {
   POWER_EXTRA = Math.max(0, Number(value) || 0);
   renderForecastOnly();
 }
+function logDraftKey(id, logId) {
+  return `${id}::${logId}`;
+}
+function setLogEditDraft(id, logId, field, value) {
+  const key = logDraftKey(id, logId);
+  EDIT_LOG_DRAFTS[key] = { ...(EDIT_LOG_DRAFTS[key] || {}), [field]: value };
+}
 function openLogEdit(id, logId) {
+  const row = (S.dragons.find(item => item.id === id)?.log || []).find(item => item.id === logId);
+  EDIT_LOG_DRAFTS = row ? {
+    [logDraftKey(id, logId)]: {
+      amount: fmtInput(row.amount),
+      date: row.ts ? dateISO(new Date(row.ts)) : todayISO()
+    }
+  } : {};
   EDIT_LOG = { [id]: logId };
   renderAll(false);
 }
 function closeLogEdit(id) {
   if (EDIT_LOG[id]) EDIT_LOG = {};
+  EDIT_LOG_DRAFTS = {};
   renderAll(false);
 }
 function saveLogEdit(id, logId) {
-  const amount = Math.max(0, numInput(document.getElementById(`log-amt-${id}-${logId}`)?.value));
-  const date = document.getElementById(`log-date-${id}-${logId}`)?.value || todayISO();
+  const draft = EDIT_LOG_DRAFTS[logDraftKey(id, logId)] || {};
+  const amountRaw = draft.amount ?? document.getElementById(`log-amt-${id}-${logId}`)?.value;
+  const date = draft.date ?? document.getElementById(`log-date-${id}-${logId}`)?.value ?? todayISO();
+  const amount = Math.max(0, numInput(amountRaw));
   S.dragons = S.dragons.map(d => {
     if (d.id !== id) return d;
     const old = (d.log || []).find(row => row.id === logId);
@@ -1125,6 +1147,7 @@ function saveLogEdit(id, logId) {
     return { ...d, log, balance, slain, slainAt: slain ? (d.slainAt || Date.now()) : null };
   });
   EDIT_LOG = {};
+  EDIT_LOG_DRAFTS = {};
   renderAll();
 }
 function deleteStrikeLog(id, logId) {
@@ -1137,6 +1160,7 @@ function deleteStrikeLog(id, logId) {
     return { ...d, log: (d.log || []).filter(row => row.id !== logId), balance, slain, slainAt: slain ? d.slainAt : null };
   });
   EDIT_LOG = {};
+  EDIT_LOG_DRAFTS = {};
   renderAll();
 }
 function updateSlayerField(field, value) {
@@ -1251,6 +1275,7 @@ Object.assign(window, {
   updatePowerAttack,
   openLogEdit,
   closeLogEdit,
+  setLogEditDraft,
   saveLogEdit,
   deleteStrikeLog,
   updateSlayerField,

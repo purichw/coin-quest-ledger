@@ -35,6 +35,7 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `SECURITY_AND_FIREBASE_RULES.md`: Firebase Auth/rules/Admin SDK security map.
 - `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: deploy, CI/CD, alias, rules deploy, rollback.
 - `TESTING_MATRIX.md`: change-type-to-test-command map.
+- `PROD_SMOKE_HARNESS.md`: non-mutating live production smoke harness.
 - `ADMIN_PORTAL_IMPLEMENTATION.md`: live Admin Portal implementation map.
 - `NATIVE_WEB_PARITY.md`: native/web contract and build-gate map.
 - `REFACTOR_READINESS_AUDIT.md`: refactor hotspot map, slice order, and regression gates.
@@ -65,6 +66,8 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `shared/profile-hub.css`: shared profile/auth/reminder/tour styling.
 - `shared/first-load.js`, `shared/first-load.css`: first-load splash.
 - `shared/asset-urls.js`, `shared/cloudinary-assets.js`: asset URL resolution.
+  Production `?test=1` routes use Cloudinary manifest assets; local assets are
+  forced only on localhost/private hosts or explicit `?assets=local`.
 - `shared/player-controls.css`: shared player/module control chrome.
 
 ## Mobile Native App
@@ -96,6 +99,7 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `tests/unit/admin-delete-user.test.mjs`: admin delete backend tests.
 - `scripts/check-inline-scripts.mjs`: syntax and inline script checks.
 - `scripts/check-assets.mjs`: required portrait/asset checks.
+- `scripts/prod-smoke.mjs`: live production smoke harness for routes/assets/admin shell.
 - `scripts/static-server.mjs`: local static preview server.
 - `scripts/upload-cloudinary-assets.mjs`: Cloudinary upload helper.
 
@@ -112,6 +116,7 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 | Change account/session behavior | `shared/profile-auth.js`, `shared/profile-session.js`, `shared/profile-cloud.js` | Firestore rules, auth tests |
 | Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `admin/admin-utils.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
+| Change production asset routing | `shared/asset-urls.js`, `.vercelignore`, `shared/cloudinary-assets.js` | `npm run test:assets`, `npm run smoke:prod` |
 | Change Character Profile | `character/app.js`, `character/index.html` | `shared/pointy-logic.js` aggregation |
 | Change Admin Portal | `admin/app.js`, `admin/admin-utils.js`, `admin/index.html`, `admin/admin.css` | `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, full `npm test` |
 | Change Firebase rules/security | `firestore.rules`, `api/*.js` | `SECURITY_AND_FIREBASE_RULES.md`, rules deploy |

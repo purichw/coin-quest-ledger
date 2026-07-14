@@ -11,6 +11,7 @@
 - Read `ADMIN_PORTAL_IMPLEMENTATION.md` when the request touches `/admin/`, Super Admin operations, lifecycle, reset, delete, publish, or Admin UI/data boundaries.
 - Read `SECURITY_AND_FIREBASE_RULES.md` when the request touches Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze assumptions, service-account env vars, or production access guarantees.
 - Read `TESTING_MATRIX.md` when choosing verification for a patch.
+- Read `PROD_SMOKE_HARNESS.md` when the user asks for production smoke, live E2E, harness setup, or post-deploy browser evidence.
 - Read `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` when committing, pushing, deploying, rolling back, or changing CI/CD.
 - Read `NATIVE_WEB_PARITY.md` when the request touches the Expo native app, native/web data parity, or iOS/Android build gates.
 - Read `INVITES_AND_GUESTS.md` when the request touches Add by Character ID, Add Guest, board invites, Reminders accept/decline, direct invite links, or settlement regressions.
@@ -137,6 +138,7 @@ When implementing from Claude Design:
 - `SECURITY_AND_FIREBASE_RULES.md` documents Auth, rules, Admin SDK endpoints, Spark/Blaze assumptions, and hardening gaps.
 - `TESTING_MATRIX.md` maps change types to verification commands.
 - `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` documents CI/CD, deploy, alias, rules deploy, and rollback.
+- `PROD_SMOKE_HARNESS.md` documents the non-mutating live production browser smoke harness.
 - `NATIVE_WEB_PARITY.md` documents web/native contracts and native design/backend gates.
 - `REFACTOR_READINESS_AUDIT.md` documents when large refactors are safe, which slices to do first, and which regression gates prove safety.
 - `INVITES_AND_GUESTS.md` is the participant-entry canon for real-character invites, guests, reminders, direct invite links, and settlement regression cases.
@@ -153,6 +155,7 @@ When implementing from Claude Design:
 - Use `$coin-quest-admin-ops` for Admin Portal auth, lifecycle, reset, delete, publish/restore, revisions, and Firebase-backed admin operations.
 - Use `$coin-quest-native-parity` for Expo native work, web/native contract checks, and iOS/Android build gates.
 - Use `$firebase-security-rules` for Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze assumptions, and production access guarantees.
+- Use `$prod-smoke-harness` for live production/preview smoke setup, route evidence, and safe smoke-account boundaries.
 
 ## Claude Recovery References
 

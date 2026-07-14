@@ -22,7 +22,7 @@ const classes = [
   'tiderunner',
 ];
 const genders = ['female', 'male'];
-const expected = [
+const cloudinaryExpected = [
   ...classes.flatMap(cls => genders.map(gender => `assets/rpg-portraits/${cls}-${gender}.png`)),
   'assets/rpg-portraits/crimson-regent-male.png',
   'assets/rpg-portraits/archfiend-swimmer-male.png',
@@ -38,12 +38,25 @@ const expected = [
   ].map(file => `assets/debt-dragons/${file}.png`),
   'assets/icons/loot-chest.svg',
 ];
+const localFallbackExpected = [
+  'assets/rpg-portraits/tiderunner-classic-female.png',
+  'assets/rpg-portraits/tiderunner-classic-male.png',
+];
 const dragons = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
 const manifestPath = path.join(process.cwd(), 'shared', 'cloudinary-assets.js');
 const manifestText = fs.existsSync(manifestPath) ? fs.readFileSync(manifestPath, 'utf8') : '';
 const manifestMatch = manifestText.match(/window\.POINTY_CLOUDINARY_ASSETS\s*=\s*(\{[\s\S]*\});?\s*$/);
 const manifest = manifestMatch ? JSON.parse(manifestMatch[1]) : {};
-const missing = expected.filter(file => !manifest[file] || !/^https:\/\/res\.cloudinary\.com\//.test(manifest[file]));
+const missingCloudinary = cloudinaryExpected.filter(file => !manifest[file] || !/^https:\/\/res\.cloudinary\.com\//.test(manifest[file]));
+const missingLocal = localFallbackExpected.filter(file => !fs.existsSync(path.join(process.cwd(), file)));
+const vercelIgnorePath = path.join(process.cwd(), '.vercelignore');
+const vercelIgnore = fs.existsSync(vercelIgnorePath) ? fs.readFileSync(vercelIgnorePath, 'utf8') : '';
+const missingVercelAllowlist = localFallbackExpected.filter(file => !vercelIgnore.includes(`!${file}`));
+const missing = [
+  ...missingCloudinary,
+  ...missingLocal.map(file => `${file} (missing local fallback file)`),
+  ...missingVercelAllowlist.map(file => `${file} (missing .vercelignore allowlist)`),
+];
 
 dragons.forEach(file => {
   const key = `assets/debt-dragons/${file}.png`;
@@ -56,4 +69,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log(`Checked ${classes.length * genders.length + 3} RPG portrait/skin assets, ${dragons.length} debt dragon assets, and loot chest icon in Cloudinary manifest.`);
+console.log(`Checked ${cloudinaryExpected.length} Cloudinary assets and ${localFallbackExpected.length} production local fallback assets.`);

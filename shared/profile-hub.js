@@ -706,12 +706,9 @@
     const hue = classMeta(cls).hue || 256;
     return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
   }
-  const LOCAL_PORTRAITS = new Set(['tiderunner-female', 'tiderunner-male', 'tiderunner-classic-female', 'tiderunner-classic-male']);
   function assetUrl(path) {
-    const res = String(path || '').match(/assets\/rpg-portraits\/(.+)\.png$/)?.[1];
-    if (LOCAL_PORTRAITS.has(res) && window.PointyAssets?.local) return window.PointyAssets.local(path);
-    if (TEST_MODE) return '/' + path;
-    return window.PointyAssets?.url ? window.PointyAssets.url(path) : '/' + path;
+    const clean = String(path || '').replace(/^\/+/, '');
+    return window.PointyAssets?.url ? window.PointyAssets.url(clean) : '/' + clean;
   }
   function avatarFile(cls, gender, skin) {
     const c = classMeta(cls).id;

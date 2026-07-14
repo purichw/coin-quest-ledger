@@ -128,6 +128,8 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `shared/mobile-shell.js` / `.css`: phone-only hamburger drawer and bottom tab bar for Home/Compare, Split, Debt, Prices, and Treasury. Tablet/touch remains CSS-only in each surface plus shared profile CSS.
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.
+  Production `?test=1` uses manifest-backed assets; local assets are forced only
+  on localhost/private hosts or explicit `?assets=local`.
 
 Page-local helper globals:
 
@@ -210,7 +212,7 @@ npm test
 npm run serve
 ```
 
-Playwright projects cover desktop Chromium, tablet, and mobile. Responsive or shared-shell work should be checked across breakpoints. Use `TESTING_MATRIX.md` to choose the narrowest sufficient checks.
+Playwright projects cover desktop Chromium, tablet, and mobile. Responsive or shared-shell work should be checked across breakpoints. Use `TESTING_MATRIX.md` to choose the narrowest sufficient checks. After deploys that touch production routes/assets/admin shell, run `npm run smoke:prod` from `PROD_SMOKE_HARNESS.md`.
 
 Manual production deploy flow, when not relying on CI/CD:
 

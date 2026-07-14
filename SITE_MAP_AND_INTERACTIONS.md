@@ -81,7 +81,7 @@ the user explicitly changes direction.
 | `shared/pointy-logic.js` | all player modules, Admin | split math, settlement, class registry, XP/levels, profile aggregation | central behavioral dependency; unit-test changes |
 | `shared/account-scope.js` | player modules | account-scoped localStorage keys | prevents stale cross-account progress |
 | `shared/mobile-shell.*` | Home, Split, Debt, Treasury | phone hamburger drawer and bottom tab shell | mobile navigation and safe layout |
-| `shared/asset-urls.js`, `shared/cloudinary-assets.js` | asset-heavy pages | resolves local/remote assets | broken paths affect portraits/icons/dragons |
+| `shared/asset-urls.js`, `shared/cloudinary-assets.js` | asset-heavy pages | resolves local/remote assets | production `?test=1` must still use manifest-backed assets; broken paths affect portraits/icons/dragons |
 
 ## Navigation And Deep Links
 

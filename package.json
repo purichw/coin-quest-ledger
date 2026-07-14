@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "serve": "node scripts/static-server.mjs",
+    "smoke:prod": "node scripts/prod-smoke.mjs",
     "test": "npm run test:syntax && npm run test:assets && npm run test:unit && npm run test:e2e",
     "test:assets": "node scripts/check-assets.mjs",
     "test:syntax": "node scripts/check-inline-scripts.mjs",

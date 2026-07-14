@@ -45,11 +45,8 @@ function avatarBg(clsId) {
   return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
 }
 function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
-const LOCAL_PORTRAITS = new Set(['tiderunner-female', 'tiderunner-male', 'tiderunner-classic-female', 'tiderunner-classic-male']);
 function portraitFile(res) {
-  const path = `assets/rpg-portraits/${res}.png`;
-  if (LOCAL_PORTRAITS.has(res) && window.PointyAssets?.local) return window.PointyAssets.local(path);
-  return assetUrl(path);
+  return assetUrl(`assets/rpg-portraits/${res}.png`);
 }
 function avatarId(clsId, gender) { return `${PointyLogic.normalizeClass(clsId)}-${gender === 'female' ? 'female' : 'male'}`; }
 function resolveAvatarFile(clsId, gender, skinId = '') {

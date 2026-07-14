@@ -86,6 +86,16 @@ curl -fsSL https://coin-quest-ledger.vercel.app/trip/ | rg "Party|Quest|Ledger"
 curl -fsSL https://coin-quest-ledger.vercel.app/admin/ | rg "Super Admin|Admin"
 ```
 
+After production deploys that touch routes, assets, admin shell, or responsive
+behavior, run the production smoke harness:
+
+```bash
+npm run smoke:prod
+```
+
+See `PROD_SMOKE_HARNESS.md` for the no-production-mutation policy, covered
+routes, screenshot output, and failure rules.
+
 ## Firebase Rules Deploy
 
 Rules are not deployed by the Vercel workflow. If `firestore.rules` changes,
