@@ -55,9 +55,10 @@ Production `?test=1` routes must still use `shared/cloudinary-assets.js` for
 manifest-backed assets. Local assets are forced only on localhost/private-host
 test routes or when explicitly using `?assets=local`.
 
-The only production local fallback assets are:
+The only production fallback assets outside Cloudinary are:
 
-- `assets/rpg-portraits/tiderunner-classic-female.png`
-- `assets/rpg-portraits/tiderunner-classic-male.png`
+- `fallback-assets/tiderunner-classic-female.png`
+- `fallback-assets/tiderunner-classic-male.png`
 
-They are allowlisted in `.vercelignore` and checked by `npm run test:assets`.
+They are routed from the original `assets/rpg-portraits/tiderunner-classic-*.png`
+keys in `shared/asset-urls.js` and checked by `npm run test:assets`.

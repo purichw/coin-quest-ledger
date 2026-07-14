@@ -129,7 +129,9 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 - `shared/first-load.js` / `.css`: first-load splash.
 - `shared/cloudinary-assets.js` and `shared/asset-urls.js`: production asset URL resolution.
   Production `?test=1` uses manifest-backed assets; local assets are forced only
-  on localhost/private hosts or explicit `?assets=local`.
+  on localhost/private hosts or explicit `?assets=local`. The tiny
+  `fallback-assets/` directory covers known production-only gaps while the
+  larger `assets/` tree stays out of the Vercel payload.
 
 Page-local helper globals:
 

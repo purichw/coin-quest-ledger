@@ -39,8 +39,8 @@ const cloudinaryExpected = [
   'assets/icons/loot-chest.svg',
 ];
 const localFallbackExpected = [
-  'assets/rpg-portraits/tiderunner-classic-female.png',
-  'assets/rpg-portraits/tiderunner-classic-male.png',
+  'fallback-assets/tiderunner-classic-female.png',
+  'fallback-assets/tiderunner-classic-male.png',
 ];
 const dragons = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
 const manifestPath = path.join(process.cwd(), 'shared', 'cloudinary-assets.js');
@@ -51,11 +51,11 @@ const missingCloudinary = cloudinaryExpected.filter(file => !manifest[file] || !
 const missingLocal = localFallbackExpected.filter(file => !fs.existsSync(path.join(process.cwd(), file)));
 const vercelIgnorePath = path.join(process.cwd(), '.vercelignore');
 const vercelIgnore = fs.existsSync(vercelIgnorePath) ? fs.readFileSync(vercelIgnorePath, 'utf8') : '';
-const missingVercelAllowlist = localFallbackExpected.filter(file => !vercelIgnore.includes(`!${file}`));
+const missingVercelAllowlist = localFallbackExpected.filter(file => vercelIgnore.split(/\r?\n/).some(line => line && !line.startsWith('!') && file.startsWith(line.replace(/\/+$/, '/'))));
 const missing = [
   ...missingCloudinary,
   ...missingLocal.map(file => `${file} (missing local fallback file)`),
-  ...missingVercelAllowlist.map(file => `${file} (missing .vercelignore allowlist)`),
+  ...missingVercelAllowlist.map(file => `${file} (blocked by .vercelignore)`),
 ];
 
 dragons.forEach(file => {

@@ -1,8 +1,4 @@
-assets/*
-!assets/rpg-portraits/
-assets/rpg-portraits/*
-!assets/rpg-portraits/tiderunner-classic-female.png
-!assets/rpg-portraits/tiderunner-classic-male.png
+assets/
 test-results/
 playwright-report/
 node_modules/

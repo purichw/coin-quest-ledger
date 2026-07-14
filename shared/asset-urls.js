@@ -7,6 +7,10 @@
   const forceLocal = params.get('assets') === 'local'
     || (params.get('test') === '1' && (window.location.protocol === 'file:' || isPrivateHost));
   const manifest = window.POINTY_CLOUDINARY_ASSETS || {};
+  const productionFallbacks = {
+    'assets/rpg-portraits/tiderunner-classic-female.png': '/fallback-assets/tiderunner-classic-female.png',
+    'assets/rpg-portraits/tiderunner-classic-male.png': '/fallback-assets/tiderunner-classic-male.png',
+  };
 
   function normalize(path) {
     return String(path || '').replace(/^\/+/, '');
@@ -19,7 +23,7 @@
   function url(path) {
     const key = normalize(path);
     if (!key) return '';
-    return forceLocal ? local(key) : (manifest[key] || local(key));
+    return forceLocal ? local(key) : (manifest[key] || productionFallbacks[key] || local(key));
   }
 
   function apply(root) {

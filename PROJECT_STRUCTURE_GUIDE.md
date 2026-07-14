@@ -90,6 +90,8 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `assets/rpg-classes/`: older class art kept for compatibility.
 - `assets/debt-dragons/`: Debt Dragon art.
 - `assets/icons/loot-chest.svg`: app icon.
+- `fallback-assets/`: tiny production fallback set for assets that are not in
+  Cloudinary but must render while `assets/` stays excluded from Vercel.
 
 ## Tests And Scripts
 
