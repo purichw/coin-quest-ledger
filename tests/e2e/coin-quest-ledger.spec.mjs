@@ -607,7 +607,7 @@ test('Debt Dragon uses the signed-in account hero instead of legacy slayer ident
       }
     }));
   });
-  await page.goto('/debt/');
+  await page.goto('/debt/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
   await expect(page.locator('#slayer-name')).toHaveValue('P');
   await expect(page.locator('#slayer-name')).toHaveAttribute('readonly', '');
@@ -624,7 +624,7 @@ test('production player login surfaces never expose test account fallback', asyn
     localStorage.clear();
     sessionStorage.clear();
   });
-  await page.goto('/debt/');
+  await page.goto('/debt/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.login-gate')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.login-demo')).toHaveCount(0);
@@ -674,7 +674,7 @@ test('player modules ignore stale Firebase mirrors until auth is trusted', async
       stats: {}
     }));
   });
-  await page.goto('/debt/');
+  await page.goto('/debt/', { waitUntil: 'domcontentloaded' });
 
   await expect(page.locator('.login-gate')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#slayer-name')).not.toHaveValue('Stale Hero');
@@ -1096,6 +1096,9 @@ test('profile hub scopes progress to the signed-in account instead of stale brow
     localStorage.setItem('pointy_treasury_v1', JSON.stringify({ stats: { monthsWon: 4, logged: 50, onTime: 20 }, expenses: [{ amount: 12000 }] }));
     localStorage.setItem('coin_quest_trip_snapshots_v1', JSON.stringify({
       old: { id: 'old', data: { participants: ['Pointy'], characterIds: { Pointy: '3720' }, expenses: [{ paidBy: 'Pointy', amount: 9000, sharedBy: ['Pointy'] }], completedAt: Date.now() } }
+    }));
+    localStorage.setItem('coin_quest_trip_snapshots_v1::uid_fresh-scope-uid', JSON.stringify({
+      scopedOld: { id: 'scopedOld', data: { participants: ['Fresh Scope'], characterIds: { 'Fresh Scope': '5555' }, expenses: [{ paidBy: 'Fresh Scope', amount: 12000, sharedBy: ['Fresh Scope'] }], completedAt: Date.now() } }
     }));
     localStorage.setItem('pointy_auth_v1', JSON.stringify({
       uid: 'fresh-scope-uid',

@@ -31,5 +31,12 @@
       : Date.now();
   }
 
-  window.PointyFirebase = { config: CONFIG, init, auth, firestore, serverTimestamp };
+  async function freshGet(refOrQuery) {
+    if (!refOrQuery || typeof refOrQuery.get !== 'function') {
+      throw new Error('Firestore reference is not readable.');
+    }
+    return refOrQuery.get({ source: 'server' });
+  }
+
+  window.PointyFirebase = { config: CONFIG, init, auth, firestore, serverTimestamp, freshGet };
 })();

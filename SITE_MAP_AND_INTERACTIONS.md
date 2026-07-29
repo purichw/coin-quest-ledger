@@ -419,6 +419,11 @@ Board/admin/user edits inside Admin Portal generally do not affect production
 until Publish, except account lifecycle and admin password reset which write
 directly to user/auth collections.
 
+Production Admin reads use server-source Firestore requests for `trips`,
+`users`, `usernames`, and `adminRevisions`. Local Admin draft storage remains an
+explicit unpublished work area, not a fallback that silently replaces the live
+published state.
+
 ### Admin User Detail Journey
 
 ```mermaid
@@ -449,7 +454,7 @@ Important distinctions:
 ```mermaid
 flowchart TD
   Lifecycle["Lifecycle modal"] --> Status["active / archived / deactivated / delete_requested"]
-  Status --> Local["Update local lifecycle cache"]
+  Status --> Local["Update local lifecycle cache for test/no-cloud rows"]
   Status --> Firestore["Patch users/{uid}"]
   Firestore --> Username["Patch usernames/{username}.lifecycleStatus"]
   Username --> LoginGuard["Player login guard blocks deactivated/deleted statuses"]
@@ -515,13 +520,13 @@ Permanent delete is the only current backend-only user management path.
 | `users/{uid}` | Profile Hub, Admin Portal, native | player profile, Admin Users, native modules | signup, recovery, character creation, lifecycle, native profile | public read in current rules |
 | `usernames/{username}` | Profile Hub, Admin Portal, admin delete API | login resolution, recovery, tombstones | signup, recovery/admin reset, lifecycle, delete tombstone | no list; get allowed |
 | `characters/{id}` | Profile Hub, Character Profile, Trip, Admin | profile pages, invite resolution, board links | character creation, owner pointer updates, backend delete | current active character canon is one per user |
-| `trips/{id}` | Party Ledger, Character Profile, Admin Portal | boards, profile aggregation, Admin boards | Party Ledger saves, Admin publish, invite accept | currently permissive Firestore rule |
-| `users/{uid}/boardInvites/{id}` | Trip, Profile Hub | target reminders | Character ID invite create, accept/decline status | 24-hour pending lifecycle |
+| `trips/{id}` | Party Ledger, Character Profile, Admin Portal | boards, profile aggregation, Admin boards | Party Ledger saves, Admin publish, invite accept | production reads request server source; currently permissive Firestore rule |
+| `users/{uid}/boardInvites/{id}` | Trip, Profile Hub | target reminders | Character ID invite create, accept/decline status | 24-hour pending lifecycle; reminders reload pending invites from server in production |
 | `adminRevisions/{id}` | Admin Portal | revisions tab | Admin publish | Super Admin only in rules |
 | `adminDeleteRequests/{id}` | backend/API audit | backend tests/ops | backend delete status | not full product audit log |
 | `playerModules/{uid}` | Native app | native Debt/Treasury/Compare | native module state | web modules are not migrated here yet |
-| `localStorage.pointy_auth_v1` | Profile Hub | player pages | auth mirror | authoritative only in `?test=1` |
-| account-scoped localStorage | web Debt/Treasury/Compare/Profile | player web modules/reminders | local module progress | scoped by active account |
+| `localStorage.pointy_auth_v1` | Profile Hub | player pages | auth mirror | authoritative only in `?test=1`; production Firebase sessions must fresh-sync `users/{uid}` before trusting mirrored account state |
+| account-scoped localStorage | web Debt/Treasury/Compare/Profile | player web modules/reminders | local module progress | scoped by active account; real production board data must not be replaced by trip snapshot cache |
 | `sessionStorage.pointy_test_trip_*` | tests / `?test=1` | Trip/Admin test mode | Playwright fixtures/Admin test publish | regression-only |
 
 ## Overlay And Modal Map

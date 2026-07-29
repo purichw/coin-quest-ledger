@@ -32,7 +32,7 @@ if (!TEST_MODE && INITIAL_TRIP_ID) localStorage.setItem(LAST_TRIP_KEY, tripId);
 let tripRef = tripRefFor(tripId);
 const TripStore = {
   read() {
-    return tripRef.get();
+    return freshFirestoreGet(tripRef);
   },
   write(state) {
     const updatedAt = TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp();
@@ -68,6 +68,12 @@ function testTripRef(id) {
 }
 function tripRefFor(id) {
   return TEST_MODE ? testTripRef(id) : cloudTripRef(id);
+}
+function freshFirestoreGet(refOrQuery) {
+  if (TEST_MODE) return refOrQuery.get();
+  return window.PointyFirebase?.freshGet
+    ? window.PointyFirebase.freshGet(refOrQuery)
+    : refOrQuery.get({ source: 'server' });
 }
 
 const QUEST_ICONS = window.QUEST_ICON_IDS || window.QUEST_ICONS || ["🍜","⛽","🏕️","☕","🍺","🎟️","🚕","🛒","🎁","🏨","🍰","⚓"];
@@ -251,7 +257,7 @@ function characterProfileLink(id) {
   return url.pathname + url.search;
 }
 async function tripExists(id) {
-  const snap = await tripRefFor(id).get();
+  const snap = await freshFirestoreGet(tripRefFor(id));
   return !!snap.exists;
 }
 function readLocalRegistry() {
@@ -277,7 +283,7 @@ async function loadCharacterRegistry(ids = []) {
   if (!TEST_MODE && ids.length) {
     await Promise.all([...new Set(ids.filter(Boolean))].map(async id => {
       try {
-        const snap = await firebase.firestore().collection('characters').doc(id).get();
+        const snap = await freshFirestoreGet(firebase.firestore().collection('characters').doc(id));
         if (snap.exists) _characterRegistry[id] = { ...(_characterRegistry[id] || {}), ...snap.data(), id };
       } catch (err) {
         console.warn('Character registry load failed', id, err);
@@ -289,9 +295,22 @@ async function loadCharacterRegistry(ids = []) {
 async function resolveCharacterRecord(id) {
   const characterId = String(id || '').replace(/\D/g, '').slice(0, 4);
   if (!/^\d{4}$/.test(characterId)) return null;
-  _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry };
-  if (!_characterRegistry[characterId]) await loadCharacterRegistry([characterId]);
-  const rec = _characterRegistry[characterId] || readLocalRegistry()[characterId] || null;
+  if (!TEST_MODE) {
+    try {
+      const snap = await freshFirestoreGet(firebase.firestore().collection('characters').doc(characterId));
+      if (!snap.exists) return null;
+      const live = { ...(snap.data() || {}), id: characterId };
+      _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry, [characterId]: live };
+      writeLocalRegistry(_characterRegistry);
+    } catch (err) {
+      console.warn('Character lookup failed', characterId, err);
+      return null;
+    }
+  } else {
+    _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry };
+    if (!_characterRegistry[characterId]) await loadCharacterRegistry([characterId]);
+  }
+  const rec = _characterRegistry[characterId] || null;
   if (!rec) return null;
   const cls = normalizeClass(rec.class || rec.cls || 'warrior');
   return {
@@ -843,9 +862,11 @@ async function load() {
     applySettings();
     setSaveStatus('saved', t('status_saved'));
     if (migrated) save();
+    return true;
   } catch (err) {
     console.error('Load failed', err);
     setSaveStatus('error', t('status_load_err'));
+    return false;
   }
 }
 
@@ -2242,7 +2263,7 @@ async function loadOwnedBoards() {
         })
         .filter(Boolean);
     } else {
-      const snap = await firebase.firestore().collection('trips').where('admin.ownerHash', '==', hash).limit(30).get();
+      const snap = await freshFirestoreGet(firebase.firestore().collection('trips').where('admin.ownerHash', '==', hash).limit(30));
       _ownedBoards = snap.docs.map(doc => {
         const data = doc.data() || {};
         return {
@@ -2671,6 +2692,5 @@ if (_boardLanding) {
   renderBoardChoose();
   translatePage();
 } else {
-  renderAll(false);
-  load().then(() => { renderAll(false); translatePage(); });
+  load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
 }

@@ -80,7 +80,8 @@
       return readStore().filter(invite => cleanCharacterId(invite.targetCharacterId) === id);
     }
     if (!account?.uid || !db) return [];
-    const snap = await db.collection('users').doc(account.uid).collection('boardInvites').where('status', '==', 'pending').get();
+    const query = db.collection('users').doc(account.uid).collection('boardInvites').where('status', '==', 'pending');
+    const snap = await (window.PointyFirebase?.freshGet ? window.PointyFirebase.freshGet(query) : query.get({ source: 'server' }));
     return snap.docs.map(doc => ({ id: doc.id, ...(doc.data() || {}) }));
   }
 

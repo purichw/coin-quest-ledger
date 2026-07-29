@@ -77,6 +77,12 @@ function adminAuth() {
   if (TEST_MODE) return null;
   return window.PointyFirebase?.auth?.() || (firebase.apps.length ? firebase.auth() : null);
 }
+function freshFirestoreGet(refOrQuery) {
+  if (TEST_MODE) return refOrQuery.get();
+  return window.PointyFirebase?.freshGet
+    ? window.PointyFirebase.freshGet(refOrQuery)
+    : refOrQuery.get({ source: 'server' });
+}
 function isAllowedAdmin(user) {
   return String(user?.email || '').toLowerCase() === SUPER_ADMIN_EMAIL;
 }
@@ -240,23 +246,23 @@ async function loadPublished() {
     revisions = JSON.parse(localStorage.getItem(LOCAL_REVISIONS_KEY) || '[]');
   } else {
     const db = firebase.firestore();
-    const snap = await db.collection('trips').get();
+    const snap = await freshFirestoreGet(db.collection('trips'));
     boards = snap.docs.map(doc => normalizeBoard(doc.id, doc.data() || {}));
     try {
-      const revSnap = await db.collection('adminRevisions').orderBy('createdAt', 'desc').limit(20).get();
+      const revSnap = await freshFirestoreGet(db.collection('adminRevisions').orderBy('createdAt', 'desc').limit(20));
       revisions = revSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (_) {
       revisions = [];
     }
     try {
-      const usersSnap = await db.collection('users').get();
+      const usersSnap = await freshFirestoreGet(db.collection('users'));
       cloudUsers = usersSnap.docs.map(doc => normalizeCloudUser(doc.id, doc.data() || {})).filter(Boolean);
     } catch (err) {
       console.warn('Admin cloud users load failed', err);
       cloudUsers = [];
     }
     try {
-      const tombSnap = await db.collection('usernames').where('deleteReusable', '==', true).limit(100).get();
+      const tombSnap = await freshFirestoreGet(db.collection('usernames').where('deleteReusable', '==', true).limit(100));
       cloudTombstones = tombSnap.docs.map(doc => normalizeUsernameTombstone(doc.id, doc.data() || {})).filter(Boolean);
     } catch (err) {
       console.warn('Admin username tombstones load failed', err);
@@ -388,6 +394,7 @@ function normalizeCloudUser(uid, data = {}) {
     deactivatedAt: data.deactivatedAt || 0,
     deleteRequestedAt: data.deleteRequestedAt || 0,
     deletedAt: data.deletedAt || 0,
+    lifecycleReason: data.lifecycleReason || data.reason || '',
     chars,
     boards: [],
     adminGroups: [],
@@ -427,6 +434,7 @@ function mergeUserRecord(map, rec) {
   existing.deactivatedAt = existing.deactivatedAt || rec.deactivatedAt || 0;
   existing.deleteRequestedAt = existing.deleteRequestedAt || rec.deleteRequestedAt || 0;
   existing.deletedAt = existing.deletedAt || rec.deletedAt || 0;
+  existing.lifecycleReason = existing.lifecycleReason || rec.lifecycleReason || '';
   (rec.boards || []).forEach(b => {
     if (!existing.boards.some(x => x.originalId === b.originalId)) existing.boards.push(b);
   });
@@ -480,7 +488,8 @@ function userRecords() {
     if (!u.adminGroups.some(x => x.key === g.key)) u.adminGroups.push(g);
   });
   return [...map.values()].map(u => {
-    const local = lifecycle[u.userId] || lifecycle[u.uid] || {};
+    const hasLiveCloudRecord = !TEST_MODE && (u.cloud || u.uid);
+    const local = hasLiveCloudRecord ? {} : (lifecycle[u.userId] || lifecycle[u.uid] || {});
     return {
       ...u,
       status: mergeUserStatus(u.status, local.status),
@@ -523,6 +532,18 @@ function tombstoneRecords() {
     .sort((a, b) => String(a.userId || a.username).localeCompare(String(b.userId || b.username)));
 }
 function userById(id) { return userRecords().find(u => u.userId === id); }
+function patchCloudUserLifecycle(user, patch, reason = '') {
+  if (!user?.uid && !user?.userId) return;
+  cloudUsers = cloudUsers.map(item => {
+    if (item.uid !== user.uid && item.userId !== user.userId) return item;
+    return {
+      ...item,
+      ...patch,
+      status: normalizeUserStatus(patch.status),
+      lifecycleReason: reason || patch.lifecycleReason || item.lifecycleReason || ''
+    };
+  });
+}
 function adminGroupByKey(key) { return adminGroups().find(g => g.key === key); }
 function charById(id) {
   return userRecords().flatMap(u => u.chars.map(c => ({ ...c, userId: u.userId, userName: u.name }))).find(c => c.id === id);
@@ -1222,9 +1243,9 @@ async function performAdminPasswordReset() {
     const db = window.PointyFirebase?.firestore?.();
     const auth = window.PointyFirebase?.auth?.();
     if (!db || !auth) throw new Error('Firebase Auth is not available on this page.');
-    const snap = await db.collection('usernames').doc(username).get();
+    const snap = await freshFirestoreGet(db.collection('usernames').doc(username));
     const old = snap.exists ? snap.data() || {} : {};
-    const oldUser = old.uid ? await db.collection('users').doc(old.uid).get().then(s => s.exists ? s.data() : {}) : {};
+    const oldUser = old.uid ? await freshFirestoreGet(db.collection('users').doc(old.uid)).then(s => s.exists ? s.data() : {}) : {};
     const authEmail = adminAuthEmail(username);
     const cred = await auth.createUserWithEmailAndPassword(authEmail, password);
     await cred.user.updateProfile({ displayName: username });
@@ -1311,9 +1332,11 @@ async function performUserLifecycle(userId, status) {
     deletedAt: 0
   };
   try {
-    const local = localUserLifecycle();
-    local[u.userId] = { ...(local[u.userId] || {}), ...patch, reason };
-    saveLocalUserLifecycle(local);
+    if (TEST_MODE || !u.uid) {
+      const local = localUserLifecycle();
+      local[u.userId] = { ...(local[u.userId] || {}), ...patch, reason };
+      saveLocalUserLifecycle(local);
+    }
     if (!TEST_MODE && u.uid) {
       const db = window.PointyFirebase?.firestore?.();
       if (!db) throw new Error('Firebase Firestore is not available.');
@@ -1328,6 +1351,7 @@ async function performUserLifecycle(userId, status) {
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
       }
+      patchCloudUserLifecycle(u, patch, reason);
     }
     closePortalModal();
     render();

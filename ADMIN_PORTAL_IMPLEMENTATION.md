@@ -35,18 +35,25 @@ Test mode:
 
 `loadPublished()`:
 
-- loads `trips` into normalized board records;
-- loads recent `adminRevisions`;
-- loads `users` into cloud user records;
-- loads reusable deleted username tombstones from `usernames`;
+- loads `trips` into normalized board records with server-source Firestore reads;
+- loads recent `adminRevisions` with server-source Firestore reads;
+- loads `users` into cloud user records with server-source Firestore reads;
+- loads reusable deleted username tombstones from `usernames` with server-source
+  Firestore reads;
 - initializes `draft` from local draft storage or the published board set.
+
+Local Admin draft storage is an explicit unpublished-draft surface. It can keep
+operator edits visible until Save/Restore/Publish, but it is not a live fallback.
+Restore discards the draft and returns to the latest published server state.
 
 `userRecords()` merges:
 
 - real cloud users;
 - board participant-derived users;
 - admin owner/admin identity records;
-- local lifecycle overlays;
+- local lifecycle overlays only for `?test=1` or records that do not have a
+  cloud UID. In production, fresh `users/{uid}` data wins over stale browser
+  lifecycle cache;
 - deleted tombstones.
 
 ## Admin Screens

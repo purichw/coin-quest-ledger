@@ -299,6 +299,10 @@
   let boardInvites = [];
   let inviteLoadKey = '';
   let inviteLoading = false;
+  let liveTripEntries = [];
+  let liveTripLoadKey = '';
+  let liveTripLoaded = false;
+  let liveTripLoading = false;
   let overlay = null;
   let loginGate = null;
   let loginMode = 'in';
@@ -343,6 +347,7 @@
   function cloudDb() { return window.PointyProfileCloud.db(); }
   function cloudAuth() { return window.PointyProfileCloud.auth(); }
   function cloudNow() { return window.PointyProfileCloud.now(); }
+  function cloudFreshGet(refOrQuery) { return window.PointyProfileCloud.freshGet(refOrQuery); }
   function recoveryCodeValue() {
     return window.PointyRecovery.generateCode();
   }
@@ -368,7 +373,7 @@
     const db = cloudDb();
     const clean = normalizeUsername(username);
     if (!db || !clean) return null;
-    const snap = await db.collection('usernames').doc(clean).get();
+    const snap = await cloudFreshGet(db.collection('usernames').doc(clean));
     return snap.exists ? { id: clean, ...(snap.data() || {}) } : null;
   }
   function reusableDeletedUsername(rec) {
@@ -498,7 +503,7 @@
     if (!db) return publicUserIdFromUid(uid);
     const stable = publicUserIdFromUid(uid);
     try {
-      const snap = await db.collection('users').where('userId', '==', stable).limit(1).get();
+      const snap = await cloudFreshGet(db.collection('users').where('userId', '==', stable).limit(1));
       if (snap.empty || snap.docs.some(doc => doc.id === uid)) return stable;
     } catch (_) {
       return stable;
@@ -506,7 +511,7 @@
     for (let i = 0; i < 16; i += 1) {
       const id = genId4();
       try {
-        const snap = await db.collection('users').where('userId', '==', id).limit(1).get();
+        const snap = await cloudFreshGet(db.collection('users').where('userId', '==', id).limit(1));
         if (snap.empty) return id;
       } catch (_) {
         return publicUserIdFromUid(uid);
@@ -553,7 +558,7 @@
     const db = cloudDb();
     if (!db || !user) return null;
     const ref = db.collection('users').doc(user.uid);
-    const snap = await ref.get();
+    const snap = await cloudFreshGet(ref);
     if (snap.exists) return accountFromFirebaseUser(user, snap.data() || {});
     const username = normalizeUsername(user.displayName || String(user.email || '').split('@')[0]);
     const account = normalizeAccount({
@@ -599,7 +604,7 @@
     const hash = await recoveryHash(clean, code);
     if (hash !== rec.recoveryHash) throw new Error('bad-recovery-code');
     const db = cloudDb();
-    const oldUser = rec.uid ? await db.collection('users').doc(rec.uid).get().then(snap => snap.exists ? snap.data() : {}) : {};
+    const oldUser = rec.uid ? await cloudFreshGet(db.collection('users').doc(rec.uid)).then(snap => snap.exists ? snap.data() : {}) : {};
     const authEmail = authEmailForUsername(clean, `r${Date.now().toString(36)}`);
     const cred = await cloudAuth().createUserWithEmailAndPassword(authEmail, password);
     await cred.user.updateProfile({ displayName: clean });
@@ -637,17 +642,18 @@
     const code = recoveryCodeValue();
     const issuedAt = Date.now();
     const hash = await recoveryHash(account.username || accountLogin(account), code);
-    const next = saveAuth({ ...account, recoveryCode: code, recoveryHash: hash, recoveryIssuedAt: issuedAt });
-    if (realAuthEnabled() && next.uid) {
-      await saveCloudUser(next, { recoveryHash: hash, recoveryCode: code, recoveryIssuedAt: issuedAt, characterId: next.character?.id || next.userId || '' });
+    const pending = normalizeAccount({ ...account, recoveryCode: code, recoveryHash: hash, recoveryIssuedAt: issuedAt });
+    if (realAuthEnabled() && pending.uid) {
+      await saveCloudUser(pending, { recoveryHash: hash, recoveryCode: code, recoveryIssuedAt: issuedAt, characterId: pending.character?.id || pending.userId || '' });
     } else if (localAuthEnabled()) {
       const accounts = loadAccounts();
-      const idx = accounts.findIndex(item => accountLogin(item) === accountLogin(next) || String(item.email || '').toLowerCase() === String(next.email || '').toLowerCase());
+      const idx = accounts.findIndex(item => accountLogin(item) === accountLogin(pending) || String(item.email || '').toLowerCase() === String(pending.email || '').toLowerCase());
       if (idx >= 0) {
         accounts[idx] = { ...accounts[idx], recoveryCode: code, recoveryHash: hash, recoveryIssuedAt: issuedAt };
         saveAccounts(accounts);
       }
     }
+    const next = saveAuth(pending);
     return { ...next, recoveryHash: hash };
   }
   function clearAuth() {
@@ -757,14 +763,88 @@
     ids.slice(12).forEach(key => delete cache[key]);
     writeScopedJson(TRIP_CACHE_KEY, cache);
   }
+  function cleanCharacterIdValue(value) {
+    return String(value || '').replace(/\D/g, '').slice(0, 4);
+  }
+  function tripMentionsCharacter(data, characterId) {
+    const id = cleanCharacterIdValue(characterId);
+    if (!id) return false;
+    const hasId = item => Object.values(item?.characterIds || {}).some(value => cleanCharacterIdValue(value) === id);
+    return hasId(data) || (Array.isArray(data?.campaigns) && data.campaigns.some(hasId));
+  }
+  function liveTripKey(account = loadAuth()) {
+    return `${account?.uid || ''}:${ownCharacterId(account)}:${currentOwnerHash()}`;
+  }
+  function shouldUseLiveTripEntries(account = loadAuth()) {
+    return !TEST_MODE && account?.provider === 'firebase' && firebaseAuthResolved && !!account?.uid && !!cloudDb();
+  }
+  function relevantLiveTripEntry(doc, account = loadAuth()) {
+    const data = doc?.data?.() || {};
+    const admin = data.admin || {};
+    const character = accountCharacter(account);
+    const characterId = ownCharacterId(account);
+    const ownerHashValue = currentOwnerHash();
+    const adminNameMatch = admin.adminName && (admin.adminName === account?.name || admin.adminName === character?.name);
+    if (
+      tripMentionsCharacter(data, characterId)
+      || cleanCharacterIdValue(admin.characterId) === characterId
+      || (ownerHashValue && admin.ownerHash === ownerHashValue)
+      || adminNameMatch
+    ) {
+      return { id: doc.id, data };
+    }
+    return null;
+  }
+  async function loadLiveTripEntries({ force = false } = {}) {
+    const account = loadAuth();
+    if (!shouldUseLiveTripEntries(account)) {
+      liveTripEntries = [];
+      liveTripLoadKey = '';
+      liveTripLoaded = false;
+      return liveTripEntries;
+    }
+    const key = liveTripKey(account);
+    if (!force && liveTripLoadKey === key && liveTripLoaded) return liveTripEntries;
+    if (liveTripLoading) return liveTripEntries;
+    liveTripLoading = true;
+    try {
+      const snap = await cloudFreshGet(cloudDb().collection('trips'));
+      liveTripEntries = snap.docs.map(doc => relevantLiveTripEntry(doc, account)).filter(Boolean);
+      liveTripLoadKey = key;
+      liveTripLoaded = true;
+      return liveTripEntries;
+    } catch (err) {
+      console.warn('Live board load failed', err);
+      liveTripEntries = [];
+      liveTripLoaded = false;
+      return liveTripEntries;
+    } finally {
+      liveTripLoading = false;
+    }
+  }
+  function refreshLiveTripEntries({ force = false, rerenderProfile = false } = {}) {
+    loadLiveTripEntries({ force }).then(() => {
+      context = computeProfile();
+      context.streak = profile?.streak || 0;
+      reminders = computeReminders();
+      renderTopbar();
+      if (rerenderProfile && overlay?.querySelector('.profile-drawer')) showProfile({ refreshLive: false });
+      if (overlay?.querySelector('.rem-panel')) renderRemindersOverlay();
+    });
+  }
   function tripEntries() {
     const out = [];
     const current = currentTripState();
     if (current?.id && current?.data) out.push(current);
-    const cache = readScopedJson(TRIP_CACHE_KEY, {});
-    Object.keys(cache || {}).forEach(id => {
-      if (!out.some(x => x.id === id)) out.push({ id, data: cache[id].data || cache[id] });
+    liveTripEntries.forEach(entry => {
+      if (entry?.id && !out.some(x => x.id === entry.id)) out.push(entry);
     });
+    if (TEST_MODE || !hasScopedAccount()) {
+      const cache = readScopedJson(TRIP_CACHE_KEY, {});
+      Object.keys(cache || {}).forEach(id => {
+        if (!out.some(x => x.id === id)) out.push({ id, data: cache[id].data || cache[id] });
+      });
+    }
     return out;
   }
   function ownCharacterId(account = loadAccount()) {
@@ -778,7 +858,7 @@
     const account = loadAuth();
     const characterId = account ? ownCharacterId(account) : '';
     const key = `${account?.uid || 'local'}:${characterId}`;
-    if (!force && inviteLoadKey === key && boardInvites.length) return boardInvites;
+    if (TEST_MODE && !force && inviteLoadKey === key && boardInvites.length) return boardInvites;
     if (inviteLoading) return boardInvites;
     inviteLoading = true;
     try {
@@ -788,6 +868,7 @@
       return boardInvites;
     } catch (err) {
       console.warn('Board invite load failed', err);
+      if (!TEST_MODE) boardInvites = [];
       return boardInvites;
     } finally {
       inviteLoading = false;
@@ -838,7 +919,7 @@
       const raw = sessionStorage.getItem('pointy_test_trip_' + tripId);
       return raw ? JSON.parse(raw) : null;
     }
-    const snap = await cloudDb().collection('trips').doc(tripId).get();
+    const snap = await cloudFreshGet(cloudDb().collection('trips').doc(tripId));
     return snap.exists ? (snap.data() || {}) : null;
   }
   async function writeTripForInvite(tripId, data) {
@@ -1702,8 +1783,9 @@
       </div>`;
     }).join('');
   }
-  function showProfile() {
+  function showProfile(options = {}) {
     const account = loadAccount();
+    const shouldRefreshLive = options.refreshLive !== false && shouldUseLiveTripEntries(loadAuth()) && !liveTripLoading;
     const slayer = accountCharacter(account) || loadDebt().slayer || {};
     const cls = classMeta(slayer.class || 'dragoon');
     const reward = rewardFor(context.level.lvl);
@@ -1794,6 +1876,7 @@
         onMessage: text => { msg.hidden = false; msg.textContent = text; }
       });
     });
+    if (shouldRefreshLive) refreshLiveTripEntries({ force: true, rerenderProfile: true });
   }
   function showTour() {
     if (recoveryOverlayActive()) {
@@ -1839,6 +1922,7 @@
       if (item) showAchievementToast(item);
     }
     renderTopbar();
+    if (shouldUseLiveTripEntries(loadAuth())) refreshLiveTripEntries({ force: !!opts.forceLiveTripRefresh });
     refreshBoardInvites({ force: !!opts.forceInviteRefresh });
   }
   let authWatcherStarted = false;
@@ -1889,6 +1973,14 @@
         }
       } catch (err) {
         console.warn('Firebase account sync failed', err);
+        const current = window.PointyProfileSession.readAuth();
+        if (current?.provider === 'firebase') {
+          clearAuth();
+          profile = null;
+          baselineDone = false;
+          refresh({ toast: false });
+          showLoginGate();
+        }
       }
     });
   }

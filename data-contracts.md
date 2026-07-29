@@ -20,6 +20,11 @@ assumptions, see `SECURITY_AND_FIREBASE_RULES.md`.
 - Monetary values are numbers in Thai baht unless a field explicitly says otherwise.
 - Timestamps are mixed today: local/test data often uses `Date.now()` numbers; Firestore writes may use `serverTimestamp()`. Read code should handle both.
 - `?test=1` routes use local/session storage instead of Firestore.
+- Production Firestore reads for live/admin-editable content should request the
+  server source through `PointyFirebase.freshGet`. Browser cache or local
+  fallback may be used for explicit local-first modules and `?test=1`, but must
+  not replace a live `trips`, `users`, `usernames`, `characters`, or
+  `boardInvites` server read.
 - Do not remove unknown fields from persisted board data unless doing an intentional migration.
 - User-facing strings must remain Thai/English capable through `lang.js` or local module copy maps.
 
@@ -454,6 +459,12 @@ Currently scoped bases:
 - `pointy_treasury_v1`
 - `pointy_compare_v2`
 - `last_trip_id`
+
+`coin_quest_trip_snapshots_v1` is a convenience snapshot for current open
+boards, guest/test flows, and local profile summaries. For a real signed-in
+account in production it must not override live board data; profile surfaces
+should use fresh Firestore board reads when showing boards or computing
+Firestore-backed board history.
 
 ### `pointy_accounts_v1`
 

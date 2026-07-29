@@ -11,6 +11,12 @@
     return window.PointyFirebase?.serverTimestamp?.() || Date.now();
   }
 
+  function freshGet(refOrQuery) {
+    return window.PointyFirebase?.freshGet
+      ? window.PointyFirebase.freshGet(refOrQuery)
+      : refOrQuery.get({ source: 'server' });
+  }
+
   function enabled({ testMode = false } = {}) {
     return !testMode && !!auth() && !!db();
   }
@@ -19,6 +25,7 @@
     db,
     auth,
     now,
+    freshGet,
     enabled
   };
 })();

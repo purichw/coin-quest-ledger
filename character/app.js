@@ -89,6 +89,12 @@ function readJson(key, fallback = null) {
 function readScopedJson(key, fallback = null) {
   return window.PointyScope?.getJSON ? window.PointyScope.getJSON(key, fallback) : readJson(key, fallback);
 }
+function freshFirestoreGet(refOrQuery) {
+  if (TEST_MODE) return refOrQuery.get();
+  return window.PointyFirebase?.freshGet
+    ? window.PointyFirebase.freshGet(refOrQuery)
+    : refOrQuery.get({ source: 'server' });
+}
 function profileStore() {
   return { streak: 0, bestStreak: 0, ...readScopedJson('pointy_profile_v1', {}) };
 }
@@ -117,11 +123,11 @@ async function loadCharacterRecord(id) {
   if (TEST_MODE) return { id, ...local };
   initFirebase();
   try {
-    const snap = await firebase.firestore().collection('characters').doc(id).get();
-    return snap.exists ? { ...local, ...snap.data(), id } : { id, ...local };
+    const snap = await freshFirestoreGet(firebase.firestore().collection('characters').doc(id));
+    return snap.exists ? { ...local, ...snap.data(), id } : { id };
   } catch (err) {
     console.warn('Character profile record load failed', err);
-    return { id, ...local };
+    throw err;
   }
 }
 async function loadBoards() {
@@ -139,7 +145,7 @@ async function loadBoards() {
       .filter(Boolean);
   }
   initFirebase();
-  const snap = await firebase.firestore().collection('trips').get();
+  const snap = await freshFirestoreGet(firebase.firestore().collection('trips'));
   return snap.docs.map(doc => ({ id: doc.id, data: doc.data() || {} }));
 }
 function copy() {

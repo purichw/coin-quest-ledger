@@ -139,10 +139,11 @@ Entry:
 Implementation flow:
 
 1. Normalize typed username.
-2. Resolve Auth email through `usernames/{username}.authEmail`; fall back to
-   `username@coinquest.local`.
+2. Resolve Auth email through a fresh server read of
+   `usernames/{username}.authEmail`; fall back to `username@coinquest.local`
+   only when the live username mapping does not exist.
 3. Call `signInWithEmailAndPassword(authEmail, password)`.
-4. Load `users/{uid}` through `loadCloudAccount`.
+4. Load `users/{uid}` through `loadCloudAccount` with a fresh server read.
 5. If the account document is missing, create a minimal `users/{uid}` document
    from the Firebase Auth user.
 6. Reject blocked lifecycle statuses through `isBlockedAccountStatus`.
@@ -165,10 +166,11 @@ password update.
 Flow:
 
 1. Normalize username.
-2. Read `usernames/{username}`.
+2. Read the latest `usernames/{username}` from the server.
 3. Require `recoveryHash`.
 4. Hash the submitted recovery code and compare with stored `recoveryHash`.
-5. Read the old `users/{oldUid}` document if the username points to an old UID.
+5. Read the old `users/{oldUid}` document from the server if the username
+   points to an old UID.
 6. Create a new Firebase Auth user with an internal email suffix such as
    `username+r<timestamp>@coinquest.local`.
 7. Preserve public identity from old data:
@@ -198,9 +200,14 @@ Flow:
 
 1. Current signed-in account calls `regenerateRecoveryCode`.
 2. New code and hash are generated.
-3. Local auth mirror is updated.
-4. In production, `saveCloudUser` updates `users/{uid}` and
+3. In production, `saveCloudUser` updates `users/{uid}` and
    `usernames/{username}` with the new recovery hash/code metadata.
+4. After the server write succeeds, the local auth mirror is updated for the
+   signed-in browser session.
+
+Server-backed recovery decisions must use the latest server hash/mapping. Local
+drawer state or a previously revealed recovery code is a convenience mirror, not
+the authority for reset validation.
 
 The profile drawer can display the current recovery code for the signed-in
 owner. This is an intentional small-private-app convenience tradeoff documented
