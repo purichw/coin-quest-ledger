@@ -23,7 +23,9 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `trip/index.html`: Party Ledger shell, CSS, static markup, script loading.
 - `trip/trip-utils.js`: Party Ledger utility helpers loaded before the app.
 - `trip/app.js`: Party Ledger behavior and rendering.
-- `trip/pixicons.jsx`: compact quest icon registry and migration helpers.
+- `trip/pixicons.js`: compact quest icon registry and migration helpers. The
+  legacy `.jsx` copy is not loaded in production because Vercel serves `.jsx`
+  with a non-executable MIME type under `nosniff`.
 - `character/index.html`: Character Profile shell and styles.
 - `character/app.js`: Character Profile loading and rendering.
 - `debt/index.html`, `debt/app.js`: Debt Dragon web module.
