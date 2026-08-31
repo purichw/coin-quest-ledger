@@ -30,13 +30,34 @@ if (!tripId) {
 }
 if (!TEST_MODE && INITIAL_TRIP_ID) localStorage.setItem(LAST_TRIP_KEY, tripId);
 let tripRef = tripRefFor(tripId);
+function waitForTripAuth() {
+  if (TEST_MODE) return Promise.resolve(null);
+  const auth = firebase.auth();
+  if (auth.currentUser) return Promise.resolve(auth.currentUser);
+  return new Promise(resolve => {
+    let done = false;
+    let unsub = () => {};
+    const finish = user => {
+      if (done) return;
+      done = true;
+      unsub();
+      resolve(user || auth.currentUser || null);
+    };
+    unsub = auth.onAuthStateChanged(user => finish(user));
+    setTimeout(() => finish(auth.currentUser || null), 2500);
+  });
+}
 const TripStore = {
-  read() {
+  async read() {
+    const user = await waitForTripAuth();
+    if (!TEST_MODE && !user) return { exists: false, data: () => null };
     return freshFirestoreGet(tripRef);
   },
-  write(state) {
+  async write(state) {
+    const user = await waitForTripAuth();
+    if (!TEST_MODE && !user) throw new Error('auth-required');
     const updatedAt = TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp();
-    return tripRef.set({ ...state, updatedAt });
+    return tripRef.set({ ...state, access: tripAccessMetadata(state), updatedAt });
   }
 };
 
@@ -393,6 +414,29 @@ function accountHero() {
     cls,
     gender: c.gender === 'female' ? 'female' : 'male',
     skin: c.skin || ''
+  };
+}
+function tripAccessMetadata(state = S) {
+  const account = readAccount();
+  const current = state?.access && typeof state.access === 'object' && !Array.isArray(state.access) ? state.access : {};
+  const memberUids = new Set(Array.isArray(current.memberUids) ? current.memberUids.map(String).filter(Boolean) : []);
+  const ownerUids = new Set(Array.isArray(current.ownerUids) ? current.ownerUids.map(String).filter(Boolean) : []);
+  if (account?.uid) memberUids.add(account.uid);
+  if (account?.uid && (hasCreatorAdmin() || String(state?.admin?.characterId || '') === String(account.character?.id || account.userId || ''))) {
+    ownerUids.add(account.uid);
+  }
+  const memberCharacterIds = new Set(Array.isArray(current.memberCharacterIds) ? current.memberCharacterIds.map(String).filter(Boolean) : []);
+  Object.values(state?.characterIds || {}).forEach(id => {
+    const clean = String(id || '').replace(/\D/g, '').slice(0, 4);
+    if (clean) memberCharacterIds.add(clean);
+  });
+  return {
+    ...current,
+    visibility: current.visibility || 'authenticated',
+    ownerUids: [...ownerUids],
+    memberUids: [...memberUids],
+    memberCharacterIds: [...memberCharacterIds],
+    updatedAt: Date.now()
   };
 }
 function renameParticipantReferences(from, to) {
@@ -2694,3 +2738,7 @@ if (_boardLanding) {
 } else {
   load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
 }
+window.addEventListener('pointy-auth-changed', () => {
+  if (_boardLanding) return;
+  load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
+});

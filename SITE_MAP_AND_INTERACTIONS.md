@@ -152,8 +152,9 @@ sequenceDiagram
   Player->>ProfileHub: Sign Up with username/password/display name
   ProfileHub->>DB: Check usernames/{username}
   ProfileHub->>Auth: Create internal auth email credential
-  ProfileHub->>DB: Write users/{uid}
-  ProfileHub->>DB: Write usernames/{username}
+  ProfileHub->>DB: Write users/{uid} recovery hash
+  ProfileHub->>DB: Write usernames/{username} login pointer
+  ProfileHub->>DB: Reserve userIds/{userId}
   ProfileHub->>CharacterCreate: Require class/gender/name
   CharacterCreate->>DB: Write characters/{characterId}
   CharacterCreate->>DB: Update users/{uid}.character and username pointer
@@ -182,14 +183,16 @@ flowchart TD
   Character -->|Yes| PlayerApp["Enter app"]
 
   Forgot["Forgot password"] --> Recovery["Recovery code form"]
-  Recovery --> Verify["Verify usernames/{username}.recoveryHash"]
-  Verify --> Rotate["Create new Firebase Auth credential"]
-  Rotate --> Preserve["Preserve userId and characterId"]
-  Preserve --> UpdatePointers["Update users, usernames, characters"]
+  Recovery --> Backend["POST /api/recover-account"]
+  Backend --> Verify["Verify users/{uid}.recoveryHash server-side"]
+  Verify --> Reset["Update Auth password or recreate missing credential"]
+  Reset --> Preserve["Preserve userId and characterId"]
+  Preserve --> UpdatePointers["Update users, usernames, userIds, characters"]
 ```
 
-Current reset behavior is credential rotation, not an in-place password update.
-The old Auth user is not deleted by the player-side recovery path.
+Production reset is backend-mediated and prefers in-place Auth password update
+when the current UID still exists. The browser receives the new Recovery ID once
+and then signs in with the updated credential.
 
 ### Party Ledger Board Journey
 
@@ -516,11 +519,12 @@ Permanent delete is the only current backend-only user management path.
 
 | Store | Owner surfaces | Reads | Writes | Notes |
 | --- | --- | --- | --- | --- |
-| Firebase Auth | player auth, Admin gate, admin delete API | Profile Hub, Admin Portal, backend API | signup, sign-in, recovery/admin credential rotation, backend delete | player accounts use internal emails |
-| `users/{uid}` | Profile Hub, Admin Portal, native | player profile, Admin Users, native modules | signup, recovery, character creation, lifecycle, native profile | public read in current rules |
-| `usernames/{username}` | Profile Hub, Admin Portal, admin delete API | login resolution, recovery, tombstones | signup, recovery/admin reset, lifecycle, delete tombstone | no list; get allowed |
+| Firebase Auth | player auth, Admin gate, recovery/reset/delete APIs | Profile Hub, Admin Portal, backend API | signup, sign-in, backend recovery/admin reset, backend delete | player accounts use internal emails |
+| `users/{uid}` | Profile Hub, Admin Portal, native, recovery APIs | owner profile, Admin Users, native modules | signup, recovery hash, character creation, lifecycle, native profile | owner/Super Admin scoped; raw Recovery ID is local reveal only |
+| `usernames/{username}` | Profile Hub, Admin Portal, backend APIs | login resolution, tombstones | signup, login pointer, lifecycle, delete tombstone | public get; no list; new recovery hashes are not written here |
+| `userIds/{userId}` | Profile Hub, native, backend APIs | collision reservation | signup/backfill/reset/delete tombstone | public get; no list; low-detail reservation only |
 | `characters/{id}` | Profile Hub, Character Profile, Trip, Admin | profile pages, invite resolution, board links | character creation, owner pointer updates, backend delete | current active character canon is one per user |
-| `trips/{id}` | Party Ledger, Character Profile, Admin Portal | boards, profile aggregation, Admin boards | Party Ledger saves, Admin publish, invite accept | production reads request server source; currently permissive Firestore rule |
+| `trips/{id}` | Party Ledger, Character Profile, Admin Portal | boards, profile aggregation, Admin boards | Party Ledger saves, Admin publish, invite accept | production reads request server source; signed-in-only rule, owner/member scope pending |
 | `users/{uid}/boardInvites/{id}` | Trip, Profile Hub | target reminders | Character ID invite create, accept/decline status | 24-hour pending lifecycle; reminders reload pending invites from server in production |
 | `adminRevisions/{id}` | Admin Portal | revisions tab | Admin publish | Super Admin only in rules |
 | `adminDeleteRequests/{id}` | backend/API audit | backend tests/ops | backend delete status | not full product audit log |
@@ -622,10 +626,11 @@ For commit/deploy after meaningful behavior changes, run full `npm test`.
 
 ## Known Map Caveats
 
-- `trips/{id}` rules are currently permissive (`allow read, write: if true`).
-  Treat board security hardening as a planned migration.
-- Admin Password Reset is still client-SDK credential rotation; harden behind a
-  backend Admin SDK route before treating it as a final enterprise-grade reset.
+- `trips/{id}` rules are signed-in-only, but not yet owner/member-scoped. Treat
+  board privacy hardening as a planned access-metadata migration.
+- Admin Password Reset is backend-mediated through `/api/admin-reset-user`, but
+  broader enterprise-grade recovery would still need stronger rate limiting,
+  alerting, and account-owner notification.
 - Admin Portal Add User is not real Auth account creation yet.
 - Admin character edit currently affects board draft/published board data more
   than canonical `characters/{id}`.

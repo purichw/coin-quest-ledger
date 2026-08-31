@@ -9,15 +9,13 @@ import {
 } from 'firebase/auth';
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
-  limit,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
 } from 'firebase/firestore';
 import { auth, db } from './firebaseClient';
 import { emptyPlayerModules, normalizeComparisons, normalizeDebtState, normalizeTreasuryState } from './gameLogic';
@@ -60,20 +58,26 @@ function publicUserIdFromUid(uid: string): string {
 
 async function allocateCloudUserId(uid: string): Promise<string> {
   const stable = publicUserIdFromUid(uid);
-  try {
-    const taken = await getDocs(query(collection(db, 'users'), where('userId', '==', stable), limit(1)));
-    if (taken.empty || taken.docs.some((snap) => snap.id === uid)) return stable;
-  } catch {
-    return stable;
-  }
+  const available = async (id: string): Promise<boolean> => {
+    if (!/^\d{4}$/.test(id)) return false;
+    try {
+      const reserved = await getDoc(doc(db, 'userIds', id));
+      if (reserved.exists() && reserved.data()?.uid && reserved.data()?.uid !== uid && reserved.data()?.deleteReusable !== true) return false;
+    } catch {
+      return true;
+    }
+    try {
+      const character = await getDoc(doc(db, 'characters', id));
+      if (character.exists() && character.data()?.ownerUid && character.data()?.ownerUid !== uid) return false;
+    } catch {
+      return true;
+    }
+    return true;
+  };
+  if (await available(stable)) return stable;
   for (let i = 0; i < 16; i += 1) {
     const id = genId4();
-    try {
-      const taken = await getDocs(query(collection(db, 'users'), where('userId', '==', id), limit(1)));
-      if (taken.empty) return id;
-    } catch {
-      return stable;
-    }
+    if (await available(id)) return id;
   }
   return stable;
 }
@@ -144,6 +148,7 @@ export async function loadAccount(user: User): Promise<Account> {
   if (snap.exists()) {
     const account = accountFromFirebaseUser(user, snap.data());
     if (isBlocked(account)) throw new Error('blocked-account');
+    saveUserIdReservation(account).catch(() => {});
     return account;
   }
   const username = normalizeUsername(user.displayName || String(user.email || '').split('@')[0]);
@@ -156,6 +161,22 @@ export async function loadAccount(user: User): Promise<Account> {
   });
   await saveCloudUser(account, { create: true });
   return account;
+}
+
+async function saveUserIdReservation(account: Account, extra: { create?: boolean; characterId?: string } = {}): Promise<void> {
+  if (!account.uid || !account.userId) return;
+  await setDoc(
+    doc(db, 'userIds', account.userId),
+    {
+      userId: account.userId,
+      uid: account.uid,
+      characterId: account.character?.id || extra.characterId || account.characterId || '',
+      status: account.status || 'active',
+      updatedAt: serverTimestamp(),
+      ...(extra.create ? { createdAt: serverTimestamp() } : {}),
+    },
+    { merge: true },
+  );
 }
 
 export async function loadCharacterForAccount(account: Account): Promise<CharacterRecord | null> {
@@ -229,7 +250,7 @@ async function saveCloudUser(
       provider: 'firebase',
       updatedAt: serverTimestamp(),
       ...(extra.recoveryHash
-        ? { recoveryHash: extra.recoveryHash, recoveryCode: extra.recoveryCode || account.recoveryCode || '', recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() }
+        ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() }
         : {}),
       ...(extra.create ? { createdAt: serverTimestamp() } : {}),
     },
@@ -249,11 +270,12 @@ async function saveCloudUser(
       deletedAt: 0,
       previousUid: '',
       updatedAt: serverTimestamp(),
-      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
+      ...(extra.recoveryHash ? { recoveryHash: deleteField(), recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
       ...(extra.create ? { createdAt: serverTimestamp() } : {}),
     },
     { merge: true },
   );
+  await saveUserIdReservation(account, { create: extra.create, characterId });
 }
 
 export async function createCharacter(account: Account, input: { name: string; cls: string; gender: Gender; skin?: string }): Promise<CharacterRecord> {
@@ -419,7 +441,11 @@ function generateRecoveryCode(): string {
 }
 
 async function recoveryHashFor(username: string, code: string): Promise<string> {
-  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${normalizeUsername(username)}:${String(code || '').trim()}`);
+  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${normalizeUsername(username)}:${cleanRecoveryCode(code)}`);
+}
+
+function cleanRecoveryCode(code: string): string {
+  return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 function timestampValue(value: unknown): number {

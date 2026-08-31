@@ -523,6 +523,28 @@ async function deleteLegacyOrphan(db, body, context) {
     results.usernameDoc = 'tombstoned';
   }
 
+  if (context.userId) {
+    ops.push({
+      type: 'set',
+      ref: db.collection('userIds').doc(context.userId),
+      data: {
+        userId: context.userId,
+        uid: '',
+        previousUid: '',
+        characterId: targetIds[0] || '',
+        characterIds: targetIds,
+        status: 'deleted',
+        lifecycleStatus: 'deleted',
+        deleteReusable: true,
+        deletedBy: context.deletedBy,
+        deletedReason: context.reason,
+        deletedAt: await serverTimestamp(),
+        updatedAt: await serverTimestamp()
+      },
+      options: { merge: true }
+    });
+  }
+
   const tripCleanup = await cleanTripReferences(db, { targetIds, targetNames }, { status: 'legacy_cleaned' });
   ops.push(...tripCleanup.ops);
   results.trips.push(...tripCleanup.trips);
@@ -630,6 +652,7 @@ export default async function handler(req, res) {
     ...(resolved.characterIds || []),
     String(data.characterId || data.character?.id || '').trim()
   ].filter(Boolean))];
+  const finalUserId = userId || data.userId || '';
   const targetNames = uniq([
     body.displayName,
     body.name,
@@ -671,7 +694,7 @@ export default async function handler(req, res) {
         uid: '',
         previousUid: uid,
         authEmail: `${finalUsername}@${USERNAME_DOMAIN}`,
-        userId: userId || data.userId || '',
+        userId: finalUserId,
         characterId: finalCharacterIds[0] || data.characterId || data.character?.id || '',
         characterIds: finalCharacterIds,
         status: 'deleted',
@@ -683,6 +706,23 @@ export default async function handler(req, res) {
         updatedAt: await serverTimestamp()
       });
       results.usernameDoc = 'tombstoned';
+    }
+    if (finalUserId) {
+      batch.set(db.collection('userIds').doc(finalUserId), {
+        userId: finalUserId,
+        uid: '',
+        previousUid: uid,
+        characterId: finalCharacterIds[0] || data.characterId || data.character?.id || '',
+        characterIds: finalCharacterIds,
+        status: 'deleted',
+        lifecycleStatus: 'deleted',
+        deleteReusable: true,
+        deletedBy: decoded.email,
+        deletedReason: reason,
+        deletedAt: await serverTimestamp(),
+        updatedAt: await serverTimestamp()
+      });
+      results.userIdDoc = 'tombstoned';
     }
     finalCharacterIds.forEach(id => {
       batch.delete(db.collection('characters').doc(id));
@@ -705,7 +745,7 @@ export default async function handler(req, res) {
       await auditRef.set({ results }, { merge: true });
     }
 
-    return json(res, 200, { ok: true, deleted: true, uid, userId: userId || data.userId || '', username: finalUsername, results });
+    return json(res, 200, { ok: true, deleted: true, uid, userId: finalUserId, username: finalUsername, results });
   } catch (error) {
     await auditRef.set({
       status: 'failed',

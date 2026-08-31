@@ -384,6 +384,14 @@
     const db = cloudDb();
     const username = normalizeUsername(account?.username);
     if (!db || !username) return;
+    const recoveryPatch = {};
+    if (extra.recoveryHash) {
+      const deleteField = window.firebase?.firestore?.FieldValue?.delete
+        ? window.firebase.firestore.FieldValue.delete()
+        : undefined;
+      if (deleteField !== undefined) recoveryPatch.recoveryHash = deleteField;
+      recoveryPatch.recoveryIssuedAt = extra.recoveryIssuedAt || Date.now();
+    }
     await db.collection('usernames').doc(username).set({
       username,
       uid: account.uid || '',
@@ -396,7 +404,7 @@
       deletedAt: 0,
       previousUid: '',
       updatedAt: cloudNow(),
-      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
+      ...recoveryPatch,
       ...(extra.create ? { createdAt: cloudNow() } : {})
     }, { merge: true });
   }
@@ -492,6 +500,7 @@
     const next = normalizeAccount(account);
     if (next?.character) next.character = persistCharacter({ ...next.character, id: next.character.id || next.userId }, next);
     window.PointyProfileSession.writeAuth(next);
+    window.dispatchEvent(new CustomEvent('pointy-auth-changed', { detail: { signedIn: true, uid: next?.uid || '' } }));
     return next;
   }
   function publicUserIdFromUid(uid) {
@@ -502,20 +511,26 @@
     const db = cloudDb();
     if (!db) return publicUserIdFromUid(uid);
     const stable = publicUserIdFromUid(uid);
-    try {
-      const snap = await cloudFreshGet(db.collection('users').where('userId', '==', stable).limit(1));
-      if (snap.empty || snap.docs.some(doc => doc.id === uid)) return stable;
-    } catch (_) {
-      return stable;
+    async function available(id) {
+      if (!/^\d{4}$/.test(id)) return false;
+      try {
+        const snap = await cloudFreshGet(db.collection('userIds').doc(id));
+        if (snap.exists && snap.data()?.uid && snap.data().uid !== uid && snap.data().deleteReusable !== true) return false;
+      } catch (_) {
+        return true;
+      }
+      try {
+        const character = await cloudFreshGet(db.collection('characters').doc(id));
+        if (character.exists && character.data()?.ownerUid && character.data().ownerUid !== uid) return false;
+      } catch (_) {
+        return true;
+      }
+      return true;
     }
+    if (await available(stable)) return stable;
     for (let i = 0; i < 16; i += 1) {
       const id = genId4();
-      try {
-        const snap = await cloudFreshGet(db.collection('users').where('userId', '==', id).limit(1));
-        if (snap.empty) return id;
-      } catch (_) {
-        return publicUserIdFromUid(uid);
-      }
+      if (await available(id)) return id;
     }
     return publicUserIdFromUid(uid);
   }
@@ -549,17 +564,36 @@
       characterId: account.character?.id || extra.characterId || '',
       provider: 'firebase',
       updatedAt: cloudNow(),
-      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryCode: extra.recoveryCode || account.recoveryCode || '', recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
+      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
       ...(extra.create ? { createdAt: cloudNow() } : {})
     }, { merge: true });
     await saveUsernameRecord(account, extra);
+    await saveUserIdReservation(account, extra);
+  }
+  async function saveUserIdReservation(account, extra = {}) {
+    const db = cloudDb();
+    if (!db || !account?.uid || !account?.userId) return;
+    if (account.userId) {
+      await db.collection('userIds').doc(String(account.userId)).set({
+        userId: String(account.userId),
+        uid: account.uid,
+        characterId: account.character?.id || extra.characterId || '',
+        status: account.status || 'active',
+        updatedAt: cloudNow(),
+        ...(extra.create ? { createdAt: cloudNow() } : {})
+      }, { merge: true });
+    }
   }
   async function loadCloudAccount(user) {
     const db = cloudDb();
     if (!db || !user) return null;
     const ref = db.collection('users').doc(user.uid);
     const snap = await cloudFreshGet(ref);
-    if (snap.exists) return accountFromFirebaseUser(user, snap.data() || {});
+    if (snap.exists) {
+      const account = accountFromFirebaseUser(user, snap.data() || {});
+      saveUserIdReservation(account, { characterId: account.character?.id || account.characterId || '' }).catch(err => console.warn('User ID reservation backfill failed', err));
+      return account;
+    }
     const username = normalizeUsername(user.displayName || String(user.email || '').split('@')[0]);
     const account = normalizeAccount({
       uid: user.uid,
@@ -599,6 +633,24 @@
   async function recoverWithCode(username, code, password) {
     const clean = normalizeUsername(username);
     if (!clean || !password) throw new Error('missing');
+    if (realAuthEnabled()) {
+      const res = await fetch('/api/recover-account', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: clean, recoveryCode: code, password })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'bad-recovery-code');
+      const cred = await cloudAuth().signInWithEmailAndPassword(data.authEmail || await resolveAuthEmail(clean), password);
+      const account = await loadCloudAccount(cred.user);
+      const next = normalizeAccount({
+        ...account,
+        recoveryCode: data.recoveryCode || '',
+        recoveryIssuedAt: data.recoveryIssuedAt || Date.now()
+      });
+      storePendingRecovery(data.recoveryCode || '');
+      return saveAuth(next);
+    }
     const rec = await usernameRecord(clean);
     if (!rec?.recoveryHash) throw new Error('bad-recovery-code');
     const hash = await recoveryHash(clean, code);
@@ -658,6 +710,7 @@
   }
   function clearAuth() {
     window.PointyProfileSession.clearAuth();
+    window.dispatchEvent(new CustomEvent('pointy-auth-changed', { detail: { signedIn: false } }));
   }
   function loadAccount() {
     return loadAuth() || { name: 'Guest', email: s().loginSub, userId: '----' };

@@ -23,6 +23,8 @@ export default function handler(req, res) {
   return json(res, 200, {
     ok: true,
     adminDeleteConfigured: hasJson || hasParts,
+    adminResetConfigured: hasJson || hasParts,
+    accountRecoveryConfigured: hasJson || hasParts,
     mode: hasJson ? 'service_account_json' : hasParts ? 'service_account_parts' : 'missing',
     allowlistedEmail: SUPER_ADMIN_EMAIL,
     requiredAnyOf: [

@@ -1,6 +1,6 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-07-07
+Last updated: 2026-08-31
 
 ## Purpose
 
@@ -49,6 +49,7 @@ Source of truth for Party Ledger boards in normal mode. Normalization lives in `
   activeCampaignId: string,
   campaigns: Campaign[],
   admin: BoardAdminMeta,
+  access?: TripAccessMeta,
   settings: TripSettings,
   updatedAt: timestamp
 }
@@ -59,8 +60,31 @@ Important rules:
 - `participants` names are still important keys across several maps.
 - `characterIds[name]` links a board participant to `/character/?id=####`.
 - `admin.characterId` is optional and links Board Admin ownership to a Character ID when known.
+- `access` is forward-compatible access metadata written by current boards. It is
+  not yet enforced by Firestore Rules; `trips` remain signed-in-only until the
+  owner/member migration is complete.
 - `settings.theme` is legacy/module-local and must not override global `localStorage.pointy_theme` on route load.
 - Preserve unknown fields when editing a board unless the operation is explicitly "publish normalized snapshot".
+
+### `TripAccessMeta`
+
+```js
+{
+  visibility: "authenticated" | string,
+  ownerUids: string[],
+  memberUids: string[],
+  memberCharacterIds: characterId[],
+  updatedAt: epochMs
+}
+```
+
+Rules:
+
+- `ownerUids` is seeded from the signed-in Board Admin when available.
+- `memberUids` includes the current signed-in user on writes.
+- `memberCharacterIds` is derived from board `characterIds`.
+- This object is migration scaffolding only until `firestore.rules` moves from
+  signed-in-only board access to owner/member scoped board access.
 
 ### `Expense`
 
@@ -236,8 +260,7 @@ Firebase Auth email of `username@coinquest.local`.
   character: CharacterRecord | null,
   characterId: characterId | "",
   provider: "firebase",
-  recoveryHash?: sha256(username + ":" + recoveryCode),
-  recoveryCode?: string,
+  recoveryHash?: sha256(normalizedUsername + ":" + normalizedRecoveryCode),
   recoveryIssuedAt?: epochMs,
   createdAt: timestamp,
   updatedAt: timestamp
@@ -250,12 +273,14 @@ Rules:
 - `userId` remains the public four-digit app identity.
 - Current product canon is one active `character` per user.
 - Firebase Authentication/email-password is enabled for `pointy-personal-toolkit`.
-- The profile side panel may display `recoveryCode` for the signed-in owner. This is an intentional low-security/convenience tradeoff for the small private app. `usernames/{username}` should keep only `recoveryHash`, not plaintext code.
-- Player recovery and Super Admin reset rotate the underlying Firebase Auth
-  credential, then preserve `userId` and `characterId` by updating
-  `usernames/{username}`, `users/{uid}`, and `characters/{characterId}`.
-- This is Phase 1 client-driven recovery. Future security hardening should move
-  reset authority behind server-side Admin SDK or a stricter admin identity.
+- The profile side panel may display the locally mirrored raw Recovery ID for the
+  signed-in owner. New production writes must not persist raw `recoveryCode` to
+  Firestore.
+- `users/{uid}.recoveryHash` is owner/Super Admin scoped by rules and is the
+  current server authority for Recovery ID reset.
+- Player recovery and Super Admin reset run through Vercel Admin SDK endpoints,
+  then preserve `userId` and `characterId` by updating `usernames/{username}`,
+  `userIds/{userId}`, `users/{uid}`, and `characters/{characterId}`.
 
 ### `users/{uid}/boardInvites/{inviteId}`
 
@@ -310,14 +335,47 @@ Lookup table for username login without requiring real user email addresses.
   authEmail: internalAuthEmail,
   userId: fourDigitPublicUserId,
   characterId: characterId | "",
-  recoveryHash?: sha256(username + ":" + recoveryCode),
   recoveryIssuedAt?: epochMs,
   adminResetAt?: epochMs,
   updatedAt: timestamp
 }
 ```
 
-Deployed repo rules prevent username mapping takeover: an update is allowed only for Super Admin or the current owner UID preserving the same UID, with deleted tombstone reuse limited to same-ID recovery.
+Deployed repo rules prevent username mapping takeover: an update is allowed only
+for Super Admin or the current owner UID preserving the same UID, with deleted
+tombstone reuse limited to same-ID recovery. `usernames/{username}` remains
+public `get` for login resolution, so new writes must not add or change
+`recoveryHash`; backend recovery/reset deletes legacy public hashes when it
+touches an account.
+
+### `userIds/{userId}`
+
+Low-detail reservation collection for four-digit public User ID collision
+checks. This avoids querying `users` from normal player clients after
+`users/{uid}` became owner/Super Admin scoped.
+
+```js
+{
+  userId: fourDigitPublicUserId,
+  uid: firebaseAuthUid | "",
+  characterId: characterId | "",
+  characterIds?: characterId[],
+  status: "active" | "deleted",
+  lifecycleStatus?: "deleted",
+  deleteReusable?: boolean,
+  previousUid?: firebaseAuthUid,
+  deletedAt?: timestamp,
+  updatedAt: timestamp
+}
+```
+
+Rules:
+
+- Public `get` is allowed for collision checks; `list` is denied.
+- Owner/Super Admin can create/update the active reservation.
+- Deleted reusable tombstones can be reclaimed by a new signed-in UID while
+  preserving the same User ID.
+- Permanent delete tombstones this record along with `usernames/{username}`.
 
 ### `playerModules/{uid}`
 
@@ -375,6 +433,13 @@ Rules:
 Backend-only permanent delete endpoints:
 
 - `/api/admin-delete-status`: `GET`, no secrets returned. Reports whether Vercel has Firebase Admin service-account env vars.
+- `/api/recover-account`: `POST`, public recovery form endpoint. Verifies
+  Recovery ID server-side, updates the existing Auth password when possible,
+  stores only the new hash on `users/{uid}`, deletes legacy public username
+  hashes, and returns the new raw Recovery ID once.
+- `/api/admin-reset-user`: `POST`, requires a Google-auth Super Admin Firebase
+  ID token. Resets or recreates a user credential through Firebase Admin SDK
+  without replacing the Admin browser session.
 - `/api/admin-delete-user`: `POST`, requires `Authorization: Bearer <Firebase ID token>` from Google-auth Super Admin `purich.wc@gmail.com`. Deletes the Firebase Auth user, `users/{uid}`, and character docs. It writes `usernames/{username}` as a `lifecycleStatus: "deleted"` / `deleteReusable: true` tombstone with the old `userId` and `characterId`, so a future signup with the same username reuses the same public identity.
 
 Accepted production env:

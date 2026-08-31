@@ -136,10 +136,15 @@ Work:
 
 - Keep the chosen username strategy: username maps to internal `username@coinquest.local`; users do not need real email addresses.
 - Preserve the current verified mapping: username -> Firebase Auth credential -> `users/{uid}` public User ID -> active Character ID.
-- Harden recovery/admin reset with server-side Admin SDK or equivalent so credential rotation is no longer purely client-driven.
+- Recovery/admin reset now uses server-side Admin SDK routes. Next hardening is
+  stronger throttling, owner notification, App Check, and removal of legacy
+  public username recovery hashes.
 - Super Admin allowlist is now `purich.wc@gmail.com` via Firebase Google Auth.
-- Permanent user delete is backend-only via Vercel Serverless Function + Firebase Admin SDK. Production Vercel has encrypted `FIREBASE_SERVICE_ACCOUNT_JSON` for the dedicated `vercel-admin-delete` service account; keep verifying `/api/admin-delete-status` after credential rotation or redeploys. Delete now tombstones the username instead of removing it, allowing the same username to be recreated with the same User ID/Character ID.
-- The tightened `firestore.rules` from 2026-06-20 are deployed. Keep `firebase.json` + `firestore.rules` together, and redeploy rules after identity model changes.
+- Permanent user delete is backend-only via Vercel Serverless Function + Firebase Admin SDK. Production Vercel has encrypted `FIREBASE_SERVICE_ACCOUNT_JSON` for the dedicated `vercel-admin-delete` service account; keep verifying `/api/admin-delete-status` after recovery/reset changes or redeploys. Delete now tombstones the username and User ID instead of removing them, allowing the same username to be recreated with the same User ID/Character ID.
+- The tightened `firestore.rules` from 2026-08-31 require signed-in access for
+  trips, owner/Super Admin access for `users/{uid}`, and block new raw Recovery
+  ID/public recovery-hash writes. Keep `firebase.json` + `firestore.rules`
+  together, and redeploy rules after identity model changes.
 - Add Board Admin permissions scoped to owned boards.
 - Tighten the still-open board/trip write model once Board Admin auth is real.
 - Add rollback/export plan before rule enforcement.

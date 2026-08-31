@@ -1,6 +1,6 @@
 # Admin Portal Implementation
 
-Last updated: 2026-07-07
+Last updated: 2026-08-31
 
 ## Purpose
 
@@ -15,6 +15,8 @@ prototype/handoff history unless a fresh Admin Claude export is supplied.
   lifecycle, reset, delete request, and support actions.
 - `api/admin-delete-status.js`: privileged delete readiness endpoint.
 - `api/admin-delete-user.js`: backend-only permanent delete.
+- `api/admin-reset-user.js`: backend-only Super Admin password reset.
+- `api/account-recovery-core.js`: shared backend account reset helpers.
 - `firestore.rules`: Super Admin read/write guard for protected collections.
 
 ## Access Model
@@ -100,14 +102,15 @@ respect blocked statuses.
 
 Admin password reset:
 
-- currently uses browser Firebase client SDK;
-- creates a new Auth credential with admin-specific internal email;
-- moves `usernames/{username}` to the new UID;
+- calls `/api/admin-reset-user` with the Google-auth Firebase ID token;
+- verifies the Super Admin allowlist server-side;
+- updates the existing Auth credential when possible, creating a replacement
+  credential only when the old Auth user is missing;
+- keeps or moves `usernames/{username}` to the active UID;
 - preserves public User ID and Character ID when possible;
-- updates character owner pointer.
-
-This should move behind a Vercel Admin SDK route before being treated as final
-hardened support tooling.
+- updates character owner pointer;
+- stores only the new recovery hash in `users/{uid}` and returns the raw Recovery
+  ID once for handoff.
 
 Permanent delete:
 
@@ -123,8 +126,8 @@ Permanent delete:
 - Merge accounts is support-tool placeholder behavior.
 - Admin character edit primarily mutates board draft/published board data, not
   canonical `characters/{id}`.
-- Board security remains limited by permissive `trips/{id}` Firestore rules.
-- Admin password reset should be moved backend-side.
+- Board security is signed-in-only in Firestore rules, but not yet
+  owner/member-scoped.
 
 ## Verification
 

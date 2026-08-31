@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-07-14
+Last updated: 2026-08-31
 
 ## Purpose
 
@@ -116,7 +116,7 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 | Change Reminders UI | `shared/profile-reminders.js`, `shared/profile-hub.js` | invite accept/decline e2e |
 | Change login/signup copy | `shared/profile-login.js`, `shared/profile-hub.js`, `lang.js` | neutral placeholder audit |
 | Change account/session behavior | `shared/profile-auth.js`, `shared/profile-session.js`, `shared/profile-cloud.js` | Firestore rules, auth tests |
-| Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `admin/admin-utils.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
+| Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `admin/admin-utils.js`, `api/account-recovery-core.js`, `api/recover-account.js`, `api/admin-reset-user.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
 | Change production asset routing | `shared/asset-urls.js`, `.vercelignore`, `shared/cloudinary-assets.js` | `npm run test:assets`, `npm run smoke:prod` |
 | Change Character Profile | `character/app.js`, `character/index.html` | `shared/pointy-logic.js` aggregation |

@@ -158,7 +158,7 @@ Current product model has separate identities:
 
 The latest Claude loop implemented in the live static app treats one account as having one active character. The broader product model can still evolve toward multiple characters per user later. One user can still have many admin IDs. One admin ID can own many boards. Do not globally de-dupe Admin IDs unless the user changes the requirement.
 
-Recovery ID is intentionally visible in the signed-in profile side panel for this small private app. It is stored on `users/{uid}` for the owner UI, while `usernames/{username}` stores only the recovery hash used by password recovery. Regenerating a Recovery ID overwrites the hash immediately so older codes are invalid.
+Recovery ID is intentionally visible in the signed-in profile side panel for this small private app through the local signed-in mirror. Firestore stores only the recovery hash on owner-scoped `users/{uid}`; new writes delete/avoid the legacy public `usernames/{username}.recoveryHash` field. Regenerating a Recovery ID overwrites the owner-scoped hash immediately so older codes are invalid.
 
 ## Persistence
 
@@ -166,13 +166,24 @@ Normal mode:
 
 - `trips/{id}`: Party Ledger board documents.
 - `users/{uid}`: Firebase Auth account profile, public User ID, username, and active character pointer.
-- `usernames/{username}`: username lookup and recovery pointer for the internal Firebase Auth email currently attached to a public username.
+- `usernames/{username}`: public username lookup and internal Firebase Auth email pointer.
+- `userIds/{userId}`: low-detail public User ID reservation used for collision
+  checks without querying private `users/{uid}` records.
 - `characters/{id}`: character records.
 - `playerModules/{uid}`: native-owned dynamic state for Debt Dragon, Treasury, and Compare.
 - `adminRevisions/{id}`: Super Admin publish logs.
 - `users/{uid}/boardInvites/{inviteId}`: pending/responded board invites for real-character additions.
 
-`firestore.rules` is the repository copy of the deployed rules. It keeps the current real-account loop usable, includes a Super Admin helper for the allowlisted Gmail `purich.wc@gmail.com`, restricts character writes to the owning account or Super Admin, prevents username mapping takeover, permits only same-ID reclamation of reusable deleted username tombstones, allows `playerModules/{uid}` owner read/create/update, and restricts `adminRevisions` to Super Admin. Deploy through `firebase.json` with `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`.
+`firestore.rules` is the repository copy of the deployed rules. It keeps the
+current real-account loop usable, includes a Super Admin helper for the
+allowlisted Gmail `purich.wc@gmail.com`, makes `trips/{id}` signed-in-only,
+restricts `users/{uid}` to owner/Super Admin access, blocks new raw Recovery ID
+writes, restricts character writes to the owning account or Super Admin,
+prevents username mapping takeover, permits only same-ID reclamation of reusable
+deleted username/User ID tombstones, allows `playerModules/{uid}` owner
+read/create/update, and restricts admin/recovery audit collections to Super
+Admin. Deploy through `firebase.json` with `npx firebase-tools deploy --only
+firestore:rules --project pointy-personal-toolkit`.
 
 Local/test mode:
 

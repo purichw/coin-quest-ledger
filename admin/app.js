@@ -20,9 +20,7 @@ const {
   mergeUserStatus,
   userLifecycleLabel,
   normalizeUsername,
-  adminAuthEmail,
   tempPassword,
-  recoveryHash,
   recoveryCodeValue
 } = window.CoinQuestAdminUtils;
 
@@ -1223,7 +1221,7 @@ function showImpersonateModal(uid = '') {
 }
 function showResetPwModal(id = '') {
   const temp = tempPassword();
-  portalModal('🔑 Reset password', `<div class="field"><label>Real account username</label><input id="reset-username" class="mono" placeholder="username"><div class="hint">No real email needed. This rotates the Firebase Auth credential behind this username.</div></div><div class="field"><label>Temporary password</label><input id="reset-temp-password" class="mono" value="${h(temp)}"><div class="hint">Give this password to the user. They can login, then keep it or reset again with recovery code.</div></div><div class="field"><label>Optional User ID to preserve</label><select id="reset-user-id"><option value="">From existing account mapping</option>${userOptions(id)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">🔐</span><span>Admin reset creates a new Firebase Auth credential and moves the username/User ID/Character pointer to it.</span></div><div class="login-err" id="reset-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="performAdminPasswordReset()">Confirm reset</button>`);
+  portalModal('🔑 Reset password', `<div class="field"><label>Real account username</label><input id="reset-username" class="mono" placeholder="username"><div class="hint">No real email needed. The backend verifies this Super Admin session and resets the account credential.</div></div><div class="field"><label>Temporary password</label><input id="reset-temp-password" class="mono" value="${h(temp)}"><div class="hint">Give this password to the user. A new Recovery ID is generated for one-time handoff.</div></div><div class="field"><label>Optional User ID to preserve</label><select id="reset-user-id"><option value="">From existing account mapping</option>${userOptions(id)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">🔐</span><span>Admin reset runs through a Vercel Firebase Admin SDK route, so the admin browser session is not replaced by the target user.</span></div><div class="login-err" id="reset-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="performAdminPasswordReset()">Confirm reset</button>`);
 }
 async function performAdminPasswordReset() {
   const username = normalizeUsername(document.getElementById('reset-username')?.value || '');
@@ -1239,58 +1237,28 @@ async function performAdminPasswordReset() {
     setError('Enter a username and 6+ character temporary password.');
     return;
   }
-  try {
-    const db = window.PointyFirebase?.firestore?.();
-    const auth = window.PointyFirebase?.auth?.();
-    if (!db || !auth) throw new Error('Firebase Auth is not available on this page.');
-    const snap = await freshFirestoreGet(db.collection('usernames').doc(username));
-    const old = snap.exists ? snap.data() || {} : {};
-    const oldUser = old.uid ? await freshFirestoreGet(db.collection('users').doc(old.uid)).then(s => s.exists ? s.data() : {}) : {};
-    const authEmail = adminAuthEmail(username);
-    const cred = await auth.createUserWithEmailAndPassword(authEmail, password);
-    await cred.user.updateProfile({ displayName: username });
+  if (TEST_MODE) {
     const recoveryCode = recoveryCodeValue();
-    const recHash = await recoveryHash(username, recoveryCode);
-    const character = oldUser.character || null;
-    const userId = oldUser.userId || old.userId || keepUserId || String(Math.floor(1000 + Math.random() * 9000));
-    const next = {
-      uid: cred.user.uid,
-      username,
-      email: authEmail,
-      userId,
-      name: oldUser.name || username,
-      character,
-      characterId: character?.id || old.characterId || '',
-      provider: 'firebase',
-      recoveryHash: recHash,
-      recoveryIssuedAt: Date.now(),
-      tempPasswordRequired: true,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    await db.collection('users').doc(cred.user.uid).set(next, { merge: true });
-    await db.collection('usernames').doc(username).set({
-      username,
-      uid: cred.user.uid,
-      authEmail,
-      userId,
-      characterId: next.characterId,
-      recoveryHash: recHash,
-      recoveryIssuedAt: Date.now(),
-      adminResetAt: Date.now(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    if (next.characterId) {
-      await db.collection('characters').doc(next.characterId).set({
-        ownerUid: cred.user.uid,
-        userId,
-        username,
-        accountName: next.name,
-        updatedAt: Date.now()
-      }, { merge: true });
-    }
+    supportAction('Reset password', `Prepared test-mode reset for ${username}`);
+    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(recoveryCode)}" readonly><div class="hint">Test mode simulates the backend handoff without touching Firebase Auth.</div></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
+    return;
+  }
+  try {
+    const auth = window.PointyFirebase?.auth?.();
+    if (!auth?.currentUser) throw new Error('Google admin session is missing. Sign in again.');
+    if (!adminBackendStatus.adminDeleteConfigured) throw new Error(adminDeleteBackendNote());
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch('/api/admin-reset-user', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ username, password, keepUserId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || `Backend returned ${res.status}`);
     supportAction('Reset password', `Admin reset username ${username}`);
-    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(recoveryCode)}" readonly><div class="hint">Give this to the user once. It replaces their previous recovery code.</div></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
+    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(data.username || username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(data.recoveryCode || '')}" readonly><div class="hint">Give this to the user once. It replaces their previous recovery code.</div></div><div class="field"><label>User ID</label><input class="mono" value="${h(data.userId || '')}" readonly></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
+    await loadPublished();
+    render();
   } catch (error) {
     setError(error?.message || 'Reset failed.');
   }

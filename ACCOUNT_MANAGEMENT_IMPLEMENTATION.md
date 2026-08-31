@@ -1,6 +1,6 @@
 # Account Management Implementation
 
-Last verified: 2026-07-02
+Last verified: 2026-08-31
 
 This document describes the current implementation path from account creation to
 password recovery and Super Admin user management. It documents the code that
@@ -22,6 +22,9 @@ exists today; it is not a proposal for the final hardened auth system.
   vars are present.
 - `api/admin-delete-user.js`: backend-only permanent delete using Firebase Admin
   SDK.
+- `api/recover-account.js`: backend password reset with Recovery ID.
+- `api/admin-reset-user.js`: backend Super Admin temporary password reset.
+- `api/account-recovery-core.js`: shared backend recovery/reset helpers.
 - `firestore.rules`: deployed access rules for users, usernames, characters,
   invites, player modules, and admin revisions.
 - `data-contracts.md`: canonical Firestore/localStorage shape.
@@ -89,7 +92,7 @@ Implementation flow:
 4. Reject existing active usernames. A reusable deleted tombstone can be reused
    so the same username can regain the same public User ID.
 5. Generate a recovery code with `PointyRecovery.generateCode`.
-6. Hash it as `sha256(username + ":" + recoveryCode)`.
+6. Hash it as `sha256(username + ":" + normalizedRecoveryCode)`.
 7. Create Firebase Auth user:
    `createUserWithEmailAndPassword(username@coinquest.local, password)`.
 8. Set Firebase Auth display name to the normalized username.
@@ -97,15 +100,18 @@ Implementation flow:
    - reuse `existing.userId` when signing up through a reusable tombstone;
    - otherwise derive a stable four-digit ID from UID and fall back to random
      four-digit probes if already taken.
-10. Write `users/{uid}` via `saveCloudUser`.
-11. Write `usernames/{username}` via `saveUsernameRecord`.
-12. Mirror account into `localStorage.pointy_auth_v1` through `saveAuth`.
-13. Route the new account into Character Creation because `character` is still
+10. Write `users/{uid}` via `saveCloudUser`; this stores the recovery hash but
+    not the raw Recovery ID.
+11. Write `usernames/{username}` via `saveUsernameRecord`; this stores the login
+    pointer but not a public recovery hash.
+12. Write/backfill `userIds/{userId}` as a low-detail collision reservation.
+13. Mirror account into `localStorage.pointy_auth_v1` through `saveAuth`.
+14. Route the new account into Character Creation because `character` is still
     `null`.
-14. After class/gender/name selection, `saveCloudCharacter` writes
+15. After class/gender/name selection, `saveCloudCharacter` writes
     `characters/{characterId}` and updates `users/{uid}.character` plus
     `usernames/{username}.characterId`.
-15. Show the recovery code once from
+16. Show the recovery code once from
     `sessionStorage.pointy_pending_recovery_code_v1`.
 
 ```mermaid
@@ -160,35 +166,34 @@ Entry:
 - `shared/profile-hub.js` handles `[data-recovery-form]` and calls
   `recoverWithCode(username, code, password)`.
 
-Current implementation is credential rotation, not an in-place Firebase Auth
-password update.
+Production reset is backend-mediated through `/api/recover-account`, not a
+client-side recovery hash comparison. `?test=1` can still exercise the legacy
+local flow for regression fixtures.
 
 Flow:
 
 1. Normalize username.
-2. Read the latest `usernames/{username}` from the server.
-3. Require `recoveryHash`.
-4. Hash the submitted recovery code and compare with stored `recoveryHash`.
-5. Read the old `users/{oldUid}` document from the server if the username
-   points to an old UID.
-6. Create a new Firebase Auth user with an internal email suffix such as
-   `username+r<timestamp>@coinquest.local`.
-7. Preserve public identity from old data:
+2. POST username, Recovery ID, and new password to `/api/recover-account`.
+3. The backend reads `usernames/{username}` to find the current UID/auth email.
+4. The backend verifies the submitted Recovery ID against
+   `users/{uid}.recoveryHash`, with legacy fallback to
+   `usernames/{username}.recoveryHash`.
+5. On match, the backend updates the existing Firebase Auth user password. If
+   the old Auth UID is missing, it creates a replacement internal Auth user.
+6. Preserve public identity from old data:
    - `userId`
    - display name
    - active `character`
    - `characterId`
-8. Generate a new recovery code and hash.
-9. Write a new `users/{newUid}` document.
-10. Update `usernames/{username}` to point at `newUid` and the new auth email.
-11. If a character exists, update `characters/{characterId}.ownerUid` to
-    `newUid`.
-12. Save the new account locally and show the new recovery code.
-
-Important caveat: the old Firebase Auth user is not deleted by this player-side
-reset path. The username pointer moves to the new UID, so normal username login
-uses the new credential. Permanent cleanup of old Auth users is a separate admin
-backend concern.
+7. Generate a new Recovery ID and hash.
+8. Store only the new recovery hash on `users/{uid}`.
+9. Delete any legacy public `usernames/{username}.recoveryHash` field while
+   preserving the login pointer.
+10. Upsert `userIds/{userId}` and update `characters/{characterId}.ownerUid`
+    when a character exists.
+11. Write `accountRecoveryEvents`.
+12. Return the new raw Recovery ID once; the browser signs in with the updated
+    credential, mirrors the account locally, and shows the new code.
 
 ## User Regenerates Recovery Code
 
@@ -200,8 +205,8 @@ Flow:
 
 1. Current signed-in account calls `regenerateRecoveryCode`.
 2. New code and hash are generated.
-3. In production, `saveCloudUser` updates `users/{uid}` and
-   `usernames/{username}` with the new recovery hash/code metadata.
+3. In production, `saveCloudUser` updates `users/{uid}` with the new recovery
+   hash and deletes/avoids `usernames/{username}.recoveryHash`.
 4. After the server write succeeds, the local auth mirror is updated for the
    signed-in browser session.
 
@@ -293,25 +298,22 @@ by Super Admin rules, not Admin SDK operations.
 - temporary password;
 - optional User ID to preserve.
 
-`performAdminPasswordReset` currently uses the browser Firebase client SDK:
+`performAdminPasswordReset` calls `/api/admin-reset-user` with the Google-auth
+Super Admin Firebase ID token:
 
-1. Read `usernames/{username}`.
-2. Read old `users/{oldUid}` if present.
-3. Create a new Firebase Auth user with an admin-specific internal email:
-   `username.admin-<timestamp>@coinquest.local`.
-4. Generate new recovery code and hash.
+1. Verify the Super Admin token server-side.
+2. Read `usernames/{username}` and `users/{uid}` through Firebase Admin SDK.
+3. Update the existing Firebase Auth user's password when the UID exists; create
+   a replacement internal Auth user only when needed.
+4. Generate new Recovery ID and hash.
 5. Preserve old `userId`, display name, character, and character pointer when
    available.
-6. Write `users/{newUid}`.
-7. Update `usernames/{username}` to point at `newUid`.
-8. Update `characters/{characterId}.ownerUid` if a character exists.
-9. Show temporary password and new recovery code for handoff to the user.
-
-Important caveat: because this uses `createUserWithEmailAndPassword` from the
-client SDK, it can replace the current browser Firebase Auth session with the
-newly created user. For a hardened production reset, move this operation behind
-the Vercel backend with Firebase Admin SDK so the Super Admin session is not
-mutated and old Auth users can be explicitly disabled/deleted.
+6. Write `users/{uid}` with the new hash but no raw Recovery ID.
+7. Update `usernames/{username}` and delete any legacy public recovery hash.
+8. Upsert `userIds/{userId}`.
+9. Update `characters/{characterId}.ownerUid` if a character exists.
+10. Write `accountRecoveryEvents`.
+11. Show temporary password and new Recovery ID for one-time handoff to the user.
 
 ### Permanent Delete
 
@@ -344,16 +346,21 @@ Current rule shape:
 
 - `characters`: public read; owner or Super Admin create/update; Super Admin
   delete.
-- `users`: public read; owner or Super Admin create/update; Super Admin delete.
+- `users`: owner or Super Admin get; Super Admin list; owner or Super Admin
+  create/update; raw `recoveryCode` writes are blocked; Super Admin delete.
 - `usernames`: public get, no list; owner/Super Admin create; owner can preserve
   same UID; deleted reusable tombstone can be reclaimed only while preserving
-  same username/User ID; Super Admin delete.
+  same username/User ID; new public `recoveryHash` writes are blocked; Super
+  Admin delete.
+- `userIds`: public get, no list; owner/Super Admin create/update with same-ID
+  tombstone reclaim; Super Admin delete.
 - `playerModules`: owner or Super Admin read/create/update; Super Admin delete.
 - `adminRevisions`: Super Admin only.
-- `trips`: currently `allow read, write: if true`.
+- `trips`: signed-in users can read/create/update; only Super Admin can delete.
 
-The `trips` rule remains intentionally permissive in the current repo state.
-Tightening board permissions needs a planned migration and regression coverage.
+The `trips` rule is no longer anonymous-public, but it is still not
+owner/member-scoped. Tightening board permissions needs an access-metadata
+migration and regression coverage.
 
 ## Spark vs Blaze Reality
 
