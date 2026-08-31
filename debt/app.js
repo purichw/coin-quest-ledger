@@ -65,6 +65,7 @@ let EDIT_OPEN = '';
 let EDIT_LOG = {};
 let EDIT_LOG_DRAFTS = {};
 let ADD_OPEN = false;
+let ADD_FORM_DRAFT = {};
 let FX = {};
 let BREATHING = [];
 let OVERLAY = '';
@@ -786,7 +787,7 @@ function renderLair() {
   return `<section class="panel lair-panel">
     <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2><div class="lair-actions">${endMonthControls}${clearControls}</div></div>
     <div class="lair-grid">${S.dragons.length ? S.dragons.map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
-    ${ADD_OPEN ? `<article class="dragon-card"><div class="dc-name">${tt('dd_new')}</div>${renderDragonForm({}, 'add')}</article>` : `<button class="add-dragon" onclick="openAddDragon()"><span style="font-size:28px;line-height:1">＋</span><span>${tt('dd_add')}</span></button>`}</div>
+    ${ADD_OPEN ? `<article class="dragon-card"><div class="dc-name">${tt('dd_new')}</div>${renderDragonForm(ADD_FORM_DRAFT, 'add')}</article>` : `<button class="add-dragon" onclick="openAddDragon()"><span style="font-size:28px;line-height:1">＋</span><span>${tt('dd_add')}</span></button>`}</div>
   </section>`;
 }
 
@@ -975,8 +976,8 @@ function endMonth() {
 }
 function openEdit(id) { EDIT_OPEN = id; STRIKE_OPEN = ''; renderAll(false); }
 function cancelEdit() { EDIT_OPEN = ''; renderAll(false); }
-function openAddDragon() { ADD_OPEN = true; renderAll(false); }
-function closeAddDragon() { ADD_OPEN = false; renderAll(false); }
+function openAddDragon() { ADD_OPEN = true; ADD_FORM_DRAFT = {}; renderAll(false); }
+function closeAddDragon() { ADD_OPEN = false; ADD_FORM_DRAFT = {}; renderAll(false); }
 function formPayload(prefix) {
   const type = document.getElementById(`${prefix}-type`)?.value || 'card';
   const balance = Math.max(0, numInput(document.getElementById(`${prefix}-balance`)?.value));
@@ -1000,6 +1001,7 @@ function addDragon() {
   const now = PointyLogic.dateOnlyMs(new Date());
   S.dragons.push({ id: uid(), name: { th: form.name, en: form.name }, ...form, log: [], createdAt: now, interestAccruedAt: now, slain: false, slainAt: null });
   ADD_OPEN = false;
+  ADD_FORM_DRAFT = {};
   SFX.click();
   renderAll();
 }
@@ -1058,6 +1060,7 @@ function setDragonFormType(prefix, type) {
   if (wrap) wrap.style.display = payMode?.value === 'adhoc' ? 'none' : '';
   const dueWrap = document.getElementById(`${prefix}-due-wrap`);
   if (dueWrap) dueWrap.style.display = payMode?.value === 'adhoc' ? 'none' : '';
+  if (prefix === 'new') ADD_FORM_DRAFT = formPayload(prefix);
 }
 function setPayMode(prefix, mode) {
   const el = document.getElementById(`${prefix}-payMode`);
@@ -1068,12 +1071,14 @@ function setPayMode(prefix, mode) {
   if (dueWrap) dueWrap.style.display = mode === 'adhoc' ? 'none' : '';
   const group = el?.previousElementSibling;
   if (group) [...group.querySelectorAll('button')].forEach((btn, idx) => btn.classList.toggle('on', (idx === 0 && mode === 'monthly') || (idx === 1 && mode === 'adhoc')));
+  if (prefix === 'new') ADD_FORM_DRAFT = formPayload(prefix);
 }
 function setInterestMode(prefix, mode) {
   const el = document.getElementById(`${prefix}-interestMode`);
   if (el) el.value = mode;
   const group = el?.previousElementSibling;
   if (group) [...group.querySelectorAll('button')].forEach((btn, idx) => btn.classList.toggle('on', (idx === 0 && mode === 'compound') || (idx === 1 && mode === 'simple')));
+  if (prefix === 'new') ADD_FORM_DRAFT = formPayload(prefix);
 }
 function pickDragonArt(type, inputId) { document.getElementById(inputId)?.click(); }
 function setDragonArt(type, file) {
