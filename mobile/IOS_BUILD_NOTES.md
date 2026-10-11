@@ -125,3 +125,9 @@ sharing dependencies on 2026-10-12 (approximately 02:32 Bangkok). Subsequent
 player-flow checks used that installed binary plus the current Metro bundle.
 See `../docs/mobile-completion-worklist.md` for per-flow evidence and limits.
 Android and physical-device distribution remain unverified.
+
+After the web/API and Rules release, the user unlocked the Mac and the same
+installed own app with the current Metro bundle passed scoped save/read/restore
+flows in all four modules, the member reference guard, profile/reminders and two
+process restarts. See `../docs/post-release-simulator-2026-10-12.md`. This was
+native Simulator evidence; no new binary or OTA was distributed.

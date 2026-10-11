@@ -1,5 +1,11 @@
 # Player app completion — 2026-10-12
 
+**Later release status:** the web/API and Rules rollout completed; see the
+[release record](release-2026-10-12.md). After the Mac was unlocked, the own
+native app also passed the scoped [post-release verification](post-release-simulator-2026-10-12.md).
+The statements below about local-only code and pending deployment describe the
+earlier implementation checkpoint, not current production status.
+
 The user expanded scope to all player modules and web interoperability, without
 step-by-step permission prompts. Implementation continues one native flow at a
 time with a real Simulator check before moving to the next flow. Admin stays web.

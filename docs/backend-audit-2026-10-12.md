@@ -62,6 +62,12 @@ Expected `PERMISSION_DENIED` logs are produced by deny tests.
 
 ## Limits and deployment requirements
 
+**Follow-up:** the web/API and matching Rules release completed; the Mac was
+unlocked and native post-release flows passed. See the
+[release record](release-2026-10-12.md) and
+[Simulator evidence](post-release-simulator-2026-10-12.md). The first two bullets
+below describe the audit-time checkpoint; the migration limits still apply.
+
 - **Native Simulator interaction is blocked:** CUA reports the Mac is locked.
   The installed own-app binary exists from the rebuild, but this turn does not
   establish tap/navigation/persistence results on Simulator. Unlock the Mac to
