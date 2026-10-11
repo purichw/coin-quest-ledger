@@ -52,7 +52,10 @@
   }
 
   function setJSON(base, value, opts = {}) {
-    try { localStorage.setItem(key(base, opts.account), JSON.stringify(value)); } catch (_) {}
+    try {
+      localStorage.setItem(key(base, opts.account), JSON.stringify(value));
+      window.dispatchEvent(new CustomEvent('pointy-scoped-data-changed', { detail: { base, value, accountKey: accountKey(opts.account) } }));
+    } catch (_) {}
   }
 
   function remove(base, opts = {}) {

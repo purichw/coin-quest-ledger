@@ -1,0 +1,15 @@
+export type Label = string | { th: string; en?: string };
+export type DebtLog = { id: string; amount: number; date: string; ts: number; move: string; interest?: number; principal?: number; accruedInterest?: number; balanceBefore?: number; balanceAfter?: number; days?: number; [key: string]: unknown };
+export type Dragon = { id: string; name: Label; type: string; original: number; balance: number; apr: number; payment: number; payMode: 'monthly' | 'adhoc'; interestMode: 'compound' | 'simple'; dueDay: number; log: DebtLog[]; createdAt: number; interestAccruedAt: number; slain: boolean; slainAt: number | null; archived?: boolean; logTrash?: DebtLog[]; [key: string]: unknown };
+export type DebtState = { dragons: Dragon[]; strategy?: 'avalanche' | 'snowball'; slayer: Record<string, unknown>; art: Record<string, string>; stats: { interest: number }; lastAccrued: number; [key: string]: unknown };
+export type TreasuryCategory = { id: string; name: Label; budget: number; glyph: string; [key: string]: unknown };
+export type TreasuryBill = { id: string; name: Label; catId: string; amount: number; dueDay: number; glyph: string; archived?: boolean; [key: string]: unknown };
+export type TreasuryExpense = { id: string; catId: string; amount: number; note: string; date: string; billId?: string; onTime?: boolean; [key: string]: unknown };
+export type MonthHistory = { month: string; income: number; spent: number; surplus: number; won: boolean; expenses?: TreasuryExpense[]; [key: string]: unknown };
+export type Treasury = { month: string; income: number; keeper: Record<string, unknown>; categories: TreasuryCategory[]; bills: TreasuryBill[]; expenses: TreasuryExpense[]; history: MonthHistory[]; stats: { monthsWon: number; logged: number; onTime: number; [key: string]: unknown }; expenseTrash?: TreasuryExpense[]; categoryTrash?: TreasuryCategory[]; [key: string]: unknown };
+export type Offer = { id: string; merchant: string; price: number; qty: number; unit: string; perPack: number; buy: number; free: number; [key: string]: unknown };
+export type Comparison = { id: string; name: string; icon: string; baseUnit: string; offers: Offer[]; archived?: boolean; offerTrash?: Offer[]; [key: string]: unknown };
+export type Modules = { debt: DebtState; treasury: Treasury; comparisons: Comparison[] };
+export type ModuleKey = keyof Modules;
+export type ModuleSnapshot<K extends ModuleKey> = { data: Modules[K]; baseline: string };
+export const label = (value: Label) => typeof value === 'string' ? value : value?.th || value?.en || '';

@@ -1,6 +1,20 @@
 # Native And Web Parity
 
-Last updated: 2026-07-07
+Last updated: 2026-10-12
+
+## Rebuild status
+
+The approved rebuild uses Expo SDK 57 and the app's own native development
+binary on iPhone 17 Pro / iOS 26.5 Simulator. Account, character/Home, Party
+Ledger, Debt Dragon, Treasury, Price Arena, profile/reminders and backup routes
+are implemented. Actual Simulator and local-web/live-Firebase evidence, plus
+the limits of each check, are in `docs/mobile-completion-worklist.md`.
+
+The storage bridge and backend fixes are part of the October release candidate.
+Verify deployment against CI, the Vercel alias and the Firebase Rules release;
+source availability alone is not deployment. Browser tests and JS checks
+supplement actual Simulator evidence. The old app's recovery is documented in
+`docs/rollback-parking-lot.md`.
 
 ## Purpose
 
@@ -19,36 +33,46 @@ and what must be verified before native work continues.
 
 | Contract | Web | Native | Notes |
 | --- | --- | --- | --- |
-| Firebase Auth username/password | yes | yes | username maps to internal `username@coinquest.local` |
-| `users/{uid}` | yes | yes | account profile, public User ID, active character |
-| `usernames/{username}` | yes | yes | login pointer and recovery hash |
-| `characters/{id}` | yes | yes | active character and owner UID |
-| `trips/{id}` | yes | yes | Split board reads/writes |
-| `users/{uid}/boardInvites` | web player | not primary today | Reminders/invite parity is future native work |
-| `playerModules/{uid}` | no for web modules today | yes | native Debt/Treasury/Compare dynamic state |
+| Firebase Auth username/password | yes | signup/login/persistence/sign-out verified on Simulator | username maps to internal `username@coinquest.local` |
+| `users/{uid}` | yes | live signup and owner-profile restore verified | account profile, public User ID, active character |
+| `usernames/{username}` | yes | login lookup and live signup verified | public login pointer; recovery hash belongs in private `users/{uid}` |
+| `characters/{id}` | yes | created/edited/read on Simulator and web | active character, owner UID, XP and class/skin |
+| `trips/{id}` | yes | actual create/edit/import/campaign round trips | same five split modes, payer obligations and settlement records |
+| `users/{uid}/boardInvites` | web player | implemented; contract tests and native reminders | 24-hour invite lifecycle; live two-account delivery not exercised |
+| `playerModules/{uid}` | implemented local cloud bridge | actual Debt/Treasury/Compare round trips | owner-scoped records, preserved legacy browser drafts and conflict protection |
 
 ## Intentional Differences
 
-- Web Debt Dragon and Treasury are local-first and account-scoped through
-  localStorage.
-- Native Debt Dragon, Treasury, and Compare use Firestore
-  `playerModules/{uid}`.
+- Web keeps account-scoped localStorage drafts/caches and connects through
+  `shared/module-cloud.js` to `playerModules/{uid}`. Differing unsynced local data
+  requires an explicit choice, with backups. Native writes the same owner record.
+- Cross-device changes load on connection/refresh. This is not realtime sync or
+  a native offline write queue. Conflicting writes fail visibly and need reload.
 - Web uses Firebase compat SDK from script tags.
-- Native uses Firebase modular SDK through `mobile/src/firebaseClient.ts`.
+- Native uses the Firebase modular SDK and fresh owner/lifecycle reads before writes.
 - Web uses shared browser globals such as `PointyLogic`.
-- Native mirrors only needed gameplay math in `mobile/src/gameLogic.ts`.
+- Native directly imports the web calculation module through `src/domain/canon.ts`.
+- Native UI is the approved Thai Coin Quest mobile redesign. Website language,
+  theme and decorative sound/animation controls remain web presentation settings.
+- Native accepts pasted web board links and shares web URLs. Universal Link
+  association and push notifications are not configured by this local build.
+- Native backup `coin-quest-player-v1` is an owner-checked finance backup; legacy
+  web local-data backup remains a distinct format. Board Excel/JSON is interoperable.
 
 ## Native Design Gate
 
-Before any real iPhone build/install:
+For product flows before acceptance or a physical-device release (the initial
+Simulator setup screen is explicitly a development harness):
 
-1. Compare touched native screens against the latest Claude iOS/Android exports
-   in `/Users/point/Downloads/Coin iOS Android/`.
+1. Compare touched native screens against the current approved design direction.
+   The historical `/Users/point/Downloads/Coin iOS Android/` export is absent on
+   this machine and must not be claimed as a verified visual reference.
 2. Check large-title spacing, cards, sheets, bottom tabs, FAB/plus behavior,
    typography scale, portraits, dragon art, empty/loading/error states, and no
    overlap.
 3. Confirm no static Claude/sample finance data is displayed as real state.
-4. Confirm real Firebase sign-in/signup and Firestore-backed data.
+4. Confirm real Firebase sign-in/signup and Firestore-backed data for the flows
+   being restored. Never mark a pending feature as verified by the setup screen.
 
 ## Native Verification Commands
 
@@ -56,22 +80,43 @@ From `mobile/`:
 
 ```bash
 npm run typecheck
-npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export
+npm run lint
+npm run check:dependencies
+sh scripts/build-simulator.sh <available-simulator-UUID>
 ```
+
+Install and launch the resulting native app, then exercise the changed flow
+on the actual Simulator and save current visual evidence. Follow
+`mobile/IOS_BUILD_NOTES.md` for those steps. A JavaScript export alone cannot
+establish native readiness.
 
 Before commit/push/deploy after backend contract changes, also run root:
 
 ```bash
 npm test
+npm run test:backend
 ```
 
-## Parity Backlog
+## Remaining verification and release boundaries
 
-- Decide whether web Debt/Treasury/Compare should migrate to
-  `playerModules/{uid}` or remain local-first.
-- Bring board invite/reminder accept/decline parity to native if native board
-  collaboration becomes part of MVP.
-- Avoid native-only XP/level thresholds; port or share the web canon when
-  native displays character/profile levels.
-- Solve persistent Firebase Auth across native app restarts as a focused
-  follow-up.
+- Human handoff for live recovery/password-changing submissions; only validation,
+  reveal contracts, cancellation and existing-password login were exercised.
+- Two-account live invitation/expiry, legacy password-unlocked board fixture,
+  native offline/fault injection, Android and physical-device/Store distribution.
+- Production web promotion is separate. Current suite evidence is recorded in
+  `docs/backend-audit-2026-10-12.md`; live account mutation checks are opt-in.
+- Production Cloudinary manifest URLs for several portraits/dragon images returned
+  404 during regression. The release serves checked-in artwork on production too;
+  native bundles the same art. `?assets=cloud` remains an explicit diagnostic.
+## Shared backend repair, 2026-10-12
+
+Web/native now replace exact module snapshots and full transactional board
+snapshots, preventing deleted fields from reappearing. Web invite acceptance is
+transactional like native; new invitation attempts use unique IDs. Both clients
+use canonical debt-history replay, local calendar dates and satang thresholds.
+Recovery preserves the existing UID, and rules/lifecycle apply to both clients.
+
+Evidence, known legacy boundaries and the blocked native Simulator gate are in
+`docs/backend-audit-2026-10-12.md`. Later Simulator interaction was blocked by a
+locked Mac; earlier per-flow results do not verify every backend repair on-device.
+Web/API deployment does not distribute the native binary.

@@ -60,8 +60,8 @@ Core identifiers:
   owner checks.
 - `username`: user-facing login name. The player types this instead of an email.
 - `authEmail`: internal Firebase Auth email generated from username. Normal
-  signup uses `username@coinquest.local`; recovery/admin reset may use a unique
-  suffix so a new Firebase Auth credential can be created.
+  signup uses `username@coinquest.local`. Recovery preserves the current Auth
+  email and UID; legacy suffixed emails remain valid login pointers.
 - `userId`: public four-digit app identity.
 - `characterId`: active character identity. Current player loop is one active
   character per user.
@@ -179,7 +179,9 @@ Flow:
    `users/{uid}.recoveryHash`, with legacy fallback to
    `usernames/{username}.recoveryHash`.
 5. On match, the backend updates the existing Firebase Auth user password. If
-   the old Auth UID is missing, it creates a replacement internal Auth user.
+   the old Auth UID is missing, it recreates the Auth user with that same UID.
+   Ownership, active lifecycle and the current hash are checked transactionally;
+   a five-minute lease serializes resets and refresh tokens are revoked.
 6. Preserve public identity from old data:
    - `userId`
    - display name
@@ -304,7 +306,8 @@ Super Admin Firebase ID token:
 1. Verify the Super Admin token server-side.
 2. Read `usernames/{username}` and `users/{uid}` through Firebase Admin SDK.
 3. Update the existing Firebase Auth user's password when the UID exists; create
-   a replacement internal Auth user only when needed.
+   the Auth user with the same UID only when missing. Blocked accounts remain
+   blocked; mismatched identity ownership or an active reset lease aborts.
 4. Generate new Recovery ID and hash.
 5. Preserve old `userId`, display name, character, and character pointer when
    available.
@@ -385,8 +388,8 @@ server/runtime requires a billing-enabled Google Cloud project.
   accounts.
 - `usernames/{username}` is the login pointer. When it moves, future username
   login follows the new UID/auth email.
-- Current recovery/admin reset rotates credentials by creating a new Firebase
-  Auth user instead of updating the old one.
+- Recovery/admin reset updates the existing Auth user; missing Auth is recreated
+  with the same UID so modules, invitations and board links retain their owner.
 - Public `userId` and `characterId` should be preserved across recovery/reset.
 - One active character per user is current canon.
 - Admin Portal Add User is not yet true account creation.
@@ -396,3 +399,22 @@ server/runtime requires a billing-enabled Google Cloud project.
   security.
 - Any change to account flow should run `npm test` and should include targeted
   auth/admin/manual browser verification.
+## Backend repair notes — 2026-10-12
+
+Web signup now provisions user, username and User ID in one transaction, retains
+a pending recovery reveal across interrupted provisioning, and prevents the Auth
+watcher from creating a competing profile during signup. User ID collisions
+retry without creating another Auth identity. Character creation links the user
+and character atomically and preserves existing progression. Reads do not invent
+a replacement User ID for an incomplete profile.
+
+Recovery/admin reset preserve UID, including when Auth must be recreated; blocked
+accounts stay blocked. A transaction validates the current key and holds a bounded
+reset lease. Failed Auth operations release the lease and retain the old key hash;
+successful operations rotate the key and revoke sessions. The production deploy
+must include the API and updated rules together. Deployment evidence belongs in
+`DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` and the exact release's CI record.
+
+Admin lifecycle writes both status fields across user, username and ID reservation
+atomically. Permanent deletion detaches the account from shared boards as a guest
+without changing historical money. See `docs/backend-audit-2026-10-12.md`.

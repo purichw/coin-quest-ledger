@@ -30,9 +30,6 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local assistant/tooling config
-.claude/
-
 # local env files
 .env*.local
 
@@ -42,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Local build and verification outputs
+.artifacts/
+.claude/

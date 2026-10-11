@@ -1,6 +1,6 @@
 # Deployment And Rollback Runbook
 
-Last updated: 2026-07-07
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -41,7 +41,18 @@ relevant checks from `TESTING_MATRIX.md`. Production patch usually means:
 
 ```bash
 npm test
+npm run test:backend
+cd mobile
+npm run typecheck
+npm run lint
+node --test tests/*.test.mjs
 ```
+
+Use Node 24 from `mobile/.nvmrc` locally. If Playwright browsers were installed
+in project artifacts, set `PLAYWRIGHT_BROWSERS_PATH=mobile/.artifacts/playwright`
+from the root (or its absolute path). Emulator tests use `demo-coin-quest` only,
+with no production credentials, and Java 17+ for pinned Firebase CLI 14.
+Native source checks do not replace the Simulator gate in `mobile/AGENTS.md`.
 
 ## CI/CD Flow
 
@@ -50,15 +61,36 @@ Pull requests:
 - install dependencies with `npm ci`;
 - install Chromium Playwright browsers;
 - run `npm test`;
+- run isolated Auth/Firestore integration tests with Java 21;
+- run mobile TypeScript, lint and contract tests in a parallel Node 24 job;
 - do not deploy production.
 
 Pushes to `main`:
 
-- run the same CI test job;
+- require both the web/backend and native-contract jobs to pass;
 - if `VERCEL_TOKEN` is set, pull Vercel production env, build, deploy prebuilt
   production, and alias `coin-quest-ledger.vercel.app`;
 - if `VERCEL_TOKEN` is missing, tests still run and deploy is skipped with a
   warning.
+
+There is one production writer: this workflow. Do not start a duplicate manual
+deployment while it is still running. Native source is pushed with the repository;
+this workflow does not publish an iOS/Android package or an OTA update.
+
+`.vercelignore` excludes mobile, QA evidence, tests and internal documentation.
+It includes `assets/`: production now uses the same checked-in art as native.
+Cloudinary remains an explicit `?assets=cloud` diagnostic path, not the default.
+
+### Timing and diagnosis
+
+The successful 2026-08-31 run `33385081176` took about 4 minutes total:
+Test 2m40s, deploy 1m18s. The October pipeline adds emulator and native checks;
+use 7 minutes as an initial diagnostic checkpoint, then recalibrate from its
+successful run. Investigate immediately on a failed assertion, wrong SHA or
+authentication error; inspect after 3 minutes with no run, 5 minutes queued with
+no progress, or 2 minutes with promotion pending after checks/build are ready.
+Inspect the current step and causal log before any retry. Never repeat an
+uncertain push/deploy without checking remote state.
 
 Required GitHub Actions secrets:
 
@@ -107,6 +139,21 @@ npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolk
 
 After rules deploy, verify affected live auth/data paths. See
 `SECURITY_AND_FIREBASE_RULES.md`.
+
+For the October shared-backend rollout, publish the atomic-signup/invite clients
+and APIs before tightening Rules. Deploy Rules as soon as the web CI promotion
+succeeds; the short interval retains old access policy and must be reported if
+Rules fail. Preserve the prior Rules release/source before changing it, then
+compare the active Rules source with this commit. Old open browser tabs may need
+reload because multi-document writes now have to satisfy the new atomic contract.
+Do not mix code promotion with the separate legacy board ACL/public-hash migration.
+
+`accountRecoveryLimits.expiresAt` supports optional physical TTL cleanup.
+The 2026-10-12 preflight found billing disabled and no TTL policy on this project.
+[Firestore TTL deletes require billing](https://firebase.google.com/docs/firestore/pricing).
+Do not enable billing as part of a code deploy. Rate-limit windows expire
+logically in the handler; physical cleanup is deferred until separately enabled.
+This means old digest documents can remain stored, but not keep an expired lockout.
 
 ## Rollback
 

@@ -271,27 +271,7 @@
     }
   };
 
-  const ACHIEVEMENTS = [
-    { id: 'first_quest', icon: '📜', th: ['ก้าวแรก', 'บันทึกเควสแรกของคุณ'], en: ['First Steps', 'Log your first quest'], test: c => c.quests >= 1 },
-    { id: 'party5', icon: '🛡️', th: ['รวมพล', 'ปาร์ตี้ที่มีฮีโร่ 5 คนขึ้นไป'], en: ['Full Party', 'A party of 5+ heroes'], test: c => c.maxPartySize >= 5, prog: c => [Math.min(c.maxPartySize, 5), 5] },
-    { id: 'balanced', icon: '⚖️', th: ['สมดุล', 'ปรับสมดุลปาร์ตี้จนจบเควส'], en: ['Even Steven', 'Fully settle a quest'], test: c => c.completed >= 1 },
-    { id: 'quest_master', icon: '🗺️', th: ['เจ้าแห่งเควส', 'จบเควสครบ 3 ทริป'], en: ['Quest Master', 'Complete 3 quests'], test: c => c.completed >= 3, prog: c => [Math.min(c.completed, 3), 3] },
-    { id: 'treasurer', icon: '💰', th: ['ขุนคลัง', 'บันทึกค่าใช้จ่ายรวม ฿50,000 ใน 5 รายการ'], en: ['Treasurer', 'Log ฿50,000 across 5 expenses'], test: c => c.totalLogged >= 50000 && c.quests >= 5, prog: c => [Math.min(c.totalLogged, 50000), 50000] },
-    { id: 'generous', icon: '🤝', th: ['ใจบุญ', 'ออกทองให้คนอื่นรวม ฿20,000 และจบเควส'], en: ['Generous Soul', 'Front ฿20,000 and complete a quest'], test: c => c.fronted >= 20000 && c.completed >= 1, prog: c => [Math.min(c.fronted, 20000), 20000] },
-    { id: 'first_strike', icon: '⚔️', th: ['ดาบแรก', 'ฟันมังกรครั้งแรก'], en: ['First Strike', 'Land your first dragon strike'], test: c => c.strikes >= 1 },
-    { id: 'slayer', icon: '🐉', th: ['นักล่ามังกร', 'ปราบมังกรตัวแรก'], en: ['Dragonslayer', 'Slay your first dragon'], test: c => c.slain >= 1 },
-    { id: 'lair_cleared', icon: '🏆', th: ['ปลอดหนี้', 'ปราบมังกรจริงทุกตัวในถ้ำ'], en: ['Lair Cleared', 'Slay every real dragon'], test: c => c.realDragonsSlain >= 1 && c.liveDragons === 0 },
-    { id: 'heavy_hit', icon: '💥', th: ['หมัดหนัก', 'จ่ายหนี้รวม ฿50,000 ใน 3 ครั้งขึ้นไป'], en: ['Heavy Hitter', 'Pay ฿50,000 across 3+ strikes'], test: c => c.reclaimed >= 50000 && c.strikes >= 3, prog: c => [Math.min(c.reclaimed, 50000), 50000] },
-    { id: 'deal_hunter', icon: '🔍', th: ['นักล่าดีล', 'ประลองราคา 3 รายการ'], en: ['Deal Hunter', 'Run 3 price showdowns'], test: c => c.showdowns >= 3, prog: c => [Math.min(c.showdowns, 3), 3] },
-    { id: 'bargain', icon: '👑', th: ['ดีลในตำนาน', 'เทียบ 3 ร้านแล้วเจอดีลประหยัด 40%+'], en: ['Bargain Legend', 'Compare 3 merchants and save 40%+'], test: c => c.qualifiedBargainRescue >= 40 },
-    { id: 'vault_keeper', icon: '🏦', th: ['ผู้พิทักษ์คลัง', 'บันทึกรายจ่ายในคลังหลวงครั้งแรก'], en: ['Vault Keeper', 'Log your first treasury expense'], test: c => (c.trLogged || 0) >= 1 },
-    { id: 'under_budget', icon: '🛡️', th: ['คุมงบสำเร็จ', 'ปิดเดือนแบบไม่เกินงบ'], en: ['Under Budget', 'Finish a month under budget'], test: c => (c.monthsWon || 0) >= 1 },
-    { id: 'frugal_legend', icon: '💎', th: ['ตำนานประหยัด', 'คุมงบได้ 3 เดือน'], en: ['Frugal Legend', 'Win 3 budget months'], test: c => (c.monthsWon || 0) >= 3, prog: c => [Math.min(c.monthsWon || 0, 3), 3] },
-    { id: 'streak3', icon: '🔥', th: ['มาแรง', 'เข้าเล่นต่อเนื่อง 3 วัน'], en: ['On a Roll', 'A 3-day streak'], test: c => (c.streak || 0) >= 3, prog: c => [Math.min(c.streak || 0, 3), 3] },
-    { id: 'streak7', icon: '📅', th: ['ขาประจำ', 'เข้าเล่นต่อเนื่อง 7 วัน'], en: ['Devoted', 'A 7-day streak'], test: c => (c.streak || 0) >= 7, prog: c => [Math.min(c.streak || 0, 7), 7] },
-    { id: 'level5', icon: '⭐', th: ['ผู้กล้า', 'ถึงเลเวลรวม 5'], en: ['Rising Hero', 'Reach overall level 5'], test: c => c.level.lvl >= 5, prog: c => [Math.min(c.level.lvl, 5), 5] },
-    { id: 'level10', icon: '🌟', th: ['ตำนาน', 'ถึงเลเวลรวม 10'], en: ['Legend', 'Reach overall level 10'], test: c => c.level.lvl >= 10, prog: c => [Math.min(c.level.lvl, 10), 10] }
-  ];
+  const ACHIEVEMENTS = window.PointyLogic.PLAYER_ACHIEVEMENTS;
 
   let profile = null;
   let context = null;
@@ -300,6 +280,8 @@
   let inviteLoadKey = '';
   let inviteLoading = false;
   let liveTripEntries = [];
+  let liveModules = null;
+  let liveModulesUid = '';
   let liveTripLoadKey = '';
   let liveTripLoaded = false;
   let liveTripLoading = false;
@@ -377,36 +359,7 @@
     return snap.exists ? { id: clean, ...(snap.data() || {}) } : null;
   }
   function reusableDeletedUsername(rec) {
-    const status = String(rec?.status || rec?.lifecycleStatus || '').toLowerCase();
-    return !!rec && (status === 'deleted' || rec.deleteReusable === true) && !!rec.userId;
-  }
-  async function saveUsernameRecord(account, extra = {}) {
-    const db = cloudDb();
-    const username = normalizeUsername(account?.username);
-    if (!db || !username) return;
-    const recoveryPatch = {};
-    if (extra.recoveryHash) {
-      const deleteField = window.firebase?.firestore?.FieldValue?.delete
-        ? window.firebase.firestore.FieldValue.delete()
-        : undefined;
-      if (deleteField !== undefined) recoveryPatch.recoveryHash = deleteField;
-      recoveryPatch.recoveryIssuedAt = extra.recoveryIssuedAt || Date.now();
-    }
-    await db.collection('usernames').doc(username).set({
-      username,
-      uid: account.uid || '',
-      authEmail: account.email || usernameEmail(username),
-      userId: account.userId || '',
-      characterId: account.character?.id || extra.characterId || '',
-      status: account.status || 'active',
-      lifecycleStatus: account.status || 'active',
-      deleteReusable: false,
-      deletedAt: 0,
-      previousUid: '',
-      updatedAt: cloudNow(),
-      ...recoveryPatch,
-      ...(extra.create ? { createdAt: cloudNow() } : {})
-    }, { merge: true });
+    return !!rec && rec.lifecycleStatus === 'deleted' && rec.deleteReusable === true && /^\d{4}$/.test(String(rec.userId));
   }
   async function resolveAuthEmail(username) {
     const rec = await usernameRecord(username);
@@ -516,14 +469,14 @@
       try {
         const snap = await cloudFreshGet(db.collection('userIds').doc(id));
         if (snap.exists && snap.data()?.uid && snap.data().uid !== uid && snap.data().deleteReusable !== true) return false;
-      } catch (_) {
-        return true;
+      } catch (error) {
+        throw error;
       }
       try {
         const character = await cloudFreshGet(db.collection('characters').doc(id));
         if (character.exists && character.data()?.ownerUid && character.data().ownerUid !== uid) return false;
-      } catch (_) {
-        return true;
+      } catch (error) {
+        throw error;
       }
       return true;
     }
@@ -532,18 +485,19 @@
       const id = genId4();
       if (await available(id)) return id;
     }
-    return publicUserIdFromUid(uid);
+    throw Object.assign(new Error('No available User ID'), { code: 'account/id-unavailable' });
   }
   function accountFromFirebaseUser(user, data = {}) {
+    if (!/^\d{4}$/.test(String(data.userId)) || !data.username || (data.uid && data.uid !== user?.uid)) throw Object.assign(new Error('Account identity is incomplete'), { code: 'account/profile-invalid' });
     const username = normalizeUsername(data.username || user?.displayName || String(user?.email || '').split('@')[0]);
     return normalizeAccount({
       uid: user?.uid || data.uid || '',
       provider: 'firebase',
       username,
       email: user?.email || data.email || usernameEmail(username),
-      userId: data.userId || publicUserIdFromUid(user?.uid || username),
+      userId: data.userId,
       name: data.name || username || 'Hero',
-      status: data.status || data.lifecycleStatus || 'active',
+      status: isBlockedAccountStatus(data) ? (['archived', 'deactivated', 'delete_requested', 'deleted'].includes(data.lifecycleStatus) ? data.lifecycleStatus : data.status) : data.status || 'active',
       recoveryCode: data.recoveryCode || '',
       recoveryHash: data.recoveryHash || '',
       recoveryIssuedAt: Number(data.recoveryIssuedAt || 0) || 0,
@@ -553,36 +507,7 @@
   async function saveCloudUser(account, extra = {}) {
     const db = cloudDb();
     if (!db || !account?.uid) return;
-    await db.collection('users').doc(account.uid).set({
-      uid: account.uid,
-      username: account.username,
-      email: account.email,
-      userId: account.userId,
-      name: account.name,
-      status: account.status || 'active',
-      character: account.character || null,
-      characterId: account.character?.id || extra.characterId || '',
-      provider: 'firebase',
-      updatedAt: cloudNow(),
-      ...(extra.recoveryHash ? { recoveryHash: extra.recoveryHash, recoveryIssuedAt: extra.recoveryIssuedAt || Date.now() } : {}),
-      ...(extra.create ? { createdAt: cloudNow() } : {})
-    }, { merge: true });
-    await saveUsernameRecord(account, extra);
-    await saveUserIdReservation(account, extra);
-  }
-  async function saveUserIdReservation(account, extra = {}) {
-    const db = cloudDb();
-    if (!db || !account?.uid || !account?.userId) return;
-    if (account.userId) {
-      await db.collection('userIds').doc(String(account.userId)).set({
-        userId: String(account.userId),
-        uid: account.uid,
-        characterId: account.character?.id || extra.characterId || '',
-        status: account.status || 'active',
-        updatedAt: cloudNow(),
-        ...(extra.create ? { createdAt: cloudNow() } : {})
-      }, { merge: true });
-    }
+    return window.PointyAuthCore.persistAccount({ db, account, extra, timestamp: cloudNow(), deleteField: window.firebase.firestore.FieldValue.delete() });
   }
   async function loadCloudAccount(user) {
     const db = cloudDb();
@@ -590,43 +515,81 @@
     const ref = db.collection('users').doc(user.uid);
     const snap = await cloudFreshGet(ref);
     if (snap.exists) {
-      const account = accountFromFirebaseUser(user, snap.data() || {});
-      saveUserIdReservation(account, { characterId: account.character?.id || account.characterId || '' }).catch(err => console.warn('User ID reservation backfill failed', err));
+      const data = snap.data() || {};
+      const linkedId = data.characterId || data.character?.id;
+      if (!isBlockedAccountStatus(data) && linkedId) {
+        if (data.characterId && data.character?.id && data.characterId !== data.character.id) throw Object.assign(new Error('Character identity conflict'), { code: 'account/profile-invalid' });
+        const hero = await cloudFreshGet(db.collection('characters').doc(linkedId));
+        if (!hero.exists || hero.data().ownerUid !== user.uid) throw Object.assign(new Error('Character ownership needs repair'), { code: 'account/profile-invalid' });
+        data.character = { ...hero.data(), id: linkedId };
+      }
+      const account = accountFromFirebaseUser(user, data);
       return account;
     }
     const username = normalizeUsername(user.displayName || String(user.email || '').split('@')[0]);
+    const saved = JSON.parse(sessionStorage.getItem('pointy_pending_signup_v1') || 'null');
+    const pending = saved?.username === username ? saved : { username, name: username || 'Hero', code: recoveryCodeValue(), issuedAt: Date.now() };
+    sessionStorage.setItem('pointy_pending_signup_v1', JSON.stringify(pending));
+    const hash = await recoveryHash(username, pending.code);
+    const mapping = await usernameRecord(username);
     const account = normalizeAccount({
       uid: user.uid,
       provider: 'firebase',
       username,
       email: user.email || usernameEmail(username),
-      userId: await allocateCloudUserId(user.uid),
-      name: username || 'Hero',
+      userId: mapping?.userId || await allocateCloudUserId(user.uid),
+      name: pending.name,
+      recoveryCode: pending.code,
+      recoveryHash: hash,
+      recoveryIssuedAt: pending.issuedAt,
       character: null
     });
-    await saveCloudUser(account, { create: true });
+    for (let attempt = 0; ; attempt++) {
+      try { await saveCloudUser(account, { create: true, recoveryHash: hash, recoveryIssuedAt: pending.issuedAt }); break; }
+      catch (error) {
+        if (error.code !== 'account/id-unavailable' || mapping?.userId || attempt >= 15) throw error;
+        account.userId = await allocateCloudUserId(user.uid);
+      }
+    }
+    storePendingRecovery(pending.code);
+    sessionStorage.removeItem('pointy_pending_signup_v1');
     return account;
   }
   async function saveCloudCharacter(account, character) {
     const db = cloudDb();
     if (!db || !account?.uid || !character?.id) return;
     const rec = normalizeCharacter(character, account);
-    await db.collection('characters').doc(rec.id).set({
+    await db.runTransaction(async tx => {
+    const userRef = db.collection('users').doc(account.uid), heroRef = db.collection('characters').doc(rec.id);
+    const user = await tx.get(userRef), existing = await tx.get(heroRef);
+    const latest = user.data();
+    if (!latest || isBlockedAccountStatus(latest)) throw new Error('account-blocked');
+    const linkedId = latest.characterId || latest.character?.id;
+    if ((linkedId && linkedId !== rec.id) || (existing.exists && existing.data().ownerUid !== account.uid)) throw new Error('character-owner-conflict');
+    const next = {
+      ...(existing.data() || {}),
       ...rec,
+      ...(existing.exists ? { xp: existing.data().xp ?? 0, trips: existing.data().trips || {}, debtXp: existing.data().debtXp || 0 } : {}),
       ownerUid: account.uid,
       userId: account.userId,
       username: account.username,
       accountName: account.name,
       updatedAt: Date.now(),
-      createdAt: Date.now()
-    }, { merge: true });
-    await saveCloudUser({ ...account, character: rec }, { characterId: rec.id });
+      createdAt: existing.data()?.createdAt || Date.now()
+    };
+    tx.set(heroRef, next);
+    tx.update(userRef, { character: next, characterId: rec.id, updatedAt: cloudNow() });
+    tx.set(db.collection('usernames').doc(account.username), { characterId: rec.id }, { merge: true });
+    tx.set(db.collection('userIds').doc(account.userId), { characterId: rec.id }, { merge: true });
+    });
   }
   function authErrorMessage(err) {
     const code = String(err?.code || '');
     if (code.includes('email-already-in-use')) return s().authUserExists;
     if (code.includes('user-not-found') || code.includes('invalid-credential') || code.includes('wrong-password')) return s().authUserMissing;
     if (code.includes('weak-password')) return s().authWeakPassword;
+    if (code === 'account/blocked') return 'บัญชีถูกระงับหรือกำลังกู้คืน กรุณาลองใหม่หรือติดต่อผู้ดูแล';
+    if (code === 'account/profile-invalid' || code === 'account/identity-conflict') return 'ข้อมูลระบุตัวตนไม่ครบ กรุณาติดต่อผู้ดูแลเพื่อรักษาบัญชีเดิม';
     if (code.includes('operation-not-allowed') || code.includes('configuration-not-found')) return 'Firebase Authentication ยังไม่ได้เปิดใน Firebase Console';
     return s().authGeneric;
   }
@@ -651,42 +614,7 @@
       storePendingRecovery(data.recoveryCode || '');
       return saveAuth(next);
     }
-    const rec = await usernameRecord(clean);
-    if (!rec?.recoveryHash) throw new Error('bad-recovery-code');
-    const hash = await recoveryHash(clean, code);
-    if (hash !== rec.recoveryHash) throw new Error('bad-recovery-code');
-    const db = cloudDb();
-    const oldUser = rec.uid ? await cloudFreshGet(db.collection('users').doc(rec.uid)).then(snap => snap.exists ? snap.data() : {}) : {};
-    const authEmail = authEmailForUsername(clean, `r${Date.now().toString(36)}`);
-    const cred = await cloudAuth().createUserWithEmailAndPassword(authEmail, password);
-    await cred.user.updateProfile({ displayName: clean });
-    const newRecoveryCode = recoveryCodeValue();
-    const next = normalizeAccount({
-      ...(oldUser || {}),
-      uid: cred.user.uid,
-      provider: 'firebase',
-      username: clean,
-      email: authEmail,
-      userId: oldUser?.userId || rec.userId || await allocateCloudUserId(cred.user.uid),
-      name: oldUser?.name || clean,
-      character: oldUser?.character || null
-    });
-    const newRecoveryHash = await recoveryHash(clean, newRecoveryCode);
-    next.recoveryCode = newRecoveryCode;
-    next.recoveryHash = newRecoveryHash;
-    next.recoveryIssuedAt = Date.now();
-    await saveCloudUser(next, { create: true, recoveryHash: newRecoveryHash, recoveryCode: newRecoveryCode, recoveryIssuedAt: next.recoveryIssuedAt, characterId: next.character?.id || rec.characterId || '' });
-    if (next.character?.id) {
-      await db.collection('characters').doc(next.character.id).set({
-        ownerUid: next.uid,
-        userId: next.userId,
-        username: next.username,
-        accountName: next.name,
-        updatedAt: Date.now()
-      }, { merge: true });
-    }
-    storePendingRecovery(newRecoveryCode);
-    return saveAuth(next);
+    throw new Error('Account recovery service is not ready. Please try again.');
   }
   async function regenerateRecoveryCode() {
     const account = loadAuth();
@@ -852,6 +780,7 @@
     const account = loadAuth();
     if (!shouldUseLiveTripEntries(account)) {
       liveTripEntries = [];
+      liveModules = null; liveModulesUid = '';
       liveTripLoadKey = '';
       liveTripLoaded = false;
       return liveTripEntries;
@@ -861,7 +790,20 @@
     if (liveTripLoading) return liveTripEntries;
     liveTripLoading = true;
     try {
-      const snap = await cloudFreshGet(cloudDb().collection('trips'));
+      const [snap, modules, activity] = await Promise.all([
+        cloudFreshGet(cloudDb().collection('trips')),
+        cloudFreshGet(cloudDb().collection('playerModules').doc(account.uid)),
+        cloudDb().runTransaction(async tx => {
+          const ref = cloudDb().collection('users').doc(account.uid); const user = await tx.get(ref);
+          if (cloudAuth()?.currentUser?.uid !== account.uid || !user.exists || isBlockedAccountStatus(user.data())) throw new Error('Account changed');
+          const next = PointyLogic.nextActivity(user.data().activity || {}, new Date());
+          if (JSON.stringify(next) !== JSON.stringify(user.data().activity || {})) tx.set(ref, { activity: next }, { merge: true });
+          return next;
+        })
+      ]);
+      if (loadAuth()?.uid !== account.uid) return [];
+      liveModules = modules.data() || {}; liveModulesUid = account.uid;
+      patchProfile(activity);
       liveTripEntries = snap.docs.map(doc => relevantLiveTripEntry(doc, account)).filter(Boolean);
       liveTripLoadKey = key;
       liveTripLoaded = true;
@@ -952,15 +894,15 @@
     const characterId = String(invite.targetCharacterId || character.id || '').replace(/\D/g, '').slice(0, 4);
     campaign.participants = Array.isArray(campaign.participants) ? campaign.participants : [];
     campaign.characterIds = { ...(campaign.characterIds || {}) };
-    const existing = Object.keys(campaign.characterIds).find(name => String(campaign.characterIds[name]) === characterId);
+    const existing = campaign.participants.find(name => !campaign.guestHeroes?.[name] && String(campaign.characterIds[name]) === characterId);
     if (existing) return existing;
-    const name = uniqueInviteParticipantName(campaign, invite.targetName || character.name || account.name, characterId);
+    const name = uniqueInviteParticipantName(campaign, character.name || invite.targetName || account.name, characterId);
     campaign.participants.push(name);
     campaign.characterIds[name] = characterId;
-    campaign.heroClasses = { ...(campaign.heroClasses || {}), [name]: invite.targetClass || character.class || character.cls || 'warrior' };
-    campaign.heroGenders = { ...(campaign.heroGenders || {}), [name]: invite.targetGender === 'female' ? 'female' : 'male' };
+    campaign.heroClasses = { ...(campaign.heroClasses || {}), [name]: character.class || character.cls || invite.targetClass || 'warrior' };
+    campaign.heroGenders = { ...(campaign.heroGenders || {}), [name]: (character.gender || invite.targetGender) === 'female' ? 'female' : 'male' };
     campaign.heroSkins = { ...(campaign.heroSkins || {}) };
-    if (invite.targetSkin || character.skin) campaign.heroSkins[name] = invite.targetSkin || character.skin;
+    campaign.heroSkins[name] = character.skin || '';
     campaign.guestHeroes = { ...(campaign.guestHeroes || {}) };
     delete campaign.guestHeroes[name];
     campaign.budgets = { ...(campaign.budgets || {}), [name]: campaign.budgets?.[name] || 3000 };
@@ -998,16 +940,26 @@
       return;
     }
     try {
-      const data = await readTripForInvite(invite.tripId);
-      if (!data) throw new Error('missing-trip');
+      const join = (data, currentInvite, currentAccount) => {
       const activeId = data.activeCampaignId || (Array.isArray(data.campaigns) && data.campaigns[0]?.id) || '';
-      addInviteToCampaign(data, invite, account);
+      addInviteToCampaign(data, currentInvite, currentAccount);
       if (Array.isArray(data.campaigns) && data.campaigns.length) {
         const idx = activeId ? data.campaigns.findIndex(c => c.id === activeId) : 0;
-        addInviteToCampaign(data.campaigns[idx >= 0 ? idx : 0], invite, account);
+        addInviteToCampaign(data.campaigns[idx >= 0 ? idx : 0], currentInvite, currentAccount);
       }
+      data.access = { ...(data.access || {}), memberUids: [...new Set([...(data.access?.memberUids || []), currentAccount.uid])], memberCharacterIds: [...new Set([...(data.access?.memberCharacterIds || []), currentInvite.targetCharacterId])] };
+      return data;
+      };
+      if (TEST_MODE) {
+      const data = await readTripForInvite(invite.tripId);
+      if (!data || data.archived) throw new Error('missing-trip');
+      join(data, invite, account);
       await writeTripForInvite(invite.tripId, data);
       await updateInviteStatus(invite, 'accepted');
+      } else {
+        await window.PointyBoardInvites.respond({ inviteId, status: 'accepted', account, db: cloudDb(), mutateBoard: join });
+        boardInvites = boardInvites.filter(item => item.id !== inviteId);
+      }
       showMiniToast(s().remInviteAccepted);
       location.href = `/trip/?id=${encodeURIComponent(invite.tripId)}${TEST_MODE ? '&test=1' : ''}`;
     } catch (err) {
@@ -1088,16 +1040,16 @@
     return window.PointyLogic.computeParty(c, { classOf: name => c.heroClasses?.[name] || 'warrior' });
   }
   function loadDebt() {
-    const raw = readScopedJson('pointy_debt_v5', null);
+    const raw = liveModulesUid === loadAuth()?.uid && liveModules?.debt !== undefined ? liveModules.debt : readScopedJson('pointy_debt_v5', null);
     const fallback = hasScopedAccount() ? { dragons: [], settings: {}, profile: {}, history: [], stats: {} } : window.PointyLogic.SEED_DEBT;
     return window.PointyLogic?.normalizeDebtState ? window.PointyLogic.normalizeDebtState(raw || fallback) : (raw || fallback || {});
   }
   function loadCompare() {
-    const raw = readScopedJson('pointy_compare_v2', readScopedJson('pointy_compare_v1', []));
+    const raw = liveModulesUid === loadAuth()?.uid && liveModules?.comparisons !== undefined ? liveModules.comparisons : readScopedJson('pointy_compare_v2', readScopedJson('pointy_compare_v1', []));
     return Array.isArray(raw) ? raw : [];
   }
   function loadTreasury() {
-    const raw = readScopedJson('pointy_treasury_v1', null);
+    const raw = liveModulesUid === loadAuth()?.uid && liveModules?.treasury !== undefined ? liveModules.treasury : readScopedJson('pointy_treasury_v1', null);
     if (raw && typeof raw === 'object') return raw;
     return {};
   }
@@ -1113,6 +1065,7 @@
     return (treasury.expenses || []).some(e => e.billId === billId && monthKey(e.date) === mk);
   }
   function billDueStatus(bill, treasury, today = new Date()) {
+    if (bill.archived) return null;
     const mk = treasury.month || monthKey(today);
     if (monthKey(today) !== mk) return null;
     const paid = billPaidThisMonth(treasury, bill.id, mk);
@@ -1123,118 +1076,7 @@
   }
   function computeProfile() {
     const account = loadAccount();
-    const character = accountCharacter(account);
-    const scoped = hasScopedAccount();
-    const characterId = String(character?.id || account?.userId || '');
-    let fronted = 0, settleR = 0, quests = 0, completed = 0, maxPartySize = 0, totalLogged = 0;
-    let splitActivityRep = 0, splitFrontedRep = 0, splitSettledRep = 0, splitMultiRep = 0;
-    tripEntries().forEach(entry => {
-      campaignsFromTrip(entry.data).forEach(c => {
-        const participantName = Object.keys(c.characterIds || {}).find(name => String(c.characterIds?.[name]) === characterId)
-          || (c.participants || []).find(name => name === character?.name || name === account?.name);
-        if (scoped && !participantName) return;
-        const party = computePartyForCampaign(c);
-        const heroes = scoped ? party.filter(hero => hero.name === participantName) : party;
-        const visibleExpenses = scoped
-          ? (c.expenses || []).filter(e => (e.sharedBy || []).includes(participantName) || e.paidBy === participantName || e.payers?.[participantName])
-          : (c.expenses || []);
-        const isSettled = visibleExpenses.length > 0 && window.PointyLogic?.settleUp && window.PointyLogic.settleUp(party).length === 0;
-        heroes.forEach(hero => {
-          fronted += Number(hero.gen) || 0;
-          settleR += Number(c.settleXp?.[hero.name]) || 0;
-          splitFrontedRep += Math.min(100, Math.max(0, Number(hero.gen) || 0) / 50);
-        });
-        quests += visibleExpenses.length;
-        totalLogged += visibleExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-        splitActivityRep += Math.min(50, visibleExpenses.length * 10);
-        if (isSettled) {
-          splitSettledRep += 250;
-          if ((c.participants || []).length >= 3) splitMultiRep += 100;
-        }
-        if (c.completedAt) completed += 1;
-        maxPartySize = Math.max(maxPartySize, participantName ? (c.participants || []).length : scoped ? 0 : (c.participants || []).length);
-      });
-    });
-
-    const debt = loadDebt();
-    const dragons = debt.dragons || [];
-    let reclaimed = 0, biggestHit = 0, strikes = 0, slain = 0, realDragonsSlain = 0, debtPaymentRep = 0;
-    dragons.forEach(d => {
-      (d.log || []).forEach(row => {
-        const amount = Number(row.amount) || 0;
-        reclaimed += amount;
-        debtPaymentRep += Math.min(300, amount / 10);
-        strikes += 1;
-        biggestHit = Math.max(biggestHit, amount);
-      });
-      if (d.slain) slain += 1;
-      if (d.slain && Math.max(Number(d.original) || 0, Number(d.balance) || 0) >= 5000) realDragonsSlain += 1;
-    });
-    const liveDragons = dragons.filter(d => !d.slain && Number(d.balance) > .5).length;
-    const interestFed = Number(debt.stats?.interest) || 0;
-
-    let showdowns = 0, merchants = 0, bestRescue = 0, qualifiedBargainRescue = 0;
-    loadCompare().forEach(cmp => {
-      merchants += (cmp.offers || []).length;
-      if ((cmp.offers || []).length >= 2) {
-        showdowns += 1;
-        const ranked = window.PointyLogic?.rankOffers ? window.PointyLogic.rankOffers(cmp.offers, cmp) : [];
-        const best = ranked.find(o => o.isBest);
-        if (best) bestRescue = Math.max(bestRescue, best.savePct || 0);
-        const meaningfulOffers = (cmp.offers || []).filter(o => Number(o.price) > 0 && Number(o.qty) > 0);
-        const hasMeaningfulSpend = meaningfulOffers.some(o => Number(o.price) >= 100);
-        if (best && meaningfulOffers.length >= 3 && hasMeaningfulSpend) {
-          qualifiedBargainRescue = Math.max(qualifiedBargainRescue, best.savePct || 0);
-        }
-      }
-    });
-
-    const treasury = loadTreasury();
-    const trStats = treasury.stats || {};
-    const wonMonths = new Set((treasury.history || []).filter(row => row?.won && row.month).map(row => row.month)).size;
-    const monthsWon = Math.max(Number(trStats.monthsWon) || 0, wonMonths);
-    const trLogged = Number(trStats.logged) || 0;
-    const trOnTime = Number(trStats.onTime) || 0;
-    const treasuryLogDays = new Set((treasury.expenses || []).map(e => e.date).filter(Boolean)).size || trLogged;
-    const treasuryReputation = Math.round(monthsWon * 500 + trOnTime * 80 + treasuryLogDays * 10);
-    const compareReputation = Math.round(showdowns * 80 + Math.min(showdowns * 40, merchants * 10));
-    const debtReputation = Math.round(debtPaymentRep + slain * 600);
-    const splitReputation = Math.round(splitActivityRep + splitFrontedRep + splitSettledRep + splitMultiRep);
-    const reputation = Math.round(splitReputation + debtReputation + treasuryReputation + compareReputation);
-    return {
-      reputation,
-      renown: reputation,
-      level: profileLevelFromReputation(reputation),
-      fronted: Math.round(fronted),
-      splitReputation,
-      splitFrontedRep: Math.round(splitFrontedRep),
-      splitSettledRep,
-      settleR: Math.round(settleR),
-      quests,
-      completed,
-      maxPartySize,
-      totalLogged: Math.round(totalLogged),
-      reclaimed: Math.round(reclaimed),
-      biggestHit: Math.round(biggestHit),
-      strikes,
-      slain,
-      realDragonsSlain,
-      liveDragons,
-      interestFed: Math.round(interestFed),
-      debtReputation,
-      showdowns,
-      merchants,
-      bestRescue,
-      qualifiedBargainRescue,
-      dragonsTotal: dragons.length,
-      monthsWon,
-      trLogged,
-      trOnTime,
-      treasuryXp: treasuryReputation,
-      treasuryReputation,
-      compareReputation,
-      streak: profile?.streak || 0
-    };
+    return window.PointyLogic.playerProgress(tripEntries(), accountCharacter(account), { debt: loadDebt(), comparisons: loadCompare(), treasury: loadTreasury() }, { scoped: hasScopedAccount(), userId: account?.userId, accountName: account?.name, streak: profile?.streak || 0 });
   }
   function evalAchievements(ctx) {
     return ACHIEVEMENTS.map(item => ({ ...item, unlocked: !!item.test(ctx), progress: item.prog ? item.prog(ctx) : null }));
@@ -1242,7 +1084,7 @@
 
   function dayStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function dueStatus(d, today = new Date()) {
-    if (d.payMode === 'adhoc' || !d.dueDay || d.slain) return null;
+    if (d.archived || d.payMode === 'adhoc' || !d.dueDay || d.slain) return null;
     const y = today.getFullYear();
     const m = today.getMonth();
     const paidThisMonth = (d.log || []).some(row => {
@@ -1313,9 +1155,14 @@
       if (due.overdue) copy.push({ id: 'tb' + bill.id, kind: 'overdue', icon: bill.glyph || '🏦', title: name, sub: s().remOverdue, href: '/treasury/' });
       else if (due.days <= 5) copy.push({ id: 'tb' + bill.id, kind: 'due', icon: bill.glyph || '🏦', title: name, sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), href: '/treasury/', days: due.days });
     });
-    const party = activeParty();
-    const txns = window.PointyLogic?.settleUp ? window.PointyLogic.settleUp(party) : [];
-    if (txns.length) copy.push({ id: 'settle', kind: 'settle', icon: '⚖️', title: s().remSettleUp, sub: txns.length + ' ' + s().tributes, href: '/trip/' });
+    const cid = String(accountCharacter(loadAccount())?.id || '');
+    tripEntries().forEach(entry => {
+      const board = entry.data;
+      if (board.archived) return;
+      const names = Object.keys(board.characterIds || {}).filter(n => String(board.characterIds[n]) === cid && !board.guestHeroes?.[n]);
+      const txns = (window.PointyLogic?.pendingSettlements?.(board) || []).filter(t => names.includes(t.from) || names.includes(t.to));
+      if (txns.length) copy.push({ id: 'settle-' + entry.id, kind: 'settle', icon: '⚖️', title: board.tripName || s().remSettleUp, sub: txns.length + ' ' + s().tributes, href: '/trip/?id=' + encodeURIComponent(entry.id) });
+    });
     return copy.sort((a, b) => {
       const rank = r => r.kind === 'overdue' ? 0 : r.kind === 'invite' ? 0.5 : r.kind === 'due' ? 1 + (r.days || 0) / 100 : 50;
       return rank(a) - rank(b);
@@ -1522,6 +1369,7 @@
         const display = String(name?.value || '').trim();
         const pw2 = String(password2?.value || '');
         if (!display) { setError(copy.signupNameMissing); return; }
+        if (!/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError('ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว'); return; }
         if (!loginName || !pw) { setError(copy.loginEmpty); return; }
         if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
         if (pw !== pw2) { setError(copy.signupPasswordMismatch); return; }
@@ -1530,23 +1378,26 @@
           return;
         }
         if (real) {
+          provisioningAccount = true;
           try {
             setBusy(true);
             const existing = await usernameRecord(loginName);
             if (existing && !reusableDeletedUsername(existing)) throw Object.assign(new Error('username exists'), { code: 'auth/email-already-in-use' });
             const recoveryCode = recoveryCodeValue();
-            const recovery = await recoveryHash(loginName, recoveryCode);
+            const issuedAt = Date.now();
+            sessionStorage.setItem('pointy_pending_signup_v1', JSON.stringify({ username: loginName, name: display, code: recoveryCode, issuedAt }));
             const cred = await cloudAuth().createUserWithEmailAndPassword(em, pw);
             await cred.user.updateProfile({ displayName: loginName });
-            const issuedAt = Date.now();
-            const account = normalizeAccount({ uid: cred.user.uid, provider: 'firebase', username: loginName, email: em, userId: existing?.userId || await allocateCloudUserId(cred.user.uid), name: display, character: null, recoveryCode, recoveryHash: recovery, recoveryIssuedAt: issuedAt });
-            await saveCloudUser(account, { create: true, recoveryHash: recovery, recoveryCode, recoveryIssuedAt: issuedAt });
+            const account = await loadCloudAccount(cred.user);
             storePendingRecovery(recoveryCode);
+            sessionStorage.removeItem('pointy_pending_signup_v1');
             saveAuth(account);
             showCharacterCreation(account);
           } catch (err) {
             setError(authErrorMessage(err));
             setBusy(false);
+          } finally {
+            provisioningAccount = false;
           }
           return;
         }
@@ -1979,6 +1830,7 @@
     refreshBoardInvites({ force: !!opts.forceInviteRefresh });
   }
   let authWatcherStarted = false;
+  let provisioningAccount = false;
   function watchFirebaseAuth() {
     if (authWatcherStarted || TEST_MODE) return;
     const auth = cloudAuth();
@@ -1990,7 +1842,7 @@
     auth.onAuthStateChanged(async user => {
       firebaseAuthResolved = true;
       window.PointyProfileSession.markFirebaseAuthTrusted?.();
-      if (signingOut) return;
+      if (signingOut || provisioningAccount) return;
       if (!user) {
         const current = window.PointyProfileSession.readAuth();
         if (current?.provider === 'firebase') {
@@ -2053,6 +1905,11 @@
     scheduleWelcomeTour(650);
   }
 
+  window.addEventListener('pointy-module-synced', event => {
+    if (event.detail?.uid !== loadAuth()?.uid) return;
+    liveModulesUid = event.detail.uid; liveModules = { ...(liveModules || {}), [event.detail.field]: event.detail.value };
+    refresh({ toast: false });
+  });
   window.PointyProfileHub = {
     refresh,
     updateTripSnapshot,

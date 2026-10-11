@@ -1,10 +1,10 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-07-14
+Last updated: 2026-10-12
 
 ## Project
 
-- Workspace: `/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox`
+- Workspace: `/Users/point/toolbox`
 - GitHub: `git@github.com:purichw/coin-quest-ledger.git`
 - Live production URL: `https://coin-quest-ledger.vercel.app`
 - Vercel project: `coin-quest-ledger`
@@ -12,7 +12,9 @@ Last updated: 2026-07-14
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
 - For the current pushed source snapshot, run `git log -1 --oneline origin/main`.
-- Latest verified production deploy: commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`, aliased to `https://coin-quest-ledger.vercel.app` on 2026-06-30 after GitHub Actions `CI/CD` passed full `npm test`. Later docs-only commits may have been deployed by CI; verify live status before claiming the production code snapshot moved.
+- Pre-October release baseline: `b726368`, successful CI/CD run `33385081176`.
+  Read `docs/release-2026-10-12.md` for the new release scope and verify the exact
+  current SHA/run/alias/Rules release before claiming a production snapshot.
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
 ## Start Here In A New Chat
@@ -48,7 +50,7 @@ Last updated: 2026-07-14
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
 - `trip/trip-utils.js`: Party Ledger browser-global utility helpers for IDs, theme persistence, escaping, money formatting, and board/admin hashes. Must load before `trip/app.js`.
-- `admin/index.html`: Phase 1 Super Admin Portal shell, responsive table/modal styling, and Firebase compat script loader.
+- `admin/index.html`, `admin/design.css`: Super Admin Portal shell and current responsive design.
 - `admin/app.js`: Super Admin Portal behavior for Google-auth allowlist, board/admin/user editing, account lifecycle, drafts, publish, restore, and revision logs.
 - `admin/admin-utils.js`: Super Admin browser-global utility helpers for escaping, cloning, user lifecycle status, username/reset helpers, recovery hash, and level display. Must load before `admin/app.js`.
 - `character/index.html`: responsive Character Profile shell and portrait/stats/history layout.
@@ -59,9 +61,13 @@ Last updated: 2026-07-14
 - `shared/profile-hub.js` / `.css`: shared profile/auth orchestrator. Keep behavior orchestration here, but new pure helpers or isolated renderers should live in the focused `shared/profile-*.js` modules.
 - `shared/profile-session.js`, `shared/profile-auth.js`, `shared/profile-cloud.js`, `shared/profile-recovery.js`, `shared/profile-backup.js`, `shared/profile-login.js`, `shared/profile-character-create.js`, `shared/profile-drawer.js`, `shared/profile-reminders.js`, and `shared/profile-tour.js`: focused profile helper modules split out from the original hub so auth, recovery, backup, login/character rendering, drawer blocks, reminder rendering, and Welcome Tour slices can be reverted independently.
 - `shared/mobile-shell.css` and `shared/mobile-shell.js`: Claude-style native phone shell shared by Home/Compare, Split, Debt Dragon, and Treasury. It injects the hamburger drawer and bottom tab bar at `max-width: 600px`; desktop/tablet topbars remain controlled by each page.
-- `mobile/`: Expo / React Native player-side native app. Current slice is iOS-first, not a WebView wrapper, and wired to real Firebase Auth/Firestore for username login/signup, Character Creation, Profile, Split board reads/writes, and native-owned `playerModules/{uid}` state for Debt Dragon, Treasury, and Compare.
-- `mobile/IOS_BUILD_NOTES.md`: repeatable iOS native build/install runbook, including design-first gates, Xcode/device signing commands, `devicectl` install/launch, ExpoModulesJSI patch notes, and lessons learned from the first real iPhone install.
-- `trip/pixicons.jsx`: labeled pixel icon registry/renderer/migration helpers.
+- `mobile/`: rebuilt Expo 57 / React Native player app using Expo Router and the
+  app's own Simulator binary. All player modules use the existing Firebase
+  project; `playerModules/{uid}` is shared with the website storage bridge.
+- `mobile/IOS_BUILD_NOTES.md`: Simulator-first build/install/launch runbook;
+  Node 24, two workers, no Expo Go substitute. See per-flow evidence and limits
+  in `docs/mobile-completion-worklist.md` and `docs/backend-audit-2026-10-12.md`.
+- `trip/pixicons.js`: live labeled pixel icon registry; `.jsx` is a legacy copy.
 - `assets/rpg-portraits/`: current full-body class portrait assets, 18 classes x 2 genders plus skin art.
 - `assets/icons/loot-chest.svg`: app icon.
 - `tests/e2e/coin-quest-ledger.spec.mjs`: critical browser flows for Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison.

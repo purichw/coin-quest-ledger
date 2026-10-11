@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-08-31
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -32,7 +32,9 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `treasury/index.html`, `treasury/app.js`: Treasury web module.
 - `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css`: Super Admin Portal.
 - `lang.js`: shared Thai/English copy.
-- `firestore.rules`: deployed Firestore security rules.
+- `firestore.rules`: intended Firestore Rules source; deployed separately from Vercel.
+- `firebase.test.json`, `scripts/test-backend.mjs`, `tests/backend/`: isolated
+  Firebase Auth/Firestore integration and Rules tests.
 - `firebase.json`: Firebase deploy config.
 - `SECURITY_AND_FIREBASE_RULES.md`: Firebase Auth/rules/Admin SDK security map.
 - `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: deploy, CI/CD, alias, rules deploy, rollback.
@@ -68,23 +70,32 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `shared/profile-hub.css`: shared profile/auth/reminder/tour styling.
 - `shared/first-load.js`, `shared/first-load.css`: first-load splash.
 - `shared/asset-urls.js`, `shared/cloudinary-assets.js`: asset URL resolution.
-  Production `?test=1` routes use Cloudinary manifest assets; local assets are
-  forced only on localhost/private hosts or explicit `?assets=local`.
+  Production and test routes default to deployed same-origin art. Explicit
+  `?assets=cloud` uses the legacy CDN manifest for availability diagnostics.
 - `shared/player-controls.css`: shared player/module control chrome.
 
 ## Mobile Native App
 
-- `mobile/App.tsx`: Expo app orchestrator.
-- `mobile/src/data.ts`: Firebase-backed data access.
-- `mobile/src/firebaseClient.ts`: native Firebase initializer.
-- `mobile/src/gameLogic.ts`: native module normalization and calculations.
-- `mobile/src/types.ts`: native TypeScript contracts.
-- `mobile/src/copy.ts`: native copy.
-- `mobile/src/theme.ts`: native theme tokens.
-- `mobile/src/ui.tsx`: reusable native UI primitives.
-- `mobile/src/sheets.tsx`: bottom sheets and modal-like native UI.
-- `mobile/src/assets.ts`: native asset registry.
-- `mobile/IOS_BUILD_NOTES.md`: physical iPhone build/install runbook.
+- `mobile/index.ts`: Expo Router entry point.
+- `mobile/src/app/_layout.tsx`: font loading, auth provider and native stack navigation.
+- `mobile/src/app/index.tsx`, `signup.tsx`: login/account and signup routes.
+- `mobile/src/auth/`: Firebase session, transactional account provisioning and auth UI.
+- `mobile/src/character/`, `src/player/`: character catalog, Home/profile, shared native controls and reminders.
+- `mobile/src/ledger/`: board transactions, invites, split validation, campaign snapshots, receipts and imports/exports.
+- `mobile/src/modules/`: owner-scoped Debt/Treasury/Compare transactions, validations and backup/restore.
+- `mobile/src/domain/canon.ts`: direct import of the website's shared calculations.
+- `mobile/src/app/split/`, `debt/`, `treasury/`, `prices/`: native player routes.
+- `shared/module-cloud.js`: website account-scoped storage bridge to `playerModules/{uid}`.
+- `mobile/src/theme/typography.ts`, `mobile/assets/fonts/`: website font roles and licensed assets.
+- `mobile/src/app/check.tsx` and `mobile/App.tsx`: temporary native interaction check.
+- `mobile/scripts/build-simulator.sh`: repeatable source gates and local Simulator build.
+- `mobile/IOS_BUILD_NOTES.md`: current Simulator-first build/install runbook.
+- `mobile/README.md`: rebuild scope and actual verification status.
+- `docs/rollback-parking-lot.md`: recovery of the retired 82-file app.
+
+The old native screen/data/theme files were intentionally removed on
+2026-10-11. Current module acceptance, real Simulator checks, web/Firebase round
+trips and remaining limits are in `docs/mobile-completion-worklist.md`.
 
 ## Assets
 
@@ -92,8 +103,8 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `assets/rpg-classes/`: older class art kept for compatibility.
 - `assets/debt-dragons/`: Debt Dragon art.
 - `assets/icons/loot-chest.svg`: app icon.
-- `fallback-assets/`: tiny production fallback set for assets that are not in
-  Cloudinary but must render while `assets/` stays excluded from Vercel.
+- `fallback-assets/`: legacy fallback routes retained for CDN diagnostics.
+  `assets/` is included in Vercel deploys and shared with native bundling.
 
 ## Tests And Scripts
 
@@ -126,7 +137,7 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 | Change Firebase rules/security | `firestore.rules`, `api/*.js` | `SECURITY_AND_FIREBASE_RULES.md`, rules deploy |
 | Change CI/deploy/rollback | `.github/workflows/test.yml`, Vercel/Firebase config | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md` |
 | Change mobile shell | `shared/mobile-shell.*` | Home, Split, Debt, Prices, Treasury mobile |
-| Change native app | `mobile/src/*` | `mobile/IOS_BUILD_NOTES.md`, typecheck/export |
+| Change native app | `mobile/src/*` | `mobile/IOS_BUILD_NOTES.md`, typecheck/lint and actual Simulator flow |
 | Change deploy/CI | `.github/workflows/test.yml`, `PLAYBOOK.md` | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, GitHub secrets, Vercel alias |
 
 ## Do Not Edit Blindly

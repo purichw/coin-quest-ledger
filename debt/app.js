@@ -373,6 +373,7 @@ function accrueDragonsToDate(dragons, date) {
   let added = 0;
   let days = 0;
   const next = dragons.map(d => {
+    if (d.archived) return d;
     const res = PointyLogic.accrueDebtToDate(d, date);
     added += Number(res.interest) || 0;
     days = Math.max(days, Number(res.days) || 0);
@@ -462,6 +463,7 @@ function loadDebtState() {
 }
 function saveDebtState() {
   syncSlayerWithAccount();
+  S.strategy = SETTINGS.strategy || 'avalanche';
   try {
     if (window.PointyScope) window.PointyScope.setJSON(STORE_KEY, S);
     else localStorage.setItem(STORE_KEY, JSON.stringify(S));
@@ -638,7 +640,7 @@ function debtFreeLabel(months) {
   d.setMonth(d.getMonth() + Math.round(months));
   return d.toLocaleDateString(LANG === 'en' ? 'en-US' : 'th-TH', { month: 'short', year: '2-digit' });
 }
-function aliveDragons() { return S.dragons.filter(d => !d.slain && Number(d.balance) > .5); }
+function aliveDragons() { return S.dragons.filter(d => !d.archived && !d.slain && Number(d.balance) > .005); }
 function targetId() { return PointyLogic.strategyTarget(S.dragons, SETTINGS.strategy || 'avalanche'); }
 
 function renderStrikeForm(d) {
@@ -786,7 +788,8 @@ function renderLair() {
   const clearControls = S.dragons.length ? `<button class="btn-danger sm" onclick="clearLair()">🧹 ${tt('dd_clear_lair')}</button>` : '';
   return `<section class="panel lair-panel">
     <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2><div class="lair-actions">${endMonthControls}${clearControls}</div></div>
-    <div class="lair-grid">${S.dragons.length ? S.dragons.map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
+    <div class="lair-grid">${S.dragons.some(d => !d.archived) ? S.dragons.filter(d => !d.archived).map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
+    ${S.dragons.filter(d => d.archived).map(d => `<button type="button" class="btn-ghost" data-restore-dragon="${h(d.id)}">${LANG === 'th' ? 'นำกลับมา' : 'Restore'} · ${h(dragonName(d))}</button>`).join('')}
     ${ADD_OPEN ? `<article class="dragon-card"><div class="dc-name">${tt('dd_new')}</div>${renderDragonForm(ADD_FORM_DRAFT, 'add')}</article>` : `<button class="add-dragon" onclick="openAddDragon()"><span style="font-size:28px;line-height:1">＋</span><span>${tt('dd_add')}</span></button>`}</div>
   </section>`;
 }
@@ -929,7 +932,9 @@ function strikeDragon(id) {
   const date = document.getElementById(`strike-date-${id}`)?.value || todayISO();
   const move = document.querySelector(`[data-dragon-id="${CSS.escape(id)}"] .dc-move.on`)?.dataset.move || 'projectile';
   const ts = dateMsFromISO(date);
+  if (!Number.isFinite(ts) || ts < PointyLogic.dateOnlyMs(Math.max(Number(d.createdAt) || 0, Number(d.interestAccruedAt) || 0)) || ts > PointyLogic.dateOnlyMs(Date.now())) { toast('ตรวจวันที่ชำระ ต้องไม่ก่อนวันที่คิดดอกเบี้ยล่าสุดหรืออยู่ในอนาคต'); return; }
   const result = PointyLogic.applyDebtPayment(d, amount, ts);
+  if (amount > result.balanceBefore + .005) { toast('ยอดชำระมากกว่ายอดหนี้รวมดอกเบี้ย'); return; }
   if (result.applied <= 0) return;
   const row = {
     id: uid(),
@@ -1009,7 +1014,7 @@ function saveDragon(id) {
   const form = formPayload(`edit-${id}`);
   if (!form.name) return;
   const now = PointyLogic.dateOnlyMs(new Date());
-  S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, interestAccruedAt: now, slain: form.balance <= .5 ? d.slain : false } : d);
+  S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, interestAccruedAt: now, slain: form.balance <= .005, slainAt: form.balance <= .005 ? d.slainAt || Date.now() : null } : d);
   EDIT_OPEN = '';
   SFX.click();
   renderAll();
@@ -1135,35 +1140,16 @@ function saveLogEdit(id, logId) {
   const draft = EDIT_LOG_DRAFTS[logDraftKey(id, logId)] || {};
   const amountRaw = draft.amount ?? document.getElementById(`log-amt-${id}-${logId}`)?.value;
   const date = draft.date ?? document.getElementById(`log-date-${id}-${logId}`)?.value ?? todayISO();
-  const amount = Math.max(0, numInput(amountRaw));
-  S.dragons = S.dragons.map(d => {
-    if (d.id !== id) return d;
-    const old = (d.log || []).find(row => row.id === logId);
-    if (!old) return d;
-    const delta = amount - (Number(old.amount) || 0);
-    const log = (d.log || []).map(row => row.id === logId ? {
-      ...row,
-      amount,
-      date: dateShort(date),
-      ts: new Date(`${date}T00:00:00`).getTime()
-    } : row);
-    const balance = Math.max(0, Number(d.balance) - delta);
-    const slain = balance <= .5;
-    return { ...d, log, balance, slain, slainAt: slain ? (d.slainAt || Date.now()) : null };
-  });
+  const amount = numInput(amountRaw);
+  try { S.dragons = S.dragons.map(d => d.id === id ? PointyLogic.reviseDebtLog(d, { id: logId, amount, date }) : d); }
+  catch (error) { toast(error.message); return; }
   EDIT_LOG = {};
   EDIT_LOG_DRAFTS = {};
   renderAll();
 }
 function deleteStrikeLog(id, logId) {
-  S.dragons = S.dragons.map(d => {
-    if (d.id !== id) return d;
-    const old = (d.log || []).find(row => row.id === logId);
-    if (!old) return d;
-    const balance = Number(d.balance) + (Number(old.amount) || 0);
-    const slain = balance <= .5;
-    return { ...d, log: (d.log || []).filter(row => row.id !== logId), balance, slain, slainAt: slain ? d.slainAt : null };
-  });
+  try { S.dragons = S.dragons.map(d => d.id === id ? PointyLogic.reviseDebtLog(d, { id: logId, remove: true }) : d); }
+  catch (error) { toast(error.message); return; }
   EDIT_LOG = {};
   EDIT_LOG_DRAFTS = {};
   renderAll();
@@ -1215,6 +1201,7 @@ function linkDebtCharacter() {
 function setStrategy(strategy) {
   SETTINGS.strategy = strategy === 'snowball' ? 'snowball' : 'avalanche';
   saveSettings();
+  saveDebtState();
   SFX.click();
   renderAll(false);
 }
@@ -1251,7 +1238,7 @@ function reconcileAccrualOnOpen() {
   S.dragons = next;
   S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + added };
   ACCRUAL_NOTE = { n: days, days: true, added: Math.round(added) };
-  BREATHING = next.filter(d => !d.slain && Number(d.balance) > .5 && Number(d.apr) > 0).map(d => d.id);
+  BREATHING = next.filter(d => !d.slain && Number(d.balance) > .005 && Number(d.apr) > 0).map(d => d.id);
   SFX.roar();
   setTimeout(() => { BREATHING = []; ACCRUAL_NOTE = null; renderAll(false); }, 5000);
 }
@@ -1299,3 +1286,5 @@ Object.assign(window, {
 applySettings();
 reconcileAccrualOnOpen();
 renderAll(false);
+window.PointyModuleCloud?.register({ key: STORE_KEY, field: 'debt', empty: () => ({ dragons: [], stats: { interest: 0 } }), apply: value => { S = PointyLogic.normalizeDebtState({ ...value, dragons: value.dragons || [] }); SETTINGS.strategy = value.strategy || SETTINGS.strategy; syncSlayerWithAccount(); renderAll(false); } });
+document.getElementById('app').addEventListener('click', event => { const button = event.target.closest('[data-restore-dragon]'); if (!button) return; S.dragons = S.dragons.map(d => d.id === button.dataset.restoreDragon ? { ...d, archived: false } : d); renderAll(); });

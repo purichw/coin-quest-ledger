@@ -1,11 +1,8 @@
 (function () {
   const params = new URLSearchParams(window.location.search || '');
-  const host = window.location.hostname || '';
-  const isPrivateHost = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/.test(host)
-    || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(host)
-    || host.endsWith('.local');
-  const forceLocal = params.get('assets') === 'local'
-    || (params.get('test') === '1' && (window.location.protocol === 'file:' || isPrivateHost));
+  // Deploy the same versioned art used by native. The legacy CDN currently has
+  // missing objects; keep it an explicit QA option rather than a runtime dependency.
+  const forceLocal = params.get('assets') !== 'cloud';
   const manifest = window.POINTY_CLOUDINARY_ASSETS || {};
   const productionFallbacks = {
     'assets/rpg-portraits/tiderunner-classic-female.png': '/fallback-assets/tiderunner-classic-female.png',

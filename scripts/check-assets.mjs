@@ -39,6 +39,9 @@ const cloudinaryExpected = [
   'assets/icons/loot-chest.svg',
 ];
 const localFallbackExpected = [
+  ...cloudinaryExpected,
+  'assets/rpg-portraits/tiderunner-classic-female.png',
+  'assets/rpg-portraits/tiderunner-classic-male.png',
   'fallback-assets/tiderunner-classic-female.png',
   'fallback-assets/tiderunner-classic-male.png',
 ];
@@ -64,9 +67,9 @@ dragons.forEach(file => {
 });
 
 if (missing.length) {
-  console.error('Missing required Cloudinary asset(s):');
+  console.error('Missing required asset(s):');
   missing.forEach(file => console.error(`- ${file}`));
   process.exit(1);
 }
 
-console.log(`Checked ${cloudinaryExpected.length} Cloudinary assets and ${localFallbackExpected.length} production local fallback assets.`);
+console.log(`Checked ${localFallbackExpected.length} deployed local assets and ${cloudinaryExpected.length} optional CDN manifest entries.`);

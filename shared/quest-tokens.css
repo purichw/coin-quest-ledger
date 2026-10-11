@@ -1,0 +1,60 @@
+/* Coin Quest — parchment, evergreen and brass. Shared by player and admin UI. */
+:root, [data-theme="tavern"], body[data-theme="tavern"] {
+  --font-display: "Mitr", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
+  --font-stat: "Chakra Petch", monospace;
+  --bg: #f4f3ec;
+  --bg-glow: #f4f3ec;
+  --panel: #fffef9;
+  --panel-2: #eeefe6;
+  --panel-in: #ffffff;
+  --panel-sunk: #eeefe6;
+  --ink: #203c32;
+  --ink-soft: #637169;
+  --ink-faint: #68736b;
+  --border: #dce0d5;
+  --border-strong: #80917f;
+  --line: #e3e7dd;
+  --accent: #176a50;
+  --green: #176a50;
+  --green-d: #124f3c;
+  --gold: #85631b;
+  --gold-soft: #f2e8ca;
+  --hp: #ad4539;
+  --hp-bg: #f5e2dc;
+  --xp: #b38b32;
+  --danger: #ad4539;
+  --danger-soft: #f5e2dc;
+  --topbar: #183d30;
+  --topbar-ink: #fffaf0;
+  --sidebar: #eeefe6;
+  --shadow: 0 8px 28px -20px #203c322e;
+  --shadow-sm: 0 2px 8px #203c3208;
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+[data-theme="dungeon"], body[data-theme="dungeon"] {
+  --bg: #101d19;
+  --bg-glow: #101d19;
+  --panel: #1b2c25;
+  --panel-2: #263a30;
+  --panel-in: #15251e;
+  --ink: #f3f4e9;
+  --ink-soft: #b6c4b7;
+  --ink-faint: #a3b5a7;
+  --border: #3e5144;
+  --border-strong: #6b826f;
+  --line: #3e5144;
+  --accent: #80d3a3;
+  --green: #80d3a3;
+  --gold: #e5c67c;
+  --gold-soft: #3a3625;
+  --hp: #ffa393;
+  --hp-bg: #482e29;
+  --danger: #ffa393;
+  --danger-soft: #482e29;
+  --xp: #e5c67c;
+  --topbar: #101d19;
+  --topbar-ink: #f3f4e9;
+  --shadow: none;
+}

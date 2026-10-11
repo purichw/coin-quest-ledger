@@ -66,11 +66,13 @@
       window.dispatchEvent(new CustomEvent('pointy-board-invites-changed'));
       return invite;
     }
+    // Each invitation attempt is immutable; a new attempt never overwrites a response.
+    invite = { ...invite, id: `${invite.id}_${crypto.randomUUID()}` };
     await db.collection('users')
       .doc(invite.targetOwnerUid)
       .collection('boardInvites')
       .doc(invite.id)
-      .set(invite, { merge: true });
+      .set(invite);
     return invite;
   }
 
@@ -92,7 +94,34 @@
       return;
     }
     if (!account?.uid || !db) throw new Error('missing-account');
-    await db.collection('users').doc(account.uid).collection('boardInvites').doc(invite.id).set({ status, respondedAt: now }, { merge: true });
+    await respond({ inviteId: invite.id, status, account, db, now });
+  }
+
+  async function respond({ inviteId, status, account, db, mutateBoard, now = Date.now() }) {
+    if (!account?.uid || !db || !['accepted', 'declined', 'expired'].includes(status)) throw new Error('invalid-invite-response');
+    const ref = db.collection('users').doc(account.uid).collection('boardInvites').doc(inviteId);
+    return db.runTransaction(async tx => {
+      const user = await tx.get(db.collection('users').doc(account.uid));
+      const snap = await tx.get(ref);
+      const owner = user.data(), invite = snap.data();
+      const blocked = ['archived', 'deactivated', 'delete_requested', 'deleted'];
+      if (!user.exists || blocked.includes(owner.status) || blocked.includes(owner.lifecycleStatus)) throw new Error('account-blocked');
+      const characterId = owner.characterId || owner.character?.id;
+      if (!snap.exists || invite.targetOwnerUid !== account.uid || invite.targetCharacterId !== characterId || invite.status !== 'pending') throw new Error('invite-no-longer-pending');
+      const expired = timestampValue(invite.expiresAt) <= now;
+      if (expired !== (status === 'expired')) throw new Error('invite-expired');
+      if (status === 'accepted') {
+        const tripRef = db.collection('trips').doc(invite.tripId);
+        const trip = await tx.get(tripRef);
+        const hero = await tx.get(db.collection('characters').doc(characterId));
+        if (!trip.exists || trip.data().archived) throw new Error('board-unavailable');
+        if (!hero.exists || hero.data().ownerUid !== account.uid) throw new Error('character-owner-changed');
+        const next = mutateBoard(trip.data(), invite, { ...owner, uid: account.uid, character: { ...hero.data(), id: characterId } });
+        tx.set(tripRef, { ...next, updatedAt: window.PointyFirebase?.serverTimestamp?.() || now });
+      }
+      tx.update(ref, { status, respondedAt: now });
+      return invite.tripId;
+    });
   }
 
   function active(list, now = Date.now()) {
@@ -113,6 +142,7 @@
     create,
     loadForAccount,
     updateStatus,
+    respond,
     active
   };
 })();

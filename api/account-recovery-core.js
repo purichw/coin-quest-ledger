@@ -15,18 +15,26 @@ export function json(res, status, body) {
 }
 
 export function readBody(req) {
+  const parse = value => {
+    const raw = typeof value === 'string' || Buffer.isBuffer(value) ? String(value) : JSON.stringify(value);
+    if (Buffer.byteLength(raw || '') > 32_000) throw new Error('Request body too large.');
+    const body = raw ? JSON.parse(raw) : {};
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Expected a JSON object.');
+    return body;
+  };
+  if (req.body !== undefined) return Promise.resolve().then(() => parse(req.body));
   return new Promise((resolve, reject) => {
     let raw = '';
     req.on('data', chunk => {
       raw += chunk;
-      if (raw.length > 32_000) {
+      if (Buffer.byteLength(raw) > 32_000) {
         reject(new Error('Request body too large.'));
         req.destroy();
       }
     });
     req.on('end', () => {
       try {
-        resolve(raw ? JSON.parse(raw) : {});
+        resolve(parse(raw));
       } catch (_) {
         reject(new Error('Invalid JSON body.'));
       }
@@ -74,7 +82,7 @@ export async function adminDb() {
   return getFirestore();
 }
 
-export async function verifySuperAdminToken(req) {
+export async function verifySuperAdminToken(req, auth = null) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) {
     const error = new Error('Missing Firebase ID token.');
@@ -83,13 +91,13 @@ export async function verifySuperAdminToken(req) {
   }
   let decoded;
   try {
-    decoded = await (await adminAuth()).verifyIdToken(token);
+    decoded = await (auth || await adminAuth()).verifyIdToken(token, true);
   } catch (_) {
     const error = new Error('Invalid Firebase ID token.');
     error.status = 401;
     throw error;
   }
-  if (String(decoded.email || '').toLowerCase() !== SUPER_ADMIN_EMAIL || decoded.email_verified === false) {
+  if (String(decoded.email || '').toLowerCase() !== SUPER_ADMIN_EMAIL || decoded.email_verified !== true) {
     const error = new Error('This Gmail is not allowed to use Super Admin account tools.');
     error.status = 403;
     throw error;
@@ -118,6 +126,7 @@ export function recoveryHashFor(username, code) {
 }
 
 export function safeHashEqual(a, b) {
+  if (![a, b].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/i.test(value))) return false;
   const left = Buffer.from(String(a || ''), 'hex');
   const right = Buffer.from(String(b || ''), 'hex');
   return left.length > 0 && left.length === right.length && timingSafeEqual(left, right);
@@ -190,7 +199,11 @@ export function buildResetRecords({
     recoveryIssuedAt,
     updatedAt: timestamp
   };
-  if (deleteField !== undefined) usernameRecord.recoveryHash = deleteField;
+  if (deleteField !== undefined) {
+    usernameRecord.recoveryHash = deleteField;
+    userRecord.recoveryCode = deleteField;
+    userRecord.recoveryReset = deleteField;
+  }
   if (actor === 'admin') {
     usernameRecord.adminResetAt = recoveryIssuedAt;
     userRecord.adminResetAt = recoveryIssuedAt;
@@ -213,37 +226,23 @@ export function buildResetRecords({
   return { userRecord, usernameRecord, userIdRecord, characterId, characterPatch };
 }
 
-async function nextAvailableUserId(db, uid, preferred = '') {
-  const ids = [
-    String(preferred || '').replace(/\D/g, '').slice(0, 4),
-    publicUserIdFromUid(uid)
-  ].filter(id => /^\d{4}$/.test(id));
-  for (let i = 0; i < 16; i += 1) {
-    ids.push(String(Math.floor(1000 + Math.random() * 9000)));
-  }
-  for (const id of [...new Set(ids)]) {
-    const snap = await db.collection('userIds').doc(id).get().catch(() => null);
-    const data = snapData(snap);
-    if (!data || !data.uid || data.uid === uid || data.deleteReusable === true) return id;
-  }
-  return publicUserIdFromUid(uid);
-}
-
-async function upsertAuthUser(auth, { uid, username, authEmail, password, createSuffix }) {
+async function upsertAuthUser(auth, { uid, username, authEmail, password }) {
   if (uid) {
     try {
+      const current = await auth.getUser(uid);
+      if (current.disabled) throw Object.assign(new Error('Account is not active.'), { status: 403 });
       const user = await auth.updateUser(uid, {
         password,
-        displayName: username,
-        disabled: false
+        displayName: username
       });
       return { uid: user.uid, authEmail: user.email || authEmail, authAction: 'updated' };
     } catch (error) {
       if (error?.code !== 'auth/user-not-found') throw error;
     }
   }
-  const email = authEmail || authEmailForUsername(username, createSuffix || `r${Date.now().toString(36)}`);
+  const email = authEmail || authEmailForUsername(username);
   const user = await auth.createUser({
+    uid,
     email,
     password,
     displayName: username,
@@ -262,7 +261,7 @@ export async function resetAccountWithPassword({
   actor = 'player',
   actorEmail = '',
   actorUid = '',
-  createSuffix = ''
+  expectedRecoveryHash = ''
 }) {
   const clean = normalizeLookupUsername(username);
   if (!clean || String(password || '').length < 6) {
@@ -271,26 +270,42 @@ export async function resetAccountWithPassword({
     throw error;
   }
   const usernameRef = db.collection('usernames').doc(clean);
-  const usernameSnap = await usernameRef.get();
-  const oldMapping = snapData(usernameSnap) || {};
-  const oldUid = String(oldMapping.uid || '').trim();
-  const oldUserSnap = oldUid ? await db.collection('users').doc(oldUid).get() : null;
-  const oldUser = snapData(oldUserSnap) || {};
-  const currentEmail = String(oldMapping.authEmail || oldUser.email || authEmailForUsername(clean));
-  const authResult = await upsertAuthUser(auth, {
-    uid: oldUid,
-    username: clean,
-    authEmail: currentEmail,
-    password,
-    createSuffix
+  const { FieldValue } = await adminFirestoreModule();
+  const fail = (message, status = 409) => { throw Object.assign(new Error(message), { status }); };
+  const blocked = record => [record.status, record.lifecycleStatus].some(value => ['archived', 'deactivated', 'delete_requested', 'deleted'].includes(String(value || '').toLowerCase()));
+  const lock = { id: randomBytes(16).toString('hex'), expiresAt: Date.now() + 300_000 };
+  // Auth and Firestore cannot share a transaction. A bounded lease serializes
+  // resets; retaining the old hash until completion keeps failed resets retryable.
+  const state = await db.runTransaction(async tx => {
+    const oldMapping = snapData(await tx.get(usernameRef));
+    if (!oldMapping?.uid) fail('Account does not exist.', 404);
+    const uid = oldMapping.uid;
+    const userRef = db.collection('users').doc(uid);
+    const oldUser = snapData(await tx.get(userRef));
+    if (!oldUser || blocked(oldUser) || blocked(oldMapping)) fail('Account is not active.', 403);
+    if (oldUser.recoveryReset?.expiresAt > Date.now()) fail('A recovery is already in progress.');
+    if (actor !== 'admin' && !safeHashEqual(expectedRecoveryHash, oldUser.recoveryHash || oldMapping.recoveryHash)) fail('bad-recovery-code', 400);
+    const userId = String(oldUser.userId || oldMapping.userId || keepUserId);
+    if (!/^\d{4}$/.test(userId) || (oldMapping.userId && oldMapping.userId !== userId)) fail('Account identity needs repair.');
+    const reservation = snapData(await tx.get(db.collection('userIds').doc(userId)));
+    if (reservation?.uid && reservation.uid !== uid) fail('User ID belongs to another account.');
+    const characterId = String(oldUser.character?.id || oldUser.characterId || oldMapping.characterId || '');
+    if (characterId) {
+      const character = snapData(await tx.get(db.collection('characters').doc(characterId)));
+      if (!character || character.ownerUid !== uid) fail('Character ownership needs repair.');
+    }
+    tx.update(userRef, { recoveryReset: lock });
+    return { uid, userId, oldMapping, oldUser, userRef };
   });
+  const { uid: oldUid, userId, oldUser, oldMapping, userRef } = state;
+  try {
+  const currentEmail = String(oldMapping.authEmail || oldUser.email || authEmailForUsername(clean));
+  const authResult = await upsertAuthUser(auth, { uid: oldUid, username: clean, authEmail: currentEmail, password });
+  await auth.revokeRefreshTokens(oldUid);
   const issuedAt = Date.now();
   const recoveryCode = generateRecoveryCode();
   const recoveryHash = recoveryHashFor(clean, recoveryCode);
-  const { FieldValue } = await adminFirestoreModule();
   const timestamp = FieldValue.serverTimestamp();
-  const userId = String(oldUser.userId || oldMapping.userId || keepUserId || await nextAvailableUserId(db, authResult.uid)).replace(/\D/g, '').slice(0, 4)
-    || publicUserIdFromUid(authResult.uid);
   const records = buildResetRecords({
     uid: authResult.uid,
     username: clean,
@@ -306,11 +321,15 @@ export async function resetAccountWithPassword({
     actorEmail
   });
 
-  const batch = db.batch();
-  batch.set(db.collection('users').doc(authResult.uid), records.userRecord, { merge: true });
-  if (oldUid && oldUid !== authResult.uid) {
-    batch.delete(db.collection('users').doc(oldUid));
-  }
+  await db.runTransaction(async batch => {
+  const latest = snapData(await batch.get(userRef));
+  const mapping = snapData(await batch.get(usernameRef));
+  if (latest?.recoveryReset?.id !== lock.id || mapping?.uid !== oldUid || blocked(latest) || blocked(mapping)) fail('Account changed during recovery.');
+  // Only credentials are changed: profile edits made during recovery survive.
+  batch.update(userRef, { email: authResult.authEmail, recoveryHash, recoveryIssuedAt: issuedAt,
+    recoveryCode: FieldValue.delete(), recoveryReset: FieldValue.delete(), tempPasswordRequired: actor === 'admin',
+    updatedAt: timestamp, [actor === 'admin' ? 'adminResetAt' : 'recoveryResetAt']: issuedAt,
+    ...(actor === 'admin' ? { adminResetBy: actorEmail } : {}) });
   batch.set(usernameRef, records.usernameRecord, { merge: true });
   batch.set(db.collection('userIds').doc(userId), records.userIdRecord, { merge: true });
   if (records.characterPatch) {
@@ -330,7 +349,7 @@ export async function resetAccountWithPassword({
     status: 'completed',
     createdAt: timestamp
   });
-  await batch.commit();
+  });
   return {
     ok: true,
     username: clean,
@@ -343,4 +362,11 @@ export async function resetAccountWithPassword({
     recoveryIssuedAt: issuedAt,
     authAction: authResult.authAction
   };
+  } catch (error) {
+    await db.runTransaction(async tx => {
+      const latest = snapData(await tx.get(userRef));
+      if (latest?.recoveryReset?.id === lock.id) tx.update(userRef, { recoveryReset: FieldValue.delete() });
+    }).catch(() => {});
+    throw error;
+  }
 }

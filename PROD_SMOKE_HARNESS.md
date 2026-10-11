@@ -1,6 +1,6 @@
 # Production Smoke Harness
 
-Last updated: 2026-07-15
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -51,11 +51,13 @@ least-privilege smoke admin account and cleanup policy.
 
 ## Asset Contract
 
-Production `?test=1` routes must still use `shared/cloudinary-assets.js` for
-manifest-backed assets. Local assets are forced only on localhost/private-host
-test routes or when explicitly using `?assets=local`.
+Production and local routes use checked-in same-origin artwork by default,
+including `?test=1`. The release baseline found 404s in the old Cloudinary
+manifest, so `?assets=cloud` is now an explicit CDN diagnostic option only.
+`assets/` must be included in the Vercel upload. `npm run test:assets` verifies
+the required local files and that deploy exclusions do not remove them.
 
-The only production fallback assets outside Cloudinary are:
+Legacy CDN diagnostic fallbacks remain:
 
 - `fallback-assets/tiderunner-classic-female.png`
 - `fallback-assets/tiderunner-classic-male.png`

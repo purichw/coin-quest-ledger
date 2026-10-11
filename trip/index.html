@@ -14,48 +14,6 @@
   <link rel="stylesheet" href="/shared/profile-hub.css">
   <link rel="stylesheet" href="/shared/mobile-shell.css">
   <style>
-    :root {
-      --font-display: "Mitr", system-ui, sans-serif;
-      --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
-      --font-stat: "Chakra Petch", monospace;
-      --accent: #2f8f5b;
-      --bg: #e7dcc6;
-      --bg-glow: #f0e7d4;
-      --panel: #fbf6ea;
-      --panel-2: #f3e9d4;
-      --panel-in: #fffdf7;
-      --ink: #2f2515;
-      --ink-soft: #87745a;
-      --border: #ddc9a3;
-      --border-strong: #c9ad7c;
-      --gold: #c79320;
-      --gold-soft: #efe0b6;
-      --hp: #cf4633;
-      --hp-bg: #e7d3c6;
-      --xp: #d39a25;
-      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
-      --topbar: #2b2113;
-      --topbar-ink: #efe4cc;
-    }
-    [data-theme="dungeon"] {
-      --bg: #14121f;
-      --bg-glow: #221d36;
-      --panel: #221d33;
-      --panel-2: #2b2542;
-      --panel-in: #1a1628;
-      --ink: #ece8f8;
-      --ink-soft: #a39bc4;
-      --border: #3b3357;
-      --border-strong: #4a4170;
-      --gold: #ecc14e;
-      --gold-soft: #3a3050;
-      --hp: #ff5d70;
-      --hp-bg: #3a2740;
-      --xp: #ecc14e;
-      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
-      --topbar: #0e0c17;
-      --topbar-ink: #d9d2f0;
-    }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body {
@@ -687,8 +645,10 @@
     }
   </style>
   <link rel="stylesheet" href="/shared/player-controls.css">
+  <link rel="stylesheet" href="/shared/quest-tokens.css">
+  <link rel="stylesheet" href="/shared/quest-design.css">
 </head>
-<body>
+<body data-page="trip">
   <div class="first-load" data-first-load>
     <div class="first-load-box">
       <div class="first-load-emblem" aria-hidden="true">
@@ -737,7 +697,8 @@
       </div>
     </section>
 
-    <section class="panel">
+    <div class="ledger-workspace">
+    <section class="panel party-panel">
       <div class="panel-head">
         <h2 class="panel-title"><span>🎖️</span><span data-i18n="party">ปาร์ตี้ของคุณ</span></h2>
         <span class="count-pill" id="party-count">0</span>
@@ -745,7 +706,7 @@
       <div class="party-grid" id="party-grid"></div>
     </section>
 
-    <input type="file" id="import-input" accept=".xlsx,.xls" style="display:none">
+    <input type="file" id="import-input" accept=".xlsx,.json" style="display:none">
     <input type="file" id="receipt-camera-input" accept="image/*" capture="environment" style="display:none">
     <input type="file" id="receipt-library-input" accept="image/*" style="display:none">
     <div class="tools-row">
@@ -764,6 +725,7 @@
       <div id="entry-body"></div>
     </section>
 
+    </div>
     <div class="two-col">
       <section class="panel">
         <div class="panel-head">
@@ -791,8 +753,10 @@
   </main>
 
   <div class="toast" id="toast"></div>
-  <div class="quick-toggles" id="quick-toggles"></div>
-  <button class="settings-fab" type="button" data-action="settings" aria-label="Settings" title="Settings">⚙</button>
+  <div class="player-preferences" role="group" aria-label="Display and sound controls">
+    <div class="quick-toggles" id="quick-toggles"></div>
+    <button class="settings-fab" type="button" data-action="settings" aria-label="Settings" title="Settings">⚙</button>
+  </div>
   <div id="app-overlays"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>

@@ -13,6 +13,32 @@ function loadLogic() {
 
 const logic = loadLogic();
 
+test('legacy exact-share adjustment and settlement preserve satang amounts', () => {
+  const shares = logic.splitShares({ amount: 10.2, sharedBy: ['A', 'B'], split: { mode: 'exact', weights: { A: 5, B: 5 } } });
+  assert.equal(shares.A + shares.B, 10.2);
+  assert.deepEqual(plain(logic.settleUp([{ name: 'A', bal: -.3 }, { name: 'B', bal: .3 }])), [{ from: 'A', to: 'B', amount: .3 }]);
+});
+
+test('spreadsheet imports share native/web payer and exact-share validation and skip report totals', () => {
+  const e = logic.spreadsheetExpense('Meal', '100', 'Hero: 80.00; Guest: 20.00', 'Hero: 40.00; Guest: 60.00');
+  assert.doesNotThrow(() => logic.validateLedgerExpense(e, ['Hero', 'Guest']));
+  assert.deepEqual(plain(logic.splitShares(e)), { Hero: 40, Guest: 60 });
+  assert.equal(logic.spreadsheetExpense('Total', '100', '', ''), null);
+  assert.throws(() => logic.spreadsheetExpense('Meal', '100', 'Hero: 50; Hero: 50', 'Hero'));
+  assert.throws(() => logic.validateLedgerExpense({ ...e, amount: 120 }, ['Hero', 'Guest']));
+  assert.throws(() => logic.validateLedgerExpense({ ...e, split: { mode: 'unknown' } }, ['Hero', 'Guest']));
+});
+
+test('settlement confirmation survives reload, prevents duplicate rewards, and invalidates changed amounts', () => {
+  const state = logic.normalizeTripState({ participants: ['A', 'B'], expenses: [{ id: 'native-uuid', desc: 'meal', amount: 100, paidBy: 'A', sharedBy: ['A', 'B'] }] });
+  const saved = logic.confirmSettlement(state, 'B', 'A', 1000);
+  assert.equal(logic.pendingSettlements(logic.normalizeTripState(plain(saved))).length, 0);
+  assert.equal(saved.settleXp.B, logic.SETTLE_BONUS_PAYER);
+  assert.equal(logic.confirmSettlement(saved, 'B', 'A', 2000), saved);
+  const edited = { ...saved, expenses: [{ ...saved.expenses[0], amount: 200 }] };
+  assert.equal(logic.pendingSettlements(edited)[0].amount, 100);
+});
+
 function closeTo(actual, expected, delta = 0.000001) {
   assert.ok(Math.abs(actual - expected) <= delta, `${actual} should be close to ${expected}`);
 }
@@ -20,6 +46,40 @@ function closeTo(actual, expected, delta = 0.000001) {
 function plain(value) {
   return JSON.parse(JSON.stringify(value));
 }
+
+test('trip normalization preserves native and future metadata across web saves', () => {
+  const state = logic.normalizeTripState({
+    tripName: 'Shared board', participants: ['Hero'],
+    access: { ownerUids: ['owner'], memberUids: ['owner'], memberCharacterIds: ['1234'] },
+    expenseTrash: [{ id: 'removed', amount: 42 }], custom: { keep: true },
+    admin: { characterId: '1234', custom: 'keep' },
+    expenses: [{ id: 'e', desc: 'Food', amount: 100, paidBy: 'Hero', sharedBy: ['Hero'], custom: 'receipt-metadata' }],
+    campaigns: [{ id: 'c', custom: 'campaign-metadata' }]
+  });
+  assert.deepEqual(plain(state.access.ownerUids), ['owner']);
+  assert.equal(state.expenseTrash[0].id, 'removed');
+  assert.equal(state.custom.keep, true);
+  assert.equal(state.admin.custom, 'keep');
+  assert.equal(state.expenses[0].custom, 'receipt-metadata');
+  assert.equal(state.campaigns[0].custom, 'campaign-metadata');
+});
+
+test('Firestore boundary removes nested undefined without changing timestamps or zeroes', () => {
+  class Timestamp { toMillis() { return 123; } }
+  const timestamp = new Timestamp();
+  const out = logic.cleanFirestoreData({ absent: undefined, zero: 0, expenses: [{ split: undefined, amount: 0 }], timestamp });
+  assert.equal(Object.hasOwn(out, 'absent'), false);
+  assert.equal(Object.hasOwn(out.expenses[0], 'split'), false);
+  assert.equal(out.zero, 0);
+  assert.equal(out.timestamp, timestamp);
+});
+
+test('board conflict key is order-independent and catches concurrent content changes', () => {
+  const a = { participants: ['A'], access: { ownerUids: ['owner'] }, updatedAt: 1 };
+  const b = { updatedAt: 2, access: { ownerUids: ['owner'] }, participants: ['A'] };
+  assert.equal(logic.tripContentKey(a), logic.tripContentKey(b));
+  assert.notEqual(logic.tripContentKey(a), logic.tripContentKey({ ...b, participants: ['A', 'B'] }));
+});
 
 test('price ranking normalizes unit aliases and promotions', () => {
   const ranked = logic.rankOffers([

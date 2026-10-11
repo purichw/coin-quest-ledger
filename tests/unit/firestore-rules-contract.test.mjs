@@ -7,7 +7,8 @@ const rules = fs.readFileSync(path.join(process.cwd(), 'firestore.rules'), 'utf8
 
 test('Firestore rules do not expose trip or user records to anonymous public access', () => {
   assert.doesNotMatch(rules, /allow\s+read\s*,\s*write\s*:\s*if\s+true/);
-  assert.match(rules, /match\s+\/trips\/\{tripId\}\s*\{[\s\S]*allow\s+read,\s+create,\s+update:\s+if\s+request\.auth\s+!=\s+null/);
+  assert.match(rules, /match\s+\/trips\/\{tripId\}\s*\{[\s\S]*allow\s+read:\s+if\s+request\.auth\s+!=\s+null/);
+  assert.match(rules, /allow create, update: if isSuperAdmin\(\) \|\| activePlayer\(\)/);
   assert.match(rules, /match\s+\/users\/\{uid\}\s*\{[\s\S]*allow\s+get:\s+if\s+isOwner\(uid\)\s+\|\|\s+isSuperAdmin\(\)/);
   assert.match(rules, /allow\s+list:\s+if\s+isSuperAdmin\(\)/);
 });

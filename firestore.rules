@@ -3,12 +3,46 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isSuperAdmin() {
       return request.auth != null
-        && request.auth.token.email == 'purich.wc@gmail.com'
-        && request.auth.token.email_verified == true;
+        && request.auth.token.get('email', '') == 'purich.wc@gmail.com'
+        && request.auth.token.get('email_verified', false) == true;
     }
 
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    function activeRecord(data) {
+      return !(data.get('status', 'active') in ['archived', 'deactivated', 'delete_requested', 'deleted'])
+        && !(data.get('lifecycleStatus', 'active') in ['archived', 'deactivated', 'delete_requested', 'deleted']);
+    }
+
+    function activePlayer() {
+      return request.auth != null
+        && activeRecord(get(/databases/$(database)/documents/users/$(request.auth.uid)).data);
+    }
+
+    function keepsLifecycle() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'status', 'lifecycleStatus', 'deleteReusable', 'deletedAt', 'deletedBy', 'recoveryReset'
+      ]);
+    }
+
+    function ownsCharacter(data, uid) {
+      let id = data.get('characterId', '');
+      let embedded = data.get('character', null);
+      return (embedded == null || embedded.get('id', '') == id)
+        && (id == '' || getAfter(/databases/$(database)/documents/characters/$(id)).data.ownerUid == uid);
+    }
+
+    function ownsIdentity(data, uid) {
+      return getAfter(/databases/$(database)/documents/usernames/$(data.username)).data.uid == uid
+        && getAfter(/databases/$(database)/documents/userIds/$(data.userId)).data.uid == uid;
+    }
+
+    function keepsCharacterId() {
+      let embedded = resource.data.get('character', null);
+      let previous = resource.data.get('characterId', embedded == null ? '' : embedded.get('id', ''));
+      return previous == '' || request.resource.data.get('characterId', '') == previous;
     }
 
     function createsNoRawRecoverySecret() {
@@ -30,16 +64,22 @@ service cloud.firestore {
     }
 
     match /trips/{tripId} {
-      allow read, create, update: if request.auth != null;
+      // Legacy boards support signed-in link joining and have no complete ACL.
+      allow read: if request.auth != null;
+      allow create, update: if isSuperAdmin() || activePlayer();
       allow delete: if isSuperAdmin();
     }
 
     match /characters/{characterId} {
       allow read: if true;
-      allow create: if request.auth != null
-        && (isSuperAdmin() || request.resource.data.ownerUid == request.auth.uid);
-      allow update: if request.auth != null
-        && (isSuperAdmin() || (
+      allow create: if isSuperAdmin() || (activePlayer()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.id == characterId
+        && characterId.matches('^[0-9]{4}$')
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userId == characterId
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.characterId == characterId);
+      allow update: if isSuperAdmin() || (activePlayer()
+        && (
           resource.data.ownerUid == request.auth.uid
           && request.resource.data.ownerUid == resource.data.ownerUid
         ));
@@ -49,22 +89,44 @@ service cloud.firestore {
     match /users/{uid} {
       allow get: if isOwner(uid) || isSuperAdmin();
       allow list: if isSuperAdmin();
-      allow create: if (isOwner(uid) || isSuperAdmin()) && createsNoRawRecoverySecret();
-      allow update: if (isOwner(uid) || isSuperAdmin()) && updatesNoRawRecoverySecret();
+      allow create: if (isSuperAdmin() || (isOwner(uid)
+        && activeRecord(request.resource.data)
+        && request.resource.data.uid == uid
+        && request.resource.data.userId.matches('^[0-9]{4}$')
+        && ownsIdentity(request.resource.data, uid)
+        && !request.resource.data.keys().hasAny(['recoveryReset'])
+        && ownsCharacter(request.resource.data, uid))) && createsNoRawRecoverySecret();
+      allow update: if (isSuperAdmin() || (isOwner(uid) && activeRecord(resource.data)
+        && keepsLifecycle()
+        && resource.data.get('recoveryReset', {}).get('expiresAt', 0) <= request.time.toMillis()
+        && request.resource.data.uid == uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.username == resource.data.username
+        && keepsCharacterId()
+        && ownsCharacter(request.resource.data, uid))) && updatesNoRawRecoverySecret();
       allow delete: if isSuperAdmin();
 
       match /boardInvites/{inviteId} {
         allow read: if isOwner(uid) || isSuperAdmin();
-        allow create: if request.auth != null
+        allow create: if activePlayer()
           && request.resource.data.targetOwnerUid == uid
+          && request.resource.data.inviterUid == request.auth.uid
+          && get(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.get('archived', false) == false
+          && get(/databases/$(database)/documents/characters/$(request.resource.data.targetCharacterId)).data.ownerUid == uid
+          && request.resource.data.expiresAt > request.time.toMillis()
+          && request.resource.data.expiresAt <= request.time.toMillis() + 86460000
           && request.resource.data.status == 'pending';
         allow update: if isSuperAdmin() || (
-          request.auth != null
+          activePlayer()
           && request.auth.uid == uid
           && resource.data.targetOwnerUid == uid
           && request.resource.data.targetOwnerUid == resource.data.targetOwnerUid
           && request.resource.data.tripId == resource.data.tripId
           && request.resource.data.targetCharacterId == resource.data.targetCharacterId
+          && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+          && ((request.resource.data.status in ['accepted', 'declined'] && resource.data.expiresAt > request.time.toMillis())
+            || (request.resource.data.status == 'expired' && resource.data.expiresAt <= request.time.toMillis()))
         );
         allow delete: if isSuperAdmin();
       }
@@ -72,19 +134,24 @@ service cloud.firestore {
 
     match /usernames/{username} {
       allow get: if true;
-      allow list: if false;
-      allow create: if ((request.auth != null && request.resource.data.uid == request.auth.uid) || isSuperAdmin())
+      allow list: if isSuperAdmin();
+      allow create: if ((request.auth != null && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username
+        && activeRecord(request.resource.data)) || isSuperAdmin())
         && createsNoPublicRecoveryHash();
       allow update: if (isSuperAdmin() || (
           request.auth != null
           && (
             (
               resource.data.uid == request.auth.uid
+              && activePlayer() && activeRecord(resource.data) && activeRecord(request.resource.data)
+              && request.resource.data.userId == resource.data.userId
               && request.resource.data.uid == resource.data.uid
             )
             || (
               resource.data.deleteReusable == true
               && resource.data.lifecycleStatus == 'deleted'
+              && resource.data.get('previousUid', '') != request.auth.uid
               && request.resource.data.uid == request.auth.uid
               && request.resource.data.username == resource.data.username
               && request.resource.data.userId == resource.data.userId
@@ -100,17 +167,22 @@ service cloud.firestore {
       allow list: if false;
       allow create: if request.auth != null
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.userId == userId;
+        && request.resource.data.userId == userId
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.userId == userId
+        && activeRecord(request.resource.data);
       allow update: if isSuperAdmin() || (
         request.auth != null
         && (
           (
             resource.data.uid == request.auth.uid
+            && activePlayer() && activeRecord(resource.data) && activeRecord(request.resource.data)
+            && request.resource.data.userId == resource.data.userId
             && request.resource.data.uid == resource.data.uid
           )
           || (
             resource.data.deleteReusable == true
             && resource.data.lifecycleStatus == 'deleted'
+            && resource.data.get('previousUid', '') != request.auth.uid
             && request.resource.data.uid == request.auth.uid
             && request.resource.data.userId == resource.data.userId
           )
@@ -120,7 +192,10 @@ service cloud.firestore {
     }
 
     match /playerModules/{uid} {
-      allow read, create, update: if isOwner(uid) || isSuperAdmin();
+      allow read: if isOwner(uid) || isSuperAdmin();
+      allow create, update: if isSuperAdmin() || (isOwner(uid) && activePlayer()
+        && request.resource.data.uid == uid
+        && ownsCharacter(request.resource.data, uid));
       allow delete: if isSuperAdmin();
     }
 

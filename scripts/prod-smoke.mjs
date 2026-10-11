@@ -156,7 +156,6 @@ async function assertRoute(page, route) {
 }
 
 async function browserSmoke() {
-  await fs.rm(outDir, { recursive: true, force: true });
   await fs.mkdir(outDir, { recursive: true });
   const browser = await chromium.launch();
   const allFailures = [];

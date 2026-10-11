@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-07-14
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -61,7 +61,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 - Files: `debt/index.html`, `debt/app.js`
 - Route: `/debt/`
-- Local-first debt payoff game/tool using `localStorage`.
+- Debt payoff game/tool using account-scoped `localStorage` with the owner Firestore bridge in `shared/module-cloud.js`.
 - Shares theme, profile hub, mobile shell, and character registry concepts.
 - Uses daily interest accrual for the live ledger: each dragon tracks
   `interestAccruedAt`; strikes accrue interest to the payment date before
@@ -72,7 +72,7 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 - Files: `treasury/index.html`, `treasury/app.js`
 - Route: `/treasury/`
-- Local treasury ledger/tool using `localStorage`.
+- Treasury ledger/tool using account-scoped `localStorage` with the owner Firestore bridge in `shared/module-cloud.js`.
 - Shares theme, profile hub, and mobile shell.
 
 ### Character Profile
@@ -98,14 +98,18 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ### Native Player App
 
-- Files: `mobile/`
-- Runtime: Expo / React Native, currently iOS-first.
-- Scope: player side only, not Admin and not a WebView wrapper.
-- Current state: committed in `75874f3` as an Expo SDK 56 TypeScript app wired to the shared production backend for player identity, character/profile, Split, and native player modules. It includes real username/password Sign In and Sign Up, Recovery ID creation/regeneration, one-time Character Creation, Home Hub, Split board selection, Firestore board creation, equal-split expense creation, Debt Dragon, Treasury, Compare, Profile sheet, and Character page.
-- Persistence/auth: uses the same Firebase project as the web app. Username/password maps to internal `username@coinquest.local`; `users/{uid}`, `usernames/{username}`, `characters/{id}`, `trips/{id}`, and `playerModules/{uid}` are the native runtime contracts.
-- `playerModules/{uid}` is native-owned Firestore state for Debt Dragon, Treasury, and Compare. This keeps native dynamic without pretending the browser localStorage stores for those web modules have already been migrated.
-- Build/install reality: generated `ios/` and `android/` folders are ignored and should be regenerated locally with Expo prebuild when needed. The first physical Release install succeeded on iPhone `Pointy` with bundle `com.purichwc.coinquestledger` using an Apple Development profile for team `365NSPNKXD`.
-- Verification: from `mobile/`, `npm run typecheck` passes and `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export-github` passes. Root `npm test` passed on rerun (`65 passed`, `4 skipped`) before `75874f3` was pushed/deployed. See `mobile/IOS_BUILD_NOTES.md` for the full device build/install runbook and pitfalls.
+**2026-10-12 rebuild:** Expo SDK 57 / React Native 0.86 / Expo Router, native
+player UI with the existing Coin Quest brand and website fonts. The previous
+82-file app was retired with user approval; see `docs/rollback-parking-lot.md`.
+
+- `mobile/src/auth/`: Firebase username/password sessions, provisioning, recovery.
+- `mobile/src/character/` and `src/player/`: character, Home, profile, progression and reminders.
+- `mobile/src/ledger/`: transactional Party Ledger, invitations, campaigns and file workflows.
+- `mobile/src/modules/`: Debt Dragon, Treasury, Price Arena and backup/restore.
+- `mobile/src/domain/canon.ts` imports `shared/pointy-logic.js` directly; no native-only financial or XP formula fork.
+- Both clients share account/character/trip records and owner-scoped `playerModules/{uid}`. The new web bridge preserves legacy browser drafts with an explicit conflict choice and backups.
+- Actual own-binary iPhone 17 Pro / iOS 26.5 Simulator flows and local-web/live-Firebase round trips are recorded in `docs/mobile-completion-worklist.md`. Source checks and browser tests supplement this native evidence.
+- No Admin native screens. Native distribution is separate from the web/API release; no Android, physical-device or Store release claim.
 
 ## Shared Modules
 
@@ -170,11 +174,12 @@ Normal mode:
 - `userIds/{userId}`: low-detail public User ID reservation used for collision
   checks without querying private `users/{uid}` records.
 - `characters/{id}`: character records.
-- `playerModules/{uid}`: native-owned dynamic state for Debt Dragon, Treasury, and Compare.
+- `playerModules/{uid}`: owner-scoped shared state for Debt Dragon, Treasury, and Compare; web connection uses `shared/module-cloud.js` with conflict detection and local backups.
 - `adminRevisions/{id}`: Super Admin publish logs.
 - `users/{uid}/boardInvites/{inviteId}`: pending/responded board invites for real-character additions.
 
-`firestore.rules` is the repository copy of the deployed rules. It keeps the
+`firestore.rules` is the intended Rules source; Firebase deployment is separate
+from Vercel and must be verified for each release. It keeps the
 current real-account loop usable, includes a Super Admin helper for the
 allowlisted Gmail `purich.wc@gmail.com`, makes `trips/{id}` signed-in-only,
 restricts `users/{uid}` to owner/Super Admin access, blocks new raw Recovery ID
@@ -248,10 +253,10 @@ Firebase rules deploy, and rollback steps.
 
 Native iOS build/install flow is intentionally separate from Vercel production. Before building for a real iPhone, verify both:
 
-- Claude Design parity: compare the relevant native screens against the fresh iOS/Android Claude exports and fix obvious spacing/chrome/content mismatches before install.
+- Design parity: follow the approved brand/mobile redesign in `mobile/DESIGN_DIRECTION.md` and inspect actual native screens. Do not claim an absent historical export was verified.
 - Backend parity: sign in or create a real Firebase test account and verify Firestore-backed account, character, Split, Debt Dragon, Treasury, and Compare flows are dynamic.
 
-Then follow `mobile/IOS_BUILD_NOTES.md` for `expo export`, `xcodebuild`, `devicectl install`, and `devicectl launch`.
+Then follow `mobile/IOS_BUILD_NOTES.md` for native build, Simulator installation and interaction. Physical-device signing/distribution is a separate release gate.
 
 ## Hard Invariants
 

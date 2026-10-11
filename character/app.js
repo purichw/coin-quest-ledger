@@ -424,11 +424,12 @@ function renderProfile(profile) {
   const c = copy();
   const colors = classColors(profile.class);
   const rewardTitle = profile.reward.title?.[LANG] || profile.reward.title?.th || '';
-  const store = profileStore();
+  const store = profile.activity || profileStore();
   const account = accountStore();
   const trophies = trophyList(profile);
   const got = trophies.filter(item => item.unlocked).length;
   const debtXp = Number(profile.record?.debtXp) || 0;
+  const metrics = profile.moduleProgress;
   document.body.classList.toggle('money-hidden', hideMoney);
   document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap">
     <section class="banner" style="background:radial-gradient(125% 100% at 50% 8%, oklch(0.5 0.16 ${colors.hue}), oklch(0.17 0.07 ${colors.hue}) 88%)">
@@ -491,26 +492,26 @@ function renderProfile(profile) {
       <div class="mod" style="--mc:#c0492f">
         <div class="mod-h">&#128009; ${h(c.mDD)}</div>
         <div class="mod-stats">
-          ${stat(debtXp > 0 ? 1 : 0, c.slain)}
+          ${stat(metrics?.slain ?? '—', c.slain)}
           ${stat(debtXp, 'XP')}
-          ${stat(moneyText(Math.max(0, debtXp)), c.reclaimed, true)}
-          ${stat(0, c.live)}
+          ${stat(metrics ? moneyText(metrics.reclaimed) : '—', c.reclaimed, true)}
+          ${stat(metrics?.liveDragons ?? '—', c.live)}
         </div>
       </div>
       <div class="mod" style="--mc:#3a6fd0">
         <div class="mod-h">&#9878;&#65039; ${h(c.mPA)}</div>
         <div class="mod-stats">
-          ${stat(0, c.showdowns)}
-          ${stat(0, c.merchants)}
-          ${stat('0%', c.deal)}
+          ${stat(metrics?.showdowns ?? '—', c.showdowns)}
+          ${stat(metrics?.merchants ?? '—', c.merchants)}
+          ${stat(metrics ? `${metrics.bestRescue}%` : '—', c.deal)}
         </div>
       </div>
       <div class="mod" style="--mc:#caa033">
         <div class="mod-h">&#127974; ${h(c.mTR)}</div>
         <div class="mod-stats">
-          ${stat(0, c.months)}
-          ${stat(0, c.tlog)}
-          ${stat(0, c.disc)}
+          ${stat(metrics?.monthsWon ?? '—', c.months)}
+          ${stat(metrics?.trLogged ?? '—', c.tlog)}
+          ${stat(metrics?.treasuryReputation ?? '—', c.disc)}
         </div>
       </div>
     </section>
@@ -550,8 +551,19 @@ async function boot() {
   if (!CHARACTER_ID || CHARACTER_ID.length !== 4) { renderSearch(); return; }
   document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap"><section class="search-card"><h1>${h(t('profile_loading'))}</h1><div class="sub">${h(t('profile_loading_sub'))}</div></section></main>`;
   try {
+    if (!TEST_MODE) {
+      initFirebase();
+      const user = await new Promise((resolve, reject) => { const unsubscribe = firebase.auth().onAuthStateChanged(value => { unsubscribe(); resolve(value); }, reject); });
+      if (!user) { renderSearch(LANG === 'en' ? 'Sign in from Home to open profiles.' : 'เข้าสู่ระบบจากหน้าหลักก่อนเปิดโปรไฟล์'); return; }
+    }
     const [record, boards] = await Promise.all([loadCharacterRecord(CHARACTER_ID), loadBoards()]);
     const profile = PointyLogic.buildCharacterProfile(CHARACTER_ID, boards, record, { lang: LANG, boardFallback: LANG === 'en' ? 'Untitled board' : 'บอร์ดไม่มีชื่อ' });
+    if (!TEST_MODE && record.ownerUid === firebase.auth().currentUser?.uid) {
+      const uid = record.ownerUid; const [modules, user] = await Promise.all([freshFirestoreGet(firebase.firestore().collection('playerModules').doc(uid)), freshFirestoreGet(firebase.firestore().collection('users').doc(uid))]);
+      const data = modules.data() || {};
+      profile.activity = user.data()?.activity || profileStore();
+      profile.moduleProgress = PointyLogic.playerProgress(boards, { id: CHARACTER_ID, name: record.name }, { debt: PointyLogic.normalizeDebtState({ dragons: [], ...(data.debt || {}) }), treasury: data.treasury || {}, comparisons: data.comparisons || [] }, { streak: profile.activity.streak });
+    }
     if (!record.name && !profile.boards.length) { renderSearch(t('profile_not_found', { id: CHARACTER_ID })); return; }
     renderProfile(profile);
   } catch (err) {

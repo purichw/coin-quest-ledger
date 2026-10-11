@@ -47,17 +47,39 @@ function waitForTripAuth() {
     setTimeout(() => finish(auth.currentUser || null), 2500);
   });
 }
+const tripReadBaselines = new Map();
+let tripWriteQueue = Promise.resolve();
 const TripStore = {
   async read() {
     const user = await waitForTripAuth();
     if (!TEST_MODE && !user) return { exists: false, data: () => null };
-    return freshFirestoreGet(tripRef);
+    const snap = await freshFirestoreGet(tripRef);
+    if (!TEST_MODE) tripReadBaselines.set(tripId, snap.exists ? PointyLogic.tripContentKey(snap.data()) : null);
+    return snap;
   },
   async write(state) {
     const user = await waitForTripAuth();
     if (!TEST_MODE && !user) throw new Error('auth-required');
-    const updatedAt = TEST_MODE ? Date.now() : firebase.firestore.FieldValue.serverTimestamp();
-    return tripRef.set({ ...state, access: tripAccessMetadata(state), updatedAt });
+    const ref = tripRef, boardId = tripId;
+    const copy = PointyLogic.cleanFirestoreData({ ...state, access: tripAccessMetadata(state) });
+    if (TEST_MODE) return ref.set({ ...copy, updatedAt: Date.now() });
+    const save = async () => {
+      let committed;
+      await firebase.firestore().runTransaction(async transaction => {
+        if (window.PointyFirebase.auth()?.currentUser?.uid !== user.uid) throw new Error('auth-required');
+        const current = await transaction.get(ref);
+        const live = current.exists ? current.data() : {};
+        if (current.exists && tripReadBaselines.get(boardId) !== PointyLogic.tripContentKey(live)) {
+          throw new Error(LANG === 'en' ? 'This board changed on another device. Reload before saving.' : 'บอร์ดถูกแก้ไขจากอีกเครื่อง กรุณาโหลดใหม่ก่อนบันทึก');
+        }
+        committed = { ...live, ...copy };
+        transaction.set(ref, { ...committed, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+      tripReadBaselines.set(boardId, PointyLogic.tripContentKey(committed));
+    };
+    const result = tripWriteQueue.then(save, save);
+    tripWriteQueue = result.catch(() => {});
+    return result;
   }
 };
 
@@ -201,24 +223,8 @@ function ppCRC16(data) {
   }
   return crc.toString(16).toUpperCase().padStart(4, "0");
 }
-function promptPayPayload(target, amount) {
-  const digits = String(target || "").replace(/[^0-9]/g, "");
-  let acct;
-  if (digits.length === 13) acct = ppTLV("02", digits);
-  else if (digits.length === 15) acct = ppTLV("03", digits);
-  else { let m = digits; if (m.length === 10 && m[0] === "0") m = m.slice(1); acct = ppTLV("01", "0066" + m); }
-  const merchant = ppTLV("29", ppTLV("00", "A000000677010111") + acct);
-  const amt = amount > 0 ? ppTLV("54", Number(amount).toFixed(2)) : "";
-  const payload =
-    ppTLV("00", "01") +
-    ppTLV("01", amount > 0 ? "12" : "11") +
-    merchant +
-    ppTLV("58", "TH") +
-    ppTLV("53", "764") +
-    amt +
-    "6304";
-  return payload + ppCRC16(payload);
-}
+function promptPayPayload(target, amount) { return PointyLogic.promptPayPayload(target, amount); }
+
 function fmtPP(v) {
   const d = (v || "").replace(/[^0-9]/g, "");
   if (d.length === 10) return d.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3");
@@ -249,6 +255,9 @@ function adminSessionKey() { return `pointy_admin_unlocked_${tripId}`; }
 function adminLockKey() { return `pointy_admin_locked_${tripId}`; }
 function ownerSessionKey(id = tripId) { return `pointy_admin_owner_${id}`; }
 function hasCreatorAdmin() {
+  // Account ownership also works across native/web clients without a browser token.
+  const user = !TEST_MODE && window.PointyFirebase?.auth?.()?.currentUser;
+  if (user && Array.isArray(S.access?.ownerUids) && S.access.ownerUids.includes(user.uid)) return true;
   if (!S.admin?.ownerHash) return false;
   const token = sessionStorage.getItem(ownerSessionKey()) || localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
   return !!(token && ownerHash(token) === S.admin.ownerHash);
@@ -354,11 +363,20 @@ async function createBoardInvite(rec) {
   });
   return window.PointyBoardInvites.create({ invite, testMode: TEST_MODE, db: firebase.firestore() });
 }
-function persistCharacterRecord(rec) {
+function persistCharacterRecord(rec, sourceTripId = '') {
   _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry, [rec.id]: rec };
   writeLocalRegistry(_characterRegistry);
   if (!TEST_MODE) {
-    firebase.firestore().collection('characters').doc(rec.id).set({ ...rec, updatedAt: Date.now() }, { merge: true }).catch(err => {
+    const db = firebase.firestore(); const ref = db.collection('characters').doc(rec.id);
+    db.runTransaction(async tx => {
+      const snap = await tx.get(ref); const fresh = snap.data() || {};
+      const trips = sourceTripId ? { ...(fresh.trips || {}), [sourceTripId]: Number(rec.trips?.[sourceTripId]) || 0 } : { ...(fresh.trips || {}), ...(rec.trips || {}) };
+      const debtXp = Number(fresh.debtXp ?? rec.debtXp) || 0;
+      // Ledger labels are historical. They must not undo an owned character's
+      // newer name or appearance saved in the profile on another client.
+      const identity = sourceTripId && fresh.ownerUid ? { name: fresh.name, class: fresh.class, gender: fresh.gender, skin: fresh.skin || '' } : {};
+      tx.set(ref, PointyLogic.cleanFirestoreData({ ...fresh, ...rec, ...identity, trips, debtXp, xp: Object.values(trips).reduce((sum, xp) => sum + (Number(xp) || 0), 0) + debtXp, createdAt: fresh.createdAt || rec.createdAt || Date.now(), updatedAt: Date.now() }), { merge: true });
+    }).catch(err => {
       console.warn('Character registry save failed', rec.id, err);
     });
   }
@@ -568,7 +586,7 @@ function syncCharacterRegistry(party) {
     rec.trips = { ...(rec.trips || {}), [tripId]: Math.max(0, Math.round(hero.xp - base)) };
     rec.xp = Object.values(rec.trips).reduce((sum, xp) => sum + (Number(xp) || 0), 0);
     rec.updatedAt = Date.now();
-    if (before !== JSON.stringify(rec)) persistCharacterRecord(rec);
+    if (before !== JSON.stringify(rec)) persistCharacterRecord(rec, tripId);
   });
 }
 function normalizeClass(cls) { return PointyLogic.normalizeClass(cls); }
@@ -752,6 +770,9 @@ function snapshotCampaign(extra = {}) {
     guestHeroes: { ...(S.guestHeroes || {}) },
     promptpay: { ...(S.promptpay || {}) },
     settleXp: { ...S.settleXp },
+    settlementRecords: [...(S.settlementRecords || [])],
+    expenseTrash: [...(S.expenseTrash || [])],
+    removedMembers: [...(S.removedMembers || [])],
     createdAt: activeCampaign()?.createdAt || Date.now(),
     completedAt: activeCampaign()?.completedAt || null,
     ...extra
@@ -770,6 +791,7 @@ function profileCampaignSnapshot(c) {
     characterIds: { ...(c.characterIds || {}) },
     guestHeroes: { ...(c.guestHeroes || {}) },
     settleXp: { ...(c.settleXp || {}) },
+    settlementRecords: [...(c.settlementRecords || [])],
     createdAt: c.createdAt || null,
     completedAt: c.completedAt || null
   };
@@ -786,6 +808,7 @@ function profileSnapshotState() {
     characterIds: { ...S.characterIds },
     guestHeroes: { ...(S.guestHeroes || {}) },
     settleXp: { ...S.settleXp },
+    settlementRecords: [...(S.settlementRecords || [])],
     admin: { ...(S.admin || {}) },
     activeCampaignId: S.activeCampaignId,
     campaigns: (S.campaigns || []).map(profileCampaignSnapshot)
@@ -813,6 +836,9 @@ function applyCampaign(c) {
   S.guestHeroes = { ...(c.guestHeroes || {}) };
   S.promptpay = { ...(c.promptpay || {}) };
   S.settleXp = { ...(c.settleXp || {}) };
+  S.settlementRecords = [...(c.settlementRecords || [])];
+  S.expenseTrash = [...(c.expenseTrash || [])];
+  S.removedMembers = [...(c.removedMembers || [])];
 }
 function syncActiveCampaign(extra = {}) {
   S.campaigns ||= [];
@@ -879,6 +905,7 @@ async function writeState() {
   } catch (err) {
     console.error('Save failed', err);
     setSaveStatus('error', t('status_save_err'));
+    if (String(err?.message || '').includes('Reload before saving') || String(err?.message || '').includes('โหลดใหม่ก่อนบันทึก')) toast(err.message);
   }
 }
 function applySettings() {
@@ -2035,7 +2062,9 @@ function addExpense() {
   save(); renderAll(); toast(t('success_added'));
 }
 function deleteExpense(id) {
-  S.expenses = S.expenses.filter(e => e.id !== id);
+  const removed = S.expenses.filter(e => String(e.id) === String(id));
+  S.expenseTrash = [...(S.expenseTrash || []), ...removed];
+  S.expenses = S.expenses.filter(e => String(e.id) !== String(id));
   _settledTx = [];
   save(); renderAll();
 }
@@ -2078,15 +2107,13 @@ function renderLog(party) {
         </div>
       </div>
       <div class="qr-right"><div class="qr-amt">${money(e.amount)}</div>${generosityXp ? `<div class="qr-xp">+${generosityXp} ${t('xp')}</div>` : ''}</div>
-      <button class="qr-del" onclick="deleteExpense(${e.id})">×</button>
+      <button class="qr-del" onclick="deleteExpense(${q(e.id)})">×</button>
     </div>`;
   }).join('')}<div class="log-total"><span>${t('party_gold')}</span><strong>${money(total)}</strong></div></div>`;
 }
 function setSettleView(view) { S.settings.settleView = view; save(); renderSettlement(computeParty()); }
 function settleOne(key, from, to) {
-  _settledTx.push(key);
-  S.settleXp[from] = (Number(S.settleXp[from]) || 0) + SETTLE_BONUS_PAYER;
-  S.settleXp[to] = (Number(S.settleXp[to]) || 0) + SETTLE_BONUS_PAYEE;
+  S = PointyLogic.confirmSettlement(S, from, to);
   SFX.heal();
   save(); renderAll();
 }
@@ -2119,7 +2146,7 @@ function renderSettlement(party) {
   document.getElementById('settle-map-btn').classList.toggle('on', S.settings.settleView === 'map');
   const el = document.getElementById('settle-body');
   if (!S.expenses.length || party.length < 2) { el.innerHTML = `<div class="empty">${t('no_quests')}</div>`; return; }
-  const txns = settleUp(party).filter(tx => !_settledTx.includes(tx.from + '>' + tx.to));
+  const txns = PointyLogic.pendingSettlements(S);
   if (!txns.length) {
     el.innerHTML = `<div class="settled"><div class="emoji">🛡️✨</div><div class="title">${t('settled_msg')}</div><div class="sub">${t('rest_msg')}</div></div>`;
     return;
@@ -2518,7 +2545,7 @@ function renderOverlay() {
       <div class="picker-head"><div><div class="picker-title">📥 ${t('import_scroll')}</div><div class="picker-sub">${t('import_scroll_hint')}</div></div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
       <textarea id="import-text" class="import-area" placeholder="${h(t('import_scroll_placeholder'))}" oninput="updateImportCount()"></textarea>
       <div id="import-count" class="import-count">${t('import_parsed_count', { n: 0 })}</div>
-      <div class="import-actions"><button class="btn-ghost" onclick="closeOverlay();triggerImport()">📊 ${t('import_excel_btn')}</button><button class="btn-primary" onclick="importTextItems()">📥 ${t('import_text_btn')}</button></div>
+      <div class="import-actions"><button class="btn-ghost" onclick="closeOverlay();triggerImport()">📊 ${t('import_excel_btn')} / JSON</button><button class="btn-primary" onclick="importTextItems()">📥 ${t('import_text_btn')}</button></div>
     </div></div>`;
     return;
   }
@@ -2569,7 +2596,7 @@ function renderAll(checkLevels = true) {
   renderEntry();
   renderLog(party);
   renderSettlement(party);
-  const outstanding = settleUp(party).filter(tx => !_settledTx.includes(tx.from + '>' + tx.to)).length;
+  const outstanding = PointyLogic.pendingSettlements(S).length;
   if (_prevOutstanding !== null && _prevOutstanding > 0 && outstanding === 0 && S.expenses.length) {
     syncActiveCampaign({ completedAt: Date.now() });
     _overlay = 'victory'; SFX.win(); save();
@@ -2666,6 +2693,8 @@ async function exportExcel() {
     row.getCell(3).alignment = { horizontal: 'right' };
     xlDataRow(row, i % 2 === 1);
   });
+  const exact = wb.addWorksheet('Coin Quest Data'); exact.addRow(['Expense JSON']);
+  S.expenses.forEach(e => { const { receipt, ...value } = e; void receipt; exact.addRow([JSON.stringify(PointyLogic.cleanFirestoreData(value))]); });
   await saveWorkbook(wb, `${S.tripName || 'party-ledger'}.xlsx`);
 }
 async function downloadTemplate() {
@@ -2700,30 +2729,41 @@ async function importExcel(input) {
   const file = input.files[0];
   if (!file) return;
   try {
-    const buffer = await file.arrayBuffer();
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(buffer);
-    const ws = wb.worksheets.length > 1 ? wb.worksheets[1] : wb.worksheets[0];
-    let imported = 0, firstRow = true;
-    ws.eachRow({ includeEmpty: false }, row => {
-      if (firstRow) { firstRow = false; return; }
-      const v = row.values;
-      const desc = cellStr(v[1]).trim();
-      const amtNum = parseFloat(cellStr(v[2]));
-      const payer = cellStr(v[3]).trim();
-      const split = cellStr(v[4]);
-      if (!desc || !amtNum || amtNum <= 0 || !payer) return;
-      const sharers = split ? split.split(',').map(s => s.trim()).filter(Boolean) : [payer];
-      if (!S.participants.includes(payer)) S.participants.push(payer);
-      sharers.forEach(p => { if (p && !S.participants.includes(p)) S.participants.push(p); });
-      const icon = QUEST_ICONS[hashOf(desc) % QUEST_ICONS.length];
-      S.expenses.push({ id: Date.now() + Math.random(), desc, icon, amount: amtNum, paidBy: payer, sharedBy: sharers });
-      imported++;
+    if (file.size > 2000000) throw new Error('Import supports files up to 2 MB');
+    let rows = [];
+    if (file.name.toLowerCase().endsWith('.json')) {
+      const data = JSON.parse(await file.text()); rows = data?.data?.expenses || data?.expenses;
+    } else {
+      const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
+      const exact = wb.getWorksheet('Coin Quest Data');
+      const ws = exact || wb.getWorksheet('Expenses') || wb.getWorksheet('Quest Log') || wb.worksheets[0];
+      if (!ws || ws.rowCount > 503) throw new Error('Import supports at most 500 rows');
+      ws.eachRow({ includeEmpty: false }, (row, index) => {
+        if (index === 1) return;
+        const v = row.values; const first = cellStr(v[1]).trim(); if (!first) return;
+        const raw = exact ? JSON.parse(first) : PointyLogic.spreadsheetExpense(first, cellStr(v[2]), cellStr(v[3]), cellStr(v[4]));
+        if (raw) rows.push(raw);
+      });
+    }
+    if (!Array.isArray(rows) || rows.length > 500) throw new Error('Invalid import rows');
+    const importedRows = []; const newNames = new Set();
+    rows.forEach(raw => {
+      if (!raw || !Array.isArray(raw.sharedBy)) throw new Error('Invalid expense row');
+      const names = [...new Set([raw.paidBy, ...Object.keys(raw.payers || {}), ...raw.sharedBy])];
+      if (names.some(name => typeof name !== 'string' || !name.trim() || ['__proto__', 'constructor', 'prototype'].includes(name))) throw new Error('Invalid participant');
+      PointyLogic.validateLedgerExpense(raw, names);
+      if (raw.receipt && (typeof raw.receipt !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(raw.receipt) || raw.receipt.length > 350000)) throw new Error('Invalid receipt');
+      names.forEach(name => { if (!S.participants.includes(name)) newNames.add(name); });
+      importedRows.push({ id: Date.now() + Math.random(), desc: raw.desc, amount: raw.amount, icon: raw.icon || QUEST_ICONS[hashOf(raw.desc) % QUEST_ICONS.length], paidBy: raw.paidBy, payers: raw.payers, sharedBy: raw.sharedBy, split: raw.split, date: raw.date, receipt: raw.receipt });
     });
-    if (!imported) { toast(t('err_import_empty')); return; }
+    if (!importedRows.length) { toast(t('err_import_empty')); return; }
+    if (!confirm(LANG === 'th' ? `เพิ่ม ${importedRows.length} รายการ รวม ${money(importedRows.reduce((sum, e) => sum + e.amount, 0))}${newNames.size ? ` และ Guest ${newNames.size} คน` : ''}?` : `Import ${importedRows.length} expenses and ${newNames.size} new guests?`)) return;
+    S.guestHeroes ||= {};
+    newNames.forEach(name => { S.participants.push(name); S.guestHeroes[name] = true; });
+    S.expenses.push(...importedRows);
     _settledTx = [];
     save(); renderAll();
-    toast(t('toast_imported', { n: imported }));
+    toast(t('toast_imported', { n: importedRows.length }));
   } catch (err) {
     console.error('Import failed', err);
     toast(t('err_import_format'));

@@ -1,4 +1,11 @@
-assets/
+mobile/
+docs/
+tests/
+scripts/
+*.md
+firebase.test.json
+playwright.config.mjs
+.github/
 test-results/
 playwright-report/
 node_modules/

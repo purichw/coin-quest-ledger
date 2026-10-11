@@ -34,13 +34,48 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Setup Java for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
       - name: Run tests
         run: npm test
+
+      - name: Run isolated Firebase integration tests
+        run: npm run test:backend
+
+  native-contracts:
+    name: Native contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: mobile/.nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check native source and contracts
+        run: |
+          npm run typecheck
+          npm run lint
+          node --test tests/*.test.mjs
 
   deploy-production:
     name: Deploy production
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: ci
+    needs: [ci, native-contracts]
     runs-on: ubuntu-latest
     environment: production
     env:

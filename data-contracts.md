@@ -1,6 +1,6 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-08-31
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This file documents the live data shapes that should be preserved when adding fe
 
 2026-06-21 profile refactor note: splitting `shared/profile-hub.js` into focused `shared/profile-*.js` modules did not change the persisted Firestore/localStorage contracts below.
 
-2026-06-22 native app note: `mobile/` adds `playerModules/{uid}` as native-owned Firestore state for Debt Dragon, Treasury, and Compare. This keeps the iOS app dynamic without pretending the web app's browser localStorage module stores have already been migrated.
+2026-10-12 rebuild: native and web share owner-scoped `playerModules/{uid}` for Debt Dragon, Treasury and Compare. `shared/module-cloud.js` bridges account-scoped browser stores, preserving unsynced local data through an explicit conflict choice and backups. Verify the release commit and production alias before claiming that an installed/deployed client has these contracts.
 
 For account lifecycle implementation details, see `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`
 and `ADMIN_PORTAL_IMPLEMENTATION.md`. For access control and rule deploy
@@ -379,12 +379,13 @@ Rules:
 
 ### `playerModules/{uid}`
 
-Native-player module state for Debt Dragon, Treasury, and Compare. The document ID is always the Firebase Auth `uid` of the owner.
+Shared player module state for Debt Dragon, Treasury, and Compare. The document ID is always the Firebase Auth `uid` of the owner.
 
 ```js
 {
   uid: firebaseAuthUid,
   characterId: characterId,
+  schemaVersion: 2,
   debt: {
     strategy: "avalanche" | "snowball",
     dragons: Array<{
@@ -407,7 +408,11 @@ Native-player module state for Debt Dragon, Treasury, and Compare. The document 
   treasury: {
     month: "YYYY-MM",
     income: number,
-    expenses: Array<{ id: string, name: string, category: string, amount: number, date: "YYYY-MM-DD" }>
+    categories: Array<{ id: string, name: string, glyph: string, budget: number }>,
+    bills: Array<{ id: string, name: string, amount: number, catId: string, dueDay: number, archived?: boolean }>,
+    expenses: Array<{ id: string, note: string, catId: string, amount: number, date: "YYYY-MM-DD", billId?: string, onTime?: boolean }>,
+    history: Array<{ month: string, income: number, spent: number, expenses?: Array<object> }>,
+    stats: { monthsWon: number, logged: number, onTime: number }
   },
   comparisons: Array<{
     id: string,
@@ -423,10 +428,14 @@ Native-player module state for Debt Dragon, Treasury, and Compare. The document 
 Rules:
 
 - Only the owner UID or Super Admin can read/create/update. Only Super Admin can delete.
-- `mobile/src/gameLogic.ts` owns normalization for this native contract.
+- Native imports `shared/pointy-logic.js` through `src/domain/canon.ts`. Legacy Treasury `name/category` are read as `note/catId`; unknown fields survive normalization.
+- Native writes fresh-read the owner lifecycle and active character, compare the loaded module baseline, and merge only the affected module. Concurrent web/native changes produce a reload-required error.
+- Web `shared/module-cloud.js` serializes saves, compares server baselines, and stops stale writes. Account changes invalidate in-flight work. Differing browser/cloud data needs a user choice; both sides are backed up first.
 - Do not write `undefined` into nested state; Firestore rejects it. Optional fields should be omitted or set to `null` intentionally.
-- This is not yet the web module contract. Web Debt Dragon/Treasury/Compare still use localStorage until a planned migration maps those stores into Firestore.
+- Web browser stores remain account-scoped caches/drafts. The bridge loads cloud on connection; this is not a realtime listener or an offline write queue. Reload/refresh before continuing edits from another device.
 - Native screens must never show static Claude/sample financial data. If a document is absent, create an empty owned module document or show an empty state with a real create/log action.
+- Recoverable rows use `expenseTrash`, `logTrash`, `offerTrash`, `categoryTrash` or an `archived` flag. Campaign snapshots include their own `expenseTrash`, `removedMembers`, and `settlementRecords`; these must not leak across campaign switches.
+- Native `coin-quest-player-v1` backup contains the owner UID and all three finance modules, not authentication secrets or board ownership. Restore validates the owner and values, previews counts, saves a before-restore file, then uses a transaction/baseline check. Board exports are separate. This format is distinct from the legacy web local-data backup.
 
 ### Admin Delete Backend
 
@@ -733,3 +742,24 @@ The Character Profile renderer should stay presentation-focused. Aggregation cha
 - Normalize on read; write only the fields needed for the current operation.
 - Preserve unknown board data unless a publish/migration operation intentionally rewrites a normalized snapshot.
 - Full `npm test` is required for changes to `trips`, `characters`, admin ownership, character aggregation, split math, imports/exports, or storage keys.
+## Contract corrections — 2026-10-12
+
+- `playerModules/{uid}` module snapshots replace the chosen top-level map via
+  `mergeFields`; other modules stay intact. Backup restore replaces all three
+  module fields. Full freshly read board snapshots replace the document so
+  deleted nested keys cannot reappear through deep merge.
+- `boardInvites` IDs can now include a unique attempt suffix. Legacy IDs remain
+  readable. Reply + board membership are one transaction, with current account,
+  character, expiry, board availability and pending status revalidated.
+- `users/{uid}.recoveryReset = { id, expiresAt }` is a server-owned temporary
+  lease. Client modifications during the lease are rejected. Recovery preserves
+  UID and consumes the old recovery hash only when its Firestore completion commits.
+- `accountRecoveryLimits/{digest}` stores `{count, firstAt, expiresAt}` for shared
+  rate limiting. It is private to Admin SDK; `expiresAt` can use a TTL policy.
+- Debt `historyBase` records balance, calendar day and interest terms at the first
+  tracked payment. Edits/removal/restore replay later payments and interest.
+  Incomplete legacy histories or changed terms that cannot be reconciled fail
+  visibly rather than silently modifying money. Removed rows stay in `logTrash`.
+- Removing an Auth-linked account converts its board member into a local guest:
+  participant names, expenses and shares remain; registry/access links are removed.
+  It does not delete another participant's financial history.

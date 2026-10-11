@@ -6,7 +6,9 @@ import {
   cleanRecoveryCode,
   generateRecoveryCode,
   recoveryHashFor,
-  safeHashEqual
+  safeHashEqual,
+  readBody,
+  verifySuperAdminToken
 } from '../../api/account-recovery-core.js';
 
 test('recovery code generation uses the human-readable 12 character format', () => {
@@ -43,10 +45,32 @@ test('reset records never persist the raw recovery code', () => {
     actorEmail: 'admin@example.test'
   });
 
-  assert.equal(Object.hasOwn(records.userRecord, 'recoveryCode'), false);
+  assert.equal(records.userRecord.recoveryCode, '__DELETE_FIELD__');
   assert.equal(records.userRecord.recoveryHash, 'next-private-hash');
   assert.equal(records.userRecord.tempPasswordRequired, true);
   assert.equal(records.usernameRecord.recoveryHash, '__DELETE_FIELD__');
   assert.equal(records.characterPatch.ownerUid, 'uid-new');
   assert.equal(records.userIdRecord.uid, 'uid-new');
+});
+
+test('hash comparison rejects partial hex and malformed hashes', () => {
+  assert.equal(safeHashEqual('abXX', 'abYY'), false);
+  assert.equal(safeHashEqual('aa', 'aa'), false);
+  assert.equal(safeHashEqual('a'.repeat(64), 'a'.repeat(64)), true);
+});
+
+test('body reader handles parsed platform requests and rejects non-object input', async () => {
+  assert.deepEqual(await readBody({ body: { username: 'hero' } }), { username: 'hero' });
+  assert.deepEqual(await readBody({ body: '{"username":"hero"}' }), { username: 'hero' });
+  for (const body of [null, [], 'null', '4', '{']) await assert.rejects(readBody({ body }));
+  await assert.rejects(readBody({ body: { name: 'a'.repeat(32_000) } }), /too large/);
+});
+
+test('admin authorization requires verified email and checks revoked tokens', async () => {
+  const req = { headers: { authorization: 'Bearer fixture-token' } };
+  let revokeCheck;
+  const fake = verified => ({ async verifyIdToken(token, checkRevoked) { revokeCheck = checkRevoked; return { uid: 'admin', email: 'purich.wc@gmail.com', ...(verified === undefined ? {} : { email_verified: verified }) }; } });
+  await assert.rejects(verifySuperAdminToken(req, fake(undefined)), { status: 403 });
+  await assert.rejects(verifySuperAdminToken(req, fake(false)), { status: 403 });
+  await verifySuperAdminToken(req, fake(true)); assert.equal(revokeCheck, true);
 });

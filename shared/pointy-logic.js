@@ -91,6 +91,27 @@
     return mag > 0 && Math.abs(a - b) / mag < 1e-9;
   }
 
+  // Firestore rejects nested undefined values; preserve Timestamp/Date instances.
+  function cleanFirestoreData(value) {
+    if (Array.isArray(value)) return value.map(item => item === undefined ? null : cleanFirestoreData(item));
+    if (value && typeof value === 'object' && (!Object.getPrototypeOf(value) || Object.getPrototypeOf(value).constructor?.name === 'Object')) {
+      return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => [key, cleanFirestoreData(item)]));
+    }
+    return value;
+  }
+
+  // Compare actual content, independent of Firestore field order and save timestamps.
+  function tripContentKey(data) {
+    function ordered(value) {
+      if (Array.isArray(value)) return value.map(ordered);
+      if (value && typeof value.toMillis === 'function') return { timestampMillis: value.toMillis() };
+      if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().filter(key => value[key] !== undefined).map(key => [key, ordered(value[key])]));
+      return value;
+    }
+    const { updatedAt, ...content } = data || {};
+    return JSON.stringify(ordered(content));
+  }
+
   function parseNumberInput(value) {
     return Number(String(value ?? '').replace(/,/g, '')) || 0;
   }
@@ -153,11 +174,13 @@
     const baseUnit = normalizeUnit(cmp.baseUnit || cmp.unit || 'ชิ้น', unitAlias);
     const group = groupOf(baseUnit, unitGroups, unitAlias) || unitGroups[3];
     return {
+      ...cmp,
       id: cmp.id || idFactory(),
       name: String(cmp.name || '').trim() || opts.itemFallback || 'Item',
       icon: cmp.icon || '🛒',
       baseUnit: group.base,
       offers: Array.isArray(cmp.offers) ? cmp.offers.map(o => ({
+        ...o,
         id: o.id || idFactory(),
         merchant: String(o.merchant || opts.merchantFallback || 'Merchant').trim(),
         price: Number(o.price) || 0,
@@ -258,7 +281,8 @@
   }
 
   function dateOnlyMs(value) {
-    const d = value instanceof Date ? new Date(value) : new Date(value || Date.now());
+    const parts = typeof value === 'string' && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    const d = parts ? new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])) : value instanceof Date ? new Date(value) : new Date(value || Date.now());
     if (Number.isNaN(d.getTime())) {
       const fallback = new Date();
       fallback.setHours(0, 0, 0, 0);
@@ -305,7 +329,7 @@
 
   function accrueDebtToDate(d, to) {
     const toMs = dateOnlyMs(to);
-    if (!d || d.slain || Number(d.balance) <= 0.5 || !(Number(d.apr) > 0)) {
+    if (!d || d.slain || Number(d.balance) <= 0.005 || !(Number(d.apr) > 0)) {
       return { debt: d, interest: 0, days: 0 };
     }
     const fromMs = Number(d.interestAccruedAt) || Number(d.createdAt) || toMs;
@@ -333,9 +357,10 @@
     const after = Math.max(0, before - applied);
     const debt = {
       ...accrued.debt,
+      ...(!(d.log || []).length && !d.historyBase ? { historyBase: { balance: Number(d.balance), at: dateOnlyMs(Number(d.interestAccruedAt) || Number(d.createdAt) || date), apr: Number(d.apr), original: Number(d.original), interestMode: d.interestMode } } : {}),
       balance: after,
-      slain: !!accrued.debt?.slain || after <= 0.5,
-      slainAt: after <= 0.5 ? (accrued.debt?.slainAt || Date.now()) : null
+      slain: after <= 0.005,
+      slainAt: after <= 0.005 ? (accrued.debt?.slainAt || Date.now()) : null
     };
     return {
       debt,
@@ -347,6 +372,44 @@
       balanceAfter: after,
       days: accrued.days
     };
+  }
+
+  function reviseDebtLog(d, { id, amount, date, remove = false, restore = false }, now = Date.now()) {
+    const source = restore ? d.logTrash || [] : d.log || [];
+    const old = source.find(row => row.id === id);
+    if (!old) throw new Error('ไม่พบประวัติชำระรายการนี้');
+    if (restore && (d.log || []).some(row => row.id === id)) return d;
+    const at = restore || remove ? dateOnlyMs(old.ts || old.date) : dateOnlyMs(date);
+    const validDate = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
+    if ((!remove && !restore && !validDate) || !Number.isFinite(at) || at > dateOnlyMs(now)) throw new Error('ตรวจวันที่ชำระหนี้');
+    const value = restore ? Number(old.amount) : Number(amount);
+    if (!remove && (!Number.isFinite(value) || value <= 0)) throw new Error('ยอดชำระต้องมากกว่า 0');
+    const ordered = rows => [...rows].sort((a, b) => dateOnlyMs(a.ts || a.date) - dateOnlyMs(b.ts || b.date));
+    const original = ordered(d.log || []);
+    let base = d.historyBase;
+    if (!base && !(Number(d.apr) > 0)) base = { balance: Number(d.balance) + original.reduce((n, row) => n + Number(row.amount), 0), at: dateOnlyMs(d.createdAt), apr: 0, original: Number(d.original), interestMode: d.interestMode };
+    if (!base && original[0]?.balanceBefore > 0) {
+      const first = original[0];
+      base = { balance: first.balanceBefore - (Number(first.accruedInterest) || 0), at: dateOnlyMs(first.ts || first.date) - (Number(first.days) || 0) * 86400000, apr: Number(d.apr), original: Number(d.original), interestMode: d.interestMode };
+    }
+    if (!base || base.apr !== Number(d.apr) || base.original !== Number(d.original) || base.interestMode !== d.interestMode) throw new Error('ประวัติก่อนเปลี่ยนเงื่อนไขหนี้ไม่ครบ จึงยังคำนวณย้อนกลับอย่างถูกต้องไม่ได้');
+    if (at < base.at) throw new Error('วันที่ต้องไม่ก่อนจุดเริ่มต้นของประวัติหนี้');
+    const cutoff = Math.max(Number(d.interestAccruedAt) || base.at, ...original.map(row => dateOnlyMs(row.ts || row.date)));
+    const replay = (rows, until = cutoff) => {
+      let current = { ...d, balance: base.balance, interestAccruedAt: base.at, slain: false, slainAt: null, historyBase: base, log: [] };
+      const log = [];
+      for (const row of ordered(rows)) {
+        const result = applyDebtPayment(current, row.amount, row.ts || row.date);
+        if (row.amount > result.balanceBefore + .005) throw new Error('ยอดชำระเกินยอดหนี้หลังแก้ประวัติ กรุณาตรวจรายการภายหลัง');
+        log.push({ ...row, amount: result.applied, interest: result.interestPaid, principal: result.principalPaid, accruedInterest: result.interest, balanceBefore: result.balanceBefore, balanceAfter: result.balanceAfter, days: result.days });
+        current = result.debt;
+      }
+      return { ...accrueDebtToDate(current, until).debt, log };
+    };
+    if (Math.abs(replay(original).balance - Number(d.balance)) > .01) throw new Error('ยอดหนี้มีการปรับนอกประวัติ จึงยังคำนวณย้อนกลับอย่างถูกต้องไม่ได้');
+    const nextRow = { ...old, amount: value, ts: at, date: restore ? old.date : date };
+    const rows = restore ? [...original, nextRow] : remove ? original.filter(row => row.id !== id) : original.map(row => row.id === id ? nextRow : row);
+    return { ...replay(rows, Math.max(cutoff, at)), logTrash: restore ? source.filter(row => row.id !== id) : remove ? [...(d.logTrash || []), old] : d.logTrash || [] };
   }
 
   function monthlyInterest(d) {
@@ -372,7 +435,7 @@
   }
 
   function strategyTarget(dragons, strategy = 'avalanche') {
-    const live = (dragons || []).filter(d => !d.slain && Number(d.balance) > 0.5);
+    const live = (dragons || []).filter(d => !d.archived && !d.slain && Number(d.balance) > 0.005);
     if (!live.length) return null;
     const sorted = live.slice().sort((a, b) => strategy === 'snowball'
       ? (Number(a.balance) || 0) - (Number(b.balance) || 0)
@@ -382,7 +445,7 @@
 
   function simulateLair(dragons, strategy = 'avalanche', extra = 0) {
     const ds = (dragons || [])
-      .filter(d => !d.slain && Number(d.balance) > 0.5 && d.payMode !== 'adhoc')
+      .filter(d => !d.archived && !d.slain && Number(d.balance) > 0.005 && d.payMode !== 'adhoc')
       .map(d => ({
         balance: Number(d.balance) || 0,
         apr: Number(d.apr) || 0,
@@ -394,21 +457,21 @@
     const cap = 1200;
     let months = 0;
     let interest = 0;
-    while (ds.some(d => d.balance > 0.5) && months < cap) {
+    while (ds.some(d => d.balance > 0.005) && months < cap) {
       months += 1;
       let pool = Number(extra) || 0;
-      ds.forEach(d => { if (d.balance <= 0.5) pool += d.payment; });
+      ds.forEach(d => { if (d.balance <= 0.005) pool += d.payment; });
       ds.forEach(d => {
-        if (d.balance <= 0.5) return;
+        if (d.balance <= 0.005) return;
         const charge = (d.mode === 'simple' ? d.original : d.balance) * monthlyDebtRate(d.apr);
         d.balance += charge;
         interest += charge;
       });
       ds.forEach(d => {
-        if (d.balance <= 0.5) return;
+        if (d.balance <= 0.005) return;
         d.balance -= Math.min(d.payment, d.balance);
       });
-      const live = ds.filter(d => d.balance > 0.5);
+      const live = ds.filter(d => d.balance > 0.005);
       const order = live.sort((a, b) => strategy === 'snowball' ? a.balance - b.balance : b.apr - a.apr);
       let remainingPool = pool;
       for (const d of order) {
@@ -418,7 +481,7 @@
         remainingPool -= pay;
       }
     }
-    const never = ds.some(d => d.balance > 0.5);
+    const never = ds.some(d => d.balance > 0.005);
     return { months: never ? Infinity : months, interest: Math.round(interest), never };
   }
 
@@ -441,6 +504,7 @@
     const dragons = Array.isArray(data.dragons) ? data.dragons : seed.dragons;
     const legacyAccruedAt = Number(data.lastAccrued) || Date.now();
     return {
+      ...data,
       slayer,
       dragons: dragons.map((d, index) => {
         const type = PointyLogic.DRAGON_TYPES[d?.type] ? d.type : 'card';
@@ -448,6 +512,7 @@
         const original = Math.max(balance, Number(d?.original) || balance);
         const payMode = d?.payMode === 'adhoc' ? 'adhoc' : 'monthly';
         return {
+          ...d,
           id: String(d?.id || `d${index + 1}`),
           name: typeof d?.name === 'object' ? { th: d.name.th || d.name.en || dragonType(type).th, en: d.name.en || d.name.th || dragonType(type).en } : { th: String(d?.name || dragonType(type).th), en: String(d?.name || dragonType(type).en) },
           type,
@@ -459,6 +524,7 @@
           interestMode: d?.interestMode === 'simple' ? 'simple' : 'compound',
           dueDay: payMode === 'adhoc' ? 0 : Math.max(0, Math.min(31, parseInt(d?.dueDay, 10) || 0)),
           log: Array.isArray(d?.log) ? d.log.map(row => ({
+            ...row,
             id: String(row.id || ''),
             date: String(row.date || ''),
             amount: Math.max(0, Number(row.amount) || 0),
@@ -473,7 +539,7 @@
           })) : [],
           createdAt: Number(d?.createdAt) || legacyAccruedAt,
           interestAccruedAt: Number(d?.interestAccruedAt) || Number(d?.createdAt) || legacyAccruedAt,
-          slain: !!d?.slain || balance <= 0.5,
+          slain: balance <= 0.005,
           slainAt: d?.slainAt || null
         };
       }),
@@ -492,8 +558,8 @@
   }
 
   function statusOf(hero, labels = {}) {
-    if (hero.bal > 0.5) return { kind: 'guardian', icon: '🛡️', label: labels.guardian || 'Guardian', amt: hero.bal };
-    if (hero.bal < -0.5) return { kind: 'debt', icon: '💸', label: labels.debt || 'Debt', amt: -hero.bal };
+    if (hero.bal > 0.005) return { kind: 'guardian', icon: '🛡️', label: labels.guardian || 'Guardian', amt: hero.bal };
+    if (hero.bal < -0.005) return { kind: 'debt', icon: '💸', label: labels.debt || 'Debt', amt: -hero.bal };
     return { kind: 'even', icon: '⚖️', label: labels.even || 'Even', amt: 0 };
   }
 
@@ -510,6 +576,7 @@
         })).filter(it => it.amount > 0) : undefined
       } : undefined;
       return {
+        ...e,
         id: e.id || Date.now() + Math.random(),
         desc,
         icon: e.icon || (questIcons.length ? questIcons[hashOf(desc) % questIcons.length] : ''),
@@ -523,6 +590,7 @@
       };
     };
     const normalizeCampaign = c => ({
+      ...c,
       id: c?.id || `camp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
       tripName: c?.tripName || data?.tripName || opts.defaultTripName || '',
       participants: Array.isArray(c?.participants) ? c.participants : [],
@@ -539,6 +607,7 @@
       completedAt: c?.completedAt || null
     });
     const out = {
+      ...(data || {}),
       tripName: data?.tripName || opts.defaultTripName || '',
       participants: Array.isArray(data?.participants) ? data.participants : [],
       expenses: Array.isArray(data?.expenses) ? data.expenses : [],
@@ -553,6 +622,7 @@
       activeCampaignId: data?.activeCampaignId || data?.activeId || '',
       campaigns: Array.isArray(data?.campaigns) ? data.campaigns.map(normalizeCampaign) : [],
       admin: {
+        ...(data?.admin || {}),
         passwordHash: data?.admin?.passwordHash || '',
         ownerHash: data?.admin?.ownerHash || '',
         adminId: data?.admin?.adminId || '',
@@ -574,6 +644,49 @@
       const amount = Number(String(parts[parts.length - 1] || '').replace(/[^0-9.]/g, ''));
       return desc && amount > 0 ? { desc, amount } : null;
     }).filter(Boolean);
+  }
+
+  function spreadsheetExpense(desc, amountText, payerText, sharedText) {
+    if (/^(total|รวม)$/i.test(desc.trim()) && !payerText.trim() && !sharedText.trim()) return null;
+    const amount = Number(amountText.replace(/,/g, ''));
+    const parse = text => {
+      const entries = text.split(/;|,\s*(?=[^,]+:)/).map(part => {
+        const match = part.trim().match(/^(.+?):\s*(\d+(?:\.\d+)?)\s*$/);
+        if (!match) throw new Error('อ่านยอดรายคนจาก Excel ไม่ได้');
+        return [match[1].trim(), Number(match[2])];
+      });
+      if (new Set(entries.map(([name]) => name)).size !== entries.length) throw new Error('มีชื่อซ้ำในยอดรายคน');
+      return Object.fromEntries(entries);
+    };
+    const payers = payerText.includes(':') ? parse(payerText) : { [payerText.trim()]: amount };
+    const weights = sharedText.includes(':') ? parse(sharedText) : null;
+    const sharedBy = weights ? Object.keys(weights) : sharedText.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    return { desc, amount, paidBy: Object.keys(payers)[0], payers, sharedBy: sharedBy.length ? sharedBy : Object.keys(payers), ...(weights ? { split: { mode: 'exact', weights } } : {}) };
+  }
+
+  function validateLedgerExpense(e, participants) {
+    if (typeof e?.desc !== 'string' || !e.desc.trim()) throw new Error('ใส่ชื่อรายการ');
+    if (!Number.isFinite(e.amount) || e.amount <= 0) throw new Error('จำนวนเงินต้องมากกว่า 0');
+    if (!Array.isArray(e.sharedBy) || !e.sharedBy.length || e.sharedBy.some(n => !participants.includes(n))) throw new Error('เลือกผู้ร่วมจ่ายจากสมาชิกในบอร์ด');
+    if (new Set(e.sharedBy).size !== e.sharedBy.length) throw new Error('ผู้ร่วมจ่ายซ้ำกัน');
+    if (e.payers && Object.values(e.payers).some(n => !Number.isFinite(n) || n < 0)) throw new Error('ยอดผู้จ่ายต้องไม่ติดลบ');
+    const payers = payerMap(e);
+    if (!Object.keys(payers).length || Object.keys(payers).some(n => !participants.includes(n))) throw new Error('เลือกผู้สำรองจ่าย');
+    if (Math.abs(Object.values(payers).reduce((s, n) => s + n, 0) - e.amount) > 0.005) throw new Error('ยอดผู้สำรองจ่ายรวมต้องเท่ากับยอดรายการ');
+    const mode = e.split?.mode || 'equal';
+    if (!['equal', 'exact', 'percent', 'shares', 'items'].includes(mode)) throw new Error('รูปแบบการหารไม่ถูกต้อง');
+    const weights = e.sharedBy.map(n => e.split?.weights?.[n] ?? 0);
+    if (weights.some(n => !Number.isFinite(n) || n < 0)) throw new Error('สัดส่วนต้องเป็นตัวเลขไม่ติดลบ');
+    const total = weights.reduce((s, n) => s + n, 0);
+    if (mode === 'exact' && Math.abs(total - e.amount) > 0.005) throw new Error('ยอดหารรวมต้องเท่ากับยอดรายการ');
+    if (mode === 'percent' && Math.abs(total - 100) > 0.005) throw new Error('เปอร์เซ็นต์รวมต้องเท่ากับ 100');
+    if (mode === 'shares' && total <= 0) throw new Error('ใส่สัดส่วนอย่างน้อยหนึ่งคน');
+    if (mode === 'items') {
+      const items = e.split?.items || [];
+      if (!Array.isArray(items) || !items.length || items.some(i => !Number.isFinite(i.amount) || i.amount <= 0 || !Array.isArray(i.claimedBy) || i.claimedBy.some(n => !e.sharedBy.includes(n)))) throw new Error('ตรวจจำนวนเงินและผู้รับของแต่ละรายการ');
+      if (Math.abs(items.reduce((s, i) => s + i.amount, 0) - e.amount) > 0.005) throw new Error('ยอดของแต่ละชิ้นต้องรวมเท่ากับยอดรายการ');
+    }
+    if (e.date && (!/^\d{4}-\d{2}-\d{2}/.test(e.date) || !Number.isFinite(Date.parse(e.date)) || new Date(e.date.slice(0, 10)).toISOString().slice(0, 10) !== e.date.slice(0, 10))) throw new Error('วันที่ไม่ถูกต้อง');
   }
 
   function payerMap(e) {
@@ -615,7 +728,7 @@
         sum += out[name];
       });
       const remainder = e.amount - sum;
-      if (Math.abs(remainder) > .5) parts.forEach(name => { out[name] += remainder / parts.length; });
+      if (Math.abs(remainder) > .005) parts.forEach(name => { out[name] += remainder / parts.length; });
       return out;
     }
     if (mode === 'shares' || mode === 'percent') {
@@ -709,7 +822,7 @@
         const hero = party.find(p => p.name === name) || { paid: 0, share: 0, gen: 0, bal: 0, quests: 0, xp: 0, cls: state.heroClasses?.[name] || record?.class };
         const isAdminLinked = String(admin.characterId || '') === id || (admin.adminName && admin.adminName === name);
         const boardTotal = state.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-        const settled = state.expenses.length > 0 && settleUp(party).length === 0;
+        const settled = state.expenses.length > 0 && pendingSettlements(state).length === 0;
         const row = {
           id: boardId,
           tripName: state.tripName || boardFallback,
@@ -787,17 +900,17 @@
   }
 
   function globalSettleUp(party) {
-    const cred = party.filter(p => p.bal > 0.5).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
-    const debt = party.filter(p => p.bal < -0.5).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
+    const cred = party.filter(p => p.bal > 0.005).map(p => ({ name: p.name, amt: p.bal })).sort((a,b) => b.amt - a.amt);
+    const debt = party.filter(p => p.bal < -0.005).map(p => ({ name: p.name, amt: -p.bal })).sort((a,b) => b.amt - a.amt);
     const out = [];
     let i = 0, j = 0;
     while (i < debt.length && j < cred.length) {
       const amt = Math.min(debt[i].amt, cred[j].amt);
-      if (amt > 0.5) out.push({ from: debt[i].name, to: cred[j].name, amount: amt });
+      if (amt > 0.005) out.push({ from: debt[i].name, to: cred[j].name, amount: amt });
       debt[i].amt -= amt;
       cred[j].amt -= amt;
-      if (debt[i].amt < 0.5) i++;
-      if (cred[j].amt < 0.5) j++;
+      if (debt[i].amt < 0.005) i++;
+      if (cred[j].amt < 0.005) j++;
     }
     return out;
   }
@@ -850,8 +963,226 @@
     );
   }
 
+  // Confirmation is bookkeeping only. A changed expense set needs fresh confirmation.
+  function settlementRevision(state) {
+    return tripContentKey({ campaign: state.activeCampaignId || '', participants: state.participants,
+      expenses: (state.expenses || []).map(e => ({ id: e.id, amount: e.amount, paidBy: e.paidBy,
+        payers: e.payers || null, sharedBy: e.sharedBy, split: e.split || { mode: 'equal' } })) });
+  }
+  function promptPayPayload(target, amount) {
+    const digits = String(target || '').replace(/\D/g, '');
+    if (!/^(?:\d{10}|\d{13}|\d{15})$/.test(digits) || !Number.isFinite(amount) || amount < 0) throw new Error('Invalid PromptPay input');
+    const tlv = (tag, value) => tag + String(String(value).length).padStart(2, '0') + value;
+    const account = digits.length === 13 ? tlv('02', digits) : digits.length === 15 ? tlv('03', digits) : tlv('01', '0066' + (digits[0] === '0' ? digits.slice(1) : digits));
+    const payload = tlv('00', '01') + tlv('01', amount > 0 ? '12' : '11') + tlv('29', tlv('00', 'A000000677010111') + account) + tlv('58', 'TH') + tlv('53', '764') + (amount > 0 ? tlv('54', amount.toFixed(2)) : '') + '6304';
+    let crc = 0xffff;
+    for (let i = 0; i < payload.length; i++) { crc ^= payload.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) crc = ((crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1) & 0xffff; }
+    return payload + crc.toString(16).toUpperCase().padStart(4, '0');
+  }
+  function pendingSettlements(state) {
+    const revision = settlementRevision(state);
+    return settleUp(computeParty(state), state).filter(t => !(state.settlementRecords || []).some(r =>
+      r.revision === revision && r.from === t.from && r.to === t.to && approxEqual(r.amount, t.amount, .005)));
+  }
+  function confirmSettlement(state, from, to, now = Date.now()) {
+    const transfer = pendingSettlements(state).find(t => t.from === from && t.to === to);
+    if (!transfer) return state;
+    return { ...state, settlementRecords: [...(state.settlementRecords || []), { ...transfer, revision: settlementRevision(state), at: now }],
+      settleXp: { ...(state.settleXp || {}), [from]: (Number(state.settleXp?.[from]) || 0) + PointyLogic.SETTLE_BONUS_PAYER,
+        [to]: (Number(state.settleXp?.[to]) || 0) + PointyLogic.SETTLE_BONUS_PAYEE } };
+  }
+
+  function treasurySpent(state) { return (state.expenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0); }
+  function treasuryBillPaid(state, billId) { return (state.expenses || []).some(e => e.billId === billId && String(e.date).slice(0, 7) === state.month); }
+  function treasuryProjection(state, today = new Date()) {
+    const date = new Date(today); const dim = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate(); const dom = Math.max(1, date.getDate()); const daysLeft = Math.max(0, dim - dom);
+    const spent = treasurySpent(state); const unpaidBills = (state.bills || []).filter(b => !b.archived && !treasuryBillPaid(state, b.id)).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const variable = (state.expenses || []).filter(e => !e.billId).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const projected = Math.round(spent + unpaidBills + variable / dom * daysLeft); const surplus = (Number(state.income) || 0) - projected;
+    const dailyLeft = daysLeft ? Math.max(0, Math.round(((Number(state.income) || 0) - spent - unpaidBills) / daysLeft)) : Math.max(0, (Number(state.income) || 0) - spent);
+    return { dim, dom, daysLeft, spent, unpaidBills, projected, surplus, onTrack: surplus >= 0, dailyLeft };
+  }
+  function treasuryClose(state, nextMonth = state.month) {
+    const spent = treasurySpent(state); const income = Number(state.income) || 0;
+    const previous = (state.history || []).find(row => row.month === state.month) || {};
+    const row = { ...previous, month: state.month, income, spent, surplus: income - spent, won: spent <= income, expenses: (state.expenses || []).map(e => ({ ...e })) };
+    const history = [row, ...(state.history || []).filter(h => h.month !== state.month)].slice(0, 12);
+    return { ...state, history, month: nextMonth, expenses: nextMonth === state.month ? state.expenses : [], stats: { ...state.stats, monthsWon: new Set(history.filter(h => h.won).map(h => h.month)).size } };
+  }
+  function treasuryXp(state) { const stats = state.stats || {}; return Math.round((Number(stats.monthsWon) || 0) * 800 + (Number(stats.onTime) || 0) * 60 + (Number(stats.logged) || 0) * 8); }
+
+  const PLAYER_ACHIEVEMENTS = [
+    { id: 'first_quest', icon: '📜', th: ['ก้าวแรก', 'บันทึกเควสแรกของคุณ'], en: ['First Steps', 'Log your first quest'], test: c => c.quests >= 1 },
+    { id: 'party5', icon: '🛡️', th: ['รวมพล', 'ปาร์ตี้ที่มีฮีโร่ 5 คนขึ้นไป'], en: ['Full Party', 'A party of 5+ heroes'], test: c => c.maxPartySize >= 5, prog: c => [Math.min(c.maxPartySize, 5), 5] },
+    { id: 'balanced', icon: '⚖️', th: ['สมดุล', 'ปรับสมดุลปาร์ตี้จนจบเควส'], en: ['Even Steven', 'Fully settle a quest'], test: c => c.completed >= 1 },
+    { id: 'quest_master', icon: '🗺️', th: ['เจ้าแห่งเควส', 'จบเควสครบ 3 ทริป'], en: ['Quest Master', 'Complete 3 quests'], test: c => c.completed >= 3, prog: c => [Math.min(c.completed, 3), 3] },
+    { id: 'treasurer', icon: '💰', th: ['ขุนคลัง', 'บันทึกค่าใช้จ่ายรวม ฿50,000 ใน 5 รายการ'], en: ['Treasurer', 'Log ฿50,000 across 5 expenses'], test: c => c.totalLogged >= 50000 && c.quests >= 5, prog: c => [Math.min(c.totalLogged, 50000), 50000] },
+    { id: 'generous', icon: '🤝', th: ['ใจบุญ', 'ออกทองให้คนอื่นรวม ฿20,000 และจบเควส'], en: ['Generous Soul', 'Front ฿20,000 and complete a quest'], test: c => c.fronted >= 20000 && c.completed >= 1, prog: c => [Math.min(c.fronted, 20000), 20000] },
+    { id: 'first_strike', icon: '⚔️', th: ['ดาบแรก', 'ฟันมังกรครั้งแรก'], en: ['First Strike', 'Land your first dragon strike'], test: c => c.strikes >= 1 },
+    { id: 'slayer', icon: '🐉', th: ['นักล่ามังกร', 'ปราบมังกรตัวแรก'], en: ['Dragonslayer', 'Slay your first dragon'], test: c => c.slain >= 1 },
+    { id: 'lair_cleared', icon: '🏆', th: ['ปลอดหนี้', 'ปราบมังกรจริงทุกตัวในถ้ำ'], en: ['Lair Cleared', 'Slay every real dragon'], test: c => c.realDragonsSlain >= 1 && c.liveDragons === 0 },
+    { id: 'heavy_hit', icon: '💥', th: ['หมัดหนัก', 'จ่ายหนี้รวม ฿50,000 ใน 3 ครั้งขึ้นไป'], en: ['Heavy Hitter', 'Pay ฿50,000 across 3+ strikes'], test: c => c.reclaimed >= 50000 && c.strikes >= 3, prog: c => [Math.min(c.reclaimed, 50000), 50000] },
+    { id: 'deal_hunter', icon: '🔍', th: ['นักล่าดีล', 'ประลองราคา 3 รายการ'], en: ['Deal Hunter', 'Run 3 price showdowns'], test: c => c.showdowns >= 3, prog: c => [Math.min(c.showdowns, 3), 3] },
+    { id: 'bargain', icon: '👑', th: ['ดีลในตำนาน', 'เทียบ 3 ร้านแล้วเจอดีลประหยัด 40%+'], en: ['Bargain Legend', 'Compare 3 merchants and save 40%+'], test: c => c.qualifiedBargainRescue >= 40 },
+    { id: 'vault_keeper', icon: '🏦', th: ['ผู้พิทักษ์คลัง', 'บันทึกรายจ่ายในคลังหลวงครั้งแรก'], en: ['Vault Keeper', 'Log your first treasury expense'], test: c => (c.trLogged || 0) >= 1 },
+    { id: 'under_budget', icon: '🛡️', th: ['คุมงบสำเร็จ', 'ปิดเดือนแบบไม่เกินงบ'], en: ['Under Budget', 'Finish a month under budget'], test: c => (c.monthsWon || 0) >= 1 },
+    { id: 'frugal_legend', icon: '💎', th: ['ตำนานประหยัด', 'คุมงบได้ 3 เดือน'], en: ['Frugal Legend', 'Win 3 budget months'], test: c => (c.monthsWon || 0) >= 3, prog: c => [Math.min(c.monthsWon || 0, 3), 3] },
+    { id: 'streak3', icon: '🔥', th: ['มาแรง', 'เข้าเล่นต่อเนื่อง 3 วัน'], en: ['On a Roll', 'A 3-day streak'], test: c => (c.streak || 0) >= 3, prog: c => [Math.min(c.streak || 0, 3), 3] },
+    { id: 'streak7', icon: '📅', th: ['ขาประจำ', 'เข้าเล่นต่อเนื่อง 7 วัน'], en: ['Devoted', 'A 7-day streak'], test: c => (c.streak || 0) >= 7, prog: c => [Math.min(c.streak || 0, 7), 7] },
+    { id: 'level5', icon: '⭐', th: ['ผู้กล้า', 'ถึงเลเวลรวม 5'], en: ['Rising Hero', 'Reach overall level 5'], test: c => c.level.lvl >= 5, prog: c => [Math.min(c.level.lvl, 5), 5] },
+    { id: 'level10', icon: '🌟', th: ['ตำนาน', 'ถึงเลเวลรวม 10'], en: ['Legend', 'Reach overall level 10'], test: c => c.level.lvl >= 10, prog: c => [Math.min(c.level.lvl, 10), 10] }
+  ];
+
+  function campaignsFromTrip(data) {
+    const state = data || {};
+    const campaigns = Array.isArray(state.campaigns) && state.campaigns.length ? state.campaigns : [state];
+    return campaigns.map(c => ({
+      tripName: c.tripName || state.tripName || '',
+      participants: Array.isArray(c.participants) ? c.participants : (state.participants || []),
+      expenses: Array.isArray(c.expenses) ? c.expenses : [],
+      budgets: c.budgets || state.budgets || {},
+      heroClasses: c.heroClasses || state.heroClasses || {},
+      characterIds: c.characterIds || state.characterIds || {},
+      settleXp: c.settleXp || state.settleXp || {},
+      settlementRecords: c.settlementRecords || [],
+      completedAt: c.completedAt || null
+    }));
+  }
+  function computePartyForCampaign(c) {
+    if (!PointyLogic?.computeParty) return [];
+    return PointyLogic.computeParty(c, { classOf: name => c.heroClasses?.[name] || 'warrior' });
+  }
+  function playerProgress(boards = [], character = {}, modules = {}, opts = {}) {
+    const scoped = opts.scoped !== false;
+    const characterId = String(character?.id || opts.userId || '');
+    let fronted = 0, settleR = 0, quests = 0, completed = 0, maxPartySize = 0, totalLogged = 0;
+    let splitActivityRep = 0, splitFrontedRep = 0, splitSettledRep = 0, splitMultiRep = 0;
+    boards.forEach(entry => {
+      campaignsFromTrip(entry.data).forEach(c => {
+        const participantName = Object.keys(c.characterIds || {}).find(name => String(c.characterIds?.[name]) === characterId)
+          || (c.participants || []).find(name => name === character?.name || name === opts.accountName);
+        if (scoped && !participantName) return;
+        const party = computePartyForCampaign(c);
+        const heroes = scoped ? party.filter(hero => hero.name === participantName) : party;
+        const visibleExpenses = scoped
+          ? (c.expenses || []).filter(e => (e.sharedBy || []).includes(participantName) || e.paidBy === participantName || e.payers?.[participantName])
+          : (c.expenses || []);
+        const isSettled = visibleExpenses.length > 0 && PointyLogic?.settleUp && pendingSettlements(c).length === 0;
+        heroes.forEach(hero => {
+          fronted += Number(hero.gen) || 0;
+          settleR += Number(c.settleXp?.[hero.name]) || 0;
+          splitFrontedRep += Math.min(100, Math.max(0, Number(hero.gen) || 0) / 50);
+        });
+        quests += visibleExpenses.length;
+        totalLogged += visibleExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+        splitActivityRep += Math.min(50, visibleExpenses.length * 10);
+        if (isSettled) {
+          splitSettledRep += 250;
+          if ((c.participants || []).length >= 3) splitMultiRep += 100;
+        }
+        if (c.completedAt) completed += 1;
+        maxPartySize = Math.max(maxPartySize, participantName ? (c.participants || []).length : scoped ? 0 : (c.participants || []).length);
+      });
+    });
+
+    const debt = modules.debt || { dragons: [] };
+    const dragons = debt.dragons || [];
+    let reclaimed = 0, biggestHit = 0, strikes = 0, slain = 0, realDragonsSlain = 0, debtPaymentRep = 0;
+    dragons.forEach(d => {
+      (d.log || []).forEach(row => {
+        const amount = Number(row.amount) || 0;
+        reclaimed += amount;
+        debtPaymentRep += Math.min(300, amount / 10);
+        strikes += 1;
+        biggestHit = Math.max(biggestHit, amount);
+      });
+      if (d.slain) slain += 1;
+      if (d.slain && Math.max(Number(d.original) || 0, Number(d.balance) || 0) >= 5000) realDragonsSlain += 1;
+    });
+    const liveDragons = dragons.filter(d => !d.archived && !d.slain && Number(d.balance) > .005).length;
+    const interestFed = Number(debt.stats?.interest) || 0;
+
+    let showdowns = 0, merchants = 0, bestRescue = 0, qualifiedBargainRescue = 0;
+    (modules.comparisons || []).forEach(cmp => {
+      merchants += (cmp.offers || []).length;
+      if ((cmp.offers || []).length >= 2) {
+        showdowns += 1;
+        const ranked = PointyLogic?.rankOffers ? PointyLogic.rankOffers(cmp.offers, cmp) : [];
+        const best = ranked.find(o => o.isBest);
+        if (best) bestRescue = Math.max(bestRescue, best.savePct || 0);
+        const meaningfulOffers = (cmp.offers || []).filter(o => Number(o.price) > 0 && Number(o.qty) > 0);
+        const hasMeaningfulSpend = meaningfulOffers.some(o => Number(o.price) >= 100);
+        if (best && meaningfulOffers.length >= 3 && hasMeaningfulSpend) {
+          qualifiedBargainRescue = Math.max(qualifiedBargainRescue, best.savePct || 0);
+        }
+      }
+    });
+
+    const treasury = modules.treasury || {};
+    const trStats = treasury.stats || {};
+    const wonMonths = new Set((treasury.history || []).filter(row => row?.won && row.month).map(row => row.month)).size;
+    const monthsWon = Math.max(Number(trStats.monthsWon) || 0, wonMonths);
+    const trLogged = Number(trStats.logged) || 0;
+    const trOnTime = Number(trStats.onTime) || 0;
+    const treasuryLogDays = new Set((treasury.expenses || []).map(e => e.date).filter(Boolean)).size || trLogged;
+    const treasuryReputation = Math.round(monthsWon * 500 + trOnTime * 80 + treasuryLogDays * 10);
+    const compareReputation = Math.round(showdowns * 80 + Math.min(showdowns * 40, merchants * 10));
+    const debtReputation = Math.round(debtPaymentRep + slain * 600);
+    const splitReputation = Math.round(splitActivityRep + splitFrontedRep + splitSettledRep + splitMultiRep);
+    const reputation = Math.round(splitReputation + debtReputation + treasuryReputation + compareReputation);
+    return {
+      reputation,
+      renown: reputation,
+      level: levelFromReputation(reputation),
+      fronted: Math.round(fronted),
+      splitReputation,
+      splitFrontedRep: Math.round(splitFrontedRep),
+      splitSettledRep,
+      settleR: Math.round(settleR),
+      quests,
+      completed,
+      maxPartySize,
+      totalLogged: Math.round(totalLogged),
+      reclaimed: Math.round(reclaimed),
+      biggestHit: Math.round(biggestHit),
+      strikes,
+      slain,
+      realDragonsSlain,
+      liveDragons,
+      interestFed: Math.round(interestFed),
+      debtReputation,
+      showdowns,
+      merchants,
+      bestRescue,
+      qualifiedBargainRescue,
+      dragonsTotal: dragons.length,
+      monthsWon,
+      trLogged,
+      trOnTime,
+      treasuryXp: treasuryReputation,
+      treasuryReputation,
+      compareReputation,
+      streak: opts.streak || 0
+    };
+  }
+
+  function nextActivity(previous = {}, date = new Date()) {
+    const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = ymd(date); const yesterday = new Date(date); yesterday.setDate(yesterday.getDate() - 1);
+    const streak = previous.lastVisit === today ? Number(previous.streak) || 1 : previous.lastVisit === ymd(yesterday) ? (Number(previous.streak) || 0) + 1 : 1;
+    return { ...previous, lastVisit: today, streak, bestStreak: Math.max(Number(previous.bestStreak) || 0, streak) };
+  }
   Object.assign(PointyLogic, {
+    nextActivity,
+    PLAYER_ACHIEVEMENTS, playerProgress,
+    treasurySpent, treasuryBillPaid, treasuryProjection, treasuryClose, treasuryXp,
+    settlementRevision,
+    promptPayPayload,
+    pendingSettlements,
+    confirmSettlement,
     hashOf,
+    cleanFirestoreData,
+    tripContentKey,
     approxEqual,
     parseNumberInput,
     formatNumberInput,
@@ -874,6 +1205,8 @@
     statusOf,
     normalizeTripState,
     parseImportItems,
+    spreadsheetExpense,
+    validateLedgerExpense,
     payerMap,
     splitShares,
     computeParty,
@@ -888,6 +1221,7 @@
     dailyInterest,
     accrueDebtToDate,
     applyDebtPayment,
+    reviseDebtLog,
     monthlyInterest,
     payoffMonths,
     strategyTarget,

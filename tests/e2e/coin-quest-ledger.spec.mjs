@@ -18,7 +18,7 @@ import {
 test.beforeEach(async ({ page }) => {
   const consoleErrors = [];
   page.on('console', msg => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
+    if (msg.type() === 'error') consoleErrors.push(`${msg.text()} (${msg.location().url || 'page'})`);
   });
   page.on('pageerror', err => consoleErrors.push(err.message));
   page.consoleErrors = consoleErrors;
@@ -457,6 +457,29 @@ test('expense splitter supports itemized loot split, receipt date, and quest boa
   await expect(page.getByText('รวมปาร์ตี้!')).toBeVisible();
 });
 
+test('native JSON and exported Excel round trip preserve payers and exact shares', async ({ page }) => {
+  await gotoFreshTrip(page, 'native-files');
+  await addWarrior(page, 'NativeHero');
+  const receipt = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aSpkAAAAASUVORK5CYII=';
+  const expense = { id: 'native-uuid', desc: 'Native receipt', amount: 100, paidBy: 'NativeHero', payers: { NativeHero: 80, Guest: 20 }, sharedBy: ['NativeHero', 'Guest'], split: { mode: 'exact', weights: { NativeHero: 40, Guest: 60 } }, receipt, date: '2026-10-12' };
+  page.on('dialog', dialog => dialog.accept());
+  await page.locator('#import-input').setInputFiles({ name: 'native-board.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ format: 'coin-quest-board-v1', data: { expenses: [expense] } })) });
+  await expect(page.locator('#expense-count')).toHaveText('1');
+  await expect(page.locator('#party-total')).toHaveText('฿100');
+  await expect(page.locator('#party-grid')).toContainText('Guest');
+  await expect(page.getByRole('button', { name: 'ดูใบเสร็จ', exact: true })).toHaveCount(1);
+  await expect(page.locator('#settle-body')).toContainText('฿40');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: '📤 Export Excel', exact: true }).click();
+  const download = await downloadPromise;
+  await page.locator('#import-input').setInputFiles(await download.path());
+  await expect(page.locator('#expense-count')).toHaveText('2');
+  await expect(page.locator('#party-total')).toHaveText('฿200');
+  await expect(page.locator('#settle-body')).toContainText('฿80');
+  // Excel is the financial report; JSON carries the receipt image.
+  await expect(page.getByRole('button', { name: 'ดูใบเสร็จ', exact: true })).toHaveCount(1);
+});
+
 test('expense splitter imports text, switches settings, and avoids mobile overflow', async ({ page }) => {
   await gotoFreshTrip(page, 'import-settings');
   await addWarrior(page, 'Shane');
@@ -518,6 +541,8 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
 });
 
 test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', async ({ page }) => {
+  // The payment fixture is June 14; keep creation/accrual on that same day.
+  await page.clock.setFixedTime(new Date(2026, 5, 14, 12));
   await page.goto('/debt/?test=1');
   await page.evaluate(() => {
     localStorage.clear();

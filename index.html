@@ -14,67 +14,6 @@
   <link rel="stylesheet" href="/shared/profile-hub.css">
   <link rel="stylesheet" href="/shared/mobile-shell.css">
   <style>
-    :root {
-      --font-display: "Mitr", system-ui, sans-serif;
-      --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
-      --font-stat: "Chakra Petch", monospace;
-      --accent: #2f8f5b;
-      --bg: #e7dcc6;
-      --bg-glow: #f0e7d4;
-      --panel: #fbf6ea;
-      --panel-2: #f3e9d4;
-      --panel-in: #fffdf7;
-      --ink: #2f2515;
-      --ink-soft: #87745a;
-      --border: #ddc9a3;
-      --border-strong: #c9ad7c;
-      --gold: #c79320;
-      --gold-soft: #efe0b6;
-      --hp: #cf4633;
-      --hp-bg: #e7d3c6;
-      --xp: #d39a25;
-      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
-      --topbar: #2b2113;
-      --topbar-ink: #efe4cc;
-    }
-    [data-theme="tavern"] {
-      --bg: #e7dcc6;
-      --bg-glow: #f0e7d4;
-      --panel: #fbf6ea;
-      --panel-2: #f3e9d4;
-      --panel-in: #fffdf7;
-      --ink: #2f2515;
-      --ink-soft: #87745a;
-      --border: #ddc9a3;
-      --border-strong: #c9ad7c;
-      --gold: #c79320;
-      --gold-soft: #efe0b6;
-      --hp: #cf4633;
-      --hp-bg: #e7d3c6;
-      --xp: #d39a25;
-      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
-      --topbar: #2b2113;
-      --topbar-ink: #efe4cc;
-    }
-    [data-theme="dungeon"] {
-      --bg: #14121f;
-      --bg-glow: #221d36;
-      --panel: #221d33;
-      --panel-2: #2b2542;
-      --panel-in: #1a1628;
-      --ink: #ece8f8;
-      --ink-soft: #a39bc4;
-      --border: #3b3357;
-      --border-strong: #4a4170;
-      --gold: #ecc14e;
-      --gold-soft: #3a3050;
-      --hp: #ff5d70;
-      --hp-bg: #3a2740;
-      --xp: #ecc14e;
-      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
-      --topbar: #0e0c17;
-      --topbar-ink: #d9d2f0;
-    }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body {
@@ -325,8 +264,10 @@
     }
   </style>
   <link rel="stylesheet" href="/shared/player-controls.css">
+  <link rel="stylesheet" href="/shared/quest-tokens.css">
+  <link rel="stylesheet" href="/shared/quest-design.css">
 </head>
-<body>
+<body data-page="home">
   <div class="first-load" data-first-load>
     <div class="first-load-box">
       <div class="first-load-emblem" aria-hidden="true">
@@ -574,6 +515,7 @@
           <span class="gc-play">▶ ${h(hs.play)}</span>
         </button>
       `).join('');
+      window.PointyAssets?.apply(document.getElementById('home-grid'));
       document.querySelectorAll('[data-home-card]').forEach(btn => {
         const card = cards.find(c => c.id === btn.dataset.homeCard);
         btn.addEventListener('click', () => {
@@ -679,9 +621,9 @@
       return `--r-top:oklch(0.74 0.15 ${hue});--r-deep:oklch(0.5 0.16 ${hue});--r-soft:oklch(0.93 0.05 ${hue});--r-text:oklch(0.45 0.16 ${hue})`;
     }
     function render() {
-      document.getElementById('cmp-count').textContent = comparisons.length;
+      document.getElementById('cmp-count').textContent = comparisons.filter(c => !c.archived).length;
       const grid = document.getElementById('cmp-grid');
-      grid.innerHTML = comparisons.map(renderCard).join('') + renderAddCard();
+      grid.innerHTML = comparisons.filter(c => !c.archived).map(renderCard).join('') + renderAddCard() + comparisons.filter(c => c.archived).map(c => `<button type="button" class="btn-ghost" onclick="restoreComparison(${q(c.id)})">${LANG === 'th' ? 'นำกลับมา' : 'Restore'} · ${h(c.name)}</button>`).join('');
       document.getElementById('cmp-empty').innerHTML = comparisons.length ? '' : `<div class="empty">🔍 ${t('no_items')}</div>`;
       translatePage();
     }
@@ -821,9 +763,10 @@
       addOpen = false; draftIcon = ITEM_ICONS[0]; saveState(); render();
     }
     function deleteComparison(id) {
-      comparisons = comparisons.filter(c => c.id !== id);
+      comparisons = comparisons.map(c => c.id === id ? { ...c, archived: true } : c);
       saveState(); render();
     }
+    function restoreComparison(id) { comparisons = comparisons.map(c => c.id === id ? { ...c, archived: false } : c); saveState(); render(); }
     function deleteOffer(cid, oid) {
       comparisons = comparisons.map(c => c.id === cid ? { ...c, offers: c.offers.filter(o => o.id !== oid) } : c);
       saveState(); render();
@@ -921,6 +864,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="/shared/firebase-client.js"></script>
+  <script src="/shared/module-cloud.js"></script>
+  <script>
+    PointyModuleCloud.register({ key: STORE_KEY, field: 'comparisons', empty: () => [], apply: value => { comparisons = value.map(normalizeComparison); renderAll(); } });
+  </script>
   <script src="/shared/board-invites.js"></script>
   <script src="/shared/profile-session.js"></script>
   <script src="/shared/profile-auth.js"></script>

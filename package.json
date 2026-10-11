@@ -10,6 +10,7 @@
     "test:assets": "node scripts/check-assets.mjs",
     "test:syntax": "node scripts/check-inline-scripts.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:backend": "node scripts/test-backend.mjs",
     "test:e2e": "playwright test",
     "upload:cloudinary": "node scripts/upload-cloudinary-assets.mjs"
   },
@@ -17,7 +18,10 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2"
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@playwright/test": "^1.54.2",
+    "firebase": "^13.0.0",
+    "firebase-tools": "^14.22.0"
   },
   "dependencies": {
     "firebase-admin": "13.10.0"

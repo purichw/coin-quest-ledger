@@ -62,7 +62,7 @@ the user explicitly changes direction.
 | `/debt/` | Player | `debt/index.html`, `debt/app.js` | web Debt Dragon local-first module | profile modules, account scope, assets |
 | `/treasury/` | Player | `treasury/index.html`, `treasury/app.js` | web Treasury local-first module | profile modules, account scope |
 | `/admin/` | Super Admin | `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css` | board/user/admin management, relationship map, lifecycle, revisions, support tools | Firebase Google Auth, Firestore, `api/admin-delete-*` |
-| `mobile/` | Player native | `mobile/App.tsx`, `mobile/src/*` | Expo player app for auth, profile, Split, native-owned modules | Firebase modular SDK |
+| `mobile/` | Player native | `mobile/index.ts`, `mobile/src/app/*` | Expo Router player app for auth, profile, Split and finance modules | Firebase modular SDK + shared calculations |
 | `/api/admin-delete-status` | Admin backend | `api/admin-delete-status.js` | reports privileged delete readiness | Vercel env |
 | `/api/admin-delete-user` | Admin backend | `api/admin-delete-user.js` | verifies Super Admin token and permanently deletes account data | Firebase Admin SDK |
 
@@ -325,8 +325,10 @@ flowchart TD
   Save --> Reminder["Profile reminders see due/overdue dragons"]
 ```
 
-Web Debt Dragon is currently local-first. Native Debt Dragon writes
-`playerModules/{uid}` instead.
+Web Debt Dragon keeps an account-scoped local cache and connects through
+`shared/module-cloud.js` to the same `playerModules/{uid}` as native. Conflicting
+unsynced local data is retained for an explicit choice. Verify the exact deployed
+revision through the release runbook before asserting production availability.
 
 ### Treasury Journey
 
@@ -342,8 +344,8 @@ flowchart TD
   Wards --> CloseMonth["Close month / reset cycle"]
 ```
 
-Web Treasury is currently local-first. Native Treasury writes
-`playerModules/{uid}` instead.
+Web Treasury uses the same local-cache/cloud-bridge policy as Debt Dragon;
+native writes the shared owner document directly with conflict detection.
 
 ### Price Arena Journey
 
@@ -353,16 +355,22 @@ does not create `trips` or Admin Portal records.
 
 ### Native Player App Journey
 
-Native `mobile/` is player-side:
+The old native app was retired on 2026-10-11. The new SDK 57 app implements the
+following player journeys, with actual native and web/Firebase evidence recorded
+in `docs/mobile-completion-worklist.md`:
 
 - username/password Sign In and Sign Up;
 - Character Creation and Profile;
-- Split board reads/writes;
+- Split boards, five split modes, multi-payer, Guest editing, Character-ID invites,
+  budgets, settlements/PromptPay, campaigns, receipts, imports and exports;
 - Debt Dragon, Treasury, and Compare via `playerModules/{uid}`;
+- reminders, 19 achievements, shared XP/reputation, privacy/share and recoverable history;
+- account recovery and native backup/restore (live credential-changing QA needs a human handoff);
 - no Admin Portal.
 
-Native screens share backend concepts with the web app but do not reuse the
-browser localStorage contracts.
+Native and web share calculations and Firebase records. The native UI uses local
+bundled website fonts and art. Native does not read browser localStorage; the web
+bridge is responsible for preserving/mapping existing browser data.
 
 ## Admin Journey Map
 
@@ -528,7 +536,7 @@ Permanent delete is the only current backend-only user management path.
 | `users/{uid}/boardInvites/{id}` | Trip, Profile Hub | target reminders | Character ID invite create, accept/decline status | 24-hour pending lifecycle; reminders reload pending invites from server in production |
 | `adminRevisions/{id}` | Admin Portal | revisions tab | Admin publish | Super Admin only in rules |
 | `adminDeleteRequests/{id}` | backend/API audit | backend tests/ops | backend delete status | not full product audit log |
-| `playerModules/{uid}` | Native app | native Debt/Treasury/Compare | native module state | web modules are not migrated here yet |
+| `playerModules/{uid}` | Native app + web bridge | Debt/Treasury/Compare and profile/reminders | owner-scoped shared module state | local round trips verified; release status tracked separately |
 | `localStorage.pointy_auth_v1` | Profile Hub | player pages | auth mirror | authoritative only in `?test=1`; production Firebase sessions must fresh-sync `users/{uid}` before trusting mirrored account state |
 | account-scoped localStorage | web Debt/Treasury/Compare/Profile | player web modules/reminders | local module progress | scoped by active account; real production board data must not be replaced by trip snapshot cache |
 | `sessionStorage.pointy_test_trip_*` | tests / `?test=1` | Trip/Admin test mode | Playwright fixtures/Admin test publish | regression-only |
@@ -634,8 +642,8 @@ For commit/deploy after meaningful behavior changes, run full `npm test`.
 - Admin Portal Add User is not real Auth account creation yet.
 - Admin character edit currently affects board draft/published board data more
   than canonical `characters/{id}`.
-- Web Debt Dragon and Treasury are local-first; native module state lives in
-  `playerModules/{uid}`.
+- The web module cloud bridge is implemented and locally verified, but production
+  promotion is still separate. Browser/cloud conflicts require an explicit choice.
 - `localStorage.pointy_auth_v1` is a convenience mirror in production and a
   test authority only in `?test=1`.
 - Duplicate visible hero names are allowed as product behavior; only internal

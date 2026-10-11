@@ -1,0 +1,43 @@
+import { useModule } from '../../modules/useModule';
+import { useState } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Text, View } from 'react-native';
+import { Action, ErrorNote, Field, ui } from '../../auth/ui';
+import { canon } from '../../domain/canon';
+import { makeId } from '../../ledger/service';
+import { pickReceipt } from '../../ledger/files';
+import { changeModule } from '../../modules/service';
+import { payDragon, restoreDebtLog, validateDragon } from '../../modules/contracts';
+import { label, type Dragon, type ModuleSnapshot } from '../../modules/types';
+import { DragonArt } from '../../modules/DragonArt';
+import { DateField } from '../../player/DateField';
+import { Body, Card, Choice, confirm, LoadError, Loading, money, number, p, Page, PlayerGate, Row, today, useWork, type Player } from '../../player/ui';
+
+export default function DragonRoute() { const { id } = useLocalSearchParams<{ id?: string }>(); return <PlayerGate>{player => <LoadDragon {...player} id={id} />}</PlayerGate>; }
+function LoadDragon(player: Player & { id?: string }) {
+  const load = useModule('debt', player.account);
+  if (!load.data) return load.error ? <LoadError error={load.error} retry={load.reload} /> : <Loading />;
+  const dragon = load.data.data.dragons.find(d => d.id === player.id);
+  if (player.id && !dragon) return <LoadError error="ไม่พบรายการหนี้นี้" retry={load.reload} />;
+  return <DragonForm key={load.data.baseline} {...player} original={dragon} initial={load.data} />;
+}
+function DragonForm({ account, original, initial }: Player & { original?: Dragon; initial: ModuleSnapshot<'debt'> }) {
+  const work = useWork(); const [snapshot, setSnapshot] = useState(initial); const [entryId] = useState(original?.id || makeId());
+  const [editing, setEditing] = useState(!original); const [name, setName] = useState(original ? label(original.name) : '');
+  const [type, setType] = useState(original?.type || 'card'); const [balance, setBalance] = useState(original ? String(original.balance) : ''); const [principal, setPrincipal] = useState(original ? String(original.original) : '');
+  const [apr, setApr] = useState(original ? String(original.apr) : '0'); const [payment, setPayment] = useState(original ? String(original.payment) : ''); const [due, setDue] = useState(String(original?.dueDay || 1));
+  const [payMode, setPayMode] = useState<Dragon['payMode']>(original?.payMode || 'monthly'); const [interestMode, setInterestMode] = useState<Dragon['interestMode']>(original?.interestMode || 'compound');
+  const [paid, setPaid] = useState(''); const [paidDate, setPaidDate] = useState(today()); const [payId, setPayId] = useState(makeId); const [notice, setNotice] = useState('');
+  const current = snapshot.data.dragons.find(d => d.id === entryId);
+  return <Page><Stack.Screen options={{ title: current ? label(current.name) : 'เพิ่มมังกรหนี้' }} /><DragonArt type={type} uri={snapshot.data.art[type]} />
+    {current && <><Card title={label(current.name)}><Text style={ui.title}>{money(current.balance)}</Text><Body>เงินต้น {money(current.original)} · ดอกเบี้ย {current.apr}% ต่อปี</Body><Body>{current.interestMode === 'simple' ? 'ดอกเบี้ยคงที่จากเงินต้น' : 'ดอกเบี้ยทบต้นจากยอดคงเหลือ'} · คิดล่าสุด {new Date(current.interestAccruedAt).toLocaleDateString('th-TH')}</Body><Body>{current.payMode === 'monthly' ? `ผ่อน ${money(current.payment)} · ครบกำหนดวันที่ ${current.dueDay}` : 'จ่ายตามสะดวก'}</Body><Action title={editing ? 'ปิดการแก้ไขรายละเอียด' : 'แก้ไขรายละเอียดหนี้'} secondary onPress={() => { setEditing(!editing); setBalance(String(current.balance)); }} /></Card>
+      {!current.slain && <Card title="บันทึกการจ่าย"><Field label="จำนวนที่จ่าย (บาท)" value={paid} onChangeText={setPaid} keyboardType="decimal-pad" /><DateField label="วันที่จ่าย" value={paidDate} onChange={setPaidDate} /><Body>บันทึกยอดที่จ่ายแล้ว แอปไม่ได้โอนเงิน</Body><Action title="บันทึกการจ่าย" busy={work.busy} onPress={() => void work.run(async () => { payDragon(current, number(paid), paidDate, payId); setSnapshot(await changeModule('debt', account, snapshot, state => { let interest = 0; return { ...state, dragons: state.dragons.map(d => { if (d.id !== entryId) return d; const result = payDragon(d, number(paid), paidDate, payId); interest = result.interest; return result.debt; }), stats: { ...state.stats, interest: state.stats.interest + interest } }; })); setPaid(''); setPayId(makeId()); setNotice('บันทึกการจ่ายแล้ว'); })} /></Card>}
+      <Card title="ประวัติการจ่าย">{current.log.length ? [...current.log].reverse().map(row => <Row key={row.id} title={money(row.amount)} detail={row.ts ? new Date(row.ts).toLocaleDateString('th-TH') : row.date} onPress={() => router.push({ pathname: '/debt/log', params: { id: entryId, logId: row.id } })} />) : <Body>ยังไม่มีประวัติการจ่าย</Body>}</Card></>}
+    {editing && <Card title="รายละเอียดหนี้"><Field label="ชื่อหนี้" value={name} onChangeText={setName} maxLength={80} /><View style={p.choices}>{canon.DRAGON_TYPE_ORDER.map(id => <Choice key={id} label={canon.DRAGON_TYPES[id].th} selected={type === id} onPress={() => setType(id)} />)}</View><Field label="ยอดคงเหลือ (บาท)" value={balance} onChangeText={setBalance} keyboardType="decimal-pad" /><Field label="เงินต้นเริ่มแรก (บาท)" value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" placeholder="เท่ากับยอดคงเหลือเมื่อเว้นว่าง" /><Field label="อัตราดอกเบี้ยต่อปี (%)" value={apr} onChangeText={setApr} keyboardType="decimal-pad" /><View style={p.choices}><Choice label="ทบต้น" selected={interestMode === 'compound'} onPress={() => setInterestMode('compound')} /><Choice label="คงที่จากเงินต้น" selected={interestMode === 'simple'} onPress={() => setInterestMode('simple')} /></View><View style={p.choices}><Choice label="ผ่อนรายเดือน" selected={payMode === 'monthly'} onPress={() => setPayMode('monthly')} /><Choice label="จ่ายตามสะดวก" selected={payMode === 'adhoc'} onPress={() => setPayMode('adhoc')} /></View>{payMode === 'monthly' && <><Field label="ยอดผ่อนต่อเดือน (บาท)" value={payment} onChangeText={setPayment} keyboardType="decimal-pad" /><Field label="วันครบกำหนด 1–31" value={due} onChangeText={setDue} keyboardType="number-pad" maxLength={2} /></>}
+      <Action title="บันทึกรายละเอียดหนี้" busy={work.busy} onPress={() => void work.run(async () => { const now = canon.dateOnlyMs(today()); const value: Dragon = { ...current, id: entryId, name: { th: name.trim(), en: name.trim() }, type, balance: number(balance), original: principal.trim() ? number(principal) : number(balance), apr: number(apr), payment: payMode === 'monthly' ? number(payment) : 0, dueDay: payMode === 'monthly' ? number(due) : 0, payMode, interestMode, log: current?.log || [], createdAt: current?.createdAt || now, interestAccruedAt: now, slain: number(balance) <= .005, slainAt: number(balance) <= .005 ? Date.now() : null }; validateDragon(value); if (!current && value.balance <= 0) throw new Error('ยอดหนี้ใหม่ต้องมากกว่า 0'); setSnapshot(await changeModule('debt', account, snapshot, state => ({ ...state, dragons: state.dragons.some(d => d.id === entryId) ? state.dragons.map(d => d.id === entryId ? value : d) : [...state.dragons, value] }))); setEditing(false); setNotice('บันทึกรายละเอียดแล้ว'); if (!current) router.replace({ pathname: '/debt/dragon', params: { id: entryId } }); })} />
+      <Action title="เปลี่ยนภาพมังกรประเภทนี้" secondary busy={work.busy} onPress={() => void work.run(async () => { const image = await pickReceipt(); if (image) setSnapshot(await changeModule('debt', account, snapshot, state => ({ ...state, art: { ...state.art, [type]: image } }))); })} /></Card>}
+    {current && <Action title="เก็บรายการหนี้นี้" secondary busy={work.busy} onPress={() => confirm('เก็บรายการหนี้?', 'ข้อมูลและประวัติยังอยู่ กู้กลับได้จากหน้ามังกรหนี้', () => void work.run(async () => { await changeModule('debt', account, snapshot, state => ({ ...state, dragons: state.dragons.map(d => d.id === entryId ? { ...d, archived: true } : d) })); router.back(); }), 'เก็บรายการ')} />}
+    {!!current?.logTrash?.length && <Card title="ประวัติที่เก็บไว้">{current.logTrash.map(row => <Action key={row.id} title={`คืนยอดจ่าย ${money(row.amount)}`} secondary busy={work.busy} onPress={() => void work.run(async () => setSnapshot(await changeModule('debt', account, snapshot, state => ({ ...state, dragons: state.dragons.map(d => d.id === entryId ? restoreDebtLog(d, row.id) : d) }))))} />)}</Card>}
+    {!!notice && <Body>{notice}</Body>}<ErrorNote message={work.error} />
+  </Page>;
+}

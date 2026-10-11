@@ -1,0 +1,27 @@
+import { useState } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Text, View } from 'react-native';
+import { Action, ErrorNote, Field, ui } from '../../auth/ui';
+import { canon } from '../../domain/canon';
+import { makeId } from '../../ledger/service';
+import { changeModule } from '../../modules/service';
+import { useModule } from '../../modules/useModule';
+import type { Comparison, ModuleSnapshot } from '../../modules/types';
+import { Body, Card, Choice, confirm, LoadError, Loading, money, p, Page, PlayerGate, Row, useWork, type Player } from '../../player/ui';
+export default function ItemRoute() { const { id } = useLocalSearchParams<{ id?: string }>(); return <PlayerGate>{p => <LoadItem {...p} id={id} />}</PlayerGate>; }
+function LoadItem(props: Player & { id?: string }) {
+  const load = useModule('comparisons', props.account); if (!load.data) return load.error ? <LoadError error={load.error} retry={load.reload} /> : <Loading />;
+  if (props.id && !load.data.data.some(c => c.id === props.id)) return <LoadError error="ไม่พบสินค้า" retry={load.reload} />;
+  return <Item key={load.data.baseline} {...props} initial={load.data} />;
+}
+function Item({ account, id, initial }: Player & { id?: string; initial: ModuleSnapshot<'comparisons'> }) {
+  const [snapshot, setSnapshot] = useState(initial); const current = snapshot.data.find(c => c.id === id); const work = useWork();
+  const [entryId] = useState(id || makeId()); const [name, setName] = useState(current?.name || ''); const [unit, setUnit] = useState(current?.baseUnit || 'ml'); const [icon, setIcon] = useState(current?.icon || '🛒'); const [editing, setEditing] = useState(!current);
+  const groups: Record<string, string> = { ml: 'ปริมาตร · ml', g: 'น้ำหนัก · g', m: 'ความยาว · m', 'ชิ้น': 'จำนวน · ชิ้น' };
+  const ranked = current ? canon.rankOffers(current.offers, current) : [];
+  return <Page><Stack.Screen options={{ title: current?.name || 'เพิ่มสินค้าเปรียบเทียบ' }} />{current && <><Text style={ui.title}>{current.name}</Text><Body>ราคาต่อ {current.baseUnit} · {current.offers.length} ตัวเลือก</Body><Action title="เพิ่มราคาตัวเลือก" onPress={() => router.push({ pathname: '/prices/offer', params: { id: current.id } })} /><Action title={editing ? 'ปิดการแก้ไขสินค้า' : 'แก้ไขสินค้า'} secondary onPress={() => setEditing(!editing)} /></>}
+    {editing && <Card title="สินค้าและหน่วย"><Field label="ชื่อสินค้า" value={name} onChangeText={setName} maxLength={100} /><View style={p.choices}>{canon.UNIT_GROUPS.map(g => <Choice key={g.base} label={groups[g.base]} selected={unit === g.base} disabled={!!current?.offers.length && current.baseUnit !== g.base} onPress={() => setUnit(g.base)} />)}</View><View style={p.choices}>{['🛒', '🥛', '🍚', '🧴', '🧻', '🥤', '🍎', '📦'].map(g => <Choice key={g} label={g} selected={icon === g} onPress={() => setIcon(g)} />)}</View>{!!current?.offers.length && <Body>เปลี่ยนกลุ่มหน่วยได้เมื่อไม่มีราคาตัวเลือก เพื่อรักษาความหมายของราคาที่บันทึกไว้</Body>}<Action title="บันทึกสินค้า" busy={work.busy} onPress={() => void work.run(async () => { if (!name.trim()) throw new Error('ใส่ชื่อสินค้า'); const value: Comparison = { ...current, id: entryId, name: name.trim(), icon, baseUnit: unit, offers: current?.offers || [] }; const next = await changeModule('comparisons', account, snapshot, data => current ? data.map(c => c.id === entryId ? value : c) : [value, ...data]); setSnapshot(next); setEditing(false); if (!current) router.replace({ pathname: '/prices/item', params: { id: entryId } }); })} /></Card>}
+    {current && (ranked.length ? ranked.map(o => <Card key={o.id} title={o.merchant}><Text style={ui.title}>{o.norm.valid ? `฿${o.pu.toFixed(o.pu < .1 ? 4 : 3)}` : 'หน่วยไม่ตรงกัน'}<Text style={ui.hint}> / {current.baseUnit}</Text></Text><Body>{money(o.price)} · {o.qty} {o.unit}{o.perPack > 0 && o.unit === 'แพ็ค/กล่อง' ? ` · ${o.perPack} ชิ้นต่อแพ็ค` : ''}</Body>{o.free > 0 && <Body>ซื้อ {o.buy} แถม {o.free} · ปริมาณเทียบเท่า {o.norm.qty.toLocaleString()} {current.baseUnit}</Body>}<Text style={ui.value}>{!o.norm.valid ? 'แก้หน่วยของตัวเลือกนี้' : o.isEqual ? 'ราคาเท่ากัน' : ranked.length > 1 && o.isBest ? `คุ้มที่สุด · ประหยัด ${o.savePct}% เทียบตัวเลือกแพงสุด` : ranked.length === 1 ? 'เพิ่มอีกตัวเลือกเพื่อเทียบ' : `แพงกว่าตัวเลือกคุ้มที่สุด ${((o.pu / ranked[0].pu - 1) * 100).toFixed(1)}%`}</Text><Row title="แก้ไขราคานี้" onPress={() => router.push({ pathname: '/prices/offer', params: { id: current.id, offerId: o.id } })} /></Card>) : <Card><Body>ยังไม่มีราคา เพิ่มราคา ปริมาณ และร้านแรกได้เลย</Body></Card>)}
+    {!!current?.offerTrash?.length && <Card title="ราคาที่เก็บไว้">{current.offerTrash.map(o => <Action key={o.id} title={`คืนราคา ${o.merchant}`} secondary busy={work.busy} onPress={() => void work.run(async () => setSnapshot(await changeModule('comparisons', account, snapshot, data => data.map(c => c.id === current.id ? { ...c, offers: c.offers.some(row => row.id === o.id) ? c.offers : [...c.offers, o], offerTrash: c.offerTrash?.filter(row => row.id !== o.id) } : c))))} />)}</Card>}
+    {current && <Action title="เก็บสินค้านี้" secondary busy={work.busy} onPress={() => confirm('เก็บสินค้า?', 'ราคาและตัวเลือกยังอยู่ นำกลับมาได้จากรายการสินค้าที่เก็บไว้', () => void work.run(async () => { await changeModule('comparisons', account, snapshot, data => data.map(c => c.id === current.id ? { ...c, archived: true } : c)); router.back(); }))} />}<ErrorNote message={work.error} /></Page>;
+}

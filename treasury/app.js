@@ -53,8 +53,8 @@ const TR_STR = {
     trMonthsWon: 'เดือนที่คุมงบ',
     trHistory: 'ย้อนหลัง',
     trThisMonth: 'เดือนนี้',
-    trCloseMonth: 'ปิดยอดเดือน',
-    trCloseConfirm: 'ปิดยอดเดือนนี้แล้วเริ่มเดือนใหม่? ยอดจะถูกบันทึกลงประวัติ',
+    trCloseMonth: 'บันทึกสรุปเดือน',
+    trCloseConfirm: 'บันทึกสรุปเดือนนี้พร้อมรายละเอียด? รายจ่ายยังแก้ไขได้ และเริ่มรอบใหม่เมื่อถึงเดือนถัดไป',
     trWon: 'คุมงบสำเร็จ!',
     trLost: 'งบบานปลาย',
     trReset: 'ล้างคลัง',
@@ -120,8 +120,8 @@ const TR_STR = {
     trMonthsWon: 'Months won',
     trHistory: 'History',
     trThisMonth: 'This month',
-    trCloseMonth: 'Close the month',
-    trCloseConfirm: "Close this month and start a new one? It'll be saved to your history.",
+    trCloseMonth: 'Save month summary',
+    trCloseConfirm: 'Save a summary with expense details? Entries remain editable until the next calendar month.',
     trWon: 'Under budget!',
     trLost: 'Over budget',
     trReset: 'Clear vault',
@@ -240,10 +240,10 @@ function freshTreasury(mk = monthKey(new Date())) {
   return JSON.parse(JSON.stringify({ ...SEED_TREASURY, expenses: exps, month: mk }));
 }
 function blankTreasury(mk = monthKey(new Date())) {
-  return JSON.parse(JSON.stringify({ ...SEED_TREASURY, expenses: [], history: [], stats: {}, month: mk }));
+  return { keeper: {}, income: 0, categories: [], bills: [], expenses: [], history: [], stats: { monthsWon: 0, logged: 0, onTime: 0 }, month: mk };
 }
 function normalizeTreasury(data) {
-  const fresh = freshTreasury();
+  const fresh = { keeper: {}, income: 0, categories: [], bills: [], expenses: [], history: [], stats: { monthsWon: 0, logged: 0, onTime: 0 }, month: monthKey(new Date()) };
   const next = { ...fresh, ...(data || {}) };
   next.keeper = { ...fresh.keeper, ...(next.keeper || {}) };
   next.categories = Array.isArray(next.categories) ? next.categories : fresh.categories;
@@ -275,15 +275,13 @@ function save() {
   window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
 }
 function catSpent(tr, catId) { return (tr.expenses || []).filter(e => e.catId === catId).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
-function totalSpent(tr) { return (tr.expenses || []).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
+function totalSpent(tr) { return PointyLogic.treasurySpent(tr); }
 function totalBudget(tr) { return (tr.categories || []).reduce((a, c) => a + (Number(c.budget) || 0), 0); }
 function wonMonthCount(tr = S) {
   return new Set((tr.history || []).filter(row => row.won && row.month).map(row => row.month)).size;
 }
 function recordMonthClose(won, spent) {
-  const row = { month: S.month, income: S.income, spent, surplus: S.income - spent, won };
-  S.history = [row, ...(S.history || []).filter(item => item.month !== S.month)].slice(0, 12);
-  S.stats = { ...(S.stats || {}), monthsWon: wonMonthCount(S) };
+  S = PointyLogic.treasuryClose(S);
 }
 function billPaidThisMonth(tr, billId, mk = tr.month) { return (tr.expenses || []).some(e => e.billId === billId && monthKey(e.date) === mk); }
 function billDueStatus(bill, tr = S, today = new Date()) {
@@ -296,21 +294,10 @@ function billDueStatus(bill, tr = S, today = new Date()) {
   return { paid: false, overdue: false, days: dueThis - today.getDate() };
 }
 function treasuryXp(tr = S) {
-  const stats = tr.stats || {};
-  return Math.round((stats.monthsWon || 0) * TR_XP_MONTH + (stats.onTime || 0) * TR_XP_ONTIME + (stats.logged || 0) * TR_XP_LOG);
+  return PointyLogic.treasuryXp(tr);
 }
 function projectMonth(tr = S, today = new Date()) {
-  const dim = daysInMonth(today);
-  const dom = Math.max(1, today.getDate());
-  const daysLeft = Math.max(0, dim - dom);
-  const spent = totalSpent(tr);
-  const paidBillIds = new Set((tr.expenses || []).filter(e => e.billId).map(e => e.billId));
-  const unpaidBills = (tr.bills || []).filter(b => !paidBillIds.has(b.id)).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-  const variable = (tr.expenses || []).filter(e => !e.billId).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  const projected = Math.round(spent + unpaidBills + (variable / dom) * daysLeft);
-  const surplus = (Number(tr.income) || 0) - projected;
-  const dailyLeft = daysLeft > 0 ? Math.max(0, Math.round(((Number(tr.income) || 0) - spent - unpaidBills) / daysLeft)) : Math.max(0, (Number(tr.income) || 0) - spent);
-  return { dim, dom, daysLeft, spent, unpaidBills, projected, surplus, onTrack: surplus >= 0, dailyLeft };
+  return PointyLogic.treasuryProjection(tr, today);
 }
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -394,15 +381,15 @@ function render() {
           <div class="panel-head">
             <h2 class="panel-title">🔮 ${h(L.trForecast)}</h2>
           </div>
-          <div class="log-list">
+          <div class="log-list forecast-stats">
             <div class="log-row"><span>📈</span><div><div class="row-title">${money(forecast.projected)}</div><div class="row-sub">${h(L.trProjected)}</div></div><span class="row-amt">${forecast.onTrack ? h(L.trOnTrack) : h(L.trOverspend)}</span></div>
-            <div class="log-row"><span>${forecast.surplus >= 0 ? '💎' : '🔥'}</span><div><div class="row-title">${money(Math.abs(forecast.surplus))}</div><div class="row-sub">${h(forecast.surplus >= 0 ? L.trSurplus : L.trDeficit)}</div></div><span class="row-amt">${money(forecast.dailyLeft)}</span></div>
-            <div class="log-row"><span>📊</span><div><div class="row-title">${money(budget)}</div><div class="row-sub">${h(L.trAllocated)}</div></div><span class="row-amt">${money((Number(S.income) || 0) - budget)}</span></div>
+            <div class="log-row"><span>${forecast.surplus >= 0 ? '💎' : '🔥'}</span><div><div class="row-title">${money(Math.abs(forecast.surplus))}</div><div class="row-sub">${h(forecast.surplus >= 0 ? L.trSurplus : L.trDeficit)}</div></div><span class="row-amt">${lang() === 'th' ? 'ใช้ได้เฉลี่ย' : 'Daily allowance'} ${money(forecast.dailyLeft)} / ${lang() === 'th' ? 'วัน' : 'day'}</span></div>
+            <div class="log-row"><span>📊</span><div><div class="row-title">${money(budget)}</div><div class="row-sub">${h(L.trAllocated)}</div></div><span class="row-amt">${lang() === 'th' ? 'ยังไม่จัดสรร' : 'Unallocated'} ${money((Number(S.income) || 0) - budget)}</span></div>
           </div>
         </section>
         <section class="panel">
           <div class="panel-head"><h2 class="panel-title">📜 ${h(L.trBills)}</h2><button class="btn-primary sm" type="button" onclick="openBillForm()">${h(L.trAddBill)}</button></div>
-          <div class="bill-list">${S.bills.length ? S.bills.map(renderBill).join('') : `<div class="row-sub">${h(L.trNoBills)}</div>`}</div>
+          <div class="bill-list">${S.bills.filter(b => !b.archived).length ? S.bills.filter(b => !b.archived).map(renderBill).join('') : `<div class="row-sub">${h(L.trNoBills)}</div>`}${S.bills.filter(b => b.archived).map(b => `<button type="button" class="btn-ghost" data-restore-bill="${h(b.id)}">${lang() === 'th' ? 'นำบิลกลับมา' : 'Restore bill'} · ${h(b.name?.[lang()] || b.name)}</button>`).join('')}</div>
         </section>
         <section class="panel">
           <div class="panel-head"><h2 class="panel-title">📅 ${h(L.trHistory)}</h2><span class="row-amt">XP ${treasuryXp(S)}</span></div>
@@ -524,7 +511,7 @@ function deleteBill(id) {
 }
 function payBill(id) {
   const bill = S.bills.find(b => b.id === id);
-  if (!bill) return;
+  if (!bill || bill.archived || billPaidThisMonth(S, id)) return;
   const due = billDueStatus(bill);
   S.expenses.push({ id: truid(), catId: bill.catId, billId: bill.id, amount: bill.amount, note: bill.name?.[lang()] || bill.name?.en || '', date: new Date().toISOString().slice(0, 10), onTime: !(due && due.overdue) });
   S.stats = { ...(S.stats || {}), logged: (S.stats?.logged || 0) + 1, onTime: (S.stats?.onTime || 0) + (!(due && due.overdue) ? 1 : 0) };
@@ -535,8 +522,6 @@ function closeMonth() {
   const spent = totalSpent(S);
   const won = spent <= Number(S.income || 0);
   recordMonthClose(won, spent);
-  S.month = monthKey(new Date());
-  S.expenses = [];
   save(); toast(won ? st().trWon : st().trLost); render();
 }
 function resetTreasury() {
@@ -546,6 +531,7 @@ function resetTreasury() {
 }
 
 window.billDueStatus = billDueStatus;
+document.getElementById('app').addEventListener('click', event => { const button = event.target.closest('[data-restore-bill]'); if (!button) return; S.bills = S.bills.map(b => b.id === button.dataset.restoreBill ? { ...b, archived: false } : b); save(); render(); });
 window.treasuryXp = treasuryXp;
 window.projectMonth = projectMonth;
 window.monthKey = monthKey;
@@ -555,3 +541,4 @@ window.setTheme = setTheme;
 
 setTheme(currentGlobalTheme('tavern'));
 render();
+window.PointyModuleCloud?.register({ key: TR_KEY, field: 'treasury', empty: () => ({ month: monthKey(new Date()), income: 0, keeper: {}, categories: [], bills: [], expenses: [], history: [], stats: {} }), apply: value => { S = normalizeTreasury(value); render(); } });

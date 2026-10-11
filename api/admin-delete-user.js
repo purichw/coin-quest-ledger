@@ -1,4 +1,4 @@
-const SUPER_ADMIN_EMAIL = 'purich.wc@gmail.com';
+import { readBody, verifySuperAdminToken } from './account-recovery-core.js';
 const USERNAME_DOMAIN = 'coinquest.local';
 let adminAppModulePromise;
 let adminAuthModulePromise;
@@ -8,27 +8,6 @@ function json(res, status, body) {
   res.statusCode = status;
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(body));
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let raw = '';
-    req.on('data', chunk => {
-      raw += chunk;
-      if (raw.length > 32_000) {
-        reject(new Error('Request body too large.'));
-        req.destroy();
-      }
-    });
-    req.on('end', () => {
-      try {
-        resolve(raw ? JSON.parse(raw) : {});
-      } catch (_) {
-        reject(new Error('Invalid JSON body.'));
-      }
-    });
-    req.on('error', reject);
-  });
 }
 
 function serviceAccount() {
@@ -426,8 +405,56 @@ export function cleanLegacyTripData(data, target) {
   return { changed, data: next, removedNames };
 }
 
-async function commitOps(db, ops) {
+export function detachDeletedAccount(data, target) {
+  const ids = new Set(target.targetIds || []), uid = target.uid;
+  const next = { ...data }, removedNames = [];
+  let changed = false;
+  for (const [name, id] of Object.entries(data.characterIds || {})) {
+    if (!ids.has(String(id))) continue;
+    next.characterIds = { ...(next.characterIds || {}) }; delete next.characterIds[name];
+    next.guestHeroes = { ...(next.guestHeroes || {}), [name]: true };
+    removedNames.push(name); changed = true;
+  }
+  // Deleting an account must not rewrite other people's financial history.
+  // Keep its board-local participant as a guest, with every payment/share intact.
+  if (data.access) {
+    next.access = { ...data.access };
+    for (const field of ['ownerUids', 'memberUids', 'memberCharacterIds']) {
+      if (!Array.isArray(data.access[field])) continue;
+      const filtered = data.access[field].filter(value => field === 'memberCharacterIds' ? !ids.has(String(value)) : !uid || value !== uid);
+      if (filtered.length !== data.access[field].length) { next.access[field] = filtered; changed = true; }
+    }
+  }
+  if (data.admin && (ids.has(String(data.admin.characterId)) || (uid && [data.admin.uid, data.admin.ownerUid].includes(uid)))) {
+    next.admin = { ...data.admin }; delete next.admin.characterId; delete next.admin.uid; delete next.admin.ownerUid;
+    changed = true;
+  }
+  for (const field of ['characterXp', 'renownByCharacter']) {
+    if (!data[field]) continue;
+    next[field] = removeIds(data[field], [...ids]);
+    if (!sameJson(next[field], data[field])) changed = true;
+  }
+  if (Array.isArray(data.campaigns)) next.campaigns = data.campaigns.map(campaign => {
+    const result = detachDeletedAccount(campaign, target);
+    changed ||= result.changed; removedNames.push(...result.removedNames); return result.data;
+  });
+  return { changed, data: next, removedNames: [...new Set(removedNames)] };
+}
+
+export async function commitOps(db, ops) {
   let committed = 0;
+  for (const op of ops.filter(op => op.type === 'clean-trip')) {
+    await db.runTransaction(async tx => {
+      const latest = await tx.get(op.ref);
+      if (!latest.exists) return;
+      const cleaned = op.detach ? detachDeletedAccount(latest.data(), op.target) : cleanLegacyTripData(latest.data(), op.target);
+      if (!cleaned.changed) return;
+      if (!op.detach && isEmptyLegacyScope(cleaned.data)) tx.delete(op.ref);
+      else tx.set(op.ref, { ...cleaned.data, updatedAt: await serverTimestamp() });
+    });
+    committed++;
+  }
+  ops = ops.filter(op => op.type !== 'clean-trip');
   for (let i = 0; i < ops.length; i += 450) {
     const batch = db.batch();
     ops.slice(i, i + 450).forEach(op => {
@@ -441,7 +468,7 @@ async function commitOps(db, ops) {
   return committed;
 }
 
-async function cleanTripReferences(db, target, context = {}) {
+export async function cleanTripReferences(db, target, context = {}) {
   const targetIds = uniq(target?.targetIds || []);
   const targetNames = uniq(target?.targetNames || []);
   const ops = [];
@@ -449,26 +476,36 @@ async function cleanTripReferences(db, target, context = {}) {
   if (!targetIds.length && !targetNames.length) return { ops, trips };
 
   const tripsSnap = await db.collection('trips').get();
+  const detach = context.status === 'account_deleted_cleaned';
   for (const doc of tripsSnap.docs) {
-    const cleaned = cleanLegacyTripData(doc.data() || {}, { targetIds, targetNames });
+    const cleanupTarget = { targetIds, targetNames, uid: target.uid || '' };
+    const cleaned = detach ? detachDeletedAccount(doc.data() || {}, cleanupTarget) : cleanLegacyTripData(doc.data() || {}, cleanupTarget);
     if (!cleaned.changed) continue;
-    if (isEmptyLegacyScope(cleaned.data)) {
-      ops.push({ type: 'delete', ref: doc.ref });
+    ops.push({ type: 'clean-trip', ref: doc.ref, target: cleanupTarget, detach });
+    if (!detach && isEmptyLegacyScope(cleaned.data)) {
       trips.push({ id: doc.id, removedNames: cleaned.removedNames, status: 'deleted_empty_legacy_board' });
       continue;
     }
-    ops.push({
-      type: 'set',
-      ref: doc.ref,
-      data: {
-        ...cleaned.data,
-        updatedAt: await serverTimestamp()
-      },
-      options: { merge: false }
-    });
     trips.push({ id: doc.id, removedNames: cleaned.removedNames, status: context.status || 'cleaned' });
   }
   return { ops, trips };
+}
+
+export async function lockAccountForDeletion(db, { uid, username, userId, characterIds }) {
+  await db.runTransaction(async tx => {
+    const ref = db.collection('users').doc(uid), user = snapData(await tx.get(ref));
+    if (user && (user.userId !== userId || (user.username && user.username !== username))) throw Object.assign(new Error('Account identity changed; reload before deleting.'), { status: 409 });
+    if (user?.recoveryReset?.expiresAt > Date.now()) throw Object.assign(new Error('Account recovery is in progress.'), { status: 409 });
+    for (const path of [username && `usernames/${username}`, userId && `userIds/${userId}`].filter(Boolean)) {
+      const pointer = snapData(await tx.get(db.doc(path)));
+      if (pointer?.uid && pointer.uid !== uid) throw Object.assign(new Error('Identity belongs to another account.'), { status: 409 });
+    }
+    for (const id of characterIds) {
+      const hero = snapData(await tx.get(db.collection('characters').doc(id)));
+      if (hero?.ownerUid && hero.ownerUid !== uid) throw Object.assign(new Error('Character belongs to another account.'), { status: 409 });
+    }
+    if (user) tx.update(ref, { status: 'delete_requested', lifecycleStatus: 'delete_requested' });
+  });
 }
 
 async function deleteLegacyOrphan(db, body, context) {
@@ -574,12 +611,9 @@ export default async function handler(req, res) {
 
   let decoded;
   try {
-    decoded = await (await adminAuth()).verifyIdToken(token);
-  } catch (_) {
-    return json(res, 401, { error: 'Invalid Firebase ID token.' });
-  }
-  if (String(decoded.email || '').toLowerCase() !== SUPER_ADMIN_EMAIL || decoded.email_verified === false) {
-    return json(res, 403, { error: 'This Gmail is not allowed to use Super Admin delete.' });
+    decoded = await verifySuperAdminToken(req);
+  } catch (error) {
+    return json(res, error.status || 401, { error: error.message });
   }
 
   let body;
@@ -677,6 +711,7 @@ export default async function handler(req, res) {
 
   try {
     const results = { auth: 'skipped', userDoc: 'skipped', usernameDoc: 'skipped', characters: [] };
+    await lockAccountForDeletion(db, { uid, username: finalUsername, userId: finalUserId, characterIds: finalCharacterIds });
     try {
       await (await adminAuth()).deleteUser(uid);
       results.auth = 'deleted';
@@ -687,6 +722,7 @@ export default async function handler(req, res) {
 
     const batch = db.batch();
     batch.delete(db.collection('users').doc(uid));
+    batch.delete(db.collection('playerModules').doc(uid));
     results.userDoc = 'deleted';
     if (finalUsername) {
       batch.set(db.collection('usernames').doc(finalUsername), {
@@ -734,8 +770,12 @@ export default async function handler(req, res) {
       results
     }, { merge: true });
     await batch.commit();
+    await db.recursiveDelete(db.collection('users').doc(uid).collection('boardInvites'));
+    results.playerModules = 'deleted';
+    results.boardInvites = 'deleted';
 
     const tripCleanup = await cleanTripReferences(db, {
+      uid,
       targetIds: finalCharacterIds,
       targetNames
     }, { status: 'account_deleted_cleaned' });
@@ -752,6 +792,6 @@ export default async function handler(req, res) {
       failedAt: await serverTimestamp(),
       error: error?.message || String(error)
     }, { merge: true });
-    return json(res, 500, { error: error?.message || 'Permanent delete failed.' });
+    return json(res, error.status || 500, { error: error?.message || 'Permanent delete failed.' });
   }
 }

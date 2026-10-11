@@ -1,6 +1,6 @@
 # Security And Firebase Rules
 
-Last updated: 2026-08-31
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -24,15 +24,15 @@ or quota path requires billing.
 
 ## Firestore Rules Summary
 
-Current deployed repo rule shape:
+Current repository rule shape (verify the Firebase release before claiming live parity):
 
 | Path | Read | Create/update | Delete | Notes |
 | --- | --- | --- | --- | --- |
-| `trips/{tripId}` | signed-in user | signed-in user | Super Admin | first hardening step; owner/member scoping still requires migration |
+| `trips/{tripId}` | signed-in user | active account or Super Admin | Super Admin | owner/member scoping still requires migration |
 | `characters/{characterId}` | anyone | owner UID or Super Admin | Super Admin | update must preserve `ownerUid` |
 | `users/{uid}` | owner UID or Super Admin; list is Super Admin only | owner UID or Super Admin | Super Admin | raw `recoveryCode` writes are blocked |
 | `users/{uid}/boardInvites/{inviteId}` | target owner or Super Admin | any signed-in inviter if `targetOwnerUid == uid` and `status == "pending"` | Super Admin | target owner can update immutable target/trip fields |
-| `usernames/{username}` | public `get`; no `list` | owner UID or Super Admin; deleted reusable tombstone reclaim is constrained | Super Admin | prevents username takeover; new public recovery hashes are blocked |
+| `usernames/{username}` | public `get`; Super Admin `list` | owner UID or Super Admin; deleted reusable tombstone reclaim is constrained | Super Admin | prevents username takeover; new public recovery hashes are blocked |
 | `userIds/{userId}` | public `get`; no `list` | owner UID or Super Admin; deleted reusable tombstone reclaim is constrained | Super Admin | low-detail reservation record for four-digit User ID collision checks |
 | `playerModules/{uid}` | owner UID or Super Admin | owner UID or Super Admin | Super Admin | native-owned Debt/Treasury/Compare state |
 | `adminRevisions/{revisionId}` | Super Admin | Super Admin | Super Admin | Admin publish logs |
@@ -72,8 +72,8 @@ Current deployed repo rule shape:
 - accepts username, Recovery ID, and new password;
 - verifies the recovery hash server-side against `users/{uid}` with legacy
   `usernames/{username}.recoveryHash` fallback;
-- rate-limits repeated failures per serverless instance as a best-effort abuse
-  brake;
+- counts attempts in Firestore across serverless instances (8 per IP/username
+  digest per 15 minutes; no raw IP stored);
 - updates the existing Auth user password when possible, generates a new Recovery
   ID, stores only the new hash on `users/{uid}`, deletes the public username hash,
   and writes `accountRecoveryEvents`.
@@ -99,6 +99,38 @@ Current deployed repo rule shape:
 - deletes Firebase Auth user, `users/{uid}`, character docs, writes a reusable
   deleted username/User ID tombstone, writes `adminDeleteRequests`, and cleans
   board references.
+
+### Shared backend hardening, 2026-10-12
+
+- Strict verified-email and revoked-token checks protect both Admin APIs.
+- Both lifecycle fields are checked. Owners cannot reactivate themselves, alter
+  identity pointers, mint a second linked character, or rotate credentials during
+  a recovery lease. A deleted UID cannot reclaim its tombstones using an old token.
+- Recovery validates identity and the current hash inside a transaction, leases
+  the account for up to five minutes, preserves its UID (including missing Auth
+  recreation), rejects blocked profiles/Auth users, and revokes refresh tokens.
+  The old recovery hash remains usable on a failed operation. Auth + Firestore
+  are separate services; this is a retryable operation, not a cross-service ACID
+  transaction. Expired leases can be retried. Password reset does not reactivate.
+- `accountRecoveryLimits` is Admin SDK only. `expiresAt` supports an optional
+  Firestore TTL policy. Billing is disabled on this project at release preflight,
+  so physical TTL cleanup is deferred; see the deployment runbook. Expired windows
+  are logically reset even without TTL cleanup. No billing upgrade is implied.
+- Invite replies may only transition pending to accepted/declined before expiry,
+  or to expired afterward. Payload rewrites and repeat replies are rejected.
+- Account deletion checks current ownership, blocks further player writes, and
+  removes `playerModules` and nested invites. Shared financial rows remain as
+  board-local guest history so other participants' obligations do not change.
+  Legacy orphan cleanup retains its separate cleanup behavior.
+- `npm run test:backend` runs isolated Auth/Firestore emulators under the
+  **demo-coin-quest** project. Tests refuse to run without emulator environment
+  variables. No production credentials or production records are required.
+
+Remaining boundaries: signed-in board reads and active-account board writes are
+still the documented legacy policy; per-board ACL enforcement needs a migration
+and coordinated link-join/admin-password changes. Existing public legacy hashes
+also need a separately authorized production cleanup. See
+`docs/backend-audit-2026-10-12.md` for verification and limitations.
 
 Accepted Vercel env:
 
@@ -136,7 +168,7 @@ After deploy:
 
 1. Migrate `trips/{tripId}` access metadata into owner/member/admin scoped
    enforcement instead of broad signed-in access.
-2. Add Firestore Rules emulator tests before major rule tightening.
+2. Extend the existing Auth/Firestore emulator suite when access contracts change.
 3. Decide whether public character/profile reads should stay public or become
    board/member scoped.
 4. Purge legacy public `usernames/{username}.recoveryHash` values with a

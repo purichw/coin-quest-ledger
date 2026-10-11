@@ -1,133 +1,127 @@
-# Coin Quest Ledger iOS Build Notes
+# Simulator-first development
 
-Last updated: 2026-07-07
+This runbook belongs to the new app started 2026-10-11. The retired app's
+device IDs, signing workarounds, and build claims do not establish readiness.
 
-Before any new physical-device build, read `../NATIVE_WEB_PARITY.md` and verify
-both the Claude Design parity gate and the real Firebase backend gate.
+## Required evidence, in order
 
-This is the repeatable native iOS runbook. It exists because the first real-device pass proved that "it builds" is not enough: the app must look like Claude Design and use real backend data before a physical install is worth doing.
+1. Compatible SDK dependencies, TypeScript, and lint.
+2. Generated iOS project and a successful native Simulator build.
+3. Installation and launch of `com.purichwc.coinquestledger`.
+4. Personally inspect the live Simulator screen.
+5. Exercise forward/back navigation, text input with the software keyboard,
+   native alert confirm/dismiss, and reload.
+6. Save current screenshots, logs, and the observed device/runtime/build state.
 
-## Non-Negotiable Gates
+Do not start product feature development until this setup gate passes. Once it
+does, repeat native interaction checks for each new flow before expanding.
 
-Before `xcodebuild` or installing on a real iPhone:
+## Local tools observed
 
-1. Design parity pass.
-   - Compare the touched screens against the latest Claude iOS/Android exports in `/Users/point/Downloads/Coin iOS Android/`.
-   - Check platform chrome, large-title spacing, cards, bottom tabs, raised `+` / FAB behavior, sheets, typography scale, avatar/dragon art, empty/loading/error states, and no overlap.
-   - Product requirements beat Claude sample data, but the interaction quality and visual hierarchy should still match closely.
+- Apple Silicon Mac, 8 GB RAM.
+- Node 24.21.0 installed through nvm; use `.nvmrc`.
+- Xcode 27.0 (27A266a), iOS SDK 27.0.
+- Installed Simulator runtimes: iOS 26.5 and 27.0.
+- Xcode 27 uses **Device Hub**, bundle ID `com.apple.dt.Devices`.
+  The application lives under Xcode's `Contents/Applications/DeviceHub.app`.
+  The outer launcher is a trampoline; connect UI automation using the running
+  bundle ID after launch, not the removed `Simulator.app` path.
 
-2. Backend parity pass.
-   - Use real Firebase Auth/Firestore, not static local seed data.
-   - Current contracts: `users/{uid}`, `usernames/{username}`, `characters/{id}`, `trips/{id}`, and `playerModules/{uid}`.
-   - Debt Dragon, Treasury, and Compare must read/write `playerModules/{uid}` or show real empty states.
+Use only one Simulator and one native build at a time. Limit Xcode build and
+Metro to two workers. Do not erase simulators, delete caches, close unrelated
+apps, or change global Xcode selection as routine troubleshooting.
 
-3. Source verification.
-   - `npm run typecheck`
-   - `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export`
-   - Run root `npm test` before commit/push/deploy or when Firestore/backend contracts changed.
+## Build path
 
-## Project Shape
+Activate the pinned Node version in the current shell. From `mobile/`:
 
-- Source lives in `mobile/`.
-- `ios/`, `android/`, `.expo/`, and `node_modules/` are local/generated and ignored.
-- Commit source, package files, scripts, and assets only.
-- Keep the app modular:
-  - `App.tsx`: orchestration/state wiring.
-  - `src/data.ts`: Firebase/Auth/Firestore data boundary.
-  - `src/gameLogic.ts`: native module math/normalization.
-  - `src/ui.tsx`, `src/theme.ts`, `src/copy.ts`: shared presentation.
-  - `src/screens/*.tsx`: screen slices.
-  - `src/sheets.tsx`: modal/sheet flows.
-
-## Known Toolchain
-
-- Expo SDK: 56.
-- React Native: 0.85.3.
-- Firebase JS SDK: 12.15.0.
-- Bundle ID: `com.purichwc.coinquestledger`.
-- Apple Development team used in the first successful physical build: `365NSPNKXD`.
-- First installed physical device:
-  - Name: `Pointy`
-  - CoreDevice id: `360D4601-FBE4-54C7-BF87-C7A1813EDA66`
-  - Physical UDID from `xctrace`: `00008110-000A24C40AD3A01E`
-
-## Commands
-
-From repo root:
-
-```bash
-cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox/mobile"
-npm install
+```sh
+npm ci
 npm run typecheck
-npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export
+npm run lint
+npx expo install --check
+npx expo prebuild --platform ios --no-clean --no-install
 ```
 
-Generate native iOS project only when needed:
+The installed SDK 57 CLI supports `--no-clean`; this preserves generated native
+folders during incremental sync. If native directories are hand-maintained in
+the future, review ownership before using prebuild.
 
-```bash
-npx expo prebuild --platform ios
+Install Pods in `ios/`, then inspect the actual workspace and scheme. Discover
+the chosen available simulator with `xcrun simctl list devices available`.
+Build with the observed workspace, scheme, and destination:
+
+```sh
+xcodebuild -workspace ios/CoinQuestLedger.xcworkspace \
+  -scheme CoinQuestLedger -configuration Debug \
+  -destination 'platform=iOS Simulator,id=<current-simulator-id>' \
+  -derivedDataPath .artifacts/ios-build -jobs 2 build
 ```
 
-Build Release for the connected iPhone:
+Generated native folders, binaries, and logs stay local/ignored. Never commit
+personal device identifiers, signing identities, or user account data.
 
-```bash
-xcodebuild \
-  -workspace ios/CoinQuestLedger.xcworkspace \
-  -scheme CoinQuestLedger \
-  -configuration Release \
-  -destination 'id=00008110-000A24C40AD3A01E' \
-  -derivedDataPath /tmp/coinquest-ios-device-build \
-  -allowProvisioningUpdates \
-  build
+The repeatable wrapper runs the checks, prebuild, Pods, and Xcode build above:
+
+```sh
+npm run build:simulator -- <current-simulator-id>
 ```
 
-Install on the USB-connected iPhone:
+## Install, launch, and inspect
 
-```bash
-xcrun devicectl device install app \
-  --device 360D4601-FBE4-54C7-BF87-C7A1813EDA66 \
-  /tmp/coinquest-ios-device-build/Build/Products/Release-iphoneos/CoinQuestLedger.app
+Choose an available Simulator from `simctl list`. Boot it only if it is shut
+down, wait for `xcrun simctl bootstatus <current-simulator-id> -b`, and inspect
+the live Home screen in Device Hub. A boot-status result alone is insufficient.
+
+Start Metro in one terminal with the pinned Node version:
+
+```sh
+npm run start:simulator
 ```
 
-Launch from Mac while the iPhone is unlocked:
+In a second terminal, from `mobile/`, install the successful build and open the
+development-client URL printed by that Metro process. The verified commands are:
 
-```bash
-xcrun devicectl device process launch \
-  --device 360D4601-FBE4-54C7-BF87-C7A1813EDA66 \
-  com.purichwc.coinquestledger
+```sh
+xcrun simctl install <current-simulator-id> \
+  .artifacts/ios-build/Build/Products/Debug-iphonesimulator/CoinQuestLedger.app
+xcrun simctl launch <current-simulator-id> com.purichwc.coinquestledger
+xcrun simctl openurl <current-simulator-id> \
+  'exp+coin-quest-ledger-mobile://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8093'
 ```
 
-Confirm installed app:
+Accept the app-opening prompt and dismiss the development-menu introduction
+when shown on first launch. Then exercise the current screen in Device Hub.
+For a software keyboard check, use **Device → Keyboard → Toggle Software
+Keyboard** if a connected hardware keyboard hides it. Prefer on-screen keys
+for the verification; host keyboard layout can affect synthetic typed text.
+Do not change unrelated system keyboard settings.
 
-```bash
-xcrun devicectl device info apps \
-  --device 360D4601-FBE4-54C7-BF87-C7A1813EDA66 | rg 'Coin Quest Ledger|com\.purichwc\.coinquestledger'
-```
+Press `r` in the project's Metro terminal to reload, then inspect and interact
+with the app again. A reload message alone is not proof of a working screen.
 
-## Lessons Learned
+## Diagnostics from setup
 
-- Expo and Xcode are not either/or here. Expo owns the React Native app/runtime and can generate the iOS project; Xcode/xcodebuild signs and builds the native app for a real iPhone.
-- A Release device build bundles JS, so Metro is not required to launch the installed app.
-- `devicectl` install can succeed while launch fails if the iPhone is locked. Unlock the phone and keep it on the Home Screen before launch.
-- If iOS blocks the app, check Developer Mode and trust settings on the phone:
-  - Settings > Privacy & Security > Developer Mode.
-  - Settings > General > VPN & Device Management > Apple Development: purich.wc@icloud.com > Trust.
-- The first simulator path was unreliable: Expo reached Metro/Expo Go, but the iPhone 17 Pro simulator stayed on the Apple boot screen. Do not make the simulator the only verification gate until it is healthy.
-- `expo-modules-jsi` local Xcode builds needed a reproducible patch. `package.json` runs `scripts/patch-expo-modules-jsi.mjs` on postinstall to add `COPYFILE_DISABLE=1` and disable nested code signing for that xcframework build script.
-- Firebase Auth persistence is not fully solved. The app currently uses `getAuth(app)` because Firebase 12's React Native AsyncStorage persistence helper is not exposed through the package export map used by TypeScript here. Login works, but persistent sessions across restarts need a focused follow-up.
-- Firestore rejects nested `undefined`; normalization should omit optional fields or use `null` intentionally.
+The first iOS 27 boot completed its migration according to `simctl bootstatus`,
+but Device Hub still displayed the Apple logo and Home did not respond. This is
+**not** a passed launch test. That simulator was shut down without erasing it.
+Package installation also ran slowly under memory pressure (the Mac was already
+using roughly 10 GB of swap). Serial installation and the existing iOS 26.5
+runtime completed. The first native build took 47 minutes 57 seconds with two
+workers and exited successfully. Logs and active compiler processes confirmed
+progress during that build; it was not restarted. This is an observed first
+build duration on this machine, not an expected incremental-build duration.
 
-## First Successful Physical Install
+The first live keyboard check exposed a covered text field. Replacing the
+setup form's outer KeyboardAvoidingView with native ScrollView keyboard inset
+adjustment resolved it. The field was checked again after reload, using the
+software keyboard, and the button passed the entered value to a native alert.
+Reference: [React Native 0.86 ScrollView](https://reactnative.dev/docs/0.86/scrollview#automaticallyadjustkeyboardinsets-ios).
 
-- Build command: Release `xcodebuild` with `-allowProvisioningUpdates`.
-- Signing identity: `Apple Development: purich.wc@icloud.com (NX2QR9D7QS)`.
-- Provisioning profile: `iOS Team Provisioning Profile: com.purichwc.coinquestledger`.
-- Built app path: `/tmp/coinquest-ios-device-build/Build/Products/Release-iphoneos/CoinQuestLedger.app`.
-- Install result: `Coin Quest Ledger`, bundle `com.purichwc.coinquestledger`, version `1.0.0`.
-
-## What To Improve Next
-
-- Add a repeatable screenshot verification path once simulator boot is reliable.
-- Add or document a physical-device screenshot capture path for design review.
-- Solve Firebase Auth persistence cleanly for React Native/Expo.
-- Continue moving native screens toward Claude Design fidelity before further device builds.
+Current status: **setup gate passed on 2026-10-12**, on iPhone 17 Pro / iOS 26.5.
+See `../docs/mobile-simulator-qa-2026-10-11.md` for the test record and images.
+The binary was rebuilt with the date, image picker, document picker, file and
+sharing dependencies on 2026-10-12 (approximately 02:32 Bangkok). Subsequent
+player-flow checks used that installed binary plus the current Metro bundle.
+See `../docs/mobile-completion-worklist.md` for per-flow evidence and limits.
+Android and physical-device distribution remain unverified.

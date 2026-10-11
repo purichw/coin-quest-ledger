@@ -213,7 +213,7 @@ async function lockGate() {
 
 function normalizeBoard(id, data = {}) {
   const admin = data.admin || {};
-  return {
+  const board = {
     id,
     originalId: id,
     type: data.boardType || data.type || (data.dragons ? 'debt' : 'split'),
@@ -230,6 +230,9 @@ function normalizeBoard(id, data = {}) {
     deleted: false,
     created: false
   };
+  board.baseContentKey = PointyLogic.tripContentKey(data);
+  board.baseDraftKey = PointyLogic.tripContentKey(materializeBoard(board));
+  return board;
 }
 async function loadPublished() {
   initFirebase();
@@ -710,18 +713,10 @@ async function publishDraft() {
       localStorage.setItem(LOCAL_REVISIONS_KEY, JSON.stringify(revs.slice(0, 20)));
     } else {
       const db = firebase.firestore();
-      const batch = db.batch();
-      draft.boards.forEach(b => {
-        if (b.deleted) {
-          batch.delete(db.collection('trips').doc(b.originalId));
-          return;
-        }
-        const data = materializeBoard(b);
-        if (b.originalId !== b.urlId && !b.created) batch.delete(db.collection('trips').doc(b.originalId));
-        batch.set(db.collection('trips').doc(b.urlId), data, { merge: false });
-      });
-      batch.set(db.collection('adminRevisions').doc(uid()), revisionDoc(changes));
-      await batch.commit();
+      const operations = draft.boards.filter(b => !(b.created && b.deleted))
+        .filter(b => b.created || b.deleted || b.urlId !== b.originalId || !b.baseDraftKey || b.baseDraftKey !== PointyLogic.tripContentKey(materializeBoard(b)))
+        .map(b => ({ from: b.originalId, to: b.urlId, created: b.created, deleted: b.deleted, baseline: b.baseContentKey || PointyLogic.tripContentKey(b.data), data: materializeBoard(b) }));
+      await window.CoinQuestAdminUtils.publishBoards({ db, operations, revisionId: uid(), revision: revisionDoc(changes) });
     }
     localStorage.removeItem(DRAFT_KEY);
     await loadPublished();
@@ -1308,17 +1303,7 @@ async function performUserLifecycle(userId, status) {
     if (!TEST_MODE && u.uid) {
       const db = window.PointyFirebase?.firestore?.();
       if (!db) throw new Error('Firebase Firestore is not available.');
-      await db.collection('users').doc(u.uid).set({
-        ...patch,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      if (u.username) {
-        await db.collection('usernames').doc(normalizeUsername(u.username)).set({
-          lifecycleStatus: nextStatus,
-          lifecycleUpdatedAt: now,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-      }
+      await window.CoinQuestAdminUtils.setAccountLifecycle({ db, uid: u.uid, userId: u.userId, patch, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
       patchCloudUserLifecycle(u, patch, reason);
     }
     closePortalModal();
@@ -1433,11 +1418,14 @@ function showModal(title, body, actions = []) {
   const root = document.getElementById('modal-root');
   root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn" data-i="0">×</button></div><div class="modal-body">${h(body)}</div><div class="modal-foot">${actions.map((a, i) => `<button class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'} ${a.danger ? 'btn-danger' : ''}" data-i="${i}">${h(a.label || 'ตกลง')}</button>`).join('')}</div></div>`;
   root.classList.add('show');
-  [...root.querySelectorAll('button')].forEach(btn => btn.onclick = () => {
+  [...root.querySelectorAll('button')].forEach(btn => btn.onclick = async () => {
     const fn = actions[Number(btn.dataset.i)]?.onClick;
     root.classList.remove('show');
     root.innerHTML = '';
-    if (fn) fn();
+    if (fn) {
+      try { await fn(); }
+      catch (error) { showModal('บันทึกไม่สำเร็จ', error?.message || 'ลองใหม่อีกครั้ง ข้อมูล draft ยังอยู่', [{ label: 'ปิด' }]); }
+    }
   });
 }
 function confirmAction(title, body, onConfirm) {

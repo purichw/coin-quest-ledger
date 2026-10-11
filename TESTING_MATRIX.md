@@ -1,6 +1,6 @@
 # Testing Matrix
 
-Last updated: 2026-07-14
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -13,6 +13,7 @@ test expectations out of scattered handoff notes.
 npm run test:syntax
 npm run test:assets
 npm run test:unit
+npm run test:backend
 npm run test:e2e
 npm run smoke:prod
 npm test
@@ -20,6 +21,11 @@ npm run serve
 ```
 
 `npm test` runs syntax, asset, unit, and Playwright e2e tests.
+`npm run test:backend` separately starts isolated Auth/Firestore emulators using
+`firebase.test.json` and runs `tests/backend/`. It guards against production,
+uses `demo-coin-quest`, stores artifacts under `mobile/.artifacts/backend-emulator`
+and requires Java 17+ with Firebase CLI 14. CI uses Java 21. Expected permission
+denials from negative Rules assertions are not test failures.
 
 `npm run smoke:prod` runs the non-mutating production browser smoke harness
 documented in `PROD_SMOKE_HARNESS.md`. Run it after production deploys or
@@ -45,18 +51,19 @@ the relevant iPhone widths from `$mobile-web-qa` / `CLAUDE_TO_A_TEE_QA.md`.
 | Settlement/split math | `npm run test:unit`; full `npm test` before deploy |
 | Invite/guest/reminders | `npm run test:syntax`, `npm run test:unit`, targeted invite Playwright test |
 | Character/Profile aggregation | `npm run test:unit`, Character Profile e2e |
-| Auth/signup/recovery | targeted profile e2e, browser sanity, Firestore rules awareness |
+| Auth/signup/recovery | targeted profile e2e, `npm run test:backend`, affected native contracts/Simulator |
 | Admin Portal | Admin e2e group; usually full `npm test` |
 | Admin delete backend | `tests/unit/admin-delete-user.test.mjs`; real Firebase e2e only with env |
 | Large refactor | targeted slice checks plus full `npm test`; update `REFACTOR_READINESS_AUDIT.md` when gates change |
-| Firestore rules | affected auth/admin/invite/manual live checks after explicit rules deploy |
+| Firestore rules | `npm run test:backend`, explicit deploy, active Rules source comparison and scoped live access checks |
 | Asset/class/skin registry | `npm run test:assets`, render affected picker/profile |
 | Production asset resolver or `.vercelignore` | `npm run test:assets`, local browser smoke, deploy, then `npm run smoke:prod` |
 | Debt Dragon math | Debt unit tests and Debt e2e |
 | Treasury web | Home/Treasury e2e |
-| Native TypeScript | from `mobile/`: `npm run typecheck` |
-| Native export | `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export` |
-| Commit/push/deploy | full `npm test` unless docs-only or user explicitly accepts lighter coverage |
+| Native source | from `mobile/`: `npm run typecheck`, `npm run lint`, `node --test tests/*.test.mjs` |
+| Native bundle | `npx expo export --platform ios --output-dir .artifacts/ios-export`; not Simulator evidence |
+| Native flow | own binary on Simulator, tap/back/keyboard/save/reopen/relaunch as relevant; see `mobile/IOS_BUILD_NOTES.md` |
+| Commit/push/deploy | full `npm test`, backend suite for shared data/Rules, native checks for mobile/shared logic; CI requires both jobs |
 
 ## Useful Targeted Tests
 

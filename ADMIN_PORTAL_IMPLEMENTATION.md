@@ -1,6 +1,6 @@
 # Admin Portal Implementation
 
-Last updated: 2026-08-31
+Last updated: 2026-10-12
 
 ## Purpose
 
@@ -97,17 +97,16 @@ Recoverable lifecycle:
 - `deleted`
 
 `applyUserLifecycle()` writes status fields to `users/{uid}` and
-`usernames/{username}` when a UID/username exists. Player login guards must
+`usernames/{username}` and `userIds/{userId}` atomically. Player login guards must
 respect blocked statuses.
 
 Admin password reset:
 
 - calls `/api/admin-reset-user` with the Google-auth Firebase ID token;
 - verifies the Super Admin allowlist server-side;
-- updates the existing Auth credential when possible, creating a replacement
-  credential only when the old Auth user is missing;
-- keeps or moves `usernames/{username}` to the active UID;
-- preserves public User ID and Character ID when possible;
+- updates the existing Auth credential, recreating the same UID only when Auth
+  is missing; rejects blocked accounts or changed identity ownership;
+- preserves UID, public User ID and Character ID;
 - updates character owner pointer;
 - stores only the new recovery hash in `users/{uid}` and returns the raw Recovery
   ID once for handoff.
@@ -143,3 +142,18 @@ Focused checks:
 npx playwright test tests/e2e/coin-quest-ledger.spec.mjs --grep "super admin"
 node --test tests/unit/admin-delete-user.test.mjs
 ```
+## Backend repair notes — 2026-10-12
+
+Publishing now writes only changed boards and checks the draft's captured content
+against a fresh transaction read. Stale drafts or occupied destination IDs abort
+without deleting local work or writing a revision. Lifecycle changes update user,
+username and User ID together and refuse accounts with an active recovery lease.
+Admin tombstone listing is allowed by rules while player enumeration stays denied.
+
+Delete checks target ownership before Auth changes, clears module data/nested
+invites, and preserves shared financial history as board-local guests. Legacy
+orphan cleanup rereads each board in a transaction to preserve concurrent edits.
+Both privileged APIs require verified allowlisted email and non-revoked tokens.
+Historical local evidence and remaining limits are recorded in
+`docs/backend-audit-2026-10-12.md`. Release status must be verified against the
+exact CI commit, Vercel alias and Firebase Rules release.

@@ -83,3 +83,7 @@ input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator {
 textarea {
   resize: vertical;
 }
+/* Native/web module connection status, outside dynamic module render roots. */
+.module-sync-banner { margin: 12px auto; padding: 12px 16px; max-width: 1180px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; border: 1px solid var(--line, #d6c6a4); border-radius: 14px; background: var(--paper, #fbf6ea); color: var(--ink, #2f2515); font: 14px/1.6 var(--font-body, sans-serif); }
+.module-sync-banner span { flex: 1; min-width: 180px; }
+.module-sync-banner button { min-height: 44px; padding: 8px 14px; border-radius: 10px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; cursor: pointer; }
