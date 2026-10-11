@@ -1,10 +1,13 @@
-import test from 'node:test';
+import test, { beforeEach } from 'node:test';
 import { parseBackup } from '../src/modules/backup-contracts.ts';
 import assert from 'node:assert/strict';
 import { canon } from '../src/domain/canon.ts';
 import { financialReminders } from '../src/player/reminder-contracts.ts';
 import { archiveTreasuryCategory, normalizeModule, payDragon, editDebtLog, validateDragon, saveTreasuryExpense, removeTreasuryExpense, restoreDebtLog, validateOffer } from '../src/modules/contracts.ts';
 const day = '2026-10-12'; const now = canon.dateOnlyMs(day);
+// Fixtures describe this calendar day. Validation must not depend on the CI
+// runner's wall clock (UTC can still be yesterday while Bangkok is already today).
+beforeEach(context => context.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 9, 12, 12) }));
 const dragon = () => ({ id: 'd', name: { th: 'QA' }, type: 'card', original: 1000, balance: 1000, apr: 12, payment: 100, payMode: 'monthly', interestMode: 'compound', dueDay: 15, log: [], createdAt: now, interestAccruedAt: now, slain: false, slainAt: null });
 test('backup import rejects another account, incomplete modules, duplicate IDs and invalid money', () => {
   const value = { format: 'coin-quest-player-v1', uid: 'qa', savedAt: new Date(now).toISOString(), modules: { debt: { dragons: [dragon()] }, treasury: normalizeModule('treasury'), comparisons: [] } };

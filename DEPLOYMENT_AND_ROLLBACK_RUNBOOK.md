@@ -73,9 +73,13 @@ Pushes to `main`:
 - if `VERCEL_TOKEN` is missing, tests still run and deploy is skipped with a
   warning.
 
-There is one production writer: this workflow. Do not start a duplicate manual
+`vercel.json` disables Git integration auto-deploys with `git.deploymentEnabled:
+false`; otherwise Vercel creates a second deployment before CI finishes. There
+is one intended production writer: this workflow. Do not start a duplicate manual
 deployment while it is still running. Native source is pushed with the repository;
 this workflow does not publish an iOS/Android package or an OTA update.
+
+Reference: [Vercel Git configuration](https://vercel.com/docs/project-configuration/git-configuration).
 
 `.vercelignore` excludes mobile, QA evidence, tests and internal documentation.
 It includes `assets/`: production now uses the same checked-in art as native.
