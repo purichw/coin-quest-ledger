@@ -9,9 +9,10 @@
         <div class="login-crest" aria-hidden="true"><span>🔐</span></div>
         <h1 class="login-title">${h(copy.resetTitle)}</h1>
         <p class="login-sub">${h(copy.resetSub)}</p>
-        <label class="login-field"><span>${h(copy.loginEmail)}</span><input type="text" autocomplete="username" data-recovery-username placeholder="${h(copy.loginEmailPlaceholder)}"></label>
+        <label class="login-field"><span>${h(copy.loginEmail)}</span><input type="text" maxlength="32" autocomplete="username" data-recovery-username placeholder="${h(copy.loginEmailPlaceholder)}"></label>
         <label class="login-field"><span>${h(copy.recoveryCode)}</span><input type="text" autocomplete="one-time-code" data-recovery-code placeholder="XXXX-XXXX-XXXX"></label>
         <label class="login-field"><span>${h(copy.newPassword)}</span><input type="password" autocomplete="new-password" data-recovery-password placeholder="${h(copy.newPasswordPlaceholder || copy.loginPasswordPlaceholder)}"></label>
+        <label class="login-field"><span>${h(copy.signupConfirm)}</span><input type="password" autocomplete="new-password" data-recovery-confirm placeholder="${h(copy.signupConfirmPasswordPlaceholder || copy.loginPasswordPlaceholder)}"></label>
         <div class="login-err" data-recovery-error hidden></div>
         <button type="submit" class="login-btn">🔑 ${h(copy.resetConfirm)}</button>
         <button type="button" class="btn-ghost sm" data-back-login style="width:100%;margin-top:10px">${h(copy.loginSignIn)}</button>
@@ -36,11 +37,11 @@
         <p class="login-sub">${h(isSignup ? copy.signupSub : copy.loginSub)}</p>
         ${isSignup ? `<label class="login-field">
           <span>${h(copy.signupName)}</span>
-          <input type="text" autocomplete="name" data-login-name placeholder="${h(copy.signupNamePlaceholder)}">
+          <input type="text" maxlength="60" autocomplete="name" data-login-name placeholder="${h(copy.signupNamePlaceholder)}">
         </label>` : ''}
         <label class="login-field">
           <span>${h(copy.loginEmail)}</span>
-          <input type="text" autocomplete="username" data-login-email placeholder="${h(copy.loginEmailPlaceholder)}">
+          <input type="text" maxlength="32" autocomplete="username" data-login-email placeholder="${h(copy.loginEmailPlaceholder)}">
         </label>
         <label class="login-field">
           <span>${h(copy.loginPassword)}</span>

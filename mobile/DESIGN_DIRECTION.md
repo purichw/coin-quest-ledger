@@ -7,11 +7,15 @@ design proposal.
 
 ## Brand to preserve
 
-The player web palette (`../shared/player-brand.css`) restores the classic
-parchment surfaces, green actions, brass rewards and purple Dungeon theme.
-The user requested this color/brand restoration on 2026-10-12 for both Website
-and Mobile while retaining the current layout and behavior. Admin is excluded;
-its shared base tokens remain in `../shared/quest-tokens.css`.
+Latest user decision, 2026-10-12: restore the complete Website and rebuilt Mobile
+design immediately before the ui-ux-expert redesign request, including layout,
+composition, buttons, fonts, spacing and colors. This supersedes the earlier
+colors-only restoration. Preserve subsequent backend and feature fixes.
+Player web pages use their original inline styles; the redesigned player CSS
+files remain detached. Admin is excluded and retains `../shared/quest-tokens.css`.
+Exact native presentation patches were recovered from this same chat and
+reversed; this does not restore the retired app from before the native rebuild.
+See `../docs/design-restoration-2026-10-12/README.md`.
 Native light colors live in `src/auth/ui.tsx`; fonts and character art are unchanged.
 
 | Role | Tavern / native light | Website Dungeon |
@@ -19,8 +23,8 @@ Native light colors live in `src/auth/ui.tsx`; fonts and character art are uncha
 | Background | `#e7dcc6` | `#14121f` |
 | Surface | `#fbf6ea` | `#221d33` |
 | Primary text | `#2f2515` | `#ece8f8` |
-| Action | `#277b4e` | `#80d3a3` |
-| Gold | `#987016` | `#ecc14e` |
+| Native action / web accent | `#246f47` / `#2f8f5b` | original module styles |
+| Native gold / web gold | `#9c6d12` / `#c79320` | `#ecc14e` |
 | Border | `#ddc9a3` | `#3b3357` |
 
 Web typography uses Mitr for display, IBM Plex Sans Thai for body text, and
@@ -31,9 +35,10 @@ must be checked in context; web token values do not override accessibility.
 
 ## Native interaction direction
 
-- Home gives all four modules priority within the first viewport, with a compact
-  character card above and progression details below. Module introductions,
-  cards, rows and centered statistic groups share `src/player/ui.tsx`.
+- Home restores the large character card, progression panel, then the original
+  full-width module actions. Profile restores the large portrait. Module
+  headings, cards, rows and statistic groups use the pre-redesign primitives
+  in `src/player/ui.tsx`. Treasury's income form is visible by default again.
 - Center above-field labels and numeric summary groups. Keep body text and
   freeform input leading-aligned; preserve native date controls and keyboard
   behavior. Do not compress the 44-point minimum target to fit more content.

@@ -270,8 +270,8 @@ function setProfileLanguage(next) {
   else renderSearch();
 }
 function openProfileSearch() {
-  const id = String(document.getElementById('profile-id-input')?.value || '').replace(/\D/g, '').slice(0, 4);
-  if (id.length !== 4) { renderSearch(t('profile_invalid')); return; }
+  const id = String(document.getElementById('profile-id-input')?.value || '').trim();
+  if (!/^\d{4}$/.test(id)) { renderSearch(t('profile_invalid')); return; }
   location.href = profileUrl(id);
 }
 function toggleMoney() {

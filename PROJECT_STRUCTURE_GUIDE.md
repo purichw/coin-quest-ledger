@@ -19,6 +19,9 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 
 ## Root Files
 
+- `Memory.md`, `PLAYBOOK.md`: current checkpoint and operating/read order.
+- `skills/coin-quest-new-chat/`: versioned new-chat router, context map and UI
+  metadata; installed copy is `/Users/point/.codex/skills/coin-quest-new-chat/`.
 - `index.html`: Home, toolbox launcher, and Price Arena.
 - `trip/index.html`: Party Ledger shell, CSS, static markup, script loading.
 - `trip/trip-utils.js`: Party Ledger utility helpers loaded before the app.
@@ -48,6 +51,14 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 
 ## Shared Browser Modules
 
+- Player HTML entry points: original inline styles and composition restored
+  from `b726368`; current scripts/features are preserved.
+- `shared/player-brand.css`: historical colors-only override, no longer loaded
+  by player pages after the complete pre-redesign restoration.
+- `shared/quest-tokens.css`: shared/Admin base palette. Do not change it for a
+  player-only color request; Admin is intentionally outside that scope.
+- `shared/quest-design.css`, `character/design.css`: detached historical player
+  redesigns. `admin/design.css` remains active for Admin.
 - `shared/pointy-logic.js`: shared calculations, class registry, settlement,
   price comparison, leveling, profile aggregation helpers.
 - `shared/firebase-client.js`: Firebase app/Auth/Firestore initializer.
@@ -122,6 +133,8 @@ trips and remaining limits are in `docs/mobile-completion-worklist.md`.
 
 | Task | Start here | Also check |
 | --- | --- | --- |
+| Start a new chat | `Memory.md`, `PLAYBOOK.md`, `skills/coin-quest-new-chat/SKILL.md` | Read only task-relevant owners from its context reference |
+| Change player brand colors | Inline styles in player route HTML, `mobile/src/auth/ui.tsx` | `mobile/DESIGN_DIRECTION.md`; preserve Admin isolation |
 | Change Party Ledger layout | `trip/index.html` | `CLAUDE_TO_A_TEE_QA.md`, Playwright mobile/tablet |
 | Change Party Ledger behavior | `trip/app.js` | `trip/trip-utils.js`, `shared/pointy-logic.js`, e2e tests |
 | Change settlement math | `shared/pointy-logic.js` | `tests/unit/pointy-logic.test.mjs` |

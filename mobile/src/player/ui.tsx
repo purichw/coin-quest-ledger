@@ -7,6 +7,7 @@ import { Action, colors, ErrorNote, ui } from '../auth/ui';
 import { fonts } from '../theme/typography';
 import { authMessage, type Account } from '../auth/contracts';
 import type { Character } from '../character/contracts';
+import { canon } from '../domain/canon';
 
 export type Player = { account: Account; hero: Character };
 export function PlayerGate({ children }: { children: (player: Player) => ReactNode }) {
@@ -20,9 +21,6 @@ export function Page({ children }: { children: ReactNode }) {
 }
 export function Loading() { return <View style={p.loading}><ActivityIndicator accessibilityLabel="กำลังโหลดข้อมูล" color={colors.green} /></View>; }
 export function Card({ title, children }: { title?: string; children: ReactNode }) { return <View style={[ui.panel, { gap: 14 }]}>{title && <Text style={p.section}>{title}</Text>}{children}</View>; }
-export function Intro({ title, description, glyph }: { title: string; description: string; glyph: string }) {
-  return <View style={p.intro}><View style={{ flex: 1, gap: 5 }}><Text style={ui.title}>{title}</Text><Body>{description}</Body></View><View style={p.introMark}><Text accessible={false} style={p.introGlyph}>{glyph}</Text></View></View>;
-}
 export function Body({ children }: { children: ReactNode }) { return <Text style={p.body}>{children}</Text>; }
 export function Choice({ label, selected, onPress, disabled = false, multiple = false }: { label: string; selected: boolean; onPress: () => void; disabled?: boolean; multiple?: boolean }) {
   return <Pressable accessibilityRole={multiple ? 'checkbox' : 'radio'} accessibilityLabel={label} accessibilityState={{ checked: selected, disabled }} onPress={onPress} disabled={disabled} style={[p.choice, selected && p.selected]}><Text style={[p.choiceText, selected && { color: colors.surface }]}>{label}</Text></Pressable>;
@@ -30,10 +28,10 @@ export function Choice({ label, selected, onPress, disabled = false, multiple = 
 export function Row({ title, detail, onPress }: { title: string; detail?: string; onPress: () => void }) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={p.row}><View style={{ flex: 1, gap: 4 }}><Text style={ui.value}>{title}</Text>{detail && <Text style={ui.hint}>{detail}</Text>}</View><Text style={p.section}>›</Text></Pressable>;
 }
-export function Stats({ items }: { items: [string, string][] }) { return <View style={p.stats}>{items.map(([label, value], index) => <View key={label} style={[p.stat, items.length % 2 === 1 && index === 0 && p.statWide]}><Text style={p.number}>{value}</Text><Text style={[ui.hint, { textAlign: 'center' }]}>{label}</Text></View>)}</View>; }
+export function Stats({ items }: { items: [string, string][] }) { return <View style={p.stats}>{items.map(([label, value]) => <View key={label} style={p.stat}><Text style={ui.hint}>{label}</Text><Text style={p.number}>{value}</Text></View>)}</View>; }
 export const money = (value: number) => `฿${value.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-export const number = (value: string) => Number(value.replace(/,/g, ''));
+export const number = (value: string) => value.trim() ? canon.parseNumberInput(value) : NaN;
 export function confirm(title: string, message: string, action: () => void, actionLabel = 'ยืนยัน') {
   Alert.alert(title, message, [{ text: 'ยกเลิก', style: 'cancel' }, { text: actionLabel, onPress: action }]);
 }
@@ -62,20 +60,16 @@ export function useLoad<T>(loader: () => Promise<T>) {
 }
 export function LoadError({ error, retry }: { error: string; retry: () => void }) { return <Page><ErrorNote message={error} /><Action title="ลองโหลดใหม่" onPress={retry} /></Page>; }
 export const p = StyleSheet.create({
-  page: { padding: 20, paddingTop: 16, paddingBottom: 40, width: '100%', maxWidth: 600, alignSelf: 'center', gap: 20 },
+  page: { padding: 20, paddingBottom: 36, width: '100%', maxWidth: 600, alignSelf: 'center', gap: 20 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   section: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink },
   body: { fontFamily: fonts.body, fontSize: 14, lineHeight: 24, color: colors.muted },
-  intro: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 8 },
-  introMark: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center' },
-  introGlyph: { color: colors.gold, fontSize: 25, lineHeight: 34 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 46, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   selected: { backgroundColor: colors.green, borderColor: colors.green },
   choiceText: { fontFamily: fonts.emphasis, fontSize: 13, lineHeight: 23, textAlign: 'center', color: colors.ink },
-  row: { minHeight: 68, paddingVertical: 14, gap: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
-  stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 10 },
-  stat: { flexGrow: 1, flexBasis: '45%', minHeight: 96, alignItems: 'center', justifyContent: 'center', padding: 12, gap: 6, borderRadius: 16, backgroundColor: colors.surfaceAlt },
-  statWide: { flexBasis: '100%' },
-  number: { fontFamily: fonts.stat, fontSize: 25, lineHeight: 36, textAlign: 'center', color: colors.ink },
+  row: { minHeight: 62, paddingVertical: 12, gap: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12 },
+  stat: { width: '47%', minHeight: 86, alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 6 },
+  number: { fontFamily: fonts.stat, fontSize: 24, lineHeight: 34, textAlign: 'center', color: colors.ink },
 });

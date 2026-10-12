@@ -50,7 +50,7 @@
 
         <label class="login-field">
           <span>${h(copy.charName)}</span>
-          <input type="text" autocomplete="nickname" data-char-name value="${h(name || '')}" placeholder="${h(copy.charNamePlaceholder)}">
+          <input type="text" maxlength="30" autocomplete="nickname" data-char-name value="${h(name || '')}" placeholder="${h(copy.charNamePlaceholder)}">
         </label>
         <div class="login-err" data-char-error hidden></div>
         <button type="submit" class="login-btn" ${picked ? '' : 'disabled'}>⚔️ ${h(copy.charCreate)}</button>

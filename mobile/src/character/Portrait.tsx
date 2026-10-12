@@ -10,7 +10,7 @@ export function Portrait({ classId, gender, skin = '', style }: { classId: Class
 
 function PortraitImage({ classId, gender, skin, style }: { classId: ClassId; gender: Gender; skin: string; style?: StyleProp<ViewStyle> }) {
   const [failed, setFailed] = useState(false);
-  return <View style={[{ alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceAlt, overflow: 'hidden' }, style]}>
+  return <View style={[{ alignItems: 'center', justifyContent: 'center', backgroundColor: '#ede4d0', overflow: 'hidden' }, style]}>
     {failed ? <Text style={[ui.hint, { textAlign: 'center', color: colors.ink, padding: 8 }]}>โหลดภาพ{classInfo(classId).th}ไม่ได้</Text>
       : <Image source={portraitFor(classId, gender, skin)} accessibilityIgnoresInvertColors accessible={false} resizeMode="contain" onError={() => setFailed(true)} style={{ width: '100%', height: '100%' }} />}
   </View>;

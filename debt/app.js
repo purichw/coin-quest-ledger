@@ -210,7 +210,7 @@ function fallback(key) {
     dd_edit_strike: 'แตะเพื่อแก้ไข',
     dd_delete: 'ลบ',
     dd_warn_below: 'ยอดจ่ายขั้นต่ำต่ำกว่าดอกเบี้ย — หนี้จะไม่มีวันหมด',
-    dd_warn_orig: 'พลังเต็มน้อยกว่ายอดคงเหลือ — จะปรับขึ้นให้เท่ากัน',
+    dd_warn_orig: 'ยอดคงเหลือสูงกว่าเงินต้นได้เมื่อมีดอกเบี้ยสะสม',
     dd_saved: 'บันทึกแล้ว',
     settings: 'ตั้งค่า',
     theme: 'ธีม',
@@ -316,7 +316,7 @@ function fallback(key) {
     dd_edit_strike: 'Tap to edit',
     dd_delete: 'Delete',
     dd_warn_below: 'Monthly strike is below the interest — this dragon never dies',
-    dd_warn_orig: "Full HP is below remaining — it'll be raised to match",
+    dd_warn_orig: 'Accrued interest can make the remaining balance exceed the initial principal',
     dd_saved: 'Saved',
     settings: 'Settings',
     theme: 'Theme',
@@ -343,9 +343,9 @@ function tt(key, vars) {
 function h(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function q(value) { return JSON.stringify(String(value ?? '')).replace(/"/g, '&quot;'); }
 function uid() { return 'd' + Math.random().toString(36).slice(2, 9); }
-function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
+function money(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
 function moneyShort(n) {
-  const value = Math.round(Number(n) || 0);
+  const value = Number(n) || 0;
   if (Math.abs(value) >= 1000000) return '฿' + (value / 1000000).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 1 }) + 'M';
   return money(value);
 }
@@ -670,13 +670,13 @@ function renderDragonForm(form = {}, mode = 'add') {
   const d = {
     name: form.name || '',
     type: form.type || 'card',
-    balance: Number(form.balance) || 0,
-    original: Number(form.original) || Number(form.balance) || 0,
-    apr: Number(form.apr ?? 18),
-    payment: Number(form.payment) || PointyLogic.dragonType(form.type || 'card').minPay,
+    balance: form.balance ?? 0,
+    original: form.original ?? form.balance ?? 0,
+    apr: form.apr ?? 18,
+    payment: form.payment ?? PointyLogic.dragonType(form.type || 'card').minPay,
     payMode: form.payMode || (PointyLogic.dragonType(form.type || 'card').minPay > 0 ? 'monthly' : 'adhoc'),
     interestMode: form.interestMode || 'compound',
-    dueDay: Number(form.dueDay) || 0
+    dueDay: form.dueDay ?? 0
   };
   const prefix = mode === 'edit' ? `edit-${h(form.id)}` : 'new';
   const isAdhoc = d.payMode === 'adhoc';
@@ -684,7 +684,7 @@ function renderDragonForm(form = {}, mode = 'add') {
   const belowInterest = !isAdhoc && d.apr > 0 && d.payment > 0 && d.payment <= monthlyInterest;
   const originalLow = d.original > 0 && d.original < d.balance;
   return `<div class="dragon-form">
-    <input id="${prefix}-name" class="df-name" placeholder="${h(tt('dd_name_ph'))}" value="${h(d.name)}">
+    <input id="${prefix}-name" maxlength="80" class="df-name" placeholder="${h(tt('dd_name_ph'))}" value="${h(d.name)}">
     <div class="df-types">${DRAGON_ORDER.map(type => `<button type="button" class="df-type ${d.type === type ? 'on' : ''}" data-dragon-type="${h(type)}" aria-pressed="${d.type === type}" onclick="setDragonFormType('${prefix}','${type}')">
       ${renderDragonPortrait(type, { face: true, suffix: prefix })}<span>${h(dragonTypeName(type))}</span>
     </button>`).join('')}</div>
@@ -692,7 +692,7 @@ function renderDragonForm(form = {}, mode = 'add') {
     <div class="df-grid">
       <label class="df-field"><span>${tt('dd_balance')}</span><div class="df-num"><span>฿</span><input id="${prefix}-balance" type="text" inputmode="decimal" value="${h(fmtInput(d.balance))}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
       <label class="df-field"><span>${tt('dd_original')}</span><div class="df-num"><span>฿</span><input id="${prefix}-original" type="text" inputmode="decimal" value="${h(fmtInput(d.original))}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
-      <label class="df-field"><span>${tt('dd_apr')}</span><div class="df-num"><input id="${prefix}-apr" type="number" value="${h(d.apr)}"><span>%</span></div></label>
+      <label class="df-field"><span>${tt('dd_apr')}</span><div class="df-num"><input id="${prefix}-apr" type="number" min="0" step="0.0001" inputmode="decimal" value="${h(d.apr)}"><span>%</span></div></label>
       <label class="df-field" id="${prefix}-payment-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_payment')} (${tt('dd_minpay')})</span><div class="df-num"><span>฿</span><input id="${prefix}-payment" type="text" inputmode="decimal" value="${h(fmtInput(d.payment))}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
       <label class="df-field" id="${prefix}-due-wrap" style="${isAdhoc ? 'display:none' : ''}"><span>${tt('dd_due_day')}</span><div class="df-num"><input id="${prefix}-dueDay" type="number" min="1" max="31" placeholder="—" value="${h(d.dueDay || '')}"><span class="suf">${tt('dd_due_suffix')}</span></div></label>
     </div>
@@ -927,9 +927,11 @@ function pickMove(id, move) {
 function strikeDragon(id) {
   const d = S.dragons.find(item => item.id === id);
   if (!d) return;
-  const amount = Math.max(0, numInput(document.getElementById(`strike-amt-${id}`)?.value));
-  if (amount <= 0) return;
-  const date = document.getElementById(`strike-date-${id}`)?.value || todayISO();
+  let amount, date;
+  try {
+    amount = PointyLogic.readField(`strike-amt-${id}`, { label: 'ยอดชำระ', min: .01 });
+    date = PointyLogic.readField(`strike-date-${id}`, { type: 'date', max: todayISO() });
+  } catch (error) { toast(error.message); return; }
   const move = document.querySelector(`[data-dragon-id="${CSS.escape(id)}"] .dc-move.on`)?.dataset.move || 'projectile';
   const ts = dateMsFromISO(date);
   if (!Number.isFinite(ts) || ts < PointyLogic.dateOnlyMs(Math.max(Number(d.createdAt) || 0, Number(d.interestAccruedAt) || 0)) || ts > PointyLogic.dateOnlyMs(Date.now())) { toast('ตรวจวันที่ชำระ ต้องไม่ก่อนวันที่คิดดอกเบี้ยล่าสุดหรืออยู่ในอนาคต'); return; }
@@ -983,26 +985,40 @@ function openEdit(id) { EDIT_OPEN = id; STRIKE_OPEN = ''; renderAll(false); }
 function cancelEdit() { EDIT_OPEN = ''; renderAll(false); }
 function openAddDragon() { ADD_OPEN = true; ADD_FORM_DRAFT = {}; renderAll(false); }
 function closeAddDragon() { ADD_OPEN = false; ADD_FORM_DRAFT = {}; renderAll(false); }
-function formPayload(prefix) {
+function formPayload(prefix, validate = false) {
+  if (validate) {
+    const read = (field, rule) => PointyLogic.readField(`${prefix}-${field}`, rule);
+    const existing = prefix.startsWith('edit-') ? S.dragons.find(d => d.id === prefix.slice(5)) : null;
+    const unchangedBalance = existing && existing.balance >= 0 && document.getElementById(`${prefix}-balance`)?.value === fmtInput(existing.balance);
+    // Accrued interest retains full precision when editing other details.
+    const balance = unchangedBalance ? existing.balance : read('balance', { label: 'ยอดหนี้', min: prefix === 'new' ? .01 : 0 });
+    const original = document.getElementById(`${prefix}-original`)?.value.trim() ? read('original', { label: 'ยอดหนี้เริ่มต้น' }) : balance;
+    const payMode = document.getElementById(`${prefix}-payMode`)?.value === 'adhoc' ? 'adhoc' : 'monthly';
+    return { name: read('name', { type: 'text', label: 'ชื่อมังกร', max: 80 }), type: document.getElementById(`${prefix}-type`).value,
+      balance, original, payMode, apr: read('apr', { label: 'ดอกเบี้ย', decimals: 4 }),
+      payment: payMode === 'adhoc' ? 0 : read('payment', { label: 'ยอดชำระต่อเดือน', min: .01 }),
+      dueDay: payMode === 'adhoc' ? 0 : read('dueDay', { label: 'วันครบกำหนด', min: 1, max: 31, decimals: 0 }),
+      interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound' };
+  }
   const type = document.getElementById(`${prefix}-type`)?.value || 'card';
-  const balance = Math.max(0, numInput(document.getElementById(`${prefix}-balance`)?.value));
-  const original = Math.max(balance, numInput(document.getElementById(`${prefix}-original`)?.value) || balance);
+  const balance = document.getElementById(`${prefix}-balance`)?.value || '';
+  const original = document.getElementById(`${prefix}-original`)?.value || '';
   const payMode = document.getElementById(`${prefix}-payMode`)?.value === 'adhoc' ? 'adhoc' : 'monthly';
   return {
     name: (document.getElementById(`${prefix}-name`)?.value || '').trim(),
     type,
     balance,
     original,
-    apr: Math.max(0, Number(document.getElementById(`${prefix}-apr`)?.value) || 0),
-    payment: payMode === 'adhoc' ? 0 : Math.max(0, numInput(document.getElementById(`${prefix}-payment`)?.value)),
+    apr: document.getElementById(`${prefix}-apr`)?.value || '',
+    payment: document.getElementById(`${prefix}-payment`)?.value || '',
     payMode,
     interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound',
-    dueDay: payMode === 'adhoc' ? 0 : Math.max(0, Math.min(31, parseInt(document.getElementById(`${prefix}-dueDay`)?.value, 10) || 0))
+    dueDay: document.getElementById(`${prefix}-dueDay`)?.value || ''
   };
 }
 function addDragon() {
-  const form = formPayload('new');
-  if (!form.name || form.balance <= 0) return;
+  let form;
+  try { form = formPayload('new', true); } catch (error) { toast(error.message); return; }
   const now = PointyLogic.dateOnlyMs(new Date());
   S.dragons.push({ id: uid(), name: { th: form.name, en: form.name }, ...form, log: [], createdAt: now, interestAccruedAt: now, slain: false, slainAt: null });
   ADD_OPEN = false;
@@ -1011,10 +1027,10 @@ function addDragon() {
   renderAll();
 }
 function saveDragon(id) {
-  const form = formPayload(`edit-${id}`);
-  if (!form.name) return;
+  let form;
+  try { form = formPayload(`edit-${id}`, true); } catch (error) { toast(error.message); return; }
   const now = PointyLogic.dateOnlyMs(new Date());
-  S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, interestAccruedAt: now, slain: form.balance <= .005, slainAt: form.balance <= .005 ? d.slainAt || Date.now() : null } : d);
+  S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, interestAccruedAt: ['balance', 'original', 'apr', 'interestMode'].some(key => d[key] !== form[key]) ? now : d.interestAccruedAt, slain: form.balance <= .005, slainAt: form.balance <= .005 ? d.slainAt || Date.now() : null } : d);
   EDIT_OPEN = '';
   SFX.click();
   renderAll();
@@ -1087,7 +1103,8 @@ function setInterestMode(prefix, mode) {
 }
 function pickDragonArt(type, inputId) { document.getElementById(inputId)?.click(); }
 function setDragonArt(type, file) {
-  if (!file || !/^image\//.test(file.type)) return;
+  if (!file) return;
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type) || file.size > 2 * 1024 * 1024) { toast('ใช้ภาพ PNG, JPEG, WebP หรือ GIF ไม่เกิน 2 MB'); return; }
   const reader = new FileReader();
   reader.onload = () => { S.art = { ...(S.art || {}), [type]: reader.result }; renderAll(); };
   reader.readAsDataURL(file);
@@ -1140,8 +1157,11 @@ function saveLogEdit(id, logId) {
   const draft = EDIT_LOG_DRAFTS[logDraftKey(id, logId)] || {};
   const amountRaw = draft.amount ?? document.getElementById(`log-amt-${id}-${logId}`)?.value;
   const date = draft.date ?? document.getElementById(`log-date-${id}-${logId}`)?.value ?? todayISO();
-  const amount = numInput(amountRaw);
-  try { S.dragons = S.dragons.map(d => d.id === id ? PointyLogic.reviseDebtLog(d, { id: logId, amount, date }) : d); }
+  try {
+    const amount = PointyLogic.validateNumber(amountRaw, { label: 'ยอดชำระ', min: .01 });
+    PointyLogic.validateDate(date);
+    S.dragons = S.dragons.map(d => d.id === id ? PointyLogic.reviseDebtLog(d, { id: logId, amount, date }) : d);
+  }
   catch (error) { toast(error.message); return; }
   EDIT_LOG = {};
   EDIT_LOG_DRAFTS = {};

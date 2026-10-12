@@ -14,6 +14,67 @@
   <link rel="stylesheet" href="/shared/profile-hub.css">
   <link rel="stylesheet" href="/shared/mobile-shell.css">
   <style>
+    :root {
+      --font-display: "Mitr", system-ui, sans-serif;
+      --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
+      --font-stat: "Chakra Petch", monospace;
+      --accent: #2f8f5b;
+      --bg: #e7dcc6;
+      --bg-glow: #f0e7d4;
+      --panel: #fbf6ea;
+      --panel-2: #f3e9d4;
+      --panel-in: #fffdf7;
+      --ink: #2f2515;
+      --ink-soft: #87745a;
+      --border: #ddc9a3;
+      --border-strong: #c9ad7c;
+      --gold: #c79320;
+      --gold-soft: #efe0b6;
+      --hp: #cf4633;
+      --hp-bg: #e7d3c6;
+      --xp: #d39a25;
+      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
+      --topbar: #2b2113;
+      --topbar-ink: #efe4cc;
+    }
+    [data-theme="tavern"] {
+      --bg: #e7dcc6;
+      --bg-glow: #f0e7d4;
+      --panel: #fbf6ea;
+      --panel-2: #f3e9d4;
+      --panel-in: #fffdf7;
+      --ink: #2f2515;
+      --ink-soft: #87745a;
+      --border: #ddc9a3;
+      --border-strong: #c9ad7c;
+      --gold: #c79320;
+      --gold-soft: #efe0b6;
+      --hp: #cf4633;
+      --hp-bg: #e7d3c6;
+      --xp: #d39a25;
+      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
+      --topbar: #2b2113;
+      --topbar-ink: #efe4cc;
+    }
+    [data-theme="dungeon"] {
+      --bg: #14121f;
+      --bg-glow: #221d36;
+      --panel: #221d33;
+      --panel-2: #2b2542;
+      --panel-in: #1a1628;
+      --ink: #ece8f8;
+      --ink-soft: #a39bc4;
+      --border: #3b3357;
+      --border-strong: #4a4170;
+      --gold: #ecc14e;
+      --gold-soft: #3a3050;
+      --hp: #ff5d70;
+      --hp-bg: #3a2740;
+      --xp: #ecc14e;
+      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
+      --topbar: #0e0c17;
+      --topbar-ink: #d9d2f0;
+    }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body {
@@ -264,9 +325,6 @@
     }
   </style>
   <link rel="stylesheet" href="/shared/player-controls.css">
-  <link rel="stylesheet" href="/shared/quest-tokens.css">
-  <link rel="stylesheet" href="/shared/quest-design.css">
-  <link rel="stylesheet" href="/shared/player-brand.css">
 </head>
 <body data-page="home">
   <div class="first-load" data-first-load>
@@ -676,15 +734,13 @@
       return draftSlots[cid];
     }
     function draftComplete(draft, cmp) {
-      if (!draft) return false;
-      const price = numInput(draft.price);
-      const qty = numInput(draft.qty);
-      if (!(price > 0) || !(qty > 0)) return false;
-      if (normalizeUnit(draft.unit) === 'แพ็ค/กล่อง') {
-        const perPack = numInput(draft.perPack);
-        if (!(perPack > 0)) return false;
-      }
-      return normalizedOffer({ ...draft, price, qty }, cmp).valid;
+      try { checkedDraft(draft, cmp); return true; } catch (_) { return false; }
+    }
+    function draftTouched(draft) {
+      return ['merchant', 'price', 'qty', 'perPack'].some(k => String(draft[k] || '').trim()) || String(draft.buy) !== '1' || String(draft.free) !== '0';
+    }
+    function checkedDraft(draft, cmp) {
+      return PointyLogic.validateOfferInput(draft, cmp);
     }
     function renderOfferBuilder(cmp) {
       const slots = ensureDrafts(cmp.id);
@@ -715,7 +771,7 @@
         <div class="draft-head"><span class="slot-num">${t('offer_slot', { n: i + 1 })}</span>${locked ? `<span class="slot-lock">${t('lock_prev_offer')}</span>` : ''}</div>
         <div class="draft-body">
           <div class="draft-note">
-            <input class="input" value="${h(slot.merchant)}" placeholder="${h(t('option_note_ph'))}" oninput="updateDraft(${q(cmp.id)},${i},'merchant',this.value)">
+            <input class="input" maxlength="100" value="${h(slot.merchant)}" placeholder="${h(t('option_note_ph'))}" oninput="updateDraft(${q(cmp.id)},${i},'merchant',this.value)">
           </div>
           <div class="calc-row">
             <span class="num"><span>฿</span><input value="${h(fmtInput(slot.price))}" type="text" inputmode="decimal" placeholder="${h(t('price'))}" oninput="updateDraft(${q(cmp.id)},${i},'price',PointyLogic.formatNumberInputElement(this))"></span>
@@ -746,7 +802,7 @@
       return `<div class="cmp-card add-cmp-open">
         <div class="add-item-row">
           <div class="icon-picker ${itemIconDropUp ? 'drop-up' : ''}" style="--icon-pop-max:${itemIconMax}px"><button class="icon-btn" onclick="toggleItemIconPicker(event)" aria-label="${h(itemIconLabel(draftIcon) || t('item'))}">${itemIconMarkup(draftIcon, 34)}</button>${iconOpenFor === 'new' ? `<div class="icon-pop labeled">${ITEM_ICONS.map(ic => `<button class="icon-opt ${itemIconId(draftIcon) === itemIconId(ic) ? 'on' : ''}" onclick="draftIcon=${q(itemIconId(ic))};iconOpenFor=null;render()" title="${h(itemIconLabel(ic))}">${itemIconMarkup(ic, 36)}<span class="io-lab">${h(itemIconLabel(ic))}</span></button>`).join('')}</div>` : ''}</div>
-          <input class="input" id="new-name" placeholder="${h(t('item_name_ph'))}" onkeydown="if(event.key==='Enter')addComparison()">
+          <input class="input" id="new-name" maxlength="80" placeholder="${h(t('item_name_ph'))}" onkeydown="if(event.key==='Enter')addComparison()">
         </div>
         <div class="add-item-row">
           <select class="select" id="new-unit">${baseUnitOptions('ml')}</select>
@@ -756,7 +812,9 @@
       </div>`;
     }
     function addComparison() {
-      const name = document.getElementById('new-name')?.value.trim();
+      let name;
+      try { name = PointyLogic.readField('new-name', { type: 'text', label: 'ชื่อสินค้า', max: 80 }); }
+      catch (error) { toast(error.message); return; }
       const unit = normalizeUnit(document.getElementById('new-unit')?.value);
       if (!name) { toast(t('err_desc')); return; }
       const group = groupOf(unit) || UNIT_GROUPS[0];
@@ -799,6 +857,11 @@
       slots.forEach((slot, i) => {
         const el = document.getElementById(`slot-${cid}-${i}`);
         if (el) el.classList.toggle('locked', !unlocked);
+        const hint = el?.querySelector('.required-hint');
+        if (hint) {
+          try { if (draftTouched(slot)) checkedDraft(slot, cmp); hint.textContent = t('required_price_qty'); }
+          catch (error) { hint.textContent = error.message; }
+        }
         unlocked = unlocked && draftComplete(slot, cmp);
       });
       const builder = document.getElementById(`builder-${cid}`);
@@ -830,18 +893,10 @@
       const cmp = comparisons.find(c => c.id === cid);
       const slots = ensureDrafts(cid);
       if (!cmp) return;
-      const complete = slots.filter(s => draftComplete(s, cmp));
-      if (!complete.length) { toast(t('err_no_complete_offer')); return; }
-      const offers = complete.map(s => ({
-        id: uid(),
-        merchant: String(s.merchant || '').trim(),
-        price: numInput(s.price),
-        qty: numInput(s.qty),
-        unit: normalizeUnit(s.unit),
-        perPack: numInput(s.perPack),
-        buy: Math.max(1, parseInt(s.buy, 10) || 1),
-        free: Math.max(0, parseInt(s.free, 10) || 0)
-      })).map(o => ({ ...o, merchant: optionLabel(o) }));
+      let offers;
+      try { offers = slots.filter(draftTouched).map(s => ({ ...checkedDraft(s, cmp), id: uid() })).map(o => ({ ...o, merchant: optionLabel(o) })); }
+      catch (error) { toast(error.message); updateDraftState(cid); return; }
+      if (!offers.length) { toast(t('err_no_complete_offer')); return; }
       comparisons = comparisons.map(c => c.id === cid ? { ...c, offers: [...(c.offers || []), ...offers] } : c);
       draftSlots[cid] = [defaultDraft(cmp), defaultDraft(cmp)];
       saveState(); render(); toast(t('offers_saved', { n: offers.length }));

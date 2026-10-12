@@ -46,7 +46,7 @@ test('same-day legacy timestamps permit payment and a retried final payment stay
   assert.equal(payDragon(paid.debt, 1000, day, 'final', now + 7200000).debt.log.length, 1);
 });
 test('payments reject overpayment, invalid dates, backdating, future dates, and negative amounts', () => {
-  for (const [amount, date] of [[1001, day], [-10, day], [0, day], [10, '2026-02-31'], [10, '2026-10-11'], [10, '2026-10-13']]) assert.throws(() => payDragon(dragon(), amount, date, 'p', now));
+  for (const [amount, date] of [[1001, day], [-10, day], [0, day], [.001, day], [Infinity, day], [10, '2026-02-31'], [10, '2026-10-11'], [10, '2026-10-13']]) assert.throws(() => payDragon(dragon(), amount, date, 'p', now));
 });
 test('daily interest and repeated accrual use exactly the shared website implementation', () => {
   const d = { ...dragon(), createdAt: now - 86400000, interestAccruedAt: now - 86400000 };
@@ -61,6 +61,18 @@ test('history removal returns the payment to balance and keeps a recoverable cop
 test('monthly plan requires valid due day and a positive payment', () => {
   assert.doesNotThrow(() => validateDragon(dragon()));
   assert.throws(() => validateDragon({ ...dragon(), dueDay: 32 })); assert.throws(() => validateDragon({ ...dragon(), payment: 0 }));
+});
+test('editing an accrued debt preserves its principal and precise balance; new input remains bounded', () => {
+  const previous = canon.accrueDebtToDate({ ...dragon(), interestMode: 'simple' }, '2026-10-13').debt;
+  assert.ok(previous.balance > previous.original);
+  const restored = normalizeModule('debt', { dragons: [previous] }).dragons[0];
+  assert.equal(restored.original, 1000); assert.equal(restored.balance, previous.balance);
+  assert.doesNotThrow(() => validateDragon({ ...restored, name: { th: 'Renamed' } }, restored));
+  assert.throws(() => validateDragon({ ...restored, balance: 1100.001 }, restored));
+  assert.doesNotThrow(() => validateDragon({ ...dragon(), balance: 1100 }));
+  const finalPayment = payDragon(previous, Math.round(previous.balance * 100) / 100, '2026-10-13', 'final', now + 86400000).debt;
+  const backup = { format: 'coin-quest-player-v1', uid: 'qa', savedAt: new Date(now).toISOString(), modules: { debt: { dragons: [finalPayment] }, treasury: normalizeModule('treasury'), comparisons: [] } };
+  assert.equal(parseBackup(JSON.stringify(backup), 'qa').modules.debt.dragons[0].log[0].amount, finalPayment.log[0].amount);
 });
 test('debt history restoration reverses removal without duplicate payment or loss', () => {
   const paid = payDragon(dragon(), 100, day, 'p', now).debt; const restored = restoreDebtLog(editDebtLog(paid, 'p', 0, day, true), 'p');
@@ -78,7 +90,7 @@ test('treasury entries are validated and bill payments cannot be duplicated', ()
   const entry = { id: 'e', catId: 'food', amount: 300, note: 'QA', date: day, billId: 'b', onTime: true }; const state = saveTreasuryExpense(treasury(), entry);
   assert.equal(canon.treasurySpent(state), 300); assert.equal(state.stats.onTime, 1); assert.equal(saveTreasuryExpense(state, entry).stats.logged, 1);
   assert.throws(() => saveTreasuryExpense(state, { ...entry, id: 'other' }));
-  for (const changes of [{ amount: -1 }, { date: '2026-09-01' }, { date: '2026-02-31' }, { catId: 'missing' }]) assert.throws(() => saveTreasuryExpense(treasury(), { ...entry, ...changes }));
+  for (const changes of [{ amount: -1 }, { amount: 1.001 }, { amount: Infinity }, { date: '2026-09-01' }, { date: '2026-02-31' }, { catId: 'missing' }]) assert.throws(() => saveTreasuryExpense(treasury(), { ...entry, ...changes }));
   const removed = removeTreasuryExpense(state, 'e'); assert.equal(removed.expenseTrash.length, 1); assert.equal(removed.stats.onTime, 0);
 });
 test('treasury projection includes unpaid bills once; same-month close preserves detail and rollover archives it', () => {

@@ -1,0 +1,65 @@
+{
+  "index.html": {
+    "inlineStyleMatchesPreRedesign": true,
+    "redesignStylesDetached": true
+  },
+  "trip/index.html": {
+    "inlineStyleMatchesPreRedesign": true,
+    "redesignStylesDetached": true
+  },
+  "debt/index.html": {
+    "inlineStyleMatchesPreRedesign": true,
+    "redesignStylesDetached": true
+  },
+  "treasury/index.html": {
+    "inlineStyleMatchesPreRedesign": true,
+    "redesignStylesDetached": true
+  },
+  "character/index.html": {
+    "inlineStyleMatchesPreRedesign": true,
+    "redesignStylesDetached": true
+  },
+  "adminAndBackendUnchanged": true,
+  "native": {
+    "mobile/src/auth/ui.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "df36f09db09e6f84787c400e6a1f193ba04c7b6b5673fca2e7f34bd6c7defeb4"
+    },
+    "mobile/src/character/Portrait.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "72f91af05b6e28d40f9474f7da089f40687abcce411b3990f11eb2bc22e822f6"
+    },
+    "mobile/src/character/Home.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "2ff9a88c57562ede45dae9324d43d61752d2d2583fec24108cb936e3d6c42769"
+    },
+    "mobile/src/character/Profile.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "f09a247c9491714b4b535ea54da9d3347e88d4a7aa240cb5591ad5c16660bf19"
+    },
+    "mobile/src/modules/DragonArt.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "c6901f13a5b78372230db330ef09bd5a35c2b93d972a676fc8612119ded29807"
+    },
+    "mobile/src/player/ui.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "a0ab514efa4c9ee603086c582d77b166d4238ca9a5c727cebf6344ba1fbacba5"
+    },
+    "mobile/src/app/split/index.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "ee0fe1143f78d8fe6cee1a3bf173c9ed8b32a1c2410e5625b998b0901dfaa1eb"
+    },
+    "mobile/src/app/prices/index.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "f72d748cf8f32b4a1ef0325cd1dd87798f6ee2c01a09c2331cd6520002294127"
+    },
+    "mobile/src/app/debt/index.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "7857368b06f776e1a42c8ef0fbf618b1c6d2b7e0f34a36d4f9bc98ead127cab0"
+    },
+    "mobile/src/app/treasury/index.tsx": {
+      "matchesRecoveredPresentation": true,
+      "sha256": "3c15e1a579c869dd8bd483cf4020f19cae5771d0479f5f612335e920f32714dc"
+    }
+  }
+}

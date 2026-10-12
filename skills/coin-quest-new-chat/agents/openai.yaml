@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coin Quest New Chat"
+  short_description: "Onboard fresh Coin Quest Ledger web/mobile chats"
+  default_prompt: "Use $coin-quest-new-chat to load the current Coin Quest Ledger docs and prepare a fresh chat for the next task."

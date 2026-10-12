@@ -1,4 +1,4 @@
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Account } from '../auth/contracts';
@@ -16,36 +16,23 @@ export function Home({ account, character: savedCharacter }: { account: Account;
   const meta = classInfo(character.classId);
   return <SafeAreaView style={ui.screen}>
     <ScrollView contentContainerStyle={styles.page}>
-      <View style={ui.row}><Text style={styles.wordmark}>COIN QUEST <Text style={styles.wordmarkDot}>✦</Text></Text><Pressable accessibilityRole="button" onPress={() => router.push('/account')} style={styles.account}><Text style={ui.linkText}>บัญชี</Text></Pressable></View>
-      <View><Text style={ui.hint}>ยินดีต้อนรับกลับ, {account.name}</Text><Text style={ui.title}>แคมป์ของคุณ</Text></View>
+      <View style={ui.row}><Text style={styles.wordmark}>COIN QUEST</Text><Pressable accessibilityRole="button" onPress={() => router.push('/account')} style={styles.account}><Text style={ui.linkText}>บัญชี</Text></Pressable></View>
+      <View><Text style={ui.title}>แคมป์ของคุณ</Text><Text style={ui.description}>ยินดีต้อนรับกลับ, {account.name}</Text></View>
       <View style={styles.hero}>
         <View style={styles.identity}>
           <Portrait classId={character.classId} gender={character.gender} skin={character.skin} style={styles.portrait} />
-          <View style={styles.identityText}><Text style={styles.kicker}>นักผจญภัยของคุณ</Text><Text style={styles.heroName}>{character.name}</Text><Text style={styles.heroClass}>{meta.th} · {meta.en}</Text><Text style={styles.heroId}>ID {character.id}</Text></View>
+          <View style={styles.identityText}><Text style={styles.kicker}>นักผจญภัยของคุณ</Text><Text style={styles.heroName}>{character.name}</Text><Text style={styles.heroClass}>{meta.th}</Text><Text style={styles.heroEnglish}>{meta.en}</Text><Text style={styles.idLabel}>CHARACTER ID</Text><Text style={styles.heroId}>{character.id}</Text></View>
         </View>
         <Pressable accessibilityRole="button" onPress={() => router.push('/character')} style={styles.detailButton}><Text style={styles.detailText}>ดูรายละเอียดตัวละคร</Text><Text accessible={false} style={styles.detailArrow}>›</Text></Pressable>
       </View>
-      <View style={{ gap: 12 }}><View style={ui.row}><Text style={styles.section}>เลือกเควสของคุณ</Text><Text style={ui.hint}>4 เส้นทาง</Text></View><View style={styles.modules}>
-        <ModuleTile title="แบ่งเงิน" subtitle="Party Ledger" glyph="⚔" detail="หารค่าใช้จ่ายกับปาร์ตี้" href="/split" primary />
-        <ModuleTile title="มังกรหนี้" subtitle="Debt Dragon" glyph="♜" detail="วางแผนพิชิตยอดหนี้" href="/debt" />
-        <ModuleTile title="คลังหลวง" subtitle="Treasury" glyph="♛" detail="ดูแลงบของเดือนนี้" href="/treasury" />
-        <ModuleTile title="เทียบราคา" subtitle="Price Arena" glyph="⚖" detail="หาเจ้าราคาคุ้ม" href="/prices" />
-      </View></View>
-      <Pressable accessibilityRole="button" onPress={() => router.push('/reminders')} style={styles.notice}><View style={{ flex: 1 }}><Text style={ui.value}>การแจ้งเตือนและคำเชิญ</Text><Text style={ui.hint}>ข่าวสารจากเพื่อนร่วมทาง</Text></View><Text style={styles.section}>›</Text></Pressable>
       <Experience character={character} />
+      <View style={ui.panel}><Text style={styles.section}>การเดินทางของคุณ</Text><Action title="แบ่งเงิน · Party Ledger" onPress={() => router.push('/split')} /><Action title="มังกรหนี้ · Debt Dragon" secondary onPress={() => router.push('/debt')} /><Action title="การแจ้งเตือนและคำเชิญ" secondary onPress={() => router.push('/reminders')} /></View>
+      <Action title="คลังหลวง · Treasury" secondary onPress={() => router.push('/treasury')} />
+      <Action title="เทียบราคา · Price Arena" secondary onPress={() => router.push('/prices')} />
       <View style={styles.accountNote}><Text style={ui.hint}>@{account.username}</Text><Text style={ui.hint}>บัญชีเดียวกันทั้งเว็บและแอป</Text></View>
       <Action title="รีเฟรชข้อมูล" secondary onPress={retry} />
     </ScrollView>
   </SafeAreaView>;
-}
-
-function ModuleTile({ title, subtitle, glyph, detail, href, primary = false }: { title: string; subtitle: string; glyph: string; detail: string; href: Href; primary?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${title} · ${subtitle}`} onPress={() => router.push(href)} style={({ pressed }) => [styles.module, primary && styles.modulePrimary, pressed && { opacity: .75 }]}>
-    <View style={styles.moduleTop}><Text accessible={false} style={[styles.moduleGlyph, primary && { color: '#f2d996' }]}>{glyph}</Text><Text accessible={false} style={[styles.moduleArrow, primary && { color: '#d7e4d7' }]}>↗</Text></View>
-    <Text style={[styles.moduleTitle, primary && { color: '#fff9e9' }]}>{title}</Text>
-    <Text style={[styles.moduleSubtitle, primary && { color: '#d7e4d7' }]}>{subtitle}</Text>
-    <Text style={[styles.moduleDetail, primary && { color: '#d7e4d7' }]}>{detail}</Text>
-  </Pressable>;
 }
 
 export function Experience({ character }: { character: Character }) {
@@ -72,37 +59,28 @@ export const homeStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  page: { ...homeStyles.page, padding: 20, gap: 20, paddingTop: 4, paddingBottom: 32 },
-  wordmark: { fontFamily: fonts.brand, fontSize: 15, letterSpacing: 1.6, color: colors.ink },
-  wordmarkDot: { color: colors.gold },
-  account: { minHeight: 44, minWidth: 62, paddingHorizontal: 14, borderRadius: 22, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
-  hero: { borderRadius: 22, backgroundColor: colors.hero, overflow: 'hidden' },
-  identity: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 14 },
-  portrait: { width: 110, height: 154, backgroundColor: colors.hero },
+  page: { ...homeStyles.page, paddingTop: 10, paddingBottom: 32 },
+  wordmark: { fontFamily: fonts.brand, fontSize: 18, letterSpacing: 2, color: colors.ink },
+  account: { minHeight: 44, minWidth: 62, alignItems: 'center', justifyContent: 'center' },
+  hero: { borderRadius: 24, backgroundColor: '#244f3d', borderWidth: 1, borderColor: '#365d40', overflow: 'hidden' },
+  identity: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  portrait: { flex: 1, height: 216, backgroundColor: '#244f3d' },
   identityText: { flex: 1, paddingVertical: 8 },
   kicker: { fontFamily: fonts.body, fontSize: 11, color: '#e7dcc6', lineHeight: 19 },
-  heroName: { fontFamily: fonts.display, fontSize: 20, lineHeight: 30, color: '#fff4d6', marginTop: 4 },
-  heroClass: { fontFamily: fonts.body, fontSize: 12, lineHeight: 22, color: '#f0d58f', marginTop: 6 },
-  heroId: { fontFamily: fonts.stat, fontSize: 12, letterSpacing: 1, color: '#d7e4d7', lineHeight: 22, marginTop: 4 },
-  detailButton: { minHeight: 44, paddingHorizontal: 18, paddingVertical: 8, backgroundColor: colors.heroDeep, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  detailText: { fontFamily: fonts.emphasis, color: '#fff4d6', fontSize: 12 },
+  heroName: { fontFamily: fonts.display, fontSize: 23, lineHeight: 34, color: '#fff4d6', marginTop: 5 },
+  heroClass: { fontFamily: fonts.emphasis, fontSize: 14, lineHeight: 24, color: '#f0d58f', marginTop: 8 },
+  heroEnglish: { fontFamily: fonts.body, fontSize: 12, color: '#e7dcc6', lineHeight: 20 },
+  idLabel: { fontFamily: fonts.body, fontSize: 9, letterSpacing: 1.2, color: '#e7dcc6', marginTop: 20 },
+  heroId: { fontFamily: fonts.stat, fontSize: 24, letterSpacing: 2, color: '#fff4d6', lineHeight: 34 },
+  detailButton: { minHeight: 52, paddingHorizontal: 18, paddingVertical: 12, backgroundColor: '#1e4434', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  detailText: { fontFamily: fonts.emphasis, color: '#fff4d6', fontSize: 14 },
   detailArrow: { fontFamily: fonts.body, color: '#fff4d6', fontSize: 24, lineHeight: 26 },
-  section: { fontFamily: fonts.display, fontSize: 17, lineHeight: 27, color: colors.ink },
-  modules: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  module: { flexGrow: 1, flexBasis: '45%', padding: 16, minHeight: 164, gap: 2, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  modulePrimary: { backgroundColor: colors.hero, borderColor: colors.hero },
-  moduleTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  moduleGlyph: { color: colors.gold, fontSize: 26, lineHeight: 30 },
-  moduleArrow: { color: colors.muted, fontSize: 19, lineHeight: 28 },
-  moduleTitle: { color: colors.ink, fontFamily: fonts.display, fontSize: 18, lineHeight: 28 },
-  moduleSubtitle: { color: colors.muted, fontFamily: fonts.stat, fontSize: 12, lineHeight: 20 },
-  moduleDetail: { color: colors.muted, fontFamily: fonts.body, fontSize: 11, lineHeight: 19, marginTop: 5 },
-  notice: { flexDirection: 'row', alignItems: 'center', padding: 18, gap: 12, backgroundColor: colors.surfaceAlt, borderRadius: 18 },
+  section: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink },
   stats: { flexDirection: 'row', gap: 16, alignItems: 'center' },
   stat: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   statNumber: { fontFamily: fonts.stat, color: colors.ink, fontSize: 30, lineHeight: 40 },
   statDivider: { width: 1, height: 48, backgroundColor: colors.border },
-  track: { height: 7, borderRadius: 4, backgroundColor: colors.track, overflow: 'hidden' },
+  track: { height: 8, borderRadius: 4, backgroundColor: '#e4d7b9', overflow: 'hidden' },
   progress: { height: '100%', backgroundColor: colors.green },
   accountNote: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'space-between' },
 });

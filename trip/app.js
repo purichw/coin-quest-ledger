@@ -367,9 +367,15 @@ function persistCharacterRecord(rec, sourceTripId = '') {
   _characterRegistry = { ...readLocalRegistry(), ..._characterRegistry, [rec.id]: rec };
   writeLocalRegistry(_characterRegistry);
   if (!TEST_MODE) {
+    const uid = window.PointyFirebase?.auth?.()?.currentUser?.uid;
+    if (!uid) return;
     const db = firebase.firestore(); const ref = db.collection('characters').doc(rec.id);
     db.runTransaction(async tx => {
       const snap = await tx.get(ref); const fresh = snap.data() || {};
+      // A party member's character is owned by their account. Only its owner
+      // may persist XP/identity; opening a shared board must not attempt writes
+      // to the other members or recreate missing character records.
+      if (window.PointyFirebase.auth()?.currentUser?.uid !== uid || !snap.exists || fresh.ownerUid !== uid) return;
       const trips = sourceTripId ? { ...(fresh.trips || {}), [sourceTripId]: Number(rec.trips?.[sourceTripId]) || 0 } : { ...(fresh.trips || {}), ...(rec.trips || {}) };
       const debtXp = Number(fresh.debtXp ?? rec.debtXp) || 0;
       // Ledger labels are historical. They must not undo an owned character's
@@ -976,7 +982,7 @@ function renderBoardChoose() {
         <p class="bc-sub">${h(t('bd_start_new_sub'))}</p>
         <div class="field">
           <label for="bc-board-name">${h(t('bd_new_name'))}</label>
-          <input id="bc-board-name" class="field-input" value="" placeholder="${h(t('bd_new_name_ph'))}">
+          <input id="bc-board-name" maxlength="80" class="field-input" value="" placeholder="${h(t('bd_new_name_ph'))}">
         </div>
         <button class="btn-primary big" type="button" onclick="createBoardFromChoose()">✚ ${h(t('bd_create_btn'))}</button>
       </div>
@@ -1070,7 +1076,9 @@ function sampleTripState(code) {
 }
 async function createBoardFromChoose() {
   const input = document.getElementById('bc-board-name');
-  const name = String(input?.value || '').trim() || t('trip_default_name');
+  let name;
+  try { name = PointyLogic.readField(input, { type: 'text', label: 'ชื่อบอร์ด', max: 80 }); }
+  catch (error) { toast(error.message); return; }
   const profile = adminOwnerProfile();
   const ownerToken = adminOwnerToken();
   let code = makeTripCode();
@@ -1099,7 +1107,7 @@ async function createBoardFromChoose() {
   window.location.href = tripLinkFor(tripId);
 }
 async function joinBoardFromChoose() {
-  const code = sanitizeTripCode(document.getElementById('bc-code')?.value || '');
+  const code = String(document.getElementById('bc-code')?.value || '').trim();
   if (!/^\d{4}$/.test(code)) {
     toast(t('bd_code_bad'));
     return;
@@ -1129,7 +1137,7 @@ async function confirmNewTrip() {
   const passInput = document.getElementById('new-trip-admin-pass');
   const adminIdInput = document.getElementById('new-trip-admin-id');
   const adminNameInput = document.getElementById('new-trip-admin-name');
-  const code = sanitizeTripCode(input?.value || _newTripCode || makeTripCode());
+  const code = String(input?.value || _newTripCode || makeTripCode()).trim();
   const adminPass = String(passInput?.value || _newTripAdminPass || '').trim();
   const profile = saveAdminOwnerProfile({ adminId: adminIdInput?.value || _newTripAdminId, adminName: adminNameInput?.value || _newTripAdminName });
   if (!/^\d{4}$/.test(code)) {
@@ -1244,7 +1252,8 @@ function startEditTrip() {
   i.focus(); i.select();
 }
 function saveTrip() {
-  S.tripName = document.getElementById('trip-name-input').value.trim() || t('trip_fallback_name');
+  try { S.tripName = PointyLogic.readField('trip-name-input', { type: 'text', label: 'ชื่อบอร์ด', max: 80 }); }
+  catch (error) { toast(error.message); return; }
   syncActiveCampaign();
   save(); renderTripName();
 }
@@ -1300,8 +1309,10 @@ async function addParticipant() {
   }
   const characterId = String(_addHeroCharacterId || document.getElementById('new-hero-id')?.value || '').replace(/\D/g, '').slice(0, 4);
   const el = document.getElementById('new-hero-name');
-  const name = (el?.value || _addHeroName).trim();
-  if (!name || !_addHeroClass || !_addHeroGender) return;
+  let name;
+  try { name = PointyLogic.validateText(el?.value || _addHeroName, { label: 'ชื่อ Guest', max: 30 }); }
+  catch (error) { toast(error.message); return; }
+  if (!_addHeroClass || !_addHeroGender) { toast('เลือกรูปลักษณ์และอาชีพก่อน / Choose a hero'); return; }
   const finalName = uniqueParticipantName(name);
   if (!account && finalName !== name) _addHeroName = finalName;
   addParticipantRecord({
@@ -1324,7 +1335,7 @@ async function addParticipant() {
 }
 async function sendCharacterInvite() {
   const account = accountHero();
-  const characterId = String(document.getElementById('new-hero-id')?.value || _addHeroCharacterId || '').replace(/\D/g, '').slice(0, 4);
+  const characterId = String(document.getElementById('new-hero-id')?.value || _addHeroCharacterId || '').trim();
   if (!account) return;
   if (!/^\d{4}$/.test(characterId)) { toast(t('err_character_id_required')); return; }
   if (characterId === account.id) { toast(t('err_account_hero_duplicate')); return; }
@@ -1381,8 +1392,9 @@ function removeParticipant(name) {
 }
 function saveBudget(name) {
   const el = document.getElementById('budget-' + hashOf(name));
-  const n = numInput(el.value);
-  if (n > 0) { S.budgets[name] = n; save(); renderAll(); }
+  try { S.budgets[name] = PointyLogic.readField(el, { label: 'งบประมาณ', min: .01 }); }
+  catch (error) { toast(error.message); return; }
+  save(); renderAll();
 }
 function pickClass(cls) { _addHeroClass = normalizeClass(cls); renderParty(); }
 function pickGender(gender) { _addHeroGender = gender === 'female' ? 'female' : 'male'; renderParty(); }
@@ -1418,7 +1430,7 @@ function cancelAddHero() {
 async function requestHeroConfirmation() {
   const el = document.getElementById('new-hero-name');
   _addHeroName = (el?.value || _addHeroName).trim();
-  _addHeroCharacterId = String(document.getElementById('new-hero-id')?.value || _addHeroCharacterId || '').replace(/\D/g, '').slice(0, 4);
+  _addHeroCharacterId = String(document.getElementById('new-hero-id')?.value || _addHeroCharacterId || '').trim();
   const account = accountHero();
   const idMode = account && _addHeroMode !== 'guest';
   if (idMode) {
@@ -1554,12 +1566,14 @@ function renderParty() {
   const idAddMode = needsGuestId && _addHeroMode !== 'guest';
   const guestAddMode = !needsGuestId || _addHeroMode === 'guest';
   const party = computeParty();
+  const pending = PointyLogic.pendingSettlements(S);
   document.getElementById('party-count').textContent = S.participants.length;
   const grid = document.getElementById('party-grid');
   const cards = party.map(hero => {
     const cls = CLASSES[hero.cls];
     const c = classColor(hero.cls);
-    const status = statusOf(hero);
+    const outstanding = pending.reduce((sum, transfer) => sum + (transfer.to === hero.name ? transfer.amount : 0) - (transfer.from === hero.name ? transfer.amount : 0), 0);
+    const status = statusOf({ ...hero, bal: outstanding });
     const hpCol = hpColor(hero.hp);
     const reward = hero.reward;
     const rankTitle = reward.title[LANG] || reward.title.th;
@@ -1609,7 +1623,7 @@ function renderParty() {
     : `this.formReady=!!(_addHeroName.trim() && _addHeroClass && _addHeroGender);document.getElementById('confirm-hero-btn').disabled=!this.formReady`;
   const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
     ${needsGuestId ? `<div class="seg add-mode-seg"><button type="button" class="${idAddMode ? 'on' : ''}" onclick="setAddHeroMode('id')">${h(t('add_by_character_id'))}</button><button type="button" class="${guestAddMode ? 'on' : ''}" onclick="setAddHeroMode('guest')">${h(t('add_guest'))}</button></div>` : ''}
-    ${idAddMode ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value.replace(/\\D/g,'').slice(0,4);this.value=_addHeroCharacterId;_addHeroResolvedRecord=null;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
+    ${idAddMode ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value;_addHeroResolvedRecord=null;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
     <div class="lock-note">${t('guest_character_id_note')}</div>` : `<input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">`}
     ${guestAddMode && needsGuestId ? `<div class="lock-note">${t('add_guest_note')}</div>` : ''}
     ${idAddMode ? '' : `<div class="hero-builder">
@@ -1730,6 +1744,7 @@ function pickReceipt(source = 'library') {
 function loadReceipt(input) {
   const file = input.files?.[0];
   if (!file) return;
+  if (!/^image\/(jpeg|png|webp|gif|heic|heif)$/.test(file.type) || file.size > 10 * 1024 * 1024) { toast('ใช้ไฟล์ภาพไม่เกิน 10 MB / Choose an image up to 10 MB'); return; }
   fileToScaledDataURL(file, 1400, data => {
     _receiptData = data;
     _receiptPickerOpen = false;
@@ -1797,7 +1812,7 @@ function renderLootItems() {
   return `<div class="loot-box">
     <div class="loot-head"><div><div class="loot-title">🎒 ${t('loot_distribution')}</div><div class="settings-sub">${t('loot_unclaimed')}</div></div><div class="loot-total" id="loot-total-label">${t('loot_total')}: ${money2(lootTotal())}</div></div>
     ${_lootItems.map(item => `<div class="loot-row" data-id="${h(item.id)}">
-      <input class="field-input loot-name" value="${h(item.name)}" placeholder="${h(t('loot_item_ph'))}">
+      <input class="field-input loot-name" maxlength="120" value="${h(item.name)}" placeholder="${h(t('loot_item_ph'))}">
       <div class="gold-in"><span>฿</span><input class="field-input loot-amount" type="text" inputmode="decimal" value="${h(fmtInput(item.amount))}" placeholder="0"></div>
       <button type="button" class="loot-del" data-entry-action="remove-loot" data-id="${h(item.id)}">×</button>
       <div class="loot-claim-label">${t('loot_claimed_by')}</div>
@@ -1886,14 +1901,14 @@ function renderEntry() {
   const amountAttrs = _splitMode === 'items' ? 'readonly aria-readonly="true"' : '';
   document.getElementById('entry-body').innerHTML = mode === 'quick' ? `
     <div class="quick-amount"><span>฿</span><input id="exp-amount" type="text" inputmode="decimal" value="${h(fmtInput(prevAmt))}" placeholder="0" ${amountAttrs}></div>
-    <div class="qf-top">${iconPicker}<div class="field grow"><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div></div>
+    <div class="qf-top">${iconPicker}<div class="field grow"><input class="field-input" id="exp-desc" maxlength="120" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div></div>
     ${receiptField}
     ${payerBlock}
     ${shareBlock}
     <button class="btn-primary big" data-entry-action="add-expense">⚔️ ${t('log_it')}</button>` : `
     <div class="qf-top">
       ${iconPicker}
-      <div class="field grow"><label>${t('quest_name')}</label><input class="field-input" id="exp-desc" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div>
+      <div class="field grow"><label>${t('quest_name')}</label><input class="field-input" id="exp-desc" maxlength="120" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div>
       <div class="field gold-field"><label>${t('gold_spent')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="text" inputmode="decimal" value="${h(fmtInput(prevAmt))}" placeholder="0" ${amountAttrs}></div></div>
       <div class="field date-field"><label>${t('date_label')} <span class="lab-hint">${t('date_optional')}</span></label><input class="field-input" id="exp-date" type="datetime-local" value="${h(prevDate)}"></div>
     </div>
@@ -2018,16 +2033,17 @@ function bindAppShellEvents() {
   });
 }
 function addExpense() {
+  try {
   const desc = document.getElementById('exp-desc').value.trim() || t('quest_fallback');
   captureLootItems();
   const cleanItems = _splitMode === 'items'
     ? _lootItems.map(item => ({
       name: String(item.name || '').trim() || t('loot_item_name'),
-      amount: numInput(item.amount),
+      amount: PointyLogic.validateNumber(item.amount, { label: 'ราคาของ', min: .01 }),
       claimedBy: (item.claimedBy || []).filter(name => S.participants.includes(name))
-    })).filter(item => item.amount > 0)
+    }))
     : [];
-  const amount = _splitMode === 'items' ? cleanItems.reduce((sum, item) => sum + item.amount, 0) : numInput(document.getElementById('exp-amount').value);
+  const amount = _splitMode === 'items' ? Math.round(cleanItems.reduce((sum, item) => sum + item.amount, 0) * 100) / 100 : PointyLogic.readField('exp-amount', { label: 'จำนวนเงิน', min: .01 });
   const paidBy = document.getElementById('exp-payer').value;
   let shared = sharedBy();
   const icon = questIconId(document.getElementById('exp-icon-value').value || QUEST_ICONS[0]);
@@ -2040,12 +2056,12 @@ function addExpense() {
   }
   const payers = {};
   if (_payerMode === 'multi') {
-    document.querySelectorAll('.payer-value').forEach(el => { const n = numInput(el.value); if (n > 0) payers[el.dataset.name] = n; });
+    document.querySelectorAll('.payer-value').forEach(el => { const n = PointyLogic.readField(el, { label: 'ยอดผู้จ่าย', optional: true }); if (n > 0) payers[el.dataset.name] = n; });
     if (!Object.keys(payers).length) { toast(t('err_payer')); return; }
   } else if (!paidBy) { toast(t('err_payer')); return; }
   if (!shared.length) { toast(t('err_sharers')); return; }
   const weights = {};
-  if (_splitMode !== 'equal') document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = numInput(el.value); });
+  if (_splitMode !== 'equal') document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = PointyLogic.readField(el, { label: 'สัดส่วน', decimals: _splitMode === 'exact' ? 2 : 4, optional: true }); });
   const exp = {
     id: Date.now() + Math.random(), desc, icon, amount,
     paidBy: _payerMode === 'multi' ? Object.keys(payers)[0] : paidBy,
@@ -2055,11 +2071,13 @@ function addExpense() {
     receipt: _receiptData || undefined,
     date: document.getElementById('exp-date')?.value || undefined
   };
+  PointyLogic.validateLedgerExpense(exp, S.participants);
   S.expenses.push(exp);
   _settledTx = [];
   _resetEntryDraft = true;
   SFX.coin();
   save(); renderAll(); toast(t('success_added'));
+  } catch (error) { toast(error.message); }
 }
 function deleteExpense(id) {
   const removed = S.expenses.filter(e => String(e.id) === String(id));
@@ -2093,7 +2111,9 @@ function renderLog(party) {
     const splitLabel = splitMode === 'equal' && parts.length
       ? `${money2(e.amount / parts.length)} ${t('each')}`
       : parts.map(name => `${h(name)} ${money2(shares[name] || 0)}`).join(' · ');
-    const dateLabel = e.date ? new Date(e.date).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    const dateLabel = e.date ? (/^\d{4}-\d{2}-\d{2}$/.test(e.date)
+      ? new Date(`${e.date}T00:00:00`).toLocaleDateString(LANG === 'th' ? 'th-TH' : 'en-US', { dateStyle: 'medium' })
+      : new Date(e.date).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })) : '';
     return `<div class="quest-row">
       <div class="qr-icon">${questIconMarkup(e.icon || QUEST_ICONS[0], 32)}</div>
       <div class="qr-main">
@@ -2125,7 +2145,7 @@ function openTribute(from, to, amount) {
   renderOverlay();
 }
 function savePromptPay(name) {
-  const digits = String(document.getElementById('promptpay-input')?.value || '').replace(/\D/g, '');
+  const digits = String(document.getElementById('promptpay-input')?.value || '').replace(/[ -]/g, '');
   if (!validPromptPay(digits)) { toast(t('promptpay_invalid')); return; }
   S.promptpay ||= {};
   S.promptpay[name] = digits;
@@ -2198,11 +2218,14 @@ function parseImportItems(text) {
 }
 function updateImportCount() {
   const el = document.getElementById('import-count');
-  if (el) el.textContent = t('import_parsed_count', { n: parseImportItems(document.getElementById('import-text')?.value || '').length });
+  try { if (el) el.textContent = t('import_parsed_count', { n: parseImportItems(document.getElementById('import-text')?.value || '').length }); }
+  catch (error) { if (el) el.textContent = error.message; }
 }
 function importTextItems() {
-  const items = parseImportItems(document.getElementById('import-text')?.value || '');
-  if (!items.length || !S.participants.length) return;
+  let items;
+  try { items = parseImportItems(document.getElementById('import-text')?.value || ''); }
+  catch (error) { toast(error.message); return; }
+  if (!items.length || !S.participants.length) { toast('ใส่รายการและเพิ่มสมาชิกก่อน / Add entries and a member'); return; }
   const payer = S.participants[0];
   items.forEach((item, i) => S.expenses.push({
     id: Date.now() + i + Math.random(), desc: item.desc, icon: '📜', amount: item.amount,
@@ -2231,7 +2254,8 @@ function setAccent(color) { if (ACCENTS.includes(color)) S.settings.accent = col
 function toggleSetting(key) { S.settings[key] = !S.settings[key]; applySettings(); save(); renderAll(false); renderOverlay(); if (key === 'sound' && S.settings.sound) SFX.click(); }
 async function setupAdmin() {
   const pass = document.getElementById('admin-pass-new')?.value || '';
-  const slug = sanitizeTripSlug(document.getElementById('admin-url-id')?.value || tripId);
+  const slug = String(document.getElementById('admin-url-id')?.value || tripId).trim().toLowerCase();
+  if (!/^[a-z0-9_-]{1,36}$/.test(slug)) { toast(t('admin_url_invalid')); return; }
   const profile = saveAdminOwnerProfile({ adminId: document.getElementById('admin-owner-id')?.value, adminName: document.getElementById('admin-owner-name')?.value });
   const canMove = slug !== tripId && canChangeTripUrl();
   if (pass.length < 4) { toast(t('admin_pass_short')); return; }
@@ -2279,7 +2303,7 @@ function copyAdminLink() {
 async function saveCharacterId(name) {
   if (!isAdminUnlocked()) return;
   const el = document.getElementById('char-id-' + hashOf(name));
-  const next = String(el?.value || '').replace(/\D/g, '').slice(0, 4);
+  const next = String(el?.value || '').trim();
   if (!/^\d{4}$/.test(next)) { toast(t('char_id_invalid')); return; }
   const old = S.characterIds[name];
   if (!_characterRegistry[next]) await loadCharacterRegistry([next]);
@@ -2385,8 +2409,8 @@ function renderAdminPanel() {
       </div>
       <div class="admin-box">
         <div class="field"><label>${t('admin_url')}</label><input id="admin-url-id" class="field-input" value="${h(sanitizeTripSlug(tripId))}" ${canChangeTripUrl() ? '' : 'disabled'}></div>
-        <div class="field"><label>${t('admin_owner_id')}</label><input id="admin-owner-id" class="field-input" value="${h(profile.adminId)}"></div>
-        <div class="field"><label>${t('admin_owner_name')}</label><input id="admin-owner-name" class="field-input" value="${h(profile.adminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}"></div>
+        <div class="field"><label>${t('admin_owner_id')}</label><input id="admin-owner-id" maxlength="80" class="field-input" value="${h(profile.adminId)}"></div>
+        <div class="field"><label>${t('admin_owner_name')}</label><input id="admin-owner-name" maxlength="80" class="field-input" value="${h(profile.adminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}"></div>
         <div class="field"><label>${t('admin_password')}</label><input id="admin-pass-new" class="field-input" type="password" autocomplete="new-password" placeholder="${h(t('admin_password_placeholder'))}"></div>
         <button class="btn-primary sm" onclick="setupAdmin()">${t('admin_create')}</button>
       </div>
@@ -2456,17 +2480,17 @@ function renderOverlay() {
       <div class="admin-box">
         <div class="field">
           <label>${t('new_trip_code')}</label>
-          <input id="new-trip-code" class="field-input" inputmode="numeric" maxlength="4" value="${h(code)}" placeholder="0000" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4);_newTripCode=this.value">
+          <input id="new-trip-code" class="field-input" inputmode="numeric" maxlength="4" value="${h(code)}" placeholder="0000" oninput="_newTripCode=this.value">
           <div class="settings-sub">${t('new_trip_code_hint')}</div>
         </div>
         <button class="btn-ghost" type="button" onclick="randomizeNewTripCode()">🎲 ${t('new_trip_random')}</button>
         <div class="field">
           <label>${t('admin_owner_id')}</label>
-          <input id="new-trip-admin-id" class="field-input" value="${h(_newTripAdminId)}" oninput="_newTripAdminId=this.value">
+          <input id="new-trip-admin-id" maxlength="80" class="field-input" value="${h(_newTripAdminId)}" oninput="_newTripAdminId=this.value">
         </div>
         <div class="field">
           <label>${t('admin_owner_name')}</label>
-          <input id="new-trip-admin-name" class="field-input" value="${h(_newTripAdminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}" oninput="_newTripAdminName=this.value">
+          <input id="new-trip-admin-name" maxlength="80" class="field-input" value="${h(_newTripAdminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}" oninput="_newTripAdminName=this.value">
         </div>
         <div class="field">
           <label>${t('new_trip_admin_pass')}</label>

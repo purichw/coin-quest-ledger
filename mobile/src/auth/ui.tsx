@@ -3,26 +3,24 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts } from '../theme/typography';
 
-// Classic player brand, aligned with shared/player-brand.css on the website.
-export const colors = {
-  background: '#e7dcc6', surface: '#fbf6ea', surfaceAlt: '#f3e9d4', input: '#fffdf7',
-  ink: '#2f2515', muted: '#715f46', green: '#277b4e', gold: '#987016', goldSoft: '#efe0b6',
-  border: '#ddc9a3', borderStrong: '#987f55', error: '#b63929',
-  hero: '#254e3b', heroDeep: '#204532', track: '#e6d7b5',
-};
+export const colors = { background: '#e7dcc6', surface: '#fbf6ea', ink: '#2f2515', muted: '#726449', green: '#246f47', gold: '#9c6d12', border: '#ddc9a3', error: '#a33228' };
 
 // Both auth forms share field semantics, focus treatment and keyboard behavior.
 // Values, validation and submit state remain owned by their respective screen.
 export function Field({ label, hint, password = false, inputRef, ...props }: TextInputProps & { label: string; hint?: string; password?: boolean; inputRef?: Ref<TextInput> }) {
   const [visible, setVisible] = useState(false);
   const [focused, setFocused] = useState(false);
+  const numeric = props.keyboardType === 'decimal-pad' || props.keyboardType === 'number-pad';
+  const numericPattern = props.keyboardType === 'number-pad' ? /^\d*$/ : /^(?:\d+|\d{1,3}(?:,\d{3})+)?(?:\.\d*)?$/;
+  const invalidNumber = numeric && !!props.value && !numericPattern.test(props.value);
   return <View style={ui.field}>
     <Text style={ui.label}>{label}</Text>
-    <View style={[ui.inputFrame, focused && { borderColor: colors.green, borderWidth: 2 }]}>
-      <TextInput ref={inputRef} accessibilityLabel={label} placeholderTextColor={colors.muted} autoCorrect={false} autoCapitalize="none" {...props} secureTextEntry={password && !visible} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={ui.input} />
+    <View style={[ui.inputFrame, focused && { borderColor: colors.green, borderWidth: 2 }, invalidNumber && { borderColor: colors.error }]}>
+      <TextInput ref={inputRef} accessibilityLabel={label} placeholderTextColor="#8c7c62" autoCorrect={false} autoCapitalize="none" {...props} secureTextEntry={password && !visible} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={ui.input} />
       {password && <Pressable accessibilityRole="button" accessibilityLabel={`${visible ? 'ซ่อน' : 'แสดง'}${label}`} onPress={() => setVisible(!visible)} style={ui.reveal}><Text style={ui.revealText}>{visible ? 'ซ่อน' : 'แสดง'}</Text></Pressable>}
     </View>
     {hint && <Text style={ui.hint}>{hint}</Text>}
+    {invalidNumber && <ErrorNote message={props.keyboardType === 'number-pad' ? 'ใช้จำนวนเต็มตั้งแต่ 0 เท่านั้น' : 'ใช้ตัวเลขตั้งแต่ 0 และจุดทศนิยมเท่านั้น'} />}
   </View>;
 }
 
@@ -58,19 +56,19 @@ export const ui = StyleSheet.create({
   markText: { color: '#f4d687', fontSize: 23, fontFamily: fonts.brand },
   wordmark: { fontSize: 18, letterSpacing: 2, fontFamily: fonts.brand, color: colors.ink },
   brandCaption: { fontSize: 11, fontFamily: fonts.body, color: colors.muted, lineHeight: 19 },
-  title: { fontSize: 26, lineHeight: 39, fontFamily: fonts.display, color: colors.ink },
+  title: { fontSize: 28, lineHeight: 42, fontFamily: fonts.display, color: colors.ink },
   description: { fontSize: 15, fontFamily: fonts.body, lineHeight: 25, color: colors.muted, marginTop: 5 },
-  panel: { padding: 20, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 18 },
+  panel: { padding: 20, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 19 },
   field: { gap: 8 },
   label: { textAlign: 'center', color: colors.ink, fontSize: 14, fontFamily: fonts.emphasis, lineHeight: 22 },
-  inputFrame: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 12, backgroundColor: colors.input, flexDirection: 'row', alignItems: 'center' },
+  inputFrame: { borderWidth: 1, borderColor: '#c9b996', borderRadius: 12, backgroundColor: '#fffdf7', flexDirection: 'row', alignItems: 'center' },
   input: { flex: 1, minWidth: 0, minHeight: 52, paddingHorizontal: 14, paddingVertical: 12, color: colors.ink, fontSize: 16, fontFamily: fonts.body, lineHeight: 24 },
   reveal: { marginRight: 4, minHeight: 44, minWidth: 52, alignItems: 'center', justifyContent: 'center' },
   revealText: { color: colors.green, fontSize: 12, fontFamily: fonts.emphasis },
   hint: { color: colors.muted, fontSize: 12, fontFamily: fonts.body, lineHeight: 20 },
   action: { minHeight: 54, backgroundColor: colors.green, borderRadius: 13, padding: 14, gap: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  secondary: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
-  actionText: { color: colors.surface, fontSize: 15, lineHeight: 25, fontFamily: fonts.emphasis, textAlign: 'center' },
+  secondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#8d9a72' },
+  actionText: { color: colors.surface, fontSize: 16, lineHeight: 26, fontFamily: fonts.display, textAlign: 'center' },
   footer: { fontSize: 12, fontFamily: fonts.body, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   error: { borderRadius: 12, padding: 12, backgroundColor: '#f7e5dc', borderWidth: 1, borderColor: '#e4b4a6' },
   errorText: { color: colors.error, fontSize: 14, fontFamily: fonts.body, lineHeight: 23 },

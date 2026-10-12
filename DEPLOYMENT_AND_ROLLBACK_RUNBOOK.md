@@ -81,16 +81,19 @@ this workflow does not publish an iOS/Android package or an OTA update.
 
 Reference: [Vercel Git configuration](https://vercel.com/docs/project-configuration/git-configuration).
 
-`.vercelignore` excludes mobile, QA evidence, tests and internal documentation.
+`.vercelignore` excludes mobile, QA evidence, tests, internal documentation and
+versioned onboarding skills.
 It includes `assets/`: production now uses the same checked-in art as native.
 Cloudinary remains an explicit `?assets=cloud` diagnostic path, not the default.
 
 ### Timing and diagnosis
 
-The successful 2026-08-31 run `33385081176` took about 4 minutes total:
-Test 2m40s, deploy 1m18s. The October pipeline adds emulator and native checks;
-use 7 minutes as an initial diagnostic checkpoint, then recalibrate from its
-successful run. Investigate immediately on a failed assertion, wrong SHA or
+Comparable October runs took 3m23s, 3m25s and 3m44s total; the latest
+`38217362692` tested both jobs and promoted `34aa1a0` in about 3m44s.
+Use approximately 5m45s as a total-duration diagnostic checkpoint for this mode,
+not a failure timeout. Inspect the active phase and recent log timestamps.
+Use a full commit SHA when filtering runs; short-SHA filters can miss a run.
+Investigate immediately on a failed assertion, wrong SHA or
 authentication error; inspect after 3 minutes with no run, 5 minutes queued with
 no progress, or 2 minutes with promotion pending after checks/build are ready.
 Inspect the current step and causal log before any retry. Never repeat an

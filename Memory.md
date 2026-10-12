@@ -19,7 +19,8 @@ Last updated: 2026-10-12
 
 ## Start Here In A New Chat
 
-1. Read `Memory.md` and `PLAYBOOK.md` first.
+1. Use `$coin-quest-new-chat`; read this current checkpoint and `PLAYBOOK.md`,
+   then choose task-specific owners from `PROJECT_STRUCTURE_GUIDE.md`.
 2. Check `git status --short --branch` before editing.
 3. For small visual tweaks, default to Fast UI Patch unless the user asks to commit/deploy.
 4. Preserve newest user requirements over any older Claude prototype/handoff behavior.
@@ -28,6 +29,9 @@ Last updated: 2026-10-12
 7. Current user instruction: ignore `archive/CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
 
 ## Important Files
+
+- `skills/coin-quest-new-chat/`: versioned onboarding skill; installed at
+  `/Users/point/.codex/skills/coin-quest-new-chat/`. Keep the copies aligned.
 
 - `architecture.md`: current static app architecture, routes, shared modules, identity model, persistence, design sources, test/deploy flow, and hard invariants.
 - `SITE_MAP_AND_INTERACTIONS.md`: canonical player/admin site map, user journey map, interaction map, route/deep-link map, state-store side effects, and verification map.
@@ -75,6 +79,56 @@ Last updated: 2026-10-12
 - `tests/unit/pointy-logic.test.mjs`: unit coverage for calculations and normalization.
 - `PLAYBOOK.md`: workflow rules and change modes.
 - `archive/legacy/trip-index.legacy.html` and `archive/legacy/index.legacy.html`: inactive legacy snapshots; do not touch unless requested.
+
+## Current checkpoint — 2026-10-12
+
+- Later working-tree task: all player forms on web/native now use stricter
+  validation, with auth/character persistence and accrued-debt corrections.
+  Dedicated live TEST account `cqreg-20261012-zbrp7` / Character ID `8340` was used
+  for all four games. Read `docs/frontend-regression-2026-10-12/README.md` for
+  observed production failures, local repairs, automated checks and evidence.
+  Included in the subsequent authorized push/deploy; verify the exact commit's
+  CI and canonical alias before assuming it is live. After Mac unlock,
+  post-fix Browser/live-Firebase and
+  own-binary Simulator checks passed for all four games, invalid/corrected inputs,
+  cross-client persistence, monthly snapshot and app relaunch. Fresh signup
+  `cqfix-20261012-8idwn` / hero `2028` retained its character after reload/relogin.
+  The report records limits; this is not exhaustive acceptance of every control.
+- Previous verified production source before this release: `34aa1a04335d02d2933a9b2be378bacb726c8fa2`,
+  pushed to `main`. [CI/CD run 38217362692](https://github.com/purichw/coin-quest-ledger/actions/runs/38217362692)
+  passed and promoted the canonical alias at 14:26 Bangkok. Exact deployment,
+  test counts and evidence are in `docs/release-2026-10-12.md`.
+- Current approved UI: restore **the complete player Website and rebuilt Mobile
+  design immediately before the 12 October ui-ux-expert redesign request**,
+  including buttons, spacing, layout and composition. The colors-only direction
+  is superseded. **Admin remains excluded**. Preserve current features/backend.
+  Player HTML uses its original inline styles at `b726368`; redesigned player
+  stylesheets remain archived on disk but are no longer loaded. Admin continues
+  to use `shared/quest-tokens.css` and `admin/design.css`. Native presentation
+  is restored from the exact pre-redesign patches in this chat.
+  See `docs/design-restoration-2026-10-12/README.md` for local verification;
+  deployment evidence belongs to the exact release workflow, separately from
+  these dated local captures. See `docs/release-2026-10-12.md`.
+- The native app was rebuilt with Expo 57 / React Native 0.86 / Expo Router.
+  Own-binary Simulator verification is mandatory for touched native flows.
+  Setup, per-module work and post-release flows passed on iPhone 17 Pro / iOS
+  26.5. The former Mac-lock blocker is resolved; evidence remains scoped to the
+  recorded flows. See `NATIVE_WEB_PARITY.md` and `mobile/IOS_BUILD_NOTES.md`.
+- Web/native share `playerModules/{uid}` through `shared/module-cloud.js` and
+  `mobile/src/modules/service.ts`; refresh/conflict handling is explicit, not
+  realtime sync. Recovery preserves the existing Firebase UID.
+- Web deployment and source push do not release a native binary or OTA.
+  Android, physical-device distribution, live two-account invitations and live
+  credential-changing recovery submissions remain unverified.
+- Remaining backend limits: legacy board link-join access policy and stored
+  public recovery hashes need separately authorized migrations. Billing/TTL
+  cleanup is deferred; see `SECURITY_AND_FIREBASE_RULES.md` and the runbook.
+- No feature is parked by the design restoration. Do not
+  restore the retired native app or revert the combined backend/rebuild commit.
+- Read status locally first. This checkpoint is dated evidence, not a fresh
+  production probe or authorization to access another chat, migrate data, or
+  commit/push/deploy in a new task. Documentation/skill edits after this release
+  are not automatically published.
 
 ## Claude Design / Recovery State
 
@@ -124,9 +178,16 @@ Debt Dragon web now uses daily interest accrual for the live local ledger. Each 
 
 2026-06-22 native player app MVP slice, updated by 2026-08-31 auth hardening: `mobile/` uses the same production Firebase project and public username contract as the web app. Sign In and Sign Up use `username@coinquest.local`; Sign Up writes Recovery ID hash metadata to owner-scoped `users/{uid}` and a low-detail `userIds/{userId}` reservation, while `usernames/{username}` remains a public login pointer and must not receive new recovery hashes. Profile can show the locally mirrored current Recovery ID and regenerate it, overwriting the owner-scoped recovery hash immediately; Character Creation writes `characters/{id}` and mirrors the active character to `users/{uid}`; Split reads real signed-in `trips/{id}` linked by `characterIds` or `admin.characterId`, can create a Firestore board, and can add an equal-split expense. Debt Dragon, Treasury, and Compare read/write native-owned `playerModules/{uid}` Firestore state so they are dynamic and do not use static Claude/sample data. Verification for the original native slice: `mobile/npm run typecheck` passed, `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export-github` passed, root `npm test` passed on rerun (`65 passed`, `4 skipped`), production deploy/curl passed, and a Release iPhone device build/install succeeded for bundle `com.purichwc.coinquestledger`.
 
-Native design/build rule from the first iPhone install: do not repeat the "build first, discover ugly/static later" failure mode. Before a real device build or install, run a Claude Design parity pass screen by screen against the fresh iOS/Android exports, and verify the same screens use real Firebase/Firestore data. Design fidelity and backend reality are both gates; neither can be deferred until after physical install.
+The June native paragraph above is historical evidence for the retired app, not
+the current implementation. The October rebuild uses the same backend but shares
+module storage with web, supports the full ledger modes and has persisted auth.
+Use the current checkpoint, `NATIVE_WEB_PARITY.md` and the Simulator-first
+runbook. Do not reapply retired SDK workarounds or postpone native rendering
+until after feature development. New reference work requires a current supplied
+reference; missing historical exports do not block the approved brand direction.
 
-Profile refactor rule: keep changes reversible by slice. When splitting `shared/profile-hub.js`, commit each coherent boundary separately after targeted tests so a broken helper can be reverted without rolling back unrelated auth/recovery/UI work.
+Profile refactor rule: keep changes reviewable by slice and run targeted tests.
+Commit only when authorized; preserve unrelated auth/recovery/UI work.
 
 Latest profile refactor handoff: `shared/profile-hub.js` is now a smaller orchestrator backed by focused browser-global helpers: `profile-session`, `profile-auth`, `profile-cloud`, `profile-recovery`, `profile-backup`, `profile-login`, `profile-character-create`, `profile-drawer`, `profile-reminders`, and `profile-tour`. Script load order matters: helper modules must load before `shared/profile-hub.js`.
 
@@ -233,7 +294,7 @@ Use the lightest verification that fits the requested mode:
 Available commands:
 
 ```bash
-cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox"
+cd /Users/point/toolbox
 npm run test:syntax
 npm run test:assets
 npm run test:unit
@@ -245,13 +306,13 @@ npm run serve
 Native mobile commands:
 
 ```bash
-cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox/mobile"
+cd /Users/point/toolbox/mobile
 npm run typecheck
-npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export
-# Only after design/backend gates pass:
-npx expo prebuild --platform ios
-xcodebuild -workspace ios/CoinQuestLedger.xcworkspace -scheme CoinQuestLedger -configuration Release -destination 'id=<physical-udid>' -derivedDataPath /tmp/coinquest-ios-device-build -allowProvisioningUpdates build
-xcrun devicectl device install app --device <coredevice-id> /tmp/coinquest-ios-device-build/Build/Products/Release-iphoneos/CoinQuestLedger.app
+npm run lint
+node --test tests/*.test.mjs
+# Build only when needed; discover the current available device first.
+npm run build:simulator -- <available-simulator-UUID>
+npm run start:simulator
 ```
 
 Read `mobile/IOS_BUILD_NOTES.md` before changing native build settings, signing, or install commands.
@@ -259,27 +320,23 @@ Read `mobile/IOS_BUILD_NOTES.md` before changing native build settings, signing,
 Local preview:
 
 ```bash
-cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox"
+cd /Users/point/toolbox
 npm run serve
 # http://127.0.0.1:4569/trip/
 ```
 
 Do not preview app pages with `file://`; absolute `/shared/...` and route scripts will fail. Use `npm run serve` or production.
 
-Production deploy:
+Authorized release: follow `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`. The single
+GitHub CI/CD writer runs after push; do not start a duplicate manual deployment.
+Track full-SHA CI, build readiness and production alias promotion separately.
 
 ```bash
-cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox"
-vercel --prod --yes
-vercel alias set <deployment-url> coin-quest-ledger.vercel.app
-npm run smoke:prod
-```
-
-Push:
-
-```bash
-cd "/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox"
+cd /Users/point/toolbox
+# Only when push/deploy is requested and preflight gates passed:
 git push origin main
+# After successful CI promotion:
+npm run smoke:prod
 ```
 
 ## User Preferences

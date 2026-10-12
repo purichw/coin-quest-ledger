@@ -5,6 +5,11 @@ import type { Comparison, DebtState, Dragon, Offer, Treasury } from '../modules/
 import type { Activity, CharacterProfile, Progress } from '../character/profile-types';
 
 type Canon = {
+  parseNumberInput(value: unknown): number;
+  validateNumber(value: unknown, rule?: { label?: string; min?: number; max?: number; decimals?: number; optional?: boolean }): number;
+  validateText(value: unknown, rule?: { label?: string; max?: number; optional?: boolean }): string;
+  validateOfferInput(offer: Offer, comparison: Comparison): Offer;
+  validateModuleBackupValue(key: string, value: unknown): unknown;
   hashOf(value: string): number;
   tripContentKey(value: unknown): string;
   normalizeTripState(data: unknown): Board;

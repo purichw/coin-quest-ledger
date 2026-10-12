@@ -421,6 +421,8 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await expect(page.getByText('ผ่านเควสแล้ว!')).toBeVisible();
   await expect(page.locator('#party-grid')).toContainText('135/300');
   await expect(page.locator('#party-grid')).toContainText('180/300');
+  await expect(page.locator('#party-grid .status-chip.debt')).toHaveCount(0);
+  await expect(page.locator('#party-grid .status-chip.guardian')).toHaveCount(0);
 });
 
 test('expense splitter supports itemized loot split, receipt date, and quest board campaigns', async ({ page }) => {
@@ -492,6 +494,10 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
 
   await page.getByRole('button', { name: 'นำเข้ารายการ' }).click();
   await page.locator('#import-text').fill('Coffee, 120\nTaxi; 240\nBad line');
+  await expect(page.locator('#import-count')).toContainText('แถว 3');
+  await page.getByRole('button', { name: '📥 นำเข้าข้อความ' }).click();
+  await expect(page.locator('#expense-count')).toHaveText('0');
+  await page.locator('#import-text').fill('Coffee, 120\nTaxi; 240');
   await expect(page.locator('#import-count')).toHaveText('อ่านได้ 2 รายการ');
   await page.getByRole('button', { name: '📥 นำเข้าข้อความ' }).click();
   await expect(page.locator('#expense-count')).toHaveText('2');
@@ -1203,6 +1209,10 @@ test('home view opens user modules and treasury logs expenses', async ({ page })
   await expect(page.getByRole('heading', { name: /คลังหลวง|Personal Treasury/ })).toBeVisible();
   await expect(page.getByText(/พยากรณ์สิ้นเดือน|Month forecast/)).toBeVisible();
 
+  await page.getByRole('button', { name: /บันทึกรายจ่าย|Log an expense/ }).first().click();
+  await page.locator('#cat-name').fill('E2E food');
+  await page.locator('#cat-budget').fill('500');
+  await page.locator('.modal-cover .btn-primary').click();
   await page.getByRole('button', { name: /บันทึกรายจ่าย|Log an expense/ }).first().click();
   await page.locator('#expense-amount').fill('123');
   await page.locator('#expense-note').fill('E2E snack');

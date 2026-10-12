@@ -3,6 +3,10 @@
 ## Start Of Work
 
 - Read `Memory.md` first in a new chat or after a long context reset.
+- Use `$coin-quest-new-chat` for a starter prompt or context pickup. Its versioned
+  source is `skills/coin-quest-new-chat/`; keep the installed copy aligned.
+- Stay in the current checkout/chat. A handoff does not authorize reading,
+  creating or messaging another chat, or publishing changes.
 - Read `architecture.md` when the request touches system shape, routing, shared modules, persistence, or deployment.
 - Read `SITE_MAP_AND_INTERACTIONS.md` when the request touches how routes, shared modules, reminders, board invites, or user flows connect.
 - Read `PROJECT_STRUCTURE_GUIDE.md` when the request is "where do I edit this?" or when onboarding into an unfamiliar part of the repo.
@@ -23,7 +27,8 @@
 - Check `git status --short --branch` before editing.
 - If the user asks for a small visual tweak, default to Fast UI Patch unless they explicitly ask for commit/deploy.
 - If the user asks to commit or deploy, escalate to Production Patch.
-- For profile/auth refactors, keep slices independently revertible. Commit each completed boundary separately after targeted tests, even when the user gives one broad refactor instruction.
+- For profile/auth refactors, keep slices independently reviewable and run
+  targeted tests; create commits only when the current task authorizes them.
 - Keep `Memory.md`, `architecture.md`, `roadmap.md`, and any touched contract/reference docs updated before intentionally moving work to a new chat.
 - Current user instruction: ignore `archive/CLAUDE_RECOVERY.md` unless explicitly re-enabled.
 - Level math must start in `shared/pointy-logic.js`; feature files should call `PointyLogic.levelFromXp()` or `PointyLogic.levelFromReputation()` instead of adding local formulas.
@@ -69,11 +74,11 @@ Good prompt:
 Use when the user asks to commit, push, or deploy, or when the change affects core calculation, persistence, admin, imports/exports, assets, or routing.
 
 - Run `npm test`.
-- Commit with a focused message.
+- Commit with a focused message only when authorized.
 - Push to `origin main` when requested or when the user asks for GitHub.
-- Deploy with `vercel --prod --yes` when requested.
-- Alias the canonical domain after deploy when needed.
-- Curl the changed production route for a marker that proves the deployed content is current.
+- Pushes to `main` use the single CI/CD production writer. Do not start a second
+  manual deploy while it runs. Follow `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` for
+  native/backend gates, exact-SHA checks, promotion and production smoke.
 - Confirm `git status --short --branch` is clean except unrelated user files.
 - Report commit hash, test result, deployment URL, and push status.
 
@@ -91,18 +96,20 @@ When the user asks to commit, push, or deploy:
 2. Check `git status --short --branch`.
 3. Stage only focused files.
 4. Commit with a focused message.
-5. Push to `origin main`.
-6. Deploy with `vercel --prod --yes`.
-7. Alias `coin-quest-ledger.vercel.app` to the new deployment when needed.
-8. Curl the changed live route for an expected marker.
+5. Push to `origin main` when requested; do not infer push from commit-only work.
+6. Observe the exact full-SHA CI run: web/backend and native jobs must pass.
+7. Verify its production deploy and canonical alias promotion separately.
+8. Verify matching live files and run `npm run smoke:prod` after deployment.
 9. Re-check `git status --short --branch`.
 10. Report commit hash, tests, push, deploy URL, alias status, and any remaining dirty files.
 
 ## CI/CD
 
 - GitHub Actions workflow lives at `.github/workflows/test.yml`.
-- Pull requests run the full test suite: syntax, assets, unit tests, and Playwright desktop/tablet/mobile.
-- Pushes to `main` run the same tests, then deploy production to Vercel and refresh the canonical `coin-quest-ledger.vercel.app` alias.
+- Pull requests run web syntax/assets/unit/Playwright, isolated Firebase emulator
+  integration, and a parallel native typecheck/lint/contract job.
+- Pushes to `main` require both jobs before Vercel build/deploy/alias. Git
+  auto-deploy is disabled. Missing-token skips do not establish a deployment.
 - Required GitHub Actions secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`.
 - If `VERCEL_TOKEN` is missing, CI still runs and the deploy job exits successfully after a warning; add the token to activate CD.
 - Current Vercel IDs for this project: `VERCEL_ORG_ID=team_YrvoFhGxq1xp83XzkHci5rNx`, `VERCEL_PROJECT_ID=prj_ZhaR03b1Ukx5Tzi8FPDH4IFI1fM3`. Store them as GitHub secrets rather than committing `.vercel/project.json`.
@@ -150,6 +157,7 @@ When implementing from Claude Design:
 
 ## Project Skills
 
+- Use `$coin-quest-new-chat` for new-chat prompts and current-context onboarding.
 - Use `$claude-to-a-tee` for exact Claude Design implementation and verification.
 - Use `$coin-quest-ledger-logic` for Party Ledger split math, invites, guests, Character IDs, Reminders, and settlement regressions.
 - Use `$coin-quest-admin-ops` for Admin Portal auth, lifecycle, reset, delete, publish/restore, revisions, and Firebase-backed admin operations.
@@ -215,12 +223,17 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 ## Native Player App Notes
 
 - `mobile/` is the Expo / React Native player app. It is not a WebView wrapper and does not include Admin native.
-- Keep native code modular: `App.tsx` orchestrates; `mobile/src/data.ts`, `gameLogic.ts`, `ui.tsx`, `theme.ts`, `copy.ts`, screen files, and `sheets.tsx` should remain focused so future fixes are point edits.
-- Do not build/install a real iPhone app until design and backend gates are both checked.
-- Design gate: compare the changed native screens against the latest Claude iOS/Android exports and fix obvious mismatches in platform chrome, spacing, card hierarchy, sheets, tabs/FAB, typography scale, and asset usage before device build.
+- Native routes live in `mobile/src/app/` under Expo Router. Auth, character,
+  ledger and module services are separate; see `PROJECT_STRUCTURE_GUIDE.md`.
+- Use the own installed binary on an actual Simulator before accepting native
+  flows. Browser phone viewports and JS exports cannot replace this gate.
+- Use `mobile/DESIGN_DIRECTION.md` for current brand/layout direction. Supplied
+  Claude exports govern only explicitly requested reference work.
 - Backend gate: verify the screen uses real Firebase Auth/Firestore data. Current native contracts are `users/{uid}`, `usernames/{username}`, `characters/{id}`, `trips/{id}`, and `playerModules/{uid}`.
 - Never fill Debt/Treasury/Compare with static Claude/sample financial data. Empty states are acceptable only when they are tied to real create/log actions.
-- For iOS build/install commands, signing caveats, ExpoModulesJSI patching, and first-install lessons learned, use `mobile/IOS_BUILD_NOTES.md`.
+- For current build/install commands and native dependency changes, use
+  `mobile/AGENTS.md` and `mobile/IOS_BUILD_NOTES.md`; retired SDK workarounds
+  are not instructions for the rebuild.
 
 ## Preview Notes
 

@@ -68,11 +68,12 @@ campaigns, receipts, text/Excel/JSON import and export. Finance modules include
 editing, recoverable removal/history, projections, and shared progression.
 
 All calculations import the website's `shared/pointy-logic.js` through
-`src/domain/canon.ts`. The website now has a local implementation of
+`src/domain/canon.ts`. The deployed website uses
 `shared/module-cloud.js` connecting its account-scoped browser stores to the
 same `playerModules/{uid}` used by native. Conflicting unsynced local data needs
 an explicit choice with backups; stale writes stop instead of overwriting.
-**These website changes have not been deployed.**
+See `../Memory.md` and `../docs/release-2026-10-12.md` for the dated release
+checkpoint. The website/API deployment does not distribute a native binary/OTA.
 
 Native Simulator and local-web/live-Firebase round trips passed for character,
 ledger, debt, treasury, comparisons and profile. Native backup export, Files
@@ -80,9 +81,28 @@ picker, restore preview, confirmed restore and rollback-file preview passed.
 See [acceptance and remaining limits](../docs/mobile-completion-worklist.md).
 Recovery reset/regeneration is implemented, but live credential-changing
 submission requires a human handoff; validation/cancel were exercised only.
-Two-account live invite delivery, Android, physical-device signing, Store
-distribution and production web promotion are not verified by these checks.
+Two-account live invite delivery, Android, physical-device signing and Store
+distribution remain unverified. Later native-to-production-web Treasury checks
+passed; see `../docs/post-release-simulator-2026-10-12.md`.
+
+The latest approved pass restores the complete rebuilt native design from
+immediately before the 12 October redesign, including layout and buttons.
+Current features/backend remain intact. See `DESIGN_DIRECTION.md` and
+`../docs/design-restoration-2026-10-12/README.md`. Use `$coin-quest-new-chat` and
+`../Memory.md` for future onboarding, not historical app/release assumptions.
 
 Focused checks: `npm run test:auth`, `test:character`, `test:ledger`,
 `test:modules`, `typecheck`, `lint`, and `check:dependencies`. Run the real native
 interaction gate after changes; a green source check is not native QA.
+
+The subsequent all-form validation pass uses shared numeric/range/precision,
+offer and backup contracts, with immediate invalid-number feedback in `Field`.
+Accrued debt balances retain precision when unchanged, and reloading preserves
+initial principal even when accumulated interest makes the balance higher.
+Typecheck, lint and 59 contract tests passed. After Mac unlock, actual Simulator
+checks covered negative/invalid input and corrected saves in all four games,
+web/native Firebase round trips, monthly history and login/character retention
+after relaunch. A blank split form no longer previews NaN. Typecheck/lint passed
+again after that fix. See `../docs/frontend-regression-2026-10-12/README.md` for
+evidence and remaining limits. These changes are included in the release source;
+the web deployment does not distribute a native binary or OTA update.

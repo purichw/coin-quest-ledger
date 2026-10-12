@@ -10,6 +10,25 @@ This file documents the live data shapes that should be preserved when adding fe
 
 2026-10-12 rebuild: native and web share owner-scoped `playerModules/{uid}` for Debt Dragon, Treasury and Compare. `shared/module-cloud.js` bridges account-scoped browser stores, preserving unsynced local data through an explicit conflict choice and backups. Verify the release commit and production alias before claiming that an installed/deployed client has these contracts.
 
+2026-10-12 local frontend regression: financial forms use the shared strict
+validators in `shared/pointy-logic.js` before mutation. Browser character creation
+persists its local mirror only after the Firebase transaction commits; account
+hydration waits for the cloud record before offering character creation. Browser
+local backup exports now use `__coin_quest_backup: 2` with the owner UID and an
+allowlist of current-account finance/profile keys and presentation preferences.
+Version-1 imports are accepted only for compatible current-account keys;
+authentication/session/owner tokens are never imported. Finance payloads are
+validated before any writes. This remains a local-data format, distinct from
+native `coin-quest-player-v1`; restoring local data is not evidence of a completed
+cloud sync. See `docs/frontend-regression-2026-10-12/README.md` for test and release
+status.
+
+Player profile board discovery includes `access.ownerUids`; legacy name/character
+and owner-hash links remain supported. Shared-board frontend XP persistence only
+updates an existing character whose `ownerUid` is the currently authenticated
+UID; it never creates a missing character or writes another player's record.
+Date-only expense strings remain date-only on web (no implied UTC time).
+
 For account lifecycle implementation details, see `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`
 and `ADMIN_PORTAL_IMPLEMENTATION.md`. For access control and rule deploy
 assumptions, see `SECURITY_AND_FIREBASE_RULES.md`.

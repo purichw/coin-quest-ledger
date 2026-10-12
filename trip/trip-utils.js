@@ -88,7 +88,7 @@
   }
 
   function money(n) {
-    return '฿' + Math.round(Number(n) || 0).toLocaleString(locale());
+    return '฿' + (Number(n) || 0).toLocaleString(locale(), { maximumFractionDigits: 2 });
   }
 
   function money2(n) {

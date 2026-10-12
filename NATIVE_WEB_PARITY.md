@@ -10,8 +10,10 @@ Ledger, Debt Dragon, Treasury, Price Arena, profile/reminders and backup routes
 are implemented. Actual Simulator and local-web/live-Firebase evidence, plus
 the limits of each check, are in `docs/mobile-completion-worklist.md`.
 
-The storage bridge and backend fixes are part of the October release candidate.
-Verify deployment against CI, the Vercel alias and the Firebase Rules release;
+The storage bridge and backend fixes were released in October; later player
+colors were restored without changing those contracts. See `Memory.md` and
+`docs/release-2026-10-12.md` for the dated exact-SHA checkpoint.
+Verify new deployment claims against CI, the Vercel alias and Firebase Rules;
 source availability alone is not deployment. Browser tests and JS checks
 supplement actual Simulator evidence. The old app's recovery is documented in
 `docs/rollback-parking-lot.md`.
@@ -39,7 +41,7 @@ and what must be verified before native work continues.
 | `characters/{id}` | yes | created/edited/read on Simulator and web | active character, owner UID, XP and class/skin |
 | `trips/{id}` | yes | actual create/edit/import/campaign round trips | same five split modes, payer obligations and settlement records |
 | `users/{uid}/boardInvites` | web player | implemented; contract tests and native reminders | 24-hour invite lifecycle; live two-account delivery not exercised |
-| `playerModules/{uid}` | implemented local cloud bridge | actual Debt/Treasury/Compare round trips | owner-scoped records, preserved legacy browser drafts and conflict protection |
+| `playerModules/{uid}` | deployed cloud bridge | actual Debt/Treasury/Compare round trips | owner-scoped records, preserved legacy browser drafts and conflict protection |
 
 ## Intentional Differences
 
@@ -52,7 +54,8 @@ and what must be verified before native work continues.
 - Native uses the Firebase modular SDK and fresh owner/lifecycle reads before writes.
 - Web uses shared browser globals such as `PointyLogic`.
 - Native directly imports the web calculation module through `src/domain/canon.ts`.
-- Native UI is the approved Thai Coin Quest mobile redesign. Website language,
+- Native UI restores the rebuilt app's full pre-redesign Thai layout and brand;
+  read `mobile/DESIGN_DIRECTION.md` and `docs/design-restoration-2026-10-12/README.md`. Website language,
   theme and decorative sound/animation controls remain web presentation settings.
 - Native accepts pasted web board links and shares web URLs. Universal Link
   association and push notifications are not configured by this local build.
@@ -60,6 +63,19 @@ and what must be verified before native work continues.
   web local-data backup remains a distinct format. Board Excel/JSON is interoperable.
 
 ## Native Design Gate
+
+The later all-player-form regression is recorded in
+`docs/frontend-regression-2026-10-12/README.md`. Web and native share strict
+financial number, split-total, offer and finance-backup validation. Money keeps
+satang precision; measured quantities may be fractional, piece/pack/promotion
+counts and due days must be integers. Negative financial input stays visible
+as an error and is not converted into positive money. These repairs are included
+in the authorized release source; web promotion does not distribute native code.
+After Mac unlock, the own-binary Simulator and local web verified
+invalid/corrected entries across all four games and bidirectional persistence.
+Native relaunch retained hero 8340; a monthly snapshot appeared in web history.
+Fresh web signup/relogin retained hero 2028. See the regression report for exact
+actions, screenshots and deliberately untested boundaries.
 
 For product flows before acceptance or a physical-device release (the initial
 Simulator setup screen is explicitly a development harness):
@@ -116,7 +132,9 @@ transactional like native; new invitation attempts use unique IDs. Both clients
 use canonical debt-history replay, local calendar dates and satang thresholds.
 Recovery preserves the existing UID, and rules/lifecycle apply to both clients.
 
-Evidence, known legacy boundaries and the blocked native Simulator gate are in
-`docs/backend-audit-2026-10-12.md`. Later Simulator interaction was blocked by a
-locked Mac; earlier per-flow results do not verify every backend repair on-device.
+Backend evidence and known legacy boundaries are in
+`docs/backend-audit-2026-10-12.md`. The Mac was subsequently unlocked and scoped
+native flows passed in `docs/post-release-simulator-2026-10-12.md`. The later
+color-only pass is in `docs/player-brand-2026-10-12/README.md`; neither record
+claims exhaustive fault injection or every-platform coverage.
 Web/API deployment does not distribute the native binary.

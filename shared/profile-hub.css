@@ -1296,3 +1296,8 @@ body[data-theme="dungeon"] {
   .picker-filter button { padding: 8px 6px; font-size: 12px; }
   .pc-name { font-size: 11px; }
 }
+
+input[aria-invalid="true"], textarea[aria-invalid="true"] {
+  outline: 2px solid var(--red, #a33228);
+  outline-offset: 2px;
+}

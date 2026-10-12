@@ -1,10 +1,12 @@
 import { normalizeModule, validateOffer, validateISO } from './contracts.ts';
 import type { Modules } from './types';
+import { canon } from '../domain/canon.ts';
 export type ModuleBackup = { format: 'coin-quest-player-v1'; uid: string; savedAt: string; modules: Modules };
 export function parseBackup(text: string, uid: string): ModuleBackup {
   const raw = JSON.parse(text);
   if (raw?.format !== 'coin-quest-player-v1' || raw.uid !== uid || !raw.modules || typeof raw.savedAt !== 'string' || !Number.isFinite(Date.parse(raw.savedAt))) throw new Error('ใช้ไฟล์สำรอง Coin Quest ของบัญชีนี้เท่านั้น');
   for (const key of ['debt', 'treasury', 'comparisons']) if (!(key in raw.modules)) throw new Error('ไฟล์มีโมดูลไม่ครบ');
+  for (const key of ['debt', 'treasury', 'comparisons']) canon.validateModuleBackupValue(key, raw.modules[key]);
   const unique = (rows: { id: string }[]) => { if (!Array.isArray(rows) || rows.some(r => typeof r.id !== 'string' || !r.id) || new Set(rows.map(r => r.id)).size !== rows.length) throw new Error('รหัสรายการในไฟล์ไม่ครบหรือซ้ำกัน'); };
   const amount = (value: number) => { if (!Number.isFinite(value) || value < 0) throw new Error('ยอดเงินในไฟล์ไม่ถูกต้อง'); };
   // Validate before legacy normalizers can clamp negative money or drop offers.

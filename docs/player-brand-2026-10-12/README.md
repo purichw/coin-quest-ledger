@@ -1,3 +1,9 @@
+# Superseded by full design restoration
+
+The later user request restores the complete player Website/rebuilt Mobile
+design, not only colors. Read `../design-restoration-2026-10-12/README.md`.
+The color-only evidence below remains historical; Admin is still excluded.
+
 # Classic player brand restoration — 2026-10-12
 
 Scope: restore Website and Mobile colors/CI while keeping the current layout,
@@ -6,6 +12,12 @@ visual pass was local, based on `68021cc`; the user subsequently requested
 push/deploy. The exact release commit and terminal deployment result are recorded
 by the repository's CI/CD run for this change.
 Recovery branch: `checkpoint/player-brand-before-restore-68021cc`.
+
+Release follow-up: `34aa1a0` passed CI/CD and production smoke and was promoted
+on October 12 at 14:26 Bangkok. See the
+[release record](../release-2026-10-12.md#latest-release-classic-player-brand)
+for exact source, deployment and verification. Mobile source was pushed; no
+binary or OTA was distributed.
 
 ## Sources and implementation
 

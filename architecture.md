@@ -27,7 +27,8 @@ Companion docs:
 
 ## Runtime Model
 
-- Source root: `/Users/point/Library/Mobile Documents/com~apple~CloudDocs/Website Projects/toolbox`
+- Primary source root: `/Users/point/toolbox`; an explicitly selected worktree
+  takes precedence. Do not switch checkouts while onboarding.
 - Production: `https://coin-quest-ledger.vercel.app`
 - Hosting: Vercel static deployment
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
@@ -207,7 +208,17 @@ See `data-contracts.md` for the practical shape of `trips`, `characters`, `admin
 
 ## Design Sources
 
-Claude Design remains the Holy Grail for requested visual ports. Reference files live outside Git and may be replaced by new exports during a session.
+Current user direction restores the full player Website and rebuilt Mobile
+design immediately before the 12 October redesign, preserving current features
+and backend. Admin retains its redesign. Player HTML again owns the original
+inline styles from `b726368`; `shared/quest-design.css`, `character/design.css`
+and `shared/player-brand.css` remain on disk but are detached from player pages.
+`shared/quest-tokens.css` remains the Admin base. Native color roles are in `mobile/src/auth/ui.tsx`;
+Mitr, IBM Plex Sans Thai and Chakra Petch remain common font families. See
+`mobile/DESIGN_DIRECTION.md` and `docs/design-restoration-2026-10-12/README.md`.
+
+Claude references govern explicitly requested visual ports, not an automatic
+rollback of this direction. Files live outside Git and may have moved.
 
 - Current verified local Downloads references on 2026-06-21 are `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
 - Older recovery bundles, split zips, standalone Character/Profile HTML, and Admin HTML paths from earlier sessions are historical only unless they still exist on disk. Verify with `ls`/`find` before using them.
@@ -232,21 +243,20 @@ npm run serve
 
 Playwright projects cover desktop Chromium, tablet, and mobile. Responsive or shared-shell work should be checked across breakpoints. Use `TESTING_MATRIX.md` to choose the narrowest sufficient checks. After deploys that touch production routes/assets/admin shell, run `npm run smoke:prod` from `PROD_SMOKE_HARNESS.md`.
 
-Manual production deploy flow, when not relying on CI/CD:
+Authorized production release uses the single CI/CD writer:
 
 ```bash
 npm test
 git add <focused files>
 git commit -m "<focused message>"
 git push origin main
-vercel --prod --yes
-vercel alias set <deployment-url> coin-quest-ledger.vercel.app
-curl -fsSL https://coin-quest-ledger.vercel.app/<changed-route> | rg "<expected-marker>"
+# Observe the exact full-SHA CI run and verify canonical alias promotion.
+npm run smoke:prod
 ```
 
-CI/CD is also active through `.github/workflows/test.yml`: pull requests run the
-full test suite, and pushes to `main` run tests then deploy production to Vercel
-when the required GitHub secrets are present.
+`.github/workflows/test.yml` runs web/backend and native-contract jobs before
+production deploy. A missing-token skip is not successful promotion. Manual
+recovery is documented in the runbook; never run it alongside the active writer.
 
 See `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md` for CI/CD secrets, manual deploy, alias,
 Firebase rules deploy, and rollback steps.

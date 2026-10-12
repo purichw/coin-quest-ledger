@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import { router, Stack } from 'expo-router';
-import { View } from 'react-native';
-import { Action, ErrorNote, Field } from '../../auth/ui';
+import { Text, View } from 'react-native';
+import { Action, ErrorNote, Field, ui } from '../../auth/ui';
 import { canon } from '../../domain/canon';
 import { monthKey, saveTreasuryExpense } from '../../modules/contracts';
 import { changeModule } from '../../modules/service';
 import { useModule } from '../../modules/useModule';
 import { label } from '../../modules/types';
-import { Body, Card, confirm, Intro, LoadError, Loading, money, number, Page, PlayerGate, Row, Stats, useWork, type Player } from '../../player/ui';
+import { Body, Card, confirm, LoadError, Loading, money, Page, PlayerGate, Row, Stats, useWork, type Player } from '../../player/ui';
 export default function TreasuryRoute() { return <PlayerGate>{p => <TreasuryHome {...p} />}</PlayerGate>; }
 function TreasuryHome({ account }: Player) {
-  const load = useModule('treasury', account); const work = useWork(); const [income, setIncome] = useState<string | null>(null); const [editingIncome, setEditingIncome] = useState(false);
+  const load = useModule('treasury', account); const work = useWork(); const [income, setIncome] = useState<string | null>(null);
   if (!load.data) return load.error ? <LoadError error={load.error} retry={load.reload} /> : <Loading />;
   const snapshot = load.data; const state = snapshot.data; const forecast = canon.treasuryProjection(state); const currentMonth = monthKey();
   const edit = (kind: string, id?: string) => router.push({ pathname: '/treasury/edit', params: { kind, ...(id ? { id } : {}) } });
-  return <Page><Stack.Screen options={{ title: 'Treasury · คลังหลวง' }} /><Intro title="ดูแลทองของเดือนนี้" description={`เดือน ${state.month} · งบและรายจ่ายส่วนตัวของคุณ`} glyph="♛" />
+  return <Page><Stack.Screen options={{ title: 'Treasury · คลังหลวง' }} /><View><Text style={ui.title}>ดูแลทองของเดือนนี้</Text><Body>เดือน {state.month} · งบและรายจ่ายส่วนตัวของคุณ</Body></View>
     {state.month !== currentMonth && <Card title="เริ่มเดือนปัจจุบัน"><Body>เก็บรายละเอียดเดือน {state.month} ก่อนเริ่ม {currentMonth} หมวดและบิลประจำจะตามไปด้วย</Body><Action title={`เริ่มเดือน ${currentMonth}`} busy={work.busy} onPress={() => void work.run(async () => load.setData(await changeModule('treasury', account, snapshot, s => canon.treasuryClose(s, currentMonth))))} /></Card>}
-    <Card><Stats items={[["คงเหลือ", money(state.income - forecast.spent)], ["เงินเข้า", money(state.income)], ["ใช้ไป", money(forecast.spent)]]} />{editingIncome ? <><Field label="รายรับเดือนนี้ (บาท)" value={income ?? String(state.income)} onChangeText={setIncome} keyboardType="decimal-pad" /><Action title="บันทึกรายรับ" busy={work.busy} onPress={() => void work.run(async () => { const value = number(income ?? String(state.income)); if (!Number.isFinite(value) || value < 0) throw new Error('รายรับต้องเป็นจำนวนเงินตั้งแต่ 0'); load.setData(await changeModule('treasury', account, snapshot, s => ({ ...s, income: value }))); setIncome(null); setEditingIncome(false); })} /><Action title="ปิดการแก้ไขรายรับ" secondary onPress={() => setEditingIncome(false)} /></> : <Action title="แก้ไขรายรับเดือนนี้" secondary onPress={() => setEditingIncome(true)} />}</Card>
+    <Card><Stats items={[["เงินเข้า", money(state.income)], ["ใช้ไป", money(forecast.spent)], ["คงเหลือ", money(state.income - forecast.spent)]]} /><Field label="รายรับเดือนนี้ (บาท)" value={income ?? String(state.income)} onChangeText={setIncome} keyboardType="decimal-pad" /><Action title="บันทึกรายรับ" secondary busy={work.busy} onPress={() => void work.run(async () => { const value = canon.validateNumber(income ?? String(state.income), { label: 'รายรับ' }); load.setData(await changeModule('treasury', account, snapshot, s => ({ ...s, income: value }))); setIncome(null); })} /></Card>
     <Action title="บันทึกรายจ่าย" disabled={!state.categories.length} onPress={() => edit('expense')} />
     <Card title="หมวดงบประมาณ">{state.categories.map(c => <Row key={c.id} title={`${c.glyph} ${label(c.name)}`} detail={`${money(state.expenses.filter(e => e.catId === c.id).reduce((sum, e) => sum + e.amount, 0))} / ${money(c.budget)}`} onPress={() => edit('category', c.id)} />)}{!state.categories.length && <Body>เพิ่มหมวดและวงเงินก่อนบันทึกรายจ่าย</Body>}<Body>จัดสรรแล้ว {money(state.categories.reduce((sum, c) => sum + c.budget, 0))} จากรายรับ {money(state.income)}</Body><Action title="เพิ่มหมวดงบประมาณ" secondary onPress={() => edit('category')} /></Card>
     <Card title="บิลประจำ">{state.bills.filter(b => !b.archived).map(b => <View key={b.id} style={{ gap: 8 }}><Row title={`${b.glyph} ${label(b.name)}`} detail={`${money(b.amount)} · ครบกำหนดวันที่ ${b.dueDay} · ${canon.treasuryBillPaid(state, b.id) ? 'จ่ายแล้ว' : 'ยังไม่บันทึกจ่าย'}`} onPress={() => edit('bill', b.id)} />{!canon.treasuryBillPaid(state, b.id) && <Action title={`บันทึกจ่าย ${label(b.name)}`} secondary onPress={() => router.push({ pathname: '/treasury/edit', params: { kind: 'expense', billId: b.id } })} />}</View>)}<Action title="เพิ่มบิลประจำ" secondary disabled={!state.categories.length} onPress={() => edit('bill')} /></Card>

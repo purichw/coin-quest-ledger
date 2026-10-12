@@ -1,24 +1,38 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-07-07
+Last updated: 2026-10-12
 
 ## North Star
 
-Coin Quest Ledger should feel like Claude Design's playful RPG finance suite while remaining reliable enough for real personal data: clear identities, recoverable boards, mobile-first ergonomics, safe admin operations, and no regressions in split/debt/treasury math.
+Coin Quest Ledger is a playful RPG finance suite with the approved Coin Quest
+brand: clear identities, recoverable boards, native mobile usability, safe Admin
+operations and reliable split/debt/treasury math. Current user direction governs
+visual changes; historical Claude exports apply only when explicitly requested.
 
 ## Current Baseline
 
-- Production domain: `https://coin-quest-ledger.vercel.app`; latest pushed commit at this doc update is `755eb5e` (`Document account and journey maps`). Last verified production code snapshot remains commit `4a04d71`, CI deployment `https://coin-quest-ledger-o4haqkje6-purichwc-1517s-projects.vercel.app`; later docs-only commits may have deployed through CI and should be verified before being cited as the live snapshot.
-- Large Claude references stay outside Git. Current verified Downloads references are the top-level `CLAUDE.md`, `HANDOFF.md`, `MOBILE-EXPORTS.md`, and the iOS/Android standalone HTML exports; older split/reference folders must be filesystem-checked before use.
-- Real account loop is live: username/password signup uses Firebase Auth with internal `@coinquest.local` emails and writes `users/{uid}`, `usernames/{username}`, and `characters/{id}`. Recovery-code reset and Super Admin temp-password reset both preserve public User ID and Character ID while rotating the underlying Firebase Auth `uid`.
+- Production domain: `https://coin-quest-ledger.vercel.app`. The latest verified
+  release is recorded in `Memory.md` and `docs/release-2026-10-12.md`; do not
+  infer deployment from source or documentation-only changes.
+- Large Claude references stay outside Git. Files listed in historical notes
+  must be checked for existence and relevance before use; do not assume old
+  Downloads exports describe the approved current native app.
+- Real account loop is live: username/password signup uses Firebase Auth with
+  internal `@coinquest.local` emails and atomic identity provisioning. Recovery
+  and Admin reset preserve the existing Firebase UID and public identity pointers;
+  they rotate credentials/recovery keys and revoke sessions, not the UID.
 - Character/Profile surfaces are live: Sign In/Sign Up, one-time Character Creation, profile drawer full-profile link, User ID display, My Boards, Character Profile My Boards actions, privacy links, and Recovery ID display/regeneration.
 - Super Admin is live at `/admin/` with Firebase Google Auth allowlisted to `purich.wc@gmail.com`, Admin user lifecycle, backend-only permanent delete, revision/publish tooling, and desktop/tablet/mobile responsive behavior.
 - Responsive baseline is live: Home/Compare, Split, Debt, Treasury use the shared phone shell at `<=600px`; tablet/touch keeps desktop topbars with larger hit targets; Character Profile keeps its standalone `cnav`; Admin Portal uses its admin-specific mobile/tablet pattern.
 - Mobile web parity pass is live for iPhone SE / iPhone / iPhone Pro / Pro Max widths: compact Claude-style phone topbar, Claude bottom-tab labels, Safari safe-area metadata, visible touch-only controls, two-row Split banner actions, smaller first-load eye, and zero-overflow checks at 375/393/430px. Android remains secondary but covered through the same responsive shell and tablet/mobile Playwright smoke.
-- Leveling canon v0 is centralized in `leveling-canon.md` and `shared/pointy-logic.js`.
+- Leveling canon is centralized in `leveling-canon.md` and `shared/pointy-logic.js`.
 - Profile/auth refactor slices are deployed: recovery, auth core, session storage, Firebase boundary, backup, drawer blocks, reminders, tour rendering, login forms, and Character Creation renderers now live in focused `shared/profile-*.js` helpers.
-- Player native app work is committed in `mobile/` as an Expo / React Native iOS-first app. The current slice uses real Firebase Auth/Firestore for username login/signup, Recovery ID, Character Creation, Profile, Split board reads/writes, and native-owned `playerModules/{uid}` state for Debt Dragon, Treasury, and Compare.
-- Native design lesson learned: do not build/install a bland static shell and call it progress. Claude Design parity and real backend parity are both pre-build gates for every meaningful native screen.
+- The rebuilt Expo 57 / React Native 0.86 app implements all player modules;
+  web/native share `playerModules/{uid}`. Native flow acceptance requires the
+  own binary on an actual Simulator; browser/JS checks are supplementary.
+- Current design decision: restore the complete player Website/rebuilt Mobile
+  design from immediately before the 12 October redesign, preserving current
+  features/backend and the Admin redesign. See the design-restoration evidence.
 - CI/CD is active through `.github/workflows/test.yml`: pull requests run the full test suite, and pushes to `main` deploy production through Vercel when GitHub secrets are present.
 - Documentation canon now includes `SITE_MAP_AND_INTERACTIONS.md`, `PROJECT_STRUCTURE_GUIDE.md`, `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `ADMIN_PORTAL_IMPLEMENTATION.md`, `SECURITY_AND_FIREBASE_RULES.md`, `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md`, `NATIVE_WEB_PARITY.md`, `INVITES_AND_GUESTS.md`, and `CLAUDE_TO_A_TEE_QA.md` so future chats can recover route, module, account, admin, security, deploy, native, invite, and exact-design context quickly.
 
@@ -106,27 +120,25 @@ Testing:
 
 ## Phase 2N - Player Native App MVP
 
-Goal: build a true native player MVP that shares backend identity/data with the web app.
+Current implementation: Expo 57, Expo Router, persisted Firebase Auth session,
+character/Home/profile, all five split modes and multi-payer ledger, invitations,
+guests, campaigns, receipts, import/export, debt history, treasury, comparison,
+reminders and account backup. It is player-only and not a WebView wrapper.
 
-Current slice:
+The web bridge is deployed, with explicit refresh/reconciliation and preserved
+browser drafts. Auth persistence and the recorded module flows passed on the own
+iPhone Simulator binary. Read `NATIVE_WEB_PARITY.md`,
+`docs/mobile-completion-worklist.md` and the post-release evidence for limits.
 
-- `mobile/` exists as an Expo SDK 56 TypeScript app.
-- It is iOS-first and intentionally player-side only.
-- The runtime now uses real Firebase Auth/Firestore for Login, Sign Up, Recovery ID creation/regeneration, Character Creation, Home, Split, Debt Dragon, Treasury, Compare, Profile, and Character Profile.
-- Split reads real `trips/{id}` linked to the active Character ID and can create a Firestore board plus add an equal-split expense.
-- Debt Dragon, Treasury, and Compare read/write `playerModules/{uid}`. These native modules are dynamic today, while the web app's older browser localStorage stores remain separate until a planned migration.
-- It is not a WebView wrapper and does not replace the static web production app.
-- `mobile/IOS_BUILD_NOTES.md` records the repeatable iOS build/install flow and first-install lessons learned.
+Remaining work when requested:
 
-Near-term work:
-
-- Design-first rebuild pass: compare each screen against the fresh Claude iOS/Android exports and fix the obvious fidelity gaps before the next real-device build. This includes native chrome, large-title spacing, bottom tabs/FAB, sheets, cards, typography scale, icon/art usage, and empty/loading/error states.
-- Keep every screen dynamic. If a feature cannot sync with Firebase yet, label it as unavailable; do not fill it with static Claude/sample data.
-- Add a focused solution for persistent Firebase Auth state across native app restarts. Firebase 12's RN persistence helper exists internally but is not exposed through the package export map used by TypeScript in this Expo project.
-- Decide whether and how to migrate the web Debt Dragon/Treasury/Compare localStorage stores into shared Firestore contracts, or keep `playerModules/{uid}` as a native-only bridge until the web migration is planned.
-- Expand Split beyond equal-split add flow toward the web app's payer/split-mode parity.
-- Add repeatable Simulator/screenshot verification once the local iOS simulator is healthy. Until then, use the physical iPhone only after source-level design review, `expo export`, and backend QA have already passed.
-- Keep `mobile/src/*` modular by data, game logic, UI primitives, screens, and sheets so future fixes are point edits rather than a monolithic `App.tsx` rewrite.
+- Live two-account invitation/expiry, native offline/fault injection and legacy
+  password-unlocked board coverage.
+- Android, physical-device signing, Store/TestFlight distribution and any OTA
+  release process. These are separate from web deployment/source push.
+- Live credential-changing recovery submissions with the required user handoff.
+- Further visual polish only under the latest approved direction, preserving
+  shared backend contracts and the mandatory Simulator gate for touched flows.
 
 ## Phase 3 - Real Auth And Security
 
@@ -136,15 +148,16 @@ Work:
 
 - Keep the chosen username strategy: username maps to internal `username@coinquest.local`; users do not need real email addresses.
 - Preserve the current verified mapping: username -> Firebase Auth credential -> `users/{uid}` public User ID -> active Character ID.
-- Recovery/admin reset now uses server-side Admin SDK routes. Next hardening is
-  stronger throttling, owner notification, App Check, and removal of legacy
+- Recovery/admin reset uses server-side Admin SDK routes with shared Firestore
+  throttling and a bounded reset lease. Remaining work includes owner notification,
+  App Check, and a separately authorized migration to remove legacy
   public username recovery hashes.
 - Super Admin allowlist is now `purich.wc@gmail.com` via Firebase Google Auth.
 - Permanent user delete is backend-only via Vercel Serverless Function + Firebase Admin SDK. Production Vercel has encrypted `FIREBASE_SERVICE_ACCOUNT_JSON` for the dedicated `vercel-admin-delete` service account; keep verifying `/api/admin-delete-status` after recovery/reset changes or redeploys. Delete now tombstones the username and User ID instead of removing them, allowing the same username to be recreated with the same User ID/Character ID.
-- The tightened `firestore.rules` from 2026-08-31 require signed-in access for
-  trips, owner/Super Admin access for `users/{uid}`, and block new raw Recovery
-  ID/public recovery-hash writes. Keep `firebase.json` + `firestore.rules`
-  together, and redeploy rules after identity model changes.
+- October Rules enforce owner/lifecycle/identity boundaries and preserve the
+  documented signed-in board link-join policy. New public recovery hashes are
+  blocked; already-stored legacy values need migration. Read the security docs
+  before changing Rules; web deployment does not publish them.
 - Add Board Admin permissions scoped to owned boards.
 - Tighten the still-open board/trip write model once Board Admin auth is real.
 - Add rollback/export plan before rule enforcement.

@@ -14,6 +14,44 @@
   <link rel="stylesheet" href="/shared/profile-hub.css">
   <link rel="stylesheet" href="/shared/mobile-shell.css">
   <style>
+    :root {
+      --font-display: "Mitr", system-ui, sans-serif;
+      --font-body: "IBM Plex Sans Thai", system-ui, sans-serif;
+      --font-stat: "Chakra Petch", monospace;
+      --accent: #c79320;
+      --bg: #e7dcc6;
+      --bg-glow: #f0e7d4;
+      --panel: #fbf6ea;
+      --panel-2: #f3e9d4;
+      --panel-in: #fffdf7;
+      --ink: #2f2515;
+      --ink-soft: #87745a;
+      --border: #ddc9a3;
+      --border-strong: #c9ad7c;
+      --gold: #c79320;
+      --gold-soft: #efe0b6;
+      --hp: #cf4633;
+      --shadow: 0 6px 22px -10px rgba(74,54,20,0.45);
+      --topbar: #2b2113;
+      --topbar-ink: #efe4cc;
+    }
+    [data-theme="dungeon"] {
+      --bg: #14121f;
+      --bg-glow: #221d36;
+      --panel: #221d33;
+      --panel-2: #2b2542;
+      --panel-in: #1a1628;
+      --ink: #ece8f8;
+      --ink-soft: #a39bc4;
+      --border: #3b3357;
+      --border-strong: #4a4170;
+      --gold: #ecc14e;
+      --gold-soft: #3a3050;
+      --hp: #ff5d70;
+      --shadow: 0 10px 30px -12px rgba(0,0,0,0.7);
+      --topbar: #0e0c17;
+      --topbar-ink: #d9d2f0;
+    }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body { min-height: 100vh; color: var(--ink); font-family: var(--font-body); background: radial-gradient(1100px 520px at 50% -10%, var(--bg-glow), transparent 72%), var(--bg); -webkit-font-smoothing: antialiased; }
@@ -123,9 +161,6 @@
     }
   </style>
   <link rel="stylesheet" href="/shared/player-controls.css">
-  <link rel="stylesheet" href="/shared/quest-tokens.css">
-  <link rel="stylesheet" href="/shared/quest-design.css">
-  <link rel="stylesheet" href="/shared/player-brand.css">
 </head>
 <body data-page="treasury">
   <div class="first-load" data-first-load>

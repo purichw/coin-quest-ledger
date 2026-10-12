@@ -211,7 +211,7 @@ function truid() { return 't' + Math.random().toString(36).slice(2, 9); }
 function lang() { return window.LANG === 'en' ? 'en' : 'th'; }
 function st() { return TR_STR[lang()] || TR_STR.th; }
 function h(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-function money(n) { return '฿' + Math.round(Number(n) || 0).toLocaleString(lang() === 'th' ? 'th-TH' : 'en-US'); }
+function money(n) { return '฿' + (Number(n) || 0).toLocaleString(lang() === 'th' ? 'th-TH' : 'en-US', { maximumFractionDigits: 2 }); }
 const fmtInput = value => PointyLogic.formatNumberInput(value);
 const numInput = value => PointyLogic.parseNumberInput(value);
 function monthKey(d) { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); }
@@ -430,30 +430,38 @@ function renderBill(bill) {
     <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap"><span class="row-amt">${money(bill.amount)}</span>${due?.paid ? `<span class="row-sub">✓</span>` : `<button class="btn-primary sm" onclick="payBill('${h(bill.id)}')">${h(L.trPayBill)}</button>`}<button class="btn-ghost sm" onclick="openBillForm('${h(bill.id)}')">✎</button></div>
   </div>`;
 }
+function localToday() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function editIncome() {
   const L = st();
   mountModal(L.trSetIncome, `<div class="form-grid"><label class="field">${h(L.trIncome)}<input id="income-input" type="text" inputmode="decimal" value="${h(fmtInput(S.income))}" oninput="PointyLogic.formatNumberInputElement(this)"></label><button class="btn-primary" onclick="saveIncome()">${h(L.trSave)}</button></div>`);
 }
 function saveIncome() {
-  S.income = Math.max(0, numInput(document.getElementById('income-input').value));
+  try { S.income = PointyLogic.readField('income-input', { label: 'รายรับ' }); }
+  catch (error) { toast(error.message); return; }
   save(); closeModal(); render();
 }
 function openExpenseForm(catId = '') {
+  if (!S.categories.length) { toast('เพิ่มหมวดงบประมาณก่อนบันทึกรายจ่าย / Add a category first'); openCategoryForm(); return; }
   const L = st();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
   mountModal(L.trAddExpense, `<div class="form-grid">
     <label class="field">${h(L.trCategory)}<select id="expense-cat">${S.categories.map(c => `<option value="${h(c.id)}" ${catId === c.id ? 'selected' : ''}>${h(c.glyph)} ${h(c.name?.[lang()] || c.name?.en || c.name)}</option>`).join('')}</select></label>
     <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="expense-amount" type="text" inputmode="decimal" placeholder="0" oninput="PointyLogic.formatNumberInputElement(this)"></label><label class="field">Date<input id="expense-date" type="date" value="${today}"></label></div>
-    <label class="field">${h(L.trNote)}<input id="expense-note" placeholder="${h(L.trNotePh)}"></label>
+    <label class="field">${h(L.trNote)}<input id="expense-note" maxlength="120" placeholder="${h(L.trNotePh)}"></label>
     <button class="btn-primary" onclick="saveExpense()">${h(L.trLogExpense)}</button>
   </div>`);
 }
 function saveExpense(extra = {}) {
   const L = st();
-  const catId = document.getElementById('expense-cat')?.value || S.categories[0]?.id;
-  const amount = Math.max(0, numInput(document.getElementById('expense-amount')?.value));
-  if (!amount) return;
-  S.expenses.push({ id: truid(), catId, amount, note: document.getElementById('expense-note')?.value.trim() || L.trAddExpense, date: document.getElementById('expense-date')?.value || new Date().toISOString().slice(0, 10), ...extra });
+  let amount, date, note;
+  const catId = document.getElementById('expense-cat')?.value;
+  try {
+    if (!S.categories.some(c => c.id === catId)) throw new Error('เลือกหมวดรายจ่ายก่อน / Choose a category');
+    amount = PointyLogic.readField('expense-amount', { label: 'รายจ่าย', min: .01 });
+    date = PointyLogic.readField('expense-date', { type: 'date', month: S.month });
+    note = PointyLogic.readField('expense-note', { type: 'text', label: 'รายละเอียด', max: 120, optional: true }) || L.trAddExpense;
+  } catch (error) { toast(error.message); return; }
+  S.expenses.push({ id: truid(), catId, amount, note, date, ...extra });
   S.stats = { ...(S.stats || {}), logged: (S.stats?.logged || 0) + 1, onTime: (S.stats?.onTime || 0) + (extra.onTime ? 1 : 0) };
   save(); closeModal(); toast(L.trLogged); render();
 }
@@ -463,16 +471,19 @@ function openCategoryForm(id = '') {
   const glyphs = ['🏠', '🍜', '🛵', '🎮', '🛍️', '💊', '✈️', '🎓', '🎁', '💡', '📦'];
   mountModal(cat ? L.trEditCat : L.trAddCat, `<div class="form-grid">
     <label class="field">Icon<select id="cat-glyph">${glyphs.map(g => `<option value="${h(g)}" ${cat?.glyph === g ? 'selected' : ''}>${h(g)}</option>`).join('')}</select></label>
-    <label class="field">${h(L.trCatName)}<input id="cat-name" value="${h(cat?.name?.[lang()] || cat?.name?.en || '')}"></label>
-    <label class="field">${h(L.trMonster)}<input id="cat-monster" value="${h(cat?.monster?.[lang()] || cat?.monster?.en || '')}"></label>
+    <label class="field">${h(L.trCatName)}<input id="cat-name" maxlength="80" value="${h(cat?.name?.[lang()] || cat?.name?.en || '')}"></label>
+    <label class="field">${h(L.trMonster)}<input id="cat-monster" maxlength="80" value="${h(cat?.monster?.[lang()] || cat?.monster?.en || '')}"></label>
     <label class="field">${h(L.trBudget)}<input id="cat-budget" type="text" inputmode="decimal" value="${h(fmtInput(cat?.budget || 3000))}" oninput="PointyLogic.formatNumberInputElement(this)"></label>
     <div class="ward-actions">${cat ? `<button class="btn-danger" onclick="deleteCategory('${h(cat.id)}')">${h(L.trDelete)}</button>` : ''}<button class="btn-primary" onclick="saveCategory('${h(cat?.id || '')}')">${h(L.trSave)}</button></div>
   </div>`);
 }
 function saveCategory(id = '') {
-  const name = document.getElementById('cat-name').value.trim();
-  if (!name) return;
-  const data = { name: { th: name, en: name }, glyph: document.getElementById('cat-glyph').value, monster: { th: document.getElementById('cat-monster').value.trim() || name, en: document.getElementById('cat-monster').value.trim() || name }, budget: Math.max(0, numInput(document.getElementById('cat-budget').value)) };
+  let data;
+  try {
+    const name = PointyLogic.readField('cat-name', { type: 'text', label: 'ชื่อหมวด', max: 80 });
+    const monster = PointyLogic.readField('cat-monster', { type: 'text', label: 'ชื่อมอนสเตอร์', max: 80, optional: true }) || name;
+    data = { name: { th: name, en: name }, glyph: document.getElementById('cat-glyph').value, monster: { th: monster, en: monster }, budget: PointyLogic.readField('cat-budget', { label: 'งบประมาณ' }) };
+  } catch (error) { toast(error.message); return; }
   if (id) S.categories = S.categories.map(c => c.id === id ? { ...c, ...data } : c);
   else S.categories.push({ id: truid(), ...data });
   save(); closeModal(); render();
@@ -491,16 +502,20 @@ function openBillForm(id = '') {
   const glyphs = ['📜', '🏠', '⚡', '📶', '📺', '🏋️', '🚗', '💳', '💧'];
   mountModal(bill ? L.trBills : L.trAddBill, `<div class="form-grid">
     <label class="field">Icon<select id="bill-glyph">${glyphs.map(g => `<option value="${h(g)}" ${bill?.glyph === g ? 'selected' : ''}>${h(g)}</option>`).join('')}</select></label>
-    <label class="field">${h(L.trBillName)}<input id="bill-name" value="${h(bill?.name?.[lang()] || bill?.name?.en || '')}"></label>
+    <label class="field">${h(L.trBillName)}<input id="bill-name" maxlength="80" value="${h(bill?.name?.[lang()] || bill?.name?.en || '')}"></label>
     <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="bill-amount" type="text" inputmode="decimal" value="${h(fmtInput(bill?.amount || 0))}" oninput="PointyLogic.formatNumberInputElement(this)"></label><label class="field">${h(L.trDueDay)}<input id="bill-due" type="number" min="1" max="31" value="${h(bill?.dueDay || 1)}"></label></div>
     <label class="field">${h(L.trCategory)}<select id="bill-cat">${S.categories.map(c => `<option value="${h(c.id)}" ${bill?.catId === c.id ? 'selected' : ''}>${h(c.glyph)} ${h(c.name?.[lang()] || c.name?.en || c.name)}</option>`).join('')}</select></label>
     <div class="ward-actions">${bill ? `<button class="btn-danger" onclick="deleteBill('${h(bill.id)}')">${h(L.trDelete)}</button>` : ''}<button class="btn-primary" onclick="saveBill('${h(bill?.id || '')}')">${h(L.trSave)}</button></div>
   </div>`);
 }
 function saveBill(id = '') {
-  const name = document.getElementById('bill-name').value.trim();
-  if (!name) return;
-  const data = { name: { th: name, en: name }, amount: Math.max(0, numInput(document.getElementById('bill-amount').value)), dueDay: Math.max(1, Math.min(31, Number(document.getElementById('bill-due').value) || 1)), catId: document.getElementById('bill-cat').value, glyph: document.getElementById('bill-glyph').value };
+  let data;
+  try {
+    const name = PointyLogic.readField('bill-name', { type: 'text', label: 'ชื่อบิล', max: 80 });
+    const catId = document.getElementById('bill-cat').value;
+    if (!S.categories.some(c => c.id === catId)) throw new Error('เลือกหมวดของบิล / Choose a category');
+    data = { name: { th: name, en: name }, amount: PointyLogic.readField('bill-amount', { label: 'ยอดบิล', min: .01 }), dueDay: PointyLogic.readField('bill-due', { label: 'วันครบกำหนด', min: 1, max: 31, decimals: 0 }), catId, glyph: document.getElementById('bill-glyph').value };
+  } catch (error) { toast(error.message); return; }
   if (id) S.bills = S.bills.map(b => b.id === id ? { ...b, ...data } : b);
   else S.bills.push({ id: truid(), ...data });
   save(); closeModal(); render();
@@ -512,8 +527,13 @@ function deleteBill(id) {
 function payBill(id) {
   const bill = S.bills.find(b => b.id === id);
   if (!bill || bill.archived || billPaidThisMonth(S, id)) return;
+  try {
+    PointyLogic.validateNumber(bill.amount, { label: 'ยอดบิล', min: .01 });
+    PointyLogic.validateNumber(bill.dueDay, { label: 'วันครบกำหนด', min: 1, max: 31, decimals: 0 });
+    if (!S.categories.some(c => c.id === bill.catId)) throw new Error('แก้ไขหมวดของบิลก่อน / Edit the bill category first');
+  } catch (error) { toast(error.message); return; }
   const due = billDueStatus(bill);
-  S.expenses.push({ id: truid(), catId: bill.catId, billId: bill.id, amount: bill.amount, note: bill.name?.[lang()] || bill.name?.en || '', date: new Date().toISOString().slice(0, 10), onTime: !(due && due.overdue) });
+  S.expenses.push({ id: truid(), catId: bill.catId, billId: bill.id, amount: bill.amount, note: bill.name?.[lang()] || bill.name?.en || '', date: localToday(), onTime: !(due && due.overdue) });
   S.stats = { ...(S.stats || {}), logged: (S.stats?.logged || 0) + 1, onTime: (S.stats?.onTime || 0) + (!(due && due.overdue) ? 1 : 0) };
   save(); toast(st().trPaid); render();
 }

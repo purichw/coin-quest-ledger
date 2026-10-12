@@ -282,11 +282,12 @@ test('new avatar classes normalize and campaign skins survive migration', () => 
 });
 
 test('parseImportItems reads comma, semicolon, and tab separated rows', () => {
-  assert.deepEqual(plain(logic.parseImportItems('Coffee, 120\nTaxi; ฿240\nSnack\t35\nBad line\nFree, 0')), [
+  assert.deepEqual(plain(logic.parseImportItems('Coffee, 120\nTaxi; ฿240\nSnack\t35')), [
     { desc: 'Coffee', amount: 120 },
     { desc: 'Taxi', amount: 240 },
     { desc: 'Snack', amount: 35 }
   ]);
+  for (const row of ['Bad line', 'Refund, -1', 'Free, 0', 'Taxi, 1e3', 'Taxi, 1.234']) assert.throws(() => logic.parseImportItems(`Valid, 10\n${row}`));
 });
 
 test('buildCharacterProfile aggregates board history, money, badges, and admin ownership', () => {

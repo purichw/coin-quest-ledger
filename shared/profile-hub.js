@@ -98,12 +98,12 @@
       themeDark: 'โหมดดันเจียน',
       takeTour: 'ดู Welcome Tour อีกครั้ง',
       backup: 'สำรองข้อมูล',
-      backupSub: 'Export / Restore ข้อมูล localStorage ของ Coin Quest Ledger',
+      backupSub: 'สำรองข้อมูลการเงิน โปรไฟล์ และการตั้งค่าในเครื่องของบัญชีนี้',
       exportData: 'Export',
       importData: 'Restore',
       backupBad: 'ไฟล์ backup ไม่ถูกต้อง',
       backupRestored: 'กู้ข้อมูลแล้ว กำลังโหลดใหม่',
-      restoreConfirm: 'Restore backup นี้? ข้อมูล localStorage ปัจจุบันจะถูกเขียนทับ',
+      restoreConfirm: 'กู้คืนไฟล์นี้? ข้อมูลการเงิน โปรไฟล์ และการตั้งค่าในเครื่องที่อยู่ในไฟล์จะถูกแทนที่ โดยไม่เปลี่ยนบัญชีที่เข้าสู่ระบบ',
       reminders: 'Reminders',
       noReminders: 'ยังไม่มีอะไรต้องรีบจัดการ',
       remOverdue: 'เลยกำหนดแล้ว',
@@ -225,12 +225,12 @@
       themeDark: 'Dungeon mode',
       takeTour: 'Replay Welcome Tour',
       backup: 'Data backup',
-      backupSub: 'Export / Restore Coin Quest Ledger localStorage data',
+      backupSub: 'Back up this account’s local finance data, profile and preferences',
       exportData: 'Export',
       importData: 'Restore',
       backupBad: 'Invalid backup file',
       backupRestored: 'Restored. Reloading',
-      restoreConfirm: 'Restore this backup? Current localStorage data will be overwritten.',
+      restoreConfirm: 'Restore this backup? Local finance data, profile and preferences included in the file will be replaced. Your signed-in account stays the same.',
       reminders: 'Reminders',
       noReminders: 'Nothing urgent yet',
       remOverdue: 'Overdue',
@@ -450,7 +450,9 @@
     return localAuthEnabled() ? normalizeAccount(TEST_ACCOUNTS[0]) : null;
   }
   function saveAuth(account) {
+    authRevision++;
     const next = normalizeAccount(account);
+    if (next?.provider === 'firebase') { firebaseAuthResolved = true; window.PointyProfileSession.markFirebaseAuthTrusted?.(); }
     if (next?.character) next.character = persistCharacter({ ...next.character, id: next.character.id || next.userId }, next);
     window.PointyProfileSession.writeAuth(next);
     window.dispatchEvent(new CustomEvent('pointy-auth-changed', { detail: { signedIn: true, uid: next?.uid || '' } }));
@@ -559,13 +561,15 @@
     const db = cloudDb();
     if (!db || !account?.uid || !character?.id) return;
     const rec = normalizeCharacter(character, account);
-    await db.runTransaction(async tx => {
+    return db.runTransaction(async tx => {
     const userRef = db.collection('users').doc(account.uid), heroRef = db.collection('characters').doc(rec.id);
     const user = await tx.get(userRef), existing = await tx.get(heroRef);
     const latest = user.data();
     if (!latest || isBlockedAccountStatus(latest)) throw new Error('account-blocked');
     const linkedId = latest.characterId || latest.character?.id;
     if ((linkedId && linkedId !== rec.id) || (existing.exists && existing.data().ownerUid !== account.uid)) throw new Error('character-owner-conflict');
+    // A retry or a second tab must use the character already committed for this account.
+    if (linkedId && existing.exists) return normalizeCharacter(existing.data(), account);
     const next = {
       ...(existing.data() || {}),
       ...rec,
@@ -581,6 +585,7 @@
     tx.update(userRef, { character: next, characterId: rec.id, updatedAt: cloudNow() });
     tx.set(db.collection('usernames').doc(account.username), { characterId: rec.id }, { merge: true });
     tx.set(db.collection('userIds').doc(account.userId), { characterId: rec.id }, { merge: true });
+    return normalizeCharacter(next, account);
     });
   }
   function authErrorMessage(err) {
@@ -588,6 +593,8 @@
     if (code.includes('email-already-in-use')) return s().authUserExists;
     if (code.includes('user-not-found') || code.includes('invalid-credential') || code.includes('wrong-password')) return s().authUserMissing;
     if (code.includes('weak-password')) return s().authWeakPassword;
+    if (['auth/network-request-failed', 'unavailable', 'deadline-exceeded'].includes(code)) return 'เชื่อมต่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง ข้อมูลที่กรอกยังอยู่ / Connection failed; retry';
+    if (code === 'permission-denied') return 'บันทึกข้อมูลบัญชีไม่ได้ กรุณาลองใหม่หรือติดต่อผู้ดูแล / Could not save account';
     if (code === 'account/blocked') return 'บัญชีถูกระงับหรือกำลังกู้คืน กรุณาลองใหม่หรือติดต่อผู้ดูแล';
     if (code === 'account/profile-invalid' || code === 'account/identity-conflict') return 'ข้อมูลระบุตัวตนไม่ครบ กรุณาติดต่อผู้ดูแลเพื่อรักษาบัญชีเดิม';
     if (code.includes('operation-not-allowed') || code.includes('configuration-not-found')) return 'Firebase Authentication ยังไม่ได้เปิดใน Firebase Console';
@@ -770,6 +777,7 @@
       tripMentionsCharacter(data, characterId)
       || cleanCharacterIdValue(admin.characterId) === characterId
       || (ownerHashValue && admin.ownerHash === ownerHashValue)
+      || (account?.uid && data.access?.ownerUids?.includes(account.uid))
       || adminNameMatch
     ) {
       return { id: doc.id, data };
@@ -1002,6 +1010,7 @@
       const admin = data.admin || {};
       const participantName = Object.keys(data.characterIds || {}).find(name => String(data.characterIds?.[name]) === String(character.id || account.userId));
       const isAdmin = String(admin.characterId || '') === String(character.id || account.userId)
+        || (account.uid && data.access?.ownerUids?.includes(account.uid))
         || (admin.adminName && (admin.adminName === account.name || admin.adminName === character.name))
         || (ownerHashValue && admin.ownerHash === ownerHashValue);
       if (!isAdmin) return null;
@@ -1296,6 +1305,13 @@
       event.preventDefault();
       const submit = form.querySelector('.login-btn');
       try {
+        const username = form.querySelector('[data-recovery-username]').value.trim();
+        const code = form.querySelector('[data-recovery-code]').value.trim();
+        const password = form.querySelector('[data-recovery-password]').value;
+        if (!/^[a-z0-9._-]{1,32}$/i.test(username)) { setError('กรอกชื่อผู้ใช้ให้ถูกต้อง / Invalid username'); return; }
+        if (!/^[A-Z0-9]{12}$/.test(code.toUpperCase().replace(/[\s-]/g, ''))) { setError('กรอก Recovery ID 12 ตัวอักษร / Invalid Recovery ID'); return; }
+        if (password.length < 6) { setError(copy.signupPasswordShort); return; }
+        if (password !== form.querySelector('[data-recovery-confirm]').value) { setError(copy.signupPasswordMismatch); return; }
         submit.disabled = true;
         const account = await recoverWithCode(
           form.querySelector('[data-recovery-username]')?.value,
@@ -1314,6 +1330,12 @@
     });
   }
   function showLoginGate() {
+    if (!TEST_MODE && !firebaseAuthResolved) {
+      if (!loginGate) { loginGate = document.createElement('div'); loginGate.className = 'login-gate'; document.body.appendChild(loginGate); }
+      document.body.classList.add('login-locked');
+      loginGate.innerHTML = `<div class="login-card" role="status" aria-live="polite">${h(s().authLoading)}</div>`;
+      return;
+    }
     const existingAuth = loadAuth();
     if (existingAuth?.character) {
       removeLoginGate();
@@ -1365,10 +1387,12 @@
         if (name) name.disabled = !!on;
         if (password2) password2.disabled = !!on;
       };
+      if (real && !/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError('ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว'); return; }
       if (isSignup) {
         const display = String(name?.value || '').trim();
         const pw2 = String(password2?.value || '');
         if (!display) { setError(copy.signupNameMissing); return; }
+        if (display.length > 60) { setError('ชื่อที่แสดงต้องไม่เกิน 60 ตัวอักษร'); return; }
         if (!/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError('ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว'); return; }
         if (!loginName || !pw) { setError(copy.loginEmpty); return; }
         if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
@@ -1379,21 +1403,31 @@
         }
         if (real) {
           provisioningAccount = true;
+          authRevision++;
           try {
             setBusy(true);
+            // Resume a partial signup for this signed-in identity, without creating another UID.
+            const currentUser = cloudAuth().currentUser;
+            if (currentUser?.email?.toLowerCase() === em.toLowerCase()) {
+              const account = await loadCloudAccount(currentUser);
+              saveAuth(account);
+              if (account.character) { removeLoginGate(); refresh({ toast: false }); }
+              else showCharacterCreation(account);
+              return;
+            }
             const existing = await usernameRecord(loginName);
             if (existing && !reusableDeletedUsername(existing)) throw Object.assign(new Error('username exists'), { code: 'auth/email-already-in-use' });
             const recoveryCode = recoveryCodeValue();
             const issuedAt = Date.now();
             sessionStorage.setItem('pointy_pending_signup_v1', JSON.stringify({ username: loginName, name: display, code: recoveryCode, issuedAt }));
             const cred = await cloudAuth().createUserWithEmailAndPassword(em, pw);
-            await cred.user.updateProfile({ displayName: loginName });
             const account = await loadCloudAccount(cred.user);
             storePendingRecovery(recoveryCode);
             sessionStorage.removeItem('pointy_pending_signup_v1');
             saveAuth(account);
             showCharacterCreation(account);
           } catch (err) {
+            console.warn('Account signup failed', err?.code || err?.name || 'unknown');
             setError(authErrorMessage(err));
             setBusy(false);
           } finally {
@@ -1420,6 +1454,8 @@
         return;
       }
       if (real) {
+        provisioningAccount = true;
+        authRevision++;
         try {
           setBusy(true);
           const authEmail = await resolveAuthEmail(loginName);
@@ -1441,7 +1477,7 @@
           setError(authErrorMessage(err));
           setBusy(false);
           return;
-        }
+        } finally { provisioningAccount = false; }
         removeLoginGate();
         profile = tickStreak();
         refresh({ toast: false });
@@ -1499,6 +1535,7 @@
     let pickedGender = '';
     let pickerOpen = false;
     let pickerGender = 'all';
+    let saving = false;
     if (!loginGate) {
       loginGate = document.createElement('div');
       loginGate.className = 'login-gate';
@@ -1541,6 +1578,7 @@
       });
       loginGate.querySelector('[data-char-form]').addEventListener('submit', async event => {
         event.preventDefault();
+        if (saving) return;
         if (!pickedClass || !pickedGender) {
           pickerOpen = true;
           render();
@@ -1553,19 +1591,21 @@
           error.hidden = !text;
           error.textContent = text ? `⚠️ ${text}` : '';
         };
-        const charName = String(loginGate.querySelector('[data-char-name]')?.value || '').trim() || base.name || 'Hero';
-        const character = persistCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' }, base);
-        const next = saveAuth({ ...base, character });
-        if (realAuthEnabled() && next.uid) {
-          try {
-            if (submit) submit.disabled = true;
-            await saveCloudCharacter(next, character);
-          } catch (err) {
-            if (submit) submit.disabled = false;
-            setError(authErrorMessage(err));
-            return;
-          }
+        let character;
+        try {
+          const charName = PointyLogic.readField(loginGate.querySelector('[data-char-name]'), { type: 'text', label: 'ชื่อตัวละคร', max: 30 });
+          character = normalizeCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' }, base);
+          saving = true;
+          authRevision++;
+          if (submit) submit.disabled = true;
+          if (realAuthEnabled() && base.uid) character = await saveCloudCharacter(base, character);
+        } catch (err) {
+          saving = false;
+          if (submit) submit.disabled = false;
+          setError(err?.code ? authErrorMessage(err) : err.message);
+          return;
         }
+        const next = saveAuth({ ...base, character });
         const accounts = loadAccounts();
         const idx = accounts.findIndex(item => item.email.toLowerCase() === String(base.email || '').toLowerCase());
         if (idx >= 0) {
@@ -1831,6 +1871,7 @@
   }
   let authWatcherStarted = false;
   let provisioningAccount = false;
+  let authRevision = 0;
   function watchFirebaseAuth() {
     if (authWatcherStarted || TEST_MODE) return;
     const auth = cloudAuth();
@@ -1840,22 +1881,23 @@
     }
     authWatcherStarted = true;
     auth.onAuthStateChanged(async user => {
-      firebaseAuthResolved = true;
-      window.PointyProfileSession.markFirebaseAuthTrusted?.();
+      const revision = ++authRevision;
       if (signingOut || provisioningAccount) return;
       if (!user) {
+        firebaseAuthResolved = true;
         const current = window.PointyProfileSession.readAuth();
         if (current?.provider === 'firebase') {
           clearAuth();
           profile = null;
           baselineDone = false;
           refresh({ toast: false });
-          showLoginGate();
         }
+        showLoginGate();
         return;
       }
       try {
         const account = await loadCloudAccount(user);
+        if (revision !== authRevision || auth.currentUser?.uid !== user.uid) return;
         if (!account) return;
         if (isBlockedAccountStatus(account)) {
           await auth.signOut().catch(() => {});
@@ -1877,6 +1919,8 @@
           showCharacterCreation(account);
         }
       } catch (err) {
+        if (revision !== authRevision || auth.currentUser?.uid !== user.uid) return;
+        firebaseAuthResolved = true;
         console.warn('Firebase account sync failed', err);
         const current = window.PointyProfileSession.readAuth();
         if (current?.provider === 'firebase') {
@@ -1884,8 +1928,10 @@
           profile = null;
           baselineDone = false;
           refresh({ toast: false });
-          showLoginGate();
         }
+        showLoginGate();
+        const error = loginGate?.querySelector('[data-login-error]');
+        if (error) { error.hidden = false; error.textContent = authErrorMessage(err); }
       }
     });
   }

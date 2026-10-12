@@ -113,11 +113,18 @@
   }
 
   function parseNumberInput(value) {
-    return Number(String(value ?? '').replace(/,/g, '')) || 0;
+    const raw = String(value ?? '').trim();
+    if (!raw) return 0;
+    if (!/^-?(?:(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d*)?|\.\d+)$/.test(raw)) return NaN;
+    const number = Number(raw.replace(/,/g, ''));
+    return Number.isFinite(number) ? number : NaN;
   }
 
   function formatNumberInput(value) {
-    const raw = String(value ?? '').replace(/[^\d.]/g, '');
+    const source = String(value ?? '');
+    // Formatting must never turn -1 into 1, 1e3 into 13, or 1.2.3 into 1.23.
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)?(?:\.\d*)?$/.test(source)) return source;
+    const raw = source.replace(/,/g, '');
     if (!raw) return '';
     const dot = raw.indexOf('.');
     const intRaw = dot >= 0 ? raw.slice(0, dot) : raw;
@@ -128,8 +135,106 @@
 
   function formatNumberInputElement(input) {
     if (!input) return '';
+    const previous = input._pointyNumericValue;
+    if (previous && /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d*)?$/.test(previous)) {
+      // Re-group a single keystroke in an already formatted value. A paste is
+      // still validated as a whole; never strip signs, letters or extra dots.
+      let start = 0, end = 0;
+      while (start < previous.length && start < input.value.length && previous[start] === input.value[start]) start++;
+      while (end < previous.length - start && end < input.value.length - start && previous[previous.length - 1 - end] === input.value[input.value.length - 1 - end]) end++;
+      const removed = previous.slice(start, previous.length - end), added = input.value.slice(start, input.value.length - end);
+      if (removed.length + added.length <= 1 && /^[\d.]*$/.test(added)) input.value = input.value.replace(/,/g, '');
+    }
     input.value = formatNumberInput(input.value);
+    input._pointyNumericValue = input.value;
+    const valid = !input.value || /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d*)?$/.test(input.value);
+    input.setCustomValidity?.(valid ? '' : 'ใช้ตัวเลขตั้งแต่ 0 และจุดทศนิยมเท่านั้น / Enter a non-negative number');
+    input.setAttribute?.('aria-invalid', String(!valid));
     return input.value;
+  }
+
+  function validateNumber(value, { label = 'จำนวน', min = 0, max = Number.MAX_SAFE_INTEGER / 100, decimals = 2, optional = false } = {}) {
+    const raw = String(value ?? '').trim();
+    if (!raw) { if (optional) return 0; throw new Error(`${label}: กรุณากรอกค่า / Required`); }
+    const number = parseNumberInput(raw);
+    if (!Number.isFinite(number)) throw new Error(`${label}: ใช้ตัวเลขและจุดทศนิยมเท่านั้น / Invalid number`);
+    if (number < min) throw new Error(`${label}: ต้องตั้งแต่ ${min} ขึ้นไป / Minimum ${min}`);
+    if (number > max) throw new Error(`${label}: ต้องไม่เกิน ${max} / Maximum ${max}`);
+    const excessPrecision = typeof value === 'number' ? Math.abs(number - Math.round(number * 10 ** decimals) / 10 ** decimals) > 1e-9 : (raw.split('.')[1] || '').length > decimals;
+    if (excessPrecision || (decimals === 0 && !Number.isInteger(number))) throw new Error(`${label}: ${decimals === 0 ? 'ต้องเป็นจำนวนเต็ม / Whole number required' : `ทศนิยมไม่เกิน ${decimals} ตำแหน่ง / Too many decimals`}`);
+    return number;
+  }
+
+  function validateText(value, { label = 'ชื่อ', max = 80, optional = false } = {}) {
+    const text = String(value ?? '').trim();
+    if ((!optional && !text) || text.length > max || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) throw new Error(`${label}: ${optional ? 'ไม่เกิน' : 'กรอก 1–'}${max} ตัวอักษร / Check text length`);
+    return text;
+  }
+
+  function validateDate(value, { optional = false, month = '', min = '', max = '' } = {}) {
+    if (!value && optional) return '';
+    const day = String(value || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?$/.test(String(value)) || !Number.isFinite(Date.parse(value)) || new Date(day).toISOString().slice(0, 10) !== day) throw new Error('วันที่ไม่ถูกต้อง / Invalid date');
+    if ((month && day.slice(0, 7) !== month) || (min && day < min) || (max && day > max)) throw new Error('วันที่อยู่นอกช่วงที่บันทึกได้ / Date is out of range');
+    return value;
+  }
+
+  function validateOfferInput(draft, comparison) {
+    const unit = normalizeUnit(draft.unit);
+    const pack = unit === 'แพ็ค/กล่อง';
+    const offer = { ...draft, unit,
+      merchant: validateText(draft.merchant, { label: 'ร้านหรือตัวเลือก', max: 100, optional: true }),
+      price: validateNumber(draft.price, { label: 'ราคา', min: .01 }),
+      qty: validateNumber(draft.qty, { label: 'ปริมาณ', min: .000001, decimals: unit === 'ชิ้น' || pack ? 0 : 6 }),
+      perPack: pack ? validateNumber(draft.perPack, { label: 'จำนวนชิ้นต่อแพ็ค', min: 1, decimals: 0 }) : 0,
+      buy: validateNumber(draft.buy, { label: 'ซื้อ', min: 1, decimals: 0 }),
+      free: validateNumber(draft.free, { label: 'แถม', decimals: 0 }) };
+    const normalized = normalizedOffer(offer, comparison);
+    if (!normalized.valid || !Number.isFinite(normalized.pu) || !Number.isFinite(normalized.qty)) throw new Error('ตรวจหน่วยและจำนวนชิ้นต่อแพ็ค / Invalid units');
+    return offer;
+  }
+  function validateModuleBackupValue(key, value) {
+    const rows = list => {
+      if (!Array.isArray(list) || list.length > 3000 || list.some(r => !r || typeof r.id !== 'string' || !r.id) || new Set(list.map(r => r.id)).size !== list.length) throw new Error('รายการในไฟล์ไม่ครบหรือมีรหัสซ้ำ / Invalid backup rows');
+      return list;
+    };
+    const amount = n => { if (typeof n !== 'number' || !Number.isFinite(n) || n < 0 || n > Number.MAX_SAFE_INTEGER / 100) throw new Error('จำนวนเงินในไฟล์ไม่ถูกต้อง / Invalid backup amount'); };
+    if (key === 'debt') {
+      rows(value?.dragons).forEach(d => {
+        [d.balance, d.original, d.apr, d.payment].forEach(amount);
+        if (d.payMode === 'monthly') validateNumber(d.dueDay, { label: 'วันครบกำหนด', min: 1, max: 31, decimals: 0 });
+        // A final payment is capped at the precise accrued balance; imported
+        // stored results can legitimately contain fractions of a satang.
+        rows(d.log || []).forEach(l => { amount(l.amount); if (l.amount <= 0) throw new Error('ยอดชำระในไฟล์ต้องมากกว่า 0 / Invalid payment'); });
+      });
+    } else if (key === 'comparisons') {
+      rows(value).forEach(c => { validateText(c.name, { label: 'ชื่อสินค้า', max: 80 }); rows(c.offers).forEach(o => validateOfferInput(o, c)); });
+    } else if (key === 'treasury') {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value?.month || '')) throw new Error('เดือนในไฟล์ไม่ถูกต้อง / Invalid backup month');
+      amount(value.income); const categories = rows(value.categories); categories.forEach(c => amount(c.budget));
+      const category = id => { if (!categories.some(c => c.id === id)) throw new Error('รายการไม่มีหมวดอ้างอิง / Missing category'); };
+      rows(value.bills).forEach(b => { category(b.catId); validateNumber(b.amount, { min: .01 }); validateNumber(b.dueDay, { min: 1, max: 31, decimals: 0 }); });
+      const paidBills = new Set();
+      rows(value.expenses).forEach(e => {
+        category(e.catId || e.category); validateNumber(e.amount, { min: .01 }); validateDate(e.date, { month: value.month });
+        if (e.billId && paidBills.has(e.billId)) throw new Error('บิลจ่ายซ้ำในไฟล์ / Duplicate bill payment');
+        if (e.billId) paidBills.add(e.billId);
+      });
+    }
+    return value;
+  }
+  function readField(id, rule = {}) {
+    const input = typeof id === 'string' ? document.getElementById(id) : id;
+    if (!input) throw new Error('ไม่พบช่องกรอก กรุณาเปิดฟอร์มใหม่ / Reopen the form');
+    try {
+      const value = rule.type === 'text' ? validateText(input.value, rule) : rule.type === 'date' ? validateDate(input.value, rule) : validateNumber(input.value, rule);
+      input.setCustomValidity?.(''); input.setAttribute('aria-invalid', 'false');
+      return value;
+    } catch (error) {
+      input.setCustomValidity?.(error.message); input.setAttribute('aria-invalid', 'true'); input.reportValidity?.(); input.focus();
+      input.addEventListener?.('input', () => { input.setCustomValidity?.(''); input.setAttribute('aria-invalid', 'false'); }, { once: true });
+      throw error;
+    }
   }
 
   function normalizeUnit(unit, unitAlias = PointyLogic.UNIT_ALIAS) {
@@ -509,7 +614,9 @@
       dragons: dragons.map((d, index) => {
         const type = PointyLogic.DRAGON_TYPES[d?.type] ? d.type : 'card';
         const balance = Math.max(0, Number(d?.balance) || 0);
-        const original = Math.max(balance, Number(d?.original) || balance);
+        // Accrued interest can make the balance exceed the initial principal.
+        // Raising principal on reload would inflate subsequent simple interest.
+        const original = d?.original != null && Number.isFinite(Number(d.original)) ? Math.max(0, Number(d.original)) : balance;
         const payMode = d?.payMode === 'adhoc' ? 'adhoc' : 'monthly';
         return {
           ...d,
@@ -638,17 +745,16 @@
   }
 
   function parseImportItems(text) {
-    return (text || '').split('\n').map(line => {
-      const parts = line.split(/[,\t;]/);
-      const desc = (parts[0] || '').trim();
-      const amount = Number(String(parts[parts.length - 1] || '').replace(/[^0-9.]/g, ''));
-      return desc && amount > 0 ? { desc, amount } : null;
-    }).filter(Boolean);
+    return (text || '').split('\n').filter(line => line.trim()).map((line, i) => {
+      const match = line.match(/^(.+?)[,\t;]\s*(?:฿\s*)?(-?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?)\s*$/);
+      if (!match) throw new Error(`แถว ${i + 1}: ใช้ ชื่อรายการ,จำนวนเงิน / Invalid import row`);
+      return { desc: validateText(match[1], { label: `แถว ${i + 1}`, max: 120 }), amount: validateNumber(match[2], { label: `แถว ${i + 1}`, min: .01 }) };
+    });
   }
 
   function spreadsheetExpense(desc, amountText, payerText, sharedText) {
     if (/^(total|รวม)$/i.test(desc.trim()) && !payerText.trim() && !sharedText.trim()) return null;
-    const amount = Number(amountText.replace(/,/g, ''));
+    const amount = validateNumber(amountText, { label: 'จำนวนเงิน', min: .01 });
     const parse = text => {
       const entries = text.split(/;|,\s*(?=[^,]+:)/).map(part => {
         const match = part.trim().match(/^(.+?):\s*(\d+(?:\.\d+)?)\s*$/);
@@ -667,9 +773,12 @@
   function validateLedgerExpense(e, participants) {
     if (typeof e?.desc !== 'string' || !e.desc.trim()) throw new Error('ใส่ชื่อรายการ');
     if (!Number.isFinite(e.amount) || e.amount <= 0) throw new Error('จำนวนเงินต้องมากกว่า 0');
+    validateText(e.desc, { label: 'ชื่อรายการ', max: 120 });
+    validateNumber(e.amount, { label: 'จำนวนเงิน', min: .01 });
     if (!Array.isArray(e.sharedBy) || !e.sharedBy.length || e.sharedBy.some(n => !participants.includes(n))) throw new Error('เลือกผู้ร่วมจ่ายจากสมาชิกในบอร์ด');
     if (new Set(e.sharedBy).size !== e.sharedBy.length) throw new Error('ผู้ร่วมจ่ายซ้ำกัน');
     if (e.payers && Object.values(e.payers).some(n => !Number.isFinite(n) || n < 0)) throw new Error('ยอดผู้จ่ายต้องไม่ติดลบ');
+    Object.values(e.payers || {}).forEach(n => validateNumber(n, { label: 'ยอดผู้จ่าย' }));
     const payers = payerMap(e);
     if (!Object.keys(payers).length || Object.keys(payers).some(n => !participants.includes(n))) throw new Error('เลือกผู้สำรองจ่าย');
     if (Math.abs(Object.values(payers).reduce((s, n) => s + n, 0) - e.amount) > 0.005) throw new Error('ยอดผู้สำรองจ่ายรวมต้องเท่ากับยอดรายการ');
@@ -677,6 +786,7 @@
     if (!['equal', 'exact', 'percent', 'shares', 'items'].includes(mode)) throw new Error('รูปแบบการหารไม่ถูกต้อง');
     const weights = e.sharedBy.map(n => e.split?.weights?.[n] ?? 0);
     if (weights.some(n => !Number.isFinite(n) || n < 0)) throw new Error('สัดส่วนต้องเป็นตัวเลขไม่ติดลบ');
+    if (['exact', 'percent', 'shares'].includes(mode)) weights.forEach(n => validateNumber(n, { label: 'สัดส่วน', decimals: mode === 'exact' ? 2 : 4, ...(mode === 'percent' ? { max: 100 } : {}) }));
     const total = weights.reduce((s, n) => s + n, 0);
     if (mode === 'exact' && Math.abs(total - e.amount) > 0.005) throw new Error('ยอดหารรวมต้องเท่ากับยอดรายการ');
     if (mode === 'percent' && Math.abs(total - 100) > 0.005) throw new Error('เปอร์เซ็นต์รวมต้องเท่ากับ 100');
@@ -684,9 +794,10 @@
     if (mode === 'items') {
       const items = e.split?.items || [];
       if (!Array.isArray(items) || !items.length || items.some(i => !Number.isFinite(i.amount) || i.amount <= 0 || !Array.isArray(i.claimedBy) || i.claimedBy.some(n => !e.sharedBy.includes(n)))) throw new Error('ตรวจจำนวนเงินและผู้รับของแต่ละรายการ');
+      items.forEach(i => { validateText(i.name, { label: 'ชื่อของ', max: 120 }); validateNumber(i.amount, { label: 'ราคาของ', min: .01 }); });
       if (Math.abs(items.reduce((s, i) => s + i.amount, 0) - e.amount) > 0.005) throw new Error('ยอดของแต่ละชิ้นต้องรวมเท่ากับยอดรายการ');
     }
-    if (e.date && (!/^\d{4}-\d{2}-\d{2}/.test(e.date) || !Number.isFinite(Date.parse(e.date)) || new Date(e.date.slice(0, 10)).toISOString().slice(0, 10) !== e.date.slice(0, 10))) throw new Error('วันที่ไม่ถูกต้อง');
+    if (e.date) validateDate(e.date);
   }
 
   function payerMap(e) {
@@ -1187,6 +1298,12 @@
     parseNumberInput,
     formatNumberInput,
     formatNumberInputElement,
+    validateNumber,
+    validateOfferInput,
+    validateModuleBackupValue,
+    validateText,
+    validateDate,
+    readField,
     normalizeUnit,
     groupOf,
     groupForCmp,

@@ -35,6 +35,7 @@ export function problem(code: string) {
 
 export function validateLogin(username: string, password: string) {
   if (!normalizeUsername(username) || !password) return 'กรอกชื่อผู้ใช้และรหัสผ่านก่อนนะ';
+  if (!/^[a-z0-9._-]{1,32}$/i.test(username.trim())) return 'กรอกชื่อผู้ใช้ให้ถูกต้อง';
   return '';
 }
 export function validateRecovery(username: string, code: string, password: string, confirmation: string) {
@@ -47,6 +48,7 @@ export function validateRecovery(username: string, code: string, password: strin
 
 export function validateSignup(fields: SignupFields) {
   if (!fields.name.trim()) return 'กรอกชื่อที่อยากให้เพื่อนเห็น';
+  if (fields.name.trim().length > 60) return 'ชื่อที่แสดงต้องไม่เกิน 60 ตัวอักษร';
   if (!/^[a-z0-9._-]{1,32}$/i.test(fields.username.trim())) return 'ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว';
   if (fields.password.length < 6) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
   if (fields.password !== fields.confirmation) return 'รหัสผ่านทั้งสองช่องยังไม่ตรงกัน';
