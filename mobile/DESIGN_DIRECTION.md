@@ -7,19 +7,21 @@ design proposal.
 
 ## Brand to preserve
 
-The shared web palette (`../shared/quest-tokens.css`) defines parchment surfaces,
-evergreen actions, brass rewards, RPG character art, and an optional Dungeon dark
-theme. The 2026-10-12 redesign uses the matching native palette in
-`src/auth/ui.tsx`; web module composition lives in `../shared/quest-design.css`.
+The player web palette (`../shared/player-brand.css`) restores the classic
+parchment surfaces, green actions, brass rewards and purple Dungeon theme.
+The user requested this color/brand restoration on 2026-10-12 for both Website
+and Mobile while retaining the current layout and behavior. Admin is excluded;
+its shared base tokens remain in `../shared/quest-tokens.css`.
+Native light colors live in `src/auth/ui.tsx`; fonts and character art are unchanged.
 
 | Role | Tavern / native light | Website Dungeon |
 | --- | --- | --- |
-| Background | `#f4f3ec` | `#101d19` |
-| Surface | `#fffef9` | `#1b2c25` |
-| Primary text | `#203c32` | `#f3f4e9` |
-| Accent | `#176a50` | `#80d3a3` |
-| Gold | `#85631b` | `#e5c67c` |
-| Border | `#dce0d5` | `#3e5144` |
+| Background | `#e7dcc6` | `#14121f` |
+| Surface | `#fbf6ea` | `#221d33` |
+| Primary text | `#2f2515` | `#ece8f8` |
+| Action | `#277b4e` | `#80d3a3` |
+| Gold | `#987016` | `#ecc14e` |
+| Border | `#ddc9a3` | `#3b3357` |
 
 Web typography uses Mitr for display, IBM Plex Sans Thai for body text, and
 Chakra Petch for statistics. The native account flow now uses these same families

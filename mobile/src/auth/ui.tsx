@@ -3,7 +3,13 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts } from '../theme/typography';
 
-export const colors = { background: '#f4f3ec', surface: '#fffef9', ink: '#203c32', muted: '#637169', green: '#176a50', gold: '#85631b', border: '#dce0d5', error: '#ad4539' };
+// Classic player brand, aligned with shared/player-brand.css on the website.
+export const colors = {
+  background: '#e7dcc6', surface: '#fbf6ea', surfaceAlt: '#f3e9d4', input: '#fffdf7',
+  ink: '#2f2515', muted: '#715f46', green: '#277b4e', gold: '#987016', goldSoft: '#efe0b6',
+  border: '#ddc9a3', borderStrong: '#987f55', error: '#b63929',
+  hero: '#254e3b', heroDeep: '#204532', track: '#e6d7b5',
+};
 
 // Both auth forms share field semantics, focus treatment and keyboard behavior.
 // Values, validation and submit state remain owned by their respective screen.
@@ -13,7 +19,7 @@ export function Field({ label, hint, password = false, inputRef, ...props }: Tex
   return <View style={ui.field}>
     <Text style={ui.label}>{label}</Text>
     <View style={[ui.inputFrame, focused && { borderColor: colors.green, borderWidth: 2 }]}>
-      <TextInput ref={inputRef} accessibilityLabel={label} placeholderTextColor="#8c7c62" autoCorrect={false} autoCapitalize="none" {...props} secureTextEntry={password && !visible} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={ui.input} />
+      <TextInput ref={inputRef} accessibilityLabel={label} placeholderTextColor={colors.muted} autoCorrect={false} autoCapitalize="none" {...props} secureTextEntry={password && !visible} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={ui.input} />
       {password && <Pressable accessibilityRole="button" accessibilityLabel={`${visible ? 'ซ่อน' : 'แสดง'}${label}`} onPress={() => setVisible(!visible)} style={ui.reveal}><Text style={ui.revealText}>{visible ? 'ซ่อน' : 'แสดง'}</Text></Pressable>}
     </View>
     {hint && <Text style={ui.hint}>{hint}</Text>}
@@ -57,13 +63,13 @@ export const ui = StyleSheet.create({
   panel: { padding: 20, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, gap: 18 },
   field: { gap: 8 },
   label: { textAlign: 'center', color: colors.ink, fontSize: 14, fontFamily: fonts.emphasis, lineHeight: 22 },
-  inputFrame: { borderWidth: 1, borderColor: '#80917f', borderRadius: 12, backgroundColor: '#ffffff', flexDirection: 'row', alignItems: 'center' },
+  inputFrame: { borderWidth: 1, borderColor: colors.borderStrong, borderRadius: 12, backgroundColor: colors.input, flexDirection: 'row', alignItems: 'center' },
   input: { flex: 1, minWidth: 0, minHeight: 52, paddingHorizontal: 14, paddingVertical: 12, color: colors.ink, fontSize: 16, fontFamily: fonts.body, lineHeight: 24 },
   reveal: { marginRight: 4, minHeight: 44, minWidth: 52, alignItems: 'center', justifyContent: 'center' },
   revealText: { color: colors.green, fontSize: 12, fontFamily: fonts.emphasis },
   hint: { color: colors.muted, fontSize: 12, fontFamily: fonts.body, lineHeight: 20 },
   action: { minHeight: 54, backgroundColor: colors.green, borderRadius: 13, padding: 14, gap: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  secondary: { backgroundColor: '#eeefe6', borderWidth: 1, borderColor: colors.border },
+  secondary: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
   actionText: { color: colors.surface, fontSize: 15, lineHeight: 25, fontFamily: fonts.emphasis, textAlign: 'center' },
   footer: { fontSize: 12, fontFamily: fonts.body, lineHeight: 21, color: colors.muted, textAlign: 'center' },
   error: { borderRadius: 12, padding: 12, backgroundColor: '#f7e5dc', borderWidth: 1, borderColor: '#e4b4a6' },

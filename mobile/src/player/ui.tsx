@@ -67,7 +67,7 @@ export const p = StyleSheet.create({
   section: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink },
   body: { fontFamily: fonts.body, fontSize: 14, lineHeight: 24, color: colors.muted },
   intro: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 8 },
-  introMark: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#eee5c9', alignItems: 'center', justifyContent: 'center' },
+  introMark: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.goldSoft, alignItems: 'center', justifyContent: 'center' },
   introGlyph: { color: colors.gold, fontSize: 25, lineHeight: 34 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 46, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
@@ -75,7 +75,7 @@ export const p = StyleSheet.create({
   choiceText: { fontFamily: fonts.emphasis, fontSize: 13, lineHeight: 23, textAlign: 'center', color: colors.ink },
   row: { minHeight: 68, paddingVertical: 14, gap: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
   stats: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 10 },
-  stat: { flexGrow: 1, flexBasis: '45%', minHeight: 96, alignItems: 'center', justifyContent: 'center', padding: 12, gap: 6, borderRadius: 16, backgroundColor: '#eeefe6' },
+  stat: { flexGrow: 1, flexBasis: '45%', minHeight: 96, alignItems: 'center', justifyContent: 'center', padding: 12, gap: 6, borderRadius: 16, backgroundColor: colors.surfaceAlt },
   statWide: { flexBasis: '100%' },
   number: { fontFamily: fonts.stat, fontSize: 25, lineHeight: 36, textAlign: 'center', color: colors.ink },
 });

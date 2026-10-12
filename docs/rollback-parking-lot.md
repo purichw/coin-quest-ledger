@@ -1,5 +1,30 @@
 # Coin Quest mobile rebuild recovery
 
+## 2026-10-12 player website and mobile brand adjustment
+
+The user's final scope is **player Website and Mobile colors/brand only**. The
+user explicitly excluded Admin and narrowed the initial full-UI rollback to
+retaining the current layout and functional work. Mobile was subsequently added
+to the same brand-only scope. No earlier native app or backend code is restored.
+
+Recovery ref: `checkpoint/player-brand-before-restore-68021cc`, pointing to
+`68021cc1d8af23ed198ce48e97a91d8b4e7292f4`. The working tree was clean before
+this pass. The original palette is referenced from `b726368` and its screenshots.
+
+Implementation: add player-only `shared/player-brand.css` to the five player
+HTML entry points, and restore native colors in its existing shared primitives
+and Home/portrait styles. Shared/Admin tokens and runtime/data logic stay intact.
+The new palette remains recoverable by removing those five stylesheet links in
+a future approved patch. No feature, test, route, data or work is parked or lost;
+there is no unresolved feature restoration item from this color adjustment.
+
+Verification: light/dark player routes, narrow viewport, current-layout geometry,
+one unchanged Admin palette check, native lint/typecheck, and the installed own
+binary on iPhone 17 Pro Simulator. Backend/full release checks are not repeated
+for this color-only scope. See `player-brand-2026-10-12/README.md` for evidence.
+
+## Earlier approved mobile rebuild
+
 Date: 2026-10-11 (Asia/Bangkok).
 
 The user approved removing only `mobile/` with `git rm -r -- mobile` and
