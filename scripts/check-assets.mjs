@@ -39,11 +39,12 @@ const cloudinaryExpected = [
   'assets/icons/loot-chest.svg',
 ];
 const localFallbackExpected = [
-  ...['castle-banner', 'coins', 'swords', 'chest', 'hourglass', 'home', 'food', 'transport', 'fun', 'shop', 'health', 'forecast', 'history'].map(name => `assets/treasury-reference/${name}.webp`),
+  ...['castle-banner', 'coins', 'swords', 'chest', 'hourglass', 'home', 'food', 'transport', 'fun', 'shop', 'health', 'forecast', 'history', 'slime'].map(name => `assets/treasury-reference/${name}.webp`),
   'assets/price-reference/market-banner.webp',
   'assets/debt-reference/valley-dragon.webp',
   'assets/loading-reference/night-quest.webp',
   ...['tavern', 'tavern-mobile', 'guild-banner', 'owl-note'].map(name => `assets/auth-reference/${name}.webp`),
+  ...['tavern', 'doorway', 'treasury-seal', 'parchment'].map(name => `assets/auth-guild/${name}.webp`),
   ...['welcome', 'party', 'debt', 'treasury', 'compare', 'friends', 'budget'].map(name => `assets/tour/${name}.webp`),
   'assets/character-reference/forest-valley.webp',
   'assets/board-reference/village-dusk.webp',

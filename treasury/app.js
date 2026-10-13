@@ -56,7 +56,7 @@ const TR_STR = {
     trLost: 'งบบานปลาย',
     trReset: 'ล้างคลัง',
     trResetConfirm: 'ล้างหมวด บิล และรายจ่ายทั้งหมด เริ่มใหม่?',
-    trSetIncome: 'ตั้งทองเข้า/เดือน',
+    trSetIncome: 'ตั้งรายรับของเดือน',
     trEditCat: 'แก้หมวด',
     trAddCat: 'เพิ่มหมวด',
     trCatName: 'ชื่อหมวด',
@@ -124,7 +124,7 @@ const TR_STR = {
     trReset: 'Clear vault',
     trResetConfirm: 'Clear all categories, bills and expenses? This starts the vault over.',
     trSetIncome: 'Set monthly income',
-    trEditCat: 'Edit ward',
+    trEditCat: 'Edit category',
     trAddCat: 'Add category',
     trCatName: 'Category name',
     trNoExpenses: 'No expenses in this ward yet',
@@ -408,12 +408,97 @@ function renderBill(bill) {
 function localToday() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function editIncome() {
   const L = st();
-  mountModal(L.trSetIncome, `<div class="form-grid"><label class="field">${h(L.trIncome)}<input id="income-input" type="text" inputmode="decimal" value="${h(fmtInput(S.income))}" oninput="PointyLogic.formatNumberInputElement(this)"></label><button class="btn-primary" onclick="saveIncome()">${h(L.trSave)}</button></div>`);
+  mountModal(L.trSetIncome, `<p class="income-intro" id="income-description">${h(trText('กำหนดจำนวนเงินรับรวมทั้งหมดในเดือนนี้','Set your total income for this month.'))}<br>${h(trText('เพื่อใช้ในการคำนวณงบประมาณและแผนการใช้จ่าย','Use it to plan your budget and spending.'))}</p>
+    <form class="income-form" novalidate>
+      <div class="income-field">
+        <label for="income-input">${h(trText('รายรับของเดือน','Monthly income'))}</label>
+        <div class="tr-input-row">
+          <span class="tr-currency" aria-hidden="true">฿</span>
+          <input id="income-input" type="text" inputmode="decimal" autocomplete="off" required value="${h(fmtInput(S.income))}" aria-describedby="income-example" aria-invalid="false">
+          <button class="tr-input-clear" type="button" aria-label="${h(trText('ล้างจำนวนเงิน','Clear amount'))}">${CoinQuestIcons('close')}</button>
+        </div>
+        <p class="income-example" id="income-example">${h(trText('ตัวอย่าง: 50,000','Example: 50,000'))}</p>
+        <p class="tr-field-error" id="income-error" role="alert" hidden></p>
+      </div>
+      <div class="income-notice">${CoinQuestIcons('info')}<p>${h(trText('การเปลี่ยนรายรับ จะไม่ลบรายการรายจ่ายที่บันทึกไว้ แต่จะมีผลต่อเงินคงเหลือและแผนการใช้จ่ายของเดือนนี้','Changing income keeps your saved expenses. It updates this month’s remaining balance and spending plan.'))}</p></div>
+      <p class="tr-field-error" id="income-save-error" role="alert" hidden></p>
+      <div class="income-actions"><button class="btn-ghost" type="button" data-close>${h(L.trCancel)}</button><button class="btn-primary" type="submit">${h(L.trSave)}</button></div>
+    </form>`);
+  modal.classList.add('income-dialog', 'treasury-paper');
+  modal.dataset.month = S.month;
+  modal.setAttribute('aria-describedby','income-description');
+  modal.querySelector('.modal-head').insertAdjacentHTML('afterbegin', `<span class="income-crest">${art('coins')}</span>`);
+  modal.querySelector('.x').innerHTML = CoinQuestIcons('close');
+  const input = modal.querySelector('#income-input');
+  const clear = modal.querySelector('.tr-input-clear');
+  clear.disabled = !input.value;
+  input.addEventListener('beforeinput', e => {
+    if (e.inputType === 'insertText' && e.data?.length === 1 && /[^\d.,]/.test(e.data)) e.preventDefault();
+  });
+  input.addEventListener('input', () => {
+    PointyLogic.formatNumberInputElement(input);
+    clear.disabled = !input.value;
+    modal.querySelector('#income-save-error').hidden = true;
+    if (input.dataset.validated) validateIncome();
+  });
+  input.addEventListener('blur', validateIncome);
+  clear.addEventListener('click', () => {
+    input.value = '';
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+    input.focus();
+  });
+  modal.querySelector('form').addEventListener('submit', e => { e.preventDefault(); saveIncome(); });
+}
+function validateIncome() {
+  const input = document.getElementById('income-input');
+  if (!input) return null;
+  const error = document.getElementById('income-error');
+  input.dataset.validated = 'true';
+  try {
+    const value = PointyLogic.validateNumber(input.value, {label:trText('รายรับ','Income')});
+    input.setCustomValidity('');
+    input.setAttribute('aria-invalid','false');
+    input.setAttribute('aria-describedby','income-example');
+    error.hidden = true;
+    error.textContent = '';
+    return value;
+  } catch (issue) {
+    const message = issue.message.split(' / ')[lang() === 'th' ? 0 : 1] || issue.message;
+    input.setCustomValidity(message);
+    input.setAttribute('aria-invalid','true');
+    input.setAttribute('aria-describedby','income-example income-error');
+    error.textContent = message;
+    error.hidden = false;
+    return null;
+  }
 }
 function saveIncome() {
-  try { S.income = PointyLogic.readField('income-input', { label: 'รายรับ' }); }
-  catch (error) { toast(error.message); return; }
-  save(); closeModal(); render();
+  const income = validateIncome();
+  if (income === null) { document.getElementById('income-input')?.focus(); return; }
+  const feedback = document.getElementById('income-save-error');
+  if (modal.dataset.month !== S.month) {
+    feedback.textContent = trText('เดือนเปลี่ยนแล้ว กรุณาปิดและเปิดฟอร์มอีกครั้ง','The month has changed. Close and reopen this form.');
+    feedback.hidden = false;
+    return;
+  }
+  if (!persistTreasuryEdit({...S, income})) {
+    feedback.textContent = trText('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง ข้อมูลที่กรอกยังอยู่','Could not save. Your draft is still here; please try again.');
+    feedback.hidden = false;
+    return;
+  }
+  closeModal(); render(); toast(trText('บันทึกรายรับของเดือนแล้ว','Monthly income saved'));
+}
+// Income and category drafts share persistence, but own their validation and feedback.
+function persistTreasuryEdit(next) {
+  const previous = S;
+  S = next;
+  save();
+  try {
+    const saved = window.PointyScope ? window.PointyScope.getJSON(TR_KEY, null) : JSON.parse(localStorage.getItem(TR_KEY));
+    if (JSON.stringify(saved) === JSON.stringify(next)) return true;
+  } catch (_) {}
+  S = previous;
+  return false;
 }
 function openExpenseForm(catId = '') {
   if (!S.categories.length) { toast('เพิ่มหมวดงบประมาณก่อนบันทึกรายจ่าย / Add a category first'); openCategoryForm(); return; }
@@ -443,38 +528,135 @@ function saveExpense(extra = {}) {
   categoryFilter = 'all';
   save(); closeModal(); toast(L.trLogged); render();
 }
+const CATEGORY_GLYPHS = [
+  ['🍜','food','อาหาร','Food'], ['🏠','home','บ้าน','Home'], ['🛵','car','เดินทาง','Transport'],
+  ['🎮','gamepad','บันเทิง','Entertainment'], ['💊','heart','สุขภาพ','Health'], ['🎓','cap','การศึกษา','Education'],
+  ['🛍️','bag','ช้อปปิ้ง','Shopping'], ['🌴','palm','พักผ่อน','Holiday'], ['🐾','paw','สัตว์เลี้ยง','Pets'],
+  ['✈️','plane','ท่องเที่ยว','Travel'], ['🎁','gift','ของขวัญ','Gifts'], ['💡','bulb','ค่าสาธารณูปโภค','Utilities'], ['📦','box','อื่น ๆ','Other']
+];
+const categoryText = value => typeof value === 'string' ? value : value?.[lang()] || value?.en || value?.th || '';
 function openCategoryForm(id = '') {
-  const L = st();
-  const cat = S.categories.find(c => c.id === id);
-  const glyphs = ['🏠', '🍜', '🛵', '🎮', '🛍️', '💊', '✈️', '🎓', '🎁', '💡', '📦'];
-  mountModal(cat ? L.trEditCat : L.trAddCat, `<div class="form-grid">
-    <label class="field">Icon<select id="cat-glyph">${glyphs.map(g => `<option value="${h(g)}" ${cat?.glyph === g ? 'selected' : ''}>${h(g)}</option>`).join('')}</select></label>
-    <label class="field">${h(L.trCatName)}<input id="cat-name" maxlength="80" value="${h(cat?.name?.[lang()] || cat?.name?.en || '')}"></label>
-    <label class="field">${h(L.trMonster)}<input id="cat-monster" maxlength="80" value="${h(cat?.monster?.[lang()] || cat?.monster?.en || '')}"></label>
-    <label class="field">${h(L.trBudget)}<input id="cat-budget" type="text" inputmode="decimal" value="${h(fmtInput(cat?.budget ?? 3000))}" oninput="PointyLogic.formatNumberInputElement(this)"></label>
-    <div class="ward-actions">${cat ? `<button class="btn-danger" onclick="deleteCategory('${h(cat.id)}')">${h(L.trDelete)}</button>` : ''}<button class="btn-primary" onclick="saveCategory('${h(cat?.id || '')}')">${h(L.trSave)}</button></div>
-  </div>`);
+  const L = st(), cat = S.categories.find(c => c.id === id);
+  if (id && !cat) { toast(trText('ไม่พบหมวดนี้แล้ว','This category is no longer available')); return; }
+  const glyph = cat?.glyph || '🍜';
+  const glyphs = CATEGORY_GLYPHS.some(g => g[0] === glyph) ? CATEGORY_GLYPHS : [[glyph,'',trText('ไอคอนเดิม','Current icon'),'Current icon'], ...CATEGORY_GLYPHS];
+  const monster = categoryText(cat?.monster);
+  const slime = !cat || cat.monster?.en === 'Slime' || monster === 'Slime' || monster === 'สไลม์';
+  const clear = (target, label) => `<button class="tr-input-clear" type="button" data-cat-clear="${target}" aria-label="${h(label)}">${CoinQuestIcons('close')}</button>`;
+  mountModal(cat ? L.trEditCat : L.trAddCat, `<form class="category-form" novalidate>
+    <div class="cat-fields">
+      <fieldset class="cat-icon-field"><legend>${h(trText('ไอคอนหมวด','Category icon'))}</legend><input id="cat-glyph" type="hidden" value="${h(glyph)}">
+        <div class="cat-icons" id="cat-icons">${glyphs.map(([value, icon, th, en]) => `<label class="cat-icon" title="${h(trText(th,en))}"><input type="radio" name="category-glyph" value="${h(value)}" aria-label="${h(trText(th,en))}" ${value === glyph ? 'checked' : ''}><span>${icon === 'food' ? art('food') : icon ? CoinQuestIcons(icon) : h(value)}</span></label>`).join('')}
+        <button type="button" class="cat-more" aria-expanded="false" aria-controls="cat-icons" aria-label="${h(trText('ไอคอนเพิ่มเติม','More icons'))}">${CoinQuestIcons('more')}</button></div>
+      </fieldset>
+      <figure class="cat-preview" aria-labelledby="cat-preview-name"><img src="/assets/treasury-reference/slime.webp" alt="" width="112" height="112"><figcaption><strong id="cat-preview-name">Slime</strong><span>${h(trText('มอนสเตอร์ประจำหมวด','Your category companion'))}</span><p>${h(trText('ผู้เฝ้าดูการใช้จ่าย','Watching over your spending'))}<br>${h(trText('คอยเตือนให้ใช้อย่างสมดุล','A reminder to keep your budget balanced'))}</p></figcaption></figure>
+      <div class="cat-field cat-name-field"><label for="cat-name">${h(L.trCatName)}</label><div class="tr-input-row"><input id="cat-name" maxlength="80" required autocomplete="off" value="${h(categoryText(cat?.name))}" placeholder="${h(trText('เช่น กินดื่ม','e.g. Food & drinks'))}">${clear('cat-name',trText('ล้างชื่อหมวด','Clear category name'))}</div><p id="cat-name-error" class="tr-field-error" role="alert" hidden></p></div>
+      <div class="cat-field cat-monster-field"><label for="cat-monster-type">${h(trText('มอนสเตอร์ประจำหมวด','Category monster'))}</label><div class="cat-monster-select"><img src="/assets/treasury-reference/slime.webp" alt="" width="28" height="28"><select id="cat-monster-type"><option value="slime" ${slime?'selected':''}>${h(trText('Slime (สไลม์)','Slime'))}</option><option value="custom" ${!slime?'selected':''}>${h(trText('กำหนดชื่อเอง','Custom name'))}</option></select>${CoinQuestIcons('chevron')}</div>
+        <div class="cat-custom" ${slime?'hidden':''}><label for="cat-monster">${h(trText('ชื่อมอนสเตอร์ของคุณ','Your monster’s name'))}</label><div class="tr-input-row"><input id="cat-monster" maxlength="80" value="${h(monster)}" ${slime?'disabled':''} placeholder="${h(trText('เว้นว่างเพื่อใช้ชื่อหมวด','Leave blank to use the category name'))}"></div><p id="cat-monster-error" class="tr-field-error" role="alert" hidden></p></div>
+      </div>
+      <div class="cat-field cat-budget-field"><label for="cat-budget">${h(trText('วงเงินของหมวด (บาท)','Category budget (baht)'))}</label><div class="tr-input-row"><span class="tr-currency" aria-hidden="true">฿</span><input id="cat-budget" type="text" inputmode="decimal" required value="${h(fmtInput(cat?.budget ?? 3000))}" aria-describedby="cat-budget-help">${clear('cat-budget',trText('ล้างวงเงิน','Clear budget'))}</div><p class="cat-help" id="cat-budget-help">${h(trText('ตั้งวงเงิน 0 ได้ หากยังไม่จัดสรรงบให้หมวดนี้','Use 0 if you have not allocated a budget yet.'))}</p><p id="cat-budget-error" class="tr-field-error" role="alert" hidden></p></div>
+    </div>
+    <p class="tr-field-error" id="cat-save-error" role="alert" hidden></p>
+    <div class="cat-actions">${cat ? `<button class="btn-danger cat-delete" type="button" ${S.categories.length<=1?'disabled aria-describedby="cat-delete-help"':''}>${CoinQuestIcons('trash')}${h(trText('ลบหมวด','Delete category'))}</button>` : ''}<button class="btn-ghost" type="button" data-close>${h(L.trCancel)}</button><button class="btn-primary" type="submit">${CoinQuestIcons('check')}${h(L.trSave)}</button></div>
+    ${cat && S.categories.length<=1?`<p class="cat-help" id="cat-delete-help">${h(trText('ต้องเหลืออย่างน้อย 1 หมวด จึงไม่สามารถลบหมวดสุดท้ายได้','Keep at least one category. The last category cannot be deleted.'))}</p>`:''}
+  </form><section class="cat-delete-confirm" hidden aria-labelledby="cat-delete-title"></section>`);
+  modal.classList.add('category-dialog','treasury-paper');
+  modal.dataset.categoryId = id;
+  modal.querySelector('.modal-title').insertAdjacentHTML('beforebegin', CoinQuestIcons('category','cat-heading-icon'));
+  modal.querySelector('.x').innerHTML = CoinQuestIcons('close');
+  const palette = modal.querySelector('.cat-icons'), more = modal.querySelector('.cat-more');
+  const expandIcons = expanded => { palette.classList.toggle('expanded',expanded);more.setAttribute('aria-expanded',String(expanded));more.setAttribute('aria-label',trText(expanded?'ย่อไอคอน':'ไอคอนเพิ่มเติม',expanded?'Fewer icons':'More icons')); };
+  expandIcons(glyphs.findIndex(g=>g[0]===glyph) >= (matchMedia('(max-width:1023px)').matches?5:9));
+  more.addEventListener('click',()=>expandIcons(more.getAttribute('aria-expanded')!=='true'));
+  modal.querySelectorAll('[name="category-glyph"]').forEach(radio=>radio.addEventListener('change',()=>{document.getElementById('cat-glyph').value=radio.value;}));
+  modal.querySelectorAll('[data-cat-clear]').forEach(button=>{
+    const input=document.getElementById(button.dataset.catClear);button.disabled=!input.value;
+    button.addEventListener('click',()=>{input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();});
+    input.addEventListener('input',()=>{button.disabled=!input.value;});
+  });
+  for(const field of ['cat-name','cat-monster','cat-budget']) {
+    const input=document.getElementById(field);
+    input.addEventListener('blur',()=>validateCategoryField(field));
+    input.addEventListener('input',()=>{
+      if(field==='cat-budget') PointyLogic.formatNumberInputElement(input);
+      document.getElementById('cat-save-error').hidden=true;
+      if(input.dataset.validated) validateCategoryField(field);
+      if(field==='cat-monster') updateCategoryMonster();
+    });
+  }
+  document.getElementById('cat-budget').addEventListener('beforeinput',e=>{if(e.inputType==='insertText'&&e.data?.length===1&&/[^\d.,]/.test(e.data))e.preventDefault();});
+  document.getElementById('cat-monster-type').addEventListener('change',()=>{updateCategoryMonster();if(document.getElementById('cat-monster-type').value==='custom')document.getElementById('cat-monster').focus();});
+  modal.querySelector('form').addEventListener('submit',e=>{e.preventDefault();saveCategory(id);});
+  modal.querySelector('.cat-delete')?.addEventListener('click',()=>confirmCategoryDeletion(id));
+  updateCategoryMonster();
+  document.getElementById('cat-name').focus();
+}
+function updateCategoryMonster() {
+  const slime = document.getElementById('cat-monster-type').value === 'slime';
+  const input = document.getElementById('cat-monster');
+  input.disabled = slime;
+  if (slime) {
+    input.setCustomValidity('');input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');
+    document.getElementById('cat-monster-error').hidden = true;
+  }
+  modal.querySelector('.cat-custom').hidden = slime;
+  modal.querySelector('#cat-preview-name').textContent = slime ? 'Slime' : input.value.trim() || trText('มอนสเตอร์ของคุณ','Your monster');
+  const source = `/assets/treasury-reference/${slime?'slime':'forecast'}.webp`;
+  modal.querySelectorAll('.cat-preview img, .cat-monster-select img').forEach(img=>{img.src=source;});
+}
+function validateCategoryField(id) {
+  const input = document.getElementById(id), error = document.getElementById(id+'-error');
+  if (!input || input.disabled) return '';
+  input.dataset.validated = 'true';
+  try {
+    const value = id==='cat-budget' ? PointyLogic.validateNumber(input.value,{label:trText('วงเงิน','Budget')}) : PointyLogic.validateText(input.value,{label:trText('ชื่อ','Name'),max:80,optional:id==='cat-monster'});
+    input.setAttribute('aria-invalid','false');input.setCustomValidity('');error.hidden=true;error.textContent='';
+    if(id==='cat-budget')input.setAttribute('aria-describedby','cat-budget-help');else input.removeAttribute('aria-describedby');
+    return value;
+  } catch(issue) {
+    const message=issue.message.split(' / ')[lang()==='th'?0:1]||issue.message;
+    error.textContent=message;error.hidden=false;input.setCustomValidity(message);input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',(id==='cat-budget'?'cat-budget-help ':'')+error.id);
+    return null;
+  }
+}
+function categorySaveError(message) {
+  const feedback=modal.querySelector('.cat-delete-confirm:not([hidden]) .tr-field-error') || document.getElementById('cat-save-error');
+  feedback.textContent=message;feedback.hidden=false;
 }
 function saveCategory(id = '') {
-  let data;
-  try {
-    const name = PointyLogic.readField('cat-name', { type: 'text', label: 'ชื่อหมวด', max: 80 });
-    const monster = PointyLogic.readField('cat-monster', { type: 'text', label: 'ชื่อมอนสเตอร์', max: 80, optional: true }) || name;
-    data = { name: { th: name, en: name }, glyph: document.getElementById('cat-glyph').value, monster: { th: monster, en: monster }, budget: PointyLogic.readField('cat-budget', { label: 'งบประมาณ' }) };
-  } catch (error) { toast(error.message); return; }
-  if (id) S.categories = S.categories.map(c => c.id === id ? { ...c, ...data } : c);
-  else S.categories.push({ id: truid(), ...data });
-  sectionState.set('wards',true);
-  categoryFilter = 'all';
-  save(); closeModal(); render();
+  const name=validateCategoryField('cat-name'), budget=validateCategoryField('cat-budget'), customMonster=validateCategoryField('cat-monster');
+  if([name,budget,customMonster].includes(null)){modal.querySelector('[aria-invalid="true"]')?.focus();return;}
+  const cat=S.categories.find(c=>c.id===id);
+  if(id&&!cat){categorySaveError(trText('หมวดนี้ถูกลบแล้ว กรุณาปิดและเปิดฟอร์มใหม่','This category was removed. Close and reopen the form.'));return;}
+  const glyph=document.getElementById('cat-glyph').value;
+  if(!CATEGORY_GLYPHS.some(g=>g[0]===glyph)&&glyph!==cat?.glyph){categorySaveError(trText('กรุณาเลือกไอคอนหมวด','Choose a category icon'));return;}
+  const slime=document.getElementById('cat-monster-type').value==='slime';
+  const monster=customMonster||name;
+  const data={name:cat&&name===categoryText(cat.name)?cat.name:{th:name,en:name},glyph,budget,
+    monster:slime?{th:'สไลม์',en:'Slime'}:cat&&customMonster===categoryText(cat.monster)?cat.monster:{th:monster,en:monster}};
+  const next={...S,categories:id?S.categories.map(c=>c.id===id?{...c,...data}:c):[...S.categories,{id:truid(),...data}]};
+  if(!persistTreasuryEdit(next)){categorySaveError(trText('บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง ข้อมูลที่กรอกยังอยู่','Could not save. Your draft is still here; please try again.'));return;}
+  sectionState.set('wards',true);categoryFilter='all';closeModal();render();toast(st().trLogged);
+}
+function confirmCategoryDeletion(id) {
+  const cat=S.categories.find(c=>c.id===id), fallback=S.categories.find(c=>c.id!==id);
+  if(!cat||!fallback)return;
+  const expenses=S.expenses.filter(e=>e.catId===id).length,bills=S.bills.filter(b=>b.catId===id).length;
+  const confirm=modal.querySelector('.cat-delete-confirm');
+  confirm.innerHTML=`${CoinQuestIcons('warning')}<h3 id="cat-delete-title">${h(trText('ลบหมวด','Delete category'))} “${h(catName(cat))}”?</h3><p>${h(trText(`ย้าย ${expenses} รายจ่าย และ ${bills} บิล ไปที่ “${catName(fallback)}” โดยไม่ลบรายการหรือยอดเงิน`,`Move ${expenses} expenses and ${bills} bills to “${catName(fallback)}”. Entries and amounts will be kept.`))}</p><p class="tr-field-error" role="alert" hidden></p><div class="cat-actions"><button type="button" class="btn-ghost" data-keep-category>${h(trText('เก็บหมวดไว้','Keep category'))}</button><button type="button" class="btn-danger" data-confirm-delete>${CoinQuestIcons('trash')}${h(trText('ยืนยันลบหมวด','Confirm deletion'))}</button></div>`;
+  modal.dataset.deleteFallback=fallback.id;
+  modal.querySelector('.category-form').hidden=true;confirm.hidden=false;
+  confirm.querySelector('[data-keep-category]').addEventListener('click',()=>{confirm.hidden=true;modal.querySelector('.category-form').hidden=false;modal.querySelector('.cat-delete').focus();});
+  confirm.querySelector('[data-confirm-delete]').addEventListener('click',()=>deleteCategory(id));
+  confirm.querySelector('[data-keep-category]').focus();
 }
 function deleteCategory(id) {
-  if (S.categories.length <= 1) return;
-  const fallback = S.categories.find(c => c.id !== id)?.id;
-  S.categories = S.categories.filter(c => c.id !== id);
-  S.expenses = S.expenses.map(e => e.catId === id ? { ...e, catId: fallback } : e);
-  S.bills = S.bills.map(b => b.catId === id ? { ...b, catId: fallback } : b);
-  save(); closeModal(); render();
+  if(!modal?.classList.contains('category-dialog')||modal.querySelector('.cat-delete-confirm').hidden)return;
+  const fallback=S.categories.find(c=>c.id===modal.dataset.deleteFallback&&c.id!==id);
+  if(S.categories.length<=1||!fallback||!S.categories.some(c=>c.id===id)){categorySaveError(trText('หมวดมีการเปลี่ยนแปลง กรุณาปิดและเปิดฟอร์มใหม่','Categories have changed. Close and reopen the form.'));return;}
+  const next={...S,categories:S.categories.filter(c=>c.id!==id),expenses:S.expenses.map(e=>e.catId===id?{...e,catId:fallback.id}:e),bills:S.bills.map(b=>b.catId===id?{...b,catId:fallback.id}:b)};
+  if(!persistTreasuryEdit(next)){categorySaveError(trText('ลบหมวดไม่สำเร็จ กรุณาลองอีกครั้ง','Could not delete the category. Please try again.'));return;}
+  modalReturnFocus={action:'category',id:''};closeModal();render();toast(trText('ลบหมวดและย้ายรายการแล้ว','Category deleted; entries moved'));
 }
 function openBillForm(id = '') {
   if (!S.categories.length) { toast(trText('เพิ่มหมวดงบประมาณก่อนสร้างบิล','Add a budget category before creating a bill')); openCategoryForm(); return; }

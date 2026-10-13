@@ -249,31 +249,11 @@
     .quick-toggles { position: fixed; right: 14px; top: 72px; z-index: 44; display: flex; flex-direction: column; gap: 8px; }
     .quick-toggle { width: 44px; height: 44px; border: 1.5px solid var(--border-strong); border-radius: 12px; background: var(--panel); color: var(--ink); box-shadow: var(--shadow); display: grid; place-items: center; font-size: 17px; }
     .quick-toggle.off { opacity: .55; filter: grayscale(.35); }
-    .settings-grid { display: grid; gap: 15px; }
-    .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-    .settings-label { color: var(--ink); font-weight: 600; }
     .settings-sub { color: var(--ink-soft); font-size: 11px; }
-    .settings-section { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 10px; }
     .admin-box { border: 1.5px solid var(--border); border-radius: 14px; background: var(--panel-in); padding: 12px; display: grid; gap: 10px; }
-    .admin-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
-    .admin-table { width: 100%; border-collapse: collapse; font-size: 12px; overflow: hidden; border-radius: 10px; }
-    .admin-table th, .admin-table td { border-bottom: 1px solid var(--border); padding: 7px 6px; text-align: left; vertical-align: middle; }
-    .admin-table th { color: var(--ink-soft); font-size: 10px; font-family: var(--font-stat); text-transform: uppercase; letter-spacing: .6px; }
-    .admin-table tr:last-child td { border-bottom: 0; }
-    .admin-id-input { width: 68px; border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--panel); color: var(--ink); padding: 5px 7px; font-family: var(--font-stat); font-weight: 700; text-align: center; }
     .admin-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .char-id { display: inline-flex; align-items: center; min-height: 40px; margin-left: 7px; padding: 5px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink-soft); font-family: var(--font-stat); font-size: 10px; font-weight: 700; vertical-align: middle; text-decoration: none; }
     .char-id:hover { border-color: var(--accent); color: var(--accent); }
-    .setting-seg { display: flex; padding: 3px; border-radius: 9px; background: var(--panel-2); }
-    .setting-seg button { border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft); padding: 6px 10px; font-size: 12px; }
-    .setting-seg button.on { background: var(--accent); color: #fff; }
-    .swatches { display: flex; gap: 7px; }
-    .swatch { width: 28px; height: 28px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px var(--border-strong); }
-    .swatch.on { box-shadow: 0 0 0 3px var(--gold); }
-    .switch { position: relative; width: 44px; height: 25px; border: 0; border-radius: 999px; background: var(--border-strong); }
-    .switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; transition: transform .18s; }
-    .switch.on { background: var(--accent); }
-    .switch.on::after { transform: translateX(19px); }
     .victory-overlay { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; background: rgba(15,10,6,.62); backdrop-filter: blur(4px); }
     .victory-card { position: relative; z-index: 2; width: min(440px,94vw); padding: 28px 24px 22px; border: 2px solid var(--gold); border-radius: 22px; background: linear-gradient(var(--panel),var(--panel-2)); box-shadow: 0 24px 70px -20px rgba(0,0,0,.7); text-align: center; animation: vc-rise .3s cubic-bezier(.3,1.3,.5,1); }
     .vc-crown { font-size: 56px; line-height: 1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
@@ -482,8 +462,6 @@
       .settings-fab { right: 12px; bottom: 12px; }
       .quick-toggles { right: 10px; top: 58px; flex-direction: row; }
       .quick-toggle { width: 44px; height: 44px; border-radius: 12px; }
-      .admin-row { grid-template-columns: 1fr; }
-      .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
       .vc-recap { flex-wrap: wrap; }
     }
     @media (max-width: 600px) {
@@ -571,6 +549,7 @@
     }
   </style>
   <link rel="stylesheet" href="/trip/board.css">
+  <link rel="stylesheet" href="/trip/settings.css">
   <link rel="stylesheet" href="/shared/player-controls.css">
   <link rel="stylesheet" href="/shared/player-layout.css">
   <script src="/shared/player-layout.js"></script>
@@ -673,6 +652,7 @@
   <script src="/shared/board-invites.js"></script>
   <script src="/trip/entry.js"></script>
   <script src="/trip/board.js"></script>
+  <script src="/trip/settings.js"></script>
   <script src="/trip/app.js"></script>
   <script src="/shared/profile-session.js"></script>
   <script src="/shared/profile-auth.js"></script>

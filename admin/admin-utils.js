@@ -74,27 +74,16 @@
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 32);
   }
 
-  function adminAuthEmail(username) {
-    const clean = normalizeUsername(username);
-    return `${clean}.admin-${Date.now().toString(36)}@coinquest.local`;
-  }
-
   function tempPassword() {
     return 'CQ-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
   }
 
-  async function sha256(text) {
-    const data = new TextEncoder().encode(String(text || ''));
-    const buf = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  function cleanRecoveryCode(code) {
-    return String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  }
-
-  async function recoveryHash(username, code) {
-    return sha256(`${normalizeUsername(username)}:${cleanRecoveryCode(code)}`);
+  function redactExportSecrets(value) {
+    if (Array.isArray(value)) return value.map(redactExportSecrets);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(Object.entries(value)
+      .filter(([key]) => !/password|recovery|token|secret|credential|ownerHash|authEmail|baseContentKey|baseDraftKey/i.test(key))
+      .map(([key, item]) => [key, redactExportSecrets(item)]));
   }
 
   function recoveryCodeValue() {
@@ -151,11 +140,8 @@
     mergeUserStatus,
     userLifecycleLabel,
     normalizeUsername,
-    adminAuthEmail,
     tempPassword,
-    sha256,
-    cleanRecoveryCode,
-    recoveryHash,
+    redactExportSecrets,
     recoveryCodeValue,
     publishBoards,
     setAccountLifecycle

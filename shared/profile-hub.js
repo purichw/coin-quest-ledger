@@ -16,24 +16,25 @@
 
   const STR = {
     th: {
-      loginWelcome: 'ยินดีต้อนรับกลับฮีโร่',
-      loginSub: 'ลงชื่อเข้าสู่บัญชีของคุณ\nเพื่อกลับสู่ภารกิจทางการเงิน',
+      loginWelcome: 'ยินดีต้อนรับกลับสู่\nคลังหลวง',
+      loginSub: 'จัดการเงินแบบนักผจญภัย\nเพื่อเส้นทางที่ไกลกว่าเดิม',
+      authRemember: 'จำการเข้าสู่ระบบให้คุณ',
+      authOneAccount: 'บัญชีเดียว ครบทุกการผจญภัย',
       showPassword: 'แสดงรหัสผ่าน',
       hidePassword: 'ซ่อนรหัสผ่าน',
       authPreferences: 'ธีมและภาษา',
       authTabs: 'เข้าสู่ระบบหรือสมัครบัญชี',
       authLight: 'เปลี่ยนเป็นโหมดสว่าง',
       authDark: 'เปลี่ยนเป็นโหมดมืด',
-      authReassurance: 'จัดการเงินแบบเกมฮีโร่ ให้ทุกภารกิจในชีวิตไปได้ไกลกว่าเดิม',
+      authReassurance: 'วินัยทางการเงิน คือเวทมนตร์ที่ใช้ได้จริง',
       authModules: 'แบ่งเงิน · ปราบหนี้ · เทียบราคา · ดูแลชีวิต',
-      authEncouragement: 'การผจญภัยทางการเงิน เริ่มได้เสมอ',
       authSubmitting: 'กำลังเข้าสู่ระบบ…',
       signupSubmitting: 'กำลังสร้างบัญชี…',
       invalidUsername: 'ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว',
       nameTooLong: 'ชื่อที่แสดงต้องไม่เกิน 60 ตัวอักษร',
-      loginEmail: 'Username',
+      loginEmail: 'ชื่อผู้ใช้ (Username)',
       loginPassword: 'รหัสผ่าน',
-      loginEnter: 'ผจญภัยต่อ!',
+      loginEnter: 'เข้าสู่ระบบ',
       loginEmailPlaceholder: 'username',
       loginPasswordPlaceholder: 'กรอกรหัสผ่าน',
       signupPasswordPlaceholder: 'ตั้งรหัสผ่าน',
@@ -50,16 +51,21 @@
       authGeneric: 'เข้าสู่ระบบไม่สำเร็จ ลองอีกครั้ง',
       authBlocked: 'บัญชีนี้ถูกระงับหรือรอลบ กรุณาติดต่อผู้ดูแล',
       forgotPassword: 'ลืมรหัสผ่าน?',
-      resetTitle: 'กู้รหัสผ่าน',
-      resetSub: 'ใช้ recovery code เพื่อตั้งรหัสใหม่ โดยไม่ต้องใช้อีเมล',
-      recoveryCode: 'Recovery code',
+      resetTitle: 'กลับสู่การผจญภัย',
+      resetSub: 'ใช้ Recovery ID ที่เก็บไว้\nเพื่อตั้งรหัสผ่านใหม่',
+      recoveryCode: 'Recovery ID',
       newPassword: 'รหัสผ่านใหม่',
       resetConfirm: 'ตั้งรหัสใหม่',
       resetBadCode: 'Recovery code ไม่ถูกต้อง',
       recoveryTitle: 'เก็บ recovery code นี้ไว้',
-      recoverySub: 'ใช้ code นี้กู้บัญชีถ้าลืมรหัสผ่าน ระบบจะแสดงให้ดูครั้งนี้เท่านั้น',
+      recoverySub: 'รหัสกู้คืน (Recovery Key) ใช้สำหรับกลับเข้าสู่บัญชีของคุณ เมื่อไม่สามารถเข้าสู่ระบบได้',
+      recoveryWarnings: ['เก็บไว้ในที่ปลอดภัย ไม่ควรแชร์ให้ผู้อื่น', 'บันทึกรหัสนี้ไว้ก่อนปิดหน้าต่าง', 'หากสร้างรหัสใหม่ รหัสเดิมจะใช้ไม่ได้อีก'],
       recoverySaved: 'ฉันเก็บไว้แล้ว',
-      copyRecovery: 'คัดลอก code',
+      copyRecovery: 'คัดลอก',
+      recoveryCopied: 'คัดลอกเรียบร้อยแล้ว!',
+      recoveryCopyFailed: 'คัดลอกไม่ได้ ลองอีกครั้ง หรือเลือกรหัสด้านบนเพื่อคัดลอกเอง',
+      recoveryBack: 'กลับ',
+      recoveryClose: 'ปิดหน้ารหัสกู้คืน',
       recoveryPanelTitle: 'Recovery ID',
       recoveryPanelSub: 'ใช้กู้บัญชีถ้าลืมรหัสผ่าน เก็บไว้ตรงนี้ได้เพราะแอปนี้ใช้กันในวงเล็ก',
       recoveryMissing: 'ยังไม่มี recovery ID บนเครื่องนี้',
@@ -68,8 +74,8 @@
       recoveryRegenBad: 'สร้าง recovery ID ไม่สำเร็จ ลองใหม่อีกครั้ง',
       loginSignIn: 'เข้าสู่ระบบ',
       loginSignUp: 'สมัครใหม่',
-      signupWelcome: 'ร่วมกิลด์นักผจญภัย',
-      signupSub: 'สร้างบัญชีของคุณ\nแล้วเริ่มการผจญภัยทางการเงินไปด้วยกัน',
+      signupWelcome: 'เริ่มต้นการผจญภัย\nในคลังหลวง',
+      signupSub: 'สร้างบัญชีของคุณ\nแล้วออกเดินทางไปด้วยกัน',
       signupName: 'ชื่อที่แสดง',
       signupNamePlaceholder: 'ชื่อเล่นหรือชื่อที่ต้องการแสดง',
       signupConfirm: 'ยืนยันรหัสผ่าน',
@@ -121,16 +127,13 @@
       backupRestored: 'กู้ข้อมูลแล้ว กำลังโหลดใหม่',
       restoreConfirm: 'กู้คืนไฟล์นี้? ข้อมูลการเงิน โปรไฟล์ และการตั้งค่าในเครื่องที่อยู่ในไฟล์จะถูกแทนที่ โดยไม่เปลี่ยนบัญชีที่เข้าสู่ระบบ',
       reminders: 'Reminders',
-      noReminders: 'ยังไม่มีอะไรต้องรีบจัดการ',
       remOverdue: 'เลยกำหนดแล้ว',
       remToday: 'ครบกำหนดวันนี้',
       remDueIn: 'ครบกำหนดใน {n} วัน',
-      remSettleUp: 'มีบรรณาการที่ยังไม่เคลียร์',
-      remJump: 'ไป',
-      remInviteTitle: 'คำเชิญเข้าบอร์ด',
-      remInviteSub: '{from} ชวนคุณเข้าร่วม "{board}" หมดอายุใน {hours} ชม.',
-      remInviteAccept: 'Accept',
-      remInviteDecline: 'Decline',
+      remSettleUp: 'รายการคืนเงินที่ยังไม่เคลียร์',
+      remInviteTitle: '{from} ชวนคุณเข้าปาร์ตี้',
+      remInviteAccept: 'ตอบรับ',
+      remInviteDecline: 'ปฏิเสธ',
       remInviteDeclineConfirm: 'ยืนยันปฏิเสธคำเชิญนี้?',
       remInviteAccepted: 'เข้าร่วมบอร์ดแล้ว',
       remInviteDeclined: 'ปฏิเสธคำเชิญแล้ว',
@@ -166,24 +169,25 @@
       userId: 'User ID'
     },
     en: {
-      loginWelcome: 'Welcome back, hero',
-      loginSub: 'Sign in to your guild account\nand continue your financial adventure',
+      loginWelcome: 'Welcome back to\nyour Treasury',
+      loginSub: 'Manage money like an adventurer.\nMake every quest count.',
+      authRemember: 'Sign-in remembered for you',
+      authOneAccount: 'One account. Every adventure.',
       showPassword: 'Show password',
       hidePassword: 'Hide password',
       authPreferences: 'Theme and language',
       authTabs: 'Sign in or create an account',
       authLight: 'Switch to light theme',
       authDark: 'Switch to dark theme',
-      authReassurance: 'Manage money like a hero. Take every everyday quest a little further.',
+      authReassurance: 'Financial discipline is a little everyday magic.',
       authModules: 'Split · Pay off debt · Compare · Plan',
-      authEncouragement: 'Your money adventure can start anytime',
       authSubmitting: 'Signing in…',
       signupSubmitting: 'Creating your account…',
       invalidUsername: 'Use 1–32 letters (a–z), numbers, dots, hyphens or underscores for your username',
       nameTooLong: 'Display name must be 60 characters or fewer',
       loginEmail: 'Username',
       loginPassword: 'Password',
-      loginEnter: 'Enter the realm!',
+      loginEnter: 'Log in',
       loginEmailPlaceholder: 'username',
       loginPasswordPlaceholder: 'Enter password',
       signupPasswordPlaceholder: 'Create a password',
@@ -200,16 +204,21 @@
       authGeneric: 'Could not sign in. Try again',
       authBlocked: 'This account is archived, deactivated, or pending deletion. Contact an admin.',
       forgotPassword: 'Forgot password?',
-      resetTitle: 'Recover password',
-      resetSub: 'Use your recovery code to set a new password without email',
-      recoveryCode: 'Recovery code',
+      resetTitle: 'Return to your adventure',
+      resetSub: 'Use your saved Recovery ID\nto set a new password.',
+      recoveryCode: 'Recovery ID',
       newPassword: 'New password',
       resetConfirm: 'Set new password',
       resetBadCode: 'Wrong recovery code',
       recoveryTitle: 'Save this recovery code',
-      recoverySub: 'Use this code to recover your account if you forget your password. It is shown only once.',
+      recoverySub: 'Use your Recovery Key to get back into your account when you cannot sign in.',
+      recoveryWarnings: ['Keep it somewhere safe. Never share it.', 'Save this code before closing this window.', 'Creating a new code makes the old one unusable.'],
       recoverySaved: 'I saved it',
-      copyRecovery: 'Copy code',
+      copyRecovery: 'Copy',
+      recoveryCopied: 'Copied successfully!',
+      recoveryCopyFailed: 'Could not copy. Try again, or select the code above to copy it manually.',
+      recoveryBack: 'Back',
+      recoveryClose: 'Close recovery key',
       recoveryPanelTitle: 'Recovery ID',
       recoveryPanelSub: 'Use this if you forget your password. It is okay to keep visible here for this small casual app.',
       recoveryMissing: 'No recovery ID is saved on this device yet',
@@ -218,8 +227,8 @@
       recoveryRegenBad: 'Could not generate a new recovery ID. Try again.',
       loginSignIn: 'Sign In',
       loginSignUp: 'Sign Up',
-      signupWelcome: 'Join the adventure',
-      signupSub: 'Create your guild account\nand begin your financial adventure',
+      signupWelcome: 'Begin your adventure\nin the Treasury',
+      signupSub: 'Create your account\nand start your next chapter.',
       signupName: 'Display name',
       signupNamePlaceholder: 'Name shown to your party',
       signupConfirm: 'Confirm password',
@@ -271,14 +280,11 @@
       backupRestored: 'Restored. Reloading',
       restoreConfirm: 'Restore this backup? Local finance data, profile and preferences included in the file will be replaced. Your signed-in account stays the same.',
       reminders: 'Reminders',
-      noReminders: 'Nothing urgent yet',
       remOverdue: 'Overdue',
       remToday: 'Due today',
       remDueIn: 'Due in {n} days',
       remSettleUp: 'Pending settle-ups',
-      remJump: 'Go',
-      remInviteTitle: 'Board invitation',
-      remInviteSub: '{from} invited you to "{board}" · expires in {hours}h',
+      remInviteTitle: '{from} invited you to a party',
       remInviteAccept: 'Accept',
       remInviteDecline: 'Decline',
       remInviteDeclineConfirm: 'Decline this invitation?',
@@ -325,6 +331,8 @@
   let boardInvites = [];
   let inviteLoadKey = '';
   let inviteLoading = false;
+  let inviteLoadError = false;
+  let inviteRequest = null;
   let liveTripEntries = [];
   let liveModules = null;
   let liveModulesUid = '';
@@ -338,6 +346,9 @@
   let pendingTourAfterOverlay = false;
   let tourTimer = null;
   let tourCleanup = null;
+  let drawerCleanup = null;
+  let recoveryCleanup = null;
+  let remindersCleanup = null;
   let signingOut = false;
   let baselineDone = false;
   let firebaseAuthResolved = TEST_MODE || !!window.PointyProfileSession.isFirebaseAuthTrusted?.();
@@ -910,20 +921,29 @@
     const characterId = account ? ownCharacterId(account) : '';
     const key = `${account?.uid || 'local'}:${characterId}`;
     if (TEST_MODE && !force && inviteLoadKey === key && boardInvites.length) return boardInvites;
-    if (inviteLoading) return boardInvites;
+    if (inviteRequest?.key === key) return inviteRequest.promise;
+    if (inviteLoadKey !== key) boardInvites = [];
     inviteLoading = true;
-    try {
-      const list = await window.PointyBoardInvites.loadForAccount({ account, characterId, testMode: TEST_MODE, db: cloudDb() });
-      boardInvites = window.PointyBoardInvites.active(list);
-      inviteLoadKey = key;
+    inviteLoadError = false;
+    const request = { key };
+    inviteRequest = request;
+    request.promise = (async () => {
+      try {
+        const list = await window.PointyBoardInvites.loadForAccount({ account, characterId, testMode: TEST_MODE, db: cloudDb() });
+        const current = loadAuth();
+        if (inviteRequest === request && key === `${current?.uid || 'local'}:${current ? ownCharacterId(current) : ''}`) {
+          boardInvites = window.PointyBoardInvites.active(list);
+          inviteLoadKey = key;
+        }
+      } catch (err) {
+        console.warn('Board invite load failed', err);
+        if (inviteRequest === request) inviteLoadError = true;
+      } finally {
+        if (inviteRequest === request) { inviteLoading = false; inviteRequest = null; }
+      }
       return boardInvites;
-    } catch (err) {
-      console.warn('Board invite load failed', err);
-      if (!TEST_MODE) boardInvites = [];
-      return boardInvites;
-    } finally {
-      inviteLoading = false;
-    }
+    })();
+    return request.promise;
   }
   function refreshBoardInvites({ force = false } = {}) {
     loadBoardInvites({ force }).then(() => {
@@ -988,12 +1008,11 @@
   async function acceptBoardInvite(inviteId) {
     const account = loadAuth();
     const invite = boardInvites.find(item => item.id === inviteId);
-    if (!account || !invite) return;
+    if (!account || !invite) return { error: s().remInviteExpired };
     if (timestampValue(invite.expiresAt) <= Date.now()) {
       await updateInviteStatus(invite, 'expired').catch(() => {});
-      showMiniToast(s().remInviteExpired);
       refresh({ toast: false });
-      return;
+      return { error: s().remInviteExpired };
     }
     try {
       const join = (data, currentInvite, currentAccount) => {
@@ -1020,21 +1039,25 @@
       location.href = `/trip/?id=${encodeURIComponent(invite.tripId)}${TEST_MODE ? '&test=1' : ''}`;
     } catch (err) {
       console.warn('Board invite accept failed', err);
-      showMiniToast(s().remInviteFailed);
+      return { error: s().remInviteFailed };
     }
   }
   async function declineBoardInvite(inviteId) {
     const invite = boardInvites.find(item => item.id === inviteId);
-    if (!invite) return;
+    if (!invite) return { error: s().remInviteExpired };
+    if (timestampValue(invite.expiresAt) <= Date.now()) {
+      await updateInviteStatus(invite, 'expired').catch(() => {});
+      refresh({ toast: false });
+      return { error: s().remInviteExpired };
+    }
     if (!confirm(s().remInviteDeclineConfirm)) return;
     try {
       await updateInviteStatus(invite, 'declined');
-      showMiniToast(s().remInviteDeclined);
       refresh({ toast: false });
-      showReminders();
+      return { message: s().remInviteDeclined };
     } catch (err) {
       console.warn('Board invite decline failed', err);
-      showMiniToast(s().remInviteFailed);
+      return { error: s().remInviteFailed };
     }
   }
   function timestampValue(value) {
@@ -1182,17 +1205,25 @@
   function computeReminders() {
     const copy = [];
     activeBoardInvites().forEach(invite => {
-      const hours = Math.max(1, Math.ceil((timestampValue(invite.expiresAt) - Date.now()) / 3600000));
+      const from = invite.inviterName || s().hero;
+      const elapsed = Math.max(0, Date.now() - timestampValue(invite.createdAt));
+      const unit = elapsed >= 86400000 ? 'day' : elapsed >= 3600000 ? 'hour' : 'minute';
+      const age = Math.floor(elapsed / (unit === 'day' ? 86400000 : unit === 'hour' ? 3600000 : 60000));
+      const known = readScopedJson(CHARACTER_REGISTRY_KEY, {})[invite.inviterCharacterId];
+      const portrait = invite.inviterClass ? { class: invite.inviterClass, gender: invite.inviterGender, skin: invite.inviterSkin } : (known?.class || known?.cls) ? known : null;
       copy.push({
         id: 'invite-' + invite.id,
         kind: 'invite',
-        icon: '✉️',
-        title: s().remInviteTitle,
-        sub: s().remInviteSub.replace('{from}', invite.inviterName || s().hero).replace('{board}', boardName({ tripName: invite.tripName })).replace('{hours}', hours),
+        symbol: 'split', from,
+        avatar: portrait ? avatarMarkup(portrait, 'ri-portrait') : '',
+        title: s().remInviteTitle.replace('{from}', from),
+        detail: (lang() === 'en' ? 'Party “' : 'ปาร์ตี้ “') + boardName({ tripName: invite.tripName }) + '”',
+        sub: timestampValue(invite.createdAt) ? new Intl.RelativeTimeFormat(lang(), { numeric: 'auto' }).format(-age, unit) : '',
+        readVersion: String(timestampValue(invite.createdAt)),
         inviteId: invite.id,
         actions: [
-          { action: 'acceptInvite', label: s().remInviteAccept, primary: true },
-          { action: 'declineInvite', label: s().remInviteDecline, danger: true }
+          { action: 'declineInvite', label: s().remInviteDecline, danger: true },
+          { action: 'acceptInvite', label: s().remInviteAccept, primary: true }
         ]
       });
     });
@@ -1201,16 +1232,18 @@
       const due = dueStatus(d);
       if (!due) return;
       const name = typeof d.name === 'object' ? (d.name[lang()] || d.name.en || d.name.th) : d.name;
-      if (due.overdue) copy.push({ id: 'd' + d.id, kind: 'overdue', icon: '🐉', title: name, sub: s().remOverdue, href: '/debt/' });
-      else if (due.days <= 5) copy.push({ id: 'd' + d.id, kind: 'due', icon: '🐉', title: name, sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), href: '/debt/', days: due.days });
+      const item = { id: 'd' + d.id, symbol: 'debt', title: lang() === 'en' ? 'Debt payment due' : 'ถึงกำหนดชำระหนี้', detail: name, href: '/debt/', readVersion: `${monthKey(new Date())}:${d.dueDay}:${d.balance}:${!!due.overdue}` };
+      if (due.overdue) copy.push({ ...item, kind: 'overdue', sub: s().remOverdue });
+      else if (due.days <= 5) copy.push({ ...item, kind: 'due', sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), days: due.days });
     });
     const treasury = loadTreasury();
     (treasury.bills || []).forEach(bill => {
       const due = billDueStatus(bill, treasury);
       if (!due || due.paid) return;
       const name = typeof bill.name === 'object' ? (bill.name[lang()] || bill.name.en || bill.name.th) : bill.name;
-      if (due.overdue) copy.push({ id: 'tb' + bill.id, kind: 'overdue', icon: bill.glyph || '🏦', title: name, sub: s().remOverdue, href: '/treasury/' });
-      else if (due.days <= 5) copy.push({ id: 'tb' + bill.id, kind: 'due', icon: bill.glyph || '🏦', title: name, sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), href: '/treasury/', days: due.days });
+      const item = { id: 'tb' + bill.id, symbol: 'document', title: lang() === 'en' ? 'Upcoming bill' : 'บิลใกล้ครบกำหนด', detail: name, href: '/treasury/', readVersion: `${monthKey(new Date())}:${bill.dueDay}:${bill.amount}:${!!due.overdue}` };
+      if (due.overdue) copy.push({ ...item, kind: 'overdue', title: lang() === 'en' ? 'Overdue bill' : 'บิลเลยกำหนด', sub: s().remOverdue });
+      else if (due.days <= 5) copy.push({ ...item, kind: 'due', sub: due.days === 0 ? s().remToday : s().remDueIn.replace('{n}', due.days), days: due.days });
     });
     const cid = String(accountCharacter(loadAccount())?.id || '');
     tripEntries().forEach(entry => {
@@ -1218,7 +1251,16 @@
       if (board.archived) return;
       const names = Object.keys(board.characterIds || {}).filter(n => String(board.characterIds[n]) === cid && !board.guestHeroes?.[n]);
       const txns = (window.PointyLogic?.pendingSettlements?.(board) || []).filter(t => names.includes(t.from) || names.includes(t.to));
-      if (txns.length) copy.push({ id: 'settle-' + entry.id, kind: 'settle', icon: '⚖️', title: board.tripName || s().remSettleUp, sub: txns.length + ' ' + s().tributes, href: '/trip/?id=' + encodeURIComponent(entry.id) });
+      if (txns.length) {
+        const outgoing = txns.filter(t => names.includes(t.from));
+        const incoming = txns.filter(t => names.includes(t.to));
+        const total = txns.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        const direction = outgoing.length && !incoming.length ? (lang() === 'en' ? 'Time to settle up' : 'ถึงเวลาเคลียร์ค่าใช้จ่าย') : !outgoing.length ? (lang() === 'en' ? 'Pending repayment to you' : 'รอรับเงินคืน') : s().remSettleUp;
+        copy.push({ id: 'settle-' + entry.id, kind: 'settle', symbol: 'coins', title: direction, detail: boardName(board),
+          sub: txns.length + ' ' + s().tributes, amount: total > 0 ? '฿' + total.toLocaleString(lang(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
+          amountTone: !outgoing.length ? 'positive' : incoming.length ? 'neutral' : 'negative',
+          readVersion: JSON.stringify(txns.map(t => [t.from, t.to, t.amount])), href: '/trip/?id=' + encodeURIComponent(entry.id) });
+      }
     });
     return copy.sort((a, b) => {
       const rank = r => r.kind === 'overdue' ? 0 : r.kind === 'invite' ? 0.5 : r.kind === 'due' ? 1 + (r.days || 0) / 100 : 50;
@@ -1319,19 +1361,59 @@
   }
   function showRecoveryCode(code) {
     if (!code) return;
-    mountOverlay(`<div class="rem-overlay"><div class="rem-panel recovery-panel">
-      <div class="rem-head"><span class="rem-title">🔐 ${h(s().recoveryTitle)}</span><button class="picker-close sm" type="button" data-close>✕</button></div>
-      <div class="recovery-body">
-        <p>${h(s().recoverySub)}</p>
-        <div class="recovery-code mono">${h(code)}</div>
-        <div class="pdb-actions"><button class="btn-ghost sm" type="button" data-copy-recovery>📋 ${h(s().copyRecovery)}</button><button class="btn-primary sm" type="button" data-close>${h(s().recoverySaved)}</button></div>
-      </div>
+    const copy = s(), icon = window.CoinQuestIcons, opener = document.activeElement;
+    mountOverlay(`<div class="recovery-overlay"><div class="recovery-panel" role="dialog" aria-modal="true" aria-labelledby="recovery-title" aria-describedby="recovery-description">
+      <button class="recovery-close" type="button" data-close aria-label="${h(copy.recoveryClose)}">${icon('close')}</button>
+      <header class="recovery-heading">
+        <span class="recovery-crest" aria-hidden="true"><img src="/assets/home-reference/crest.webp" alt="" width="48" height="48"></span>
+        <h2 id="recovery-title" tabindex="-1">${h(copy.recoveryTitle)}</h2>
+        <p id="recovery-description">${h(copy.recoverySub)}</p>
+      </header>
+      <div class="recovery-warning">${icon('warning')}<ul>${copy.recoveryWarnings.map(text => `<li>${h(text)}</li>`).join('')}</ul></div>
+      <div class="recovery-key-row"><code class="recovery-code" tabindex="0" aria-label="${h(copy.recoveryCode)}">${h(code)}</code><button class="recovery-copy" type="button" data-copy-recovery>${icon('copy')}<span>${h(copy.copyRecovery)}</span></button></div>
+      <div class="recovery-feedback" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+      <div class="recovery-actions"><button class="recovery-back" type="button" data-close>${icon('arrow')}<span>${h(copy.recoveryBack)}</span></button><button class="recovery-confirm" type="button" data-close>${icon('check')}<span>${h(copy.recoverySaved)}</span></button></div>
     </div></div>`);
-    overlay.dataset.profileOverlay = 'recovery';
-    overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
-    overlay.querySelector('[data-copy-recovery]')?.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(code); showMiniToast(s().copyRecovery); } catch (_) {}
+    const root = overlay;
+    root.dataset.profileOverlay = 'recovery';
+    const background = [...document.body.children].filter(el => el !== root).map(el => [el, el.inert]);
+    background.forEach(([el]) => { el.inert = true; });
+    document.body.classList.add('recovery-open');
+    recoveryCleanup = () => {
+      background.forEach(([el, inert]) => { el.inert = inert; });
+      document.body.classList.remove('recovery-open');
+      const target = document.querySelector('[data-char-name]') || (opener?.isConnected && opener !== document.body ? opener : document.querySelector('[data-profile-hub="profile"]'));
+      target?.focus({ preventScroll: true });
+    };
+    root.addEventListener('click', e => { if (e.target === root || e.target.closest('[data-close]')) closeOverlay(); });
+    root.querySelector('[data-copy-recovery]').addEventListener('click', async event => {
+      const button = event.currentTarget;
+      if (button.getAttribute('aria-busy') === 'true') return;
+      const status = root.querySelector('.recovery-feedback');
+      button.setAttribute('aria-busy', 'true');
+      let success = false;
+      try { await navigator.clipboard.writeText(code); success = true; } catch (_) {}
+      if (!root.isConnected) return;
+      button.removeAttribute('aria-busy');
+      status.hidden = false;
+      status.classList.toggle('is-error', !success);
+      status.innerHTML = `${icon(success ? 'check-circle' : 'warning')}<span>${h(success ? copy.recoveryCopied : copy.recoveryCopyFailed)}</span>`;
+      if (!success) {
+        const field = root.querySelector('.recovery-code');
+        field.focus({ preventScroll: true });
+        const range = document.createRange(); range.selectNodeContents(field);
+        const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+      }
     });
+    root.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeOverlay(); return; }
+      if (event.key !== 'Tab') return;
+      const targets = [...root.querySelectorAll('button, [tabindex="0"]')];
+      const first = targets[0], last = targets[targets.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement.id === 'recovery-title')) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+    root.querySelector('#recovery-title').focus({ preventScroll: true });
   }
   // Presentation changes keep draft values only in this render closure, never in storage.
   function bindAuthPresentation(render, copy) {
@@ -1395,8 +1477,8 @@
         removeLoginGate();
         profile = tickStreak();
         refresh({ toast: false });
-        showRecoveryCode(consumePendingRecovery());
         if (!account.character) showCharacterCreation(account);
+        showRecoveryCode(consumePendingRecovery());
       } catch (err) {
         setBusy(false);
         setError(String(err?.message || '').includes('bad-recovery-code') ? copy.resetBadCode : authErrorMessage(err));
@@ -1788,15 +1870,21 @@
       btn.innerHTML = `${avatarMarkup(slayer, 'pb-ava')}<span class="pb-meta"><span class="pb-lvl">LV ${context.level.lvl}</span><span class="pb-streak">${window.CoinQuestIcons('flame')} ${profile.streak || 0} ${lang() === 'en' ? 'days' : 'วันติด'}</span></span>${window.CoinQuestIcons('chevron')}`;
     }
     if (rem) {
-      rem.innerHTML = `${window.CoinQuestIcons('bell')}${reminders.length ? `<span class="rb-badge">${reminders.length > 9 ? '9+' : reminders.length}</span>` : ''}`;
+      const unread = reminderData().reminders.filter(item => !item.read).length;
+      rem.innerHTML = `${window.CoinQuestIcons('bell')}${unread ? `<span class="rb-badge">${unread > 9 ? '9+' : unread}</span>` : ''}`;
       rem.title = s().reminders;
-      rem.setAttribute('aria-label', s().reminders);
+      rem.setAttribute('aria-label', `${s().reminders}${unread ? ` (${unread})` : ''}`);
+      rem.setAttribute('aria-haspopup', 'dialog');
+      rem.setAttribute('aria-expanded', String(!!overlay?.querySelector('.rem-panel')));
     }
   }
   function closeOverlay() {
     const wasRecovery = recoveryOverlayActive();
     if (overlay) overlay.remove();
     overlay = null;
+    if (drawerCleanup) { const cleanup = drawerCleanup; drawerCleanup = null; cleanup(); }
+    if (recoveryCleanup) { const cleanup = recoveryCleanup; recoveryCleanup = null; cleanup(); }
+    if (remindersCleanup) { const cleanup = remindersCleanup; remindersCleanup = null; cleanup(); }
     if (tourCleanup) { const cleanup = tourCleanup; tourCleanup = null; cleanup(); }
     if (wasRecovery && pendingTourAfterOverlay) {
       pendingTourAfterOverlay = false;
@@ -1819,27 +1907,54 @@
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 2200);
   }
+  function reminderData() {
+    const seen = readScopedJson('pointy_reminders_read_v1', {}) || {};
+    return { language: lang(), loading: inviteLoading, error: inviteLoadError,
+      reminders: reminders.map(item => ({ ...item, read: seen[item.id]?.version === item.readVersion })) };
+  }
+  function markRemindersRead(items) {
+    const seen = readScopedJson('pointy_reminders_read_v1', {}) || {};
+    items.forEach(item => { seen[item.id] = { version: item.readVersion, at: Date.now() }; });
+    // Bound local display metadata; it never changes whether a financial task is pending.
+    const recent = Object.entries(seen).sort((a, b) => (b[1]?.at || 0) - (a[1]?.at || 0)).slice(0, 300);
+    writeScopedJson('pointy_reminders_read_v1', Object.fromEntries(recent));
+    renderTopbar(); renderRemindersOverlay();
+  }
   function bindReminderOverlay() {
-    mountOverlay(window.PointyProfileReminders.render({ reminders, copy: s() }));
-    overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
-    overlay.querySelectorAll('[data-href]').forEach(btn => btn.addEventListener('click', () => { location.href = btn.dataset.href; }));
-    overlay.querySelectorAll('[data-rem-action]').forEach(btn => btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const id = btn.dataset.inviteId || '';
-      if (btn.dataset.remAction === 'acceptInvite') acceptBoardInvite(id);
-      if (btn.dataset.remAction === 'declineInvite') declineBoardInvite(id);
-    }));
+    const anchor = document.querySelector('[data-profile-hub="reminders"]');
+    const opener = document.activeElement?.closest('button, a') || anchor;
+    const data = reminderData();
+    mountOverlay(window.PointyProfileReminders.render(data));
+    const root = overlay;
+    anchor?.setAttribute('aria-expanded', 'true');
+    const cleanup = window.PointyProfileReminders.bind(root, data, {
+      opener, anchor, onClose: closeOverlay, onRead: markRemindersRead,
+      onRetry: reloadReminderInvites,
+      onAction: (action, id) => action === 'acceptInvite' ? acceptBoardInvite(id) : declineBoardInvite(id),
+      onOpen: href => { const url = new URL(href, location.origin); if (TEST_MODE) url.searchParams.set('test', '1'); location.href = url.href; }
+    });
+    // Expired invitations disappear even when the panel stays open overnight.
+    const timer = setInterval(() => {
+      const expired = reminders.some(item => item.kind === 'invite' && !activeBoardInvites().some(invite => item.inviteId === invite.id));
+      if (expired) { reminders = computeReminders(); renderTopbar(); renderRemindersOverlay(); }
+    }, 30000);
+    remindersCleanup = () => { clearInterval(timer); anchor?.setAttribute('aria-expanded', 'false'); cleanup(); };
   }
   function renderRemindersOverlay() {
-    bindReminderOverlay();
+    if (overlay?.querySelector('.rem-panel')) window.PointyProfileReminders.update(overlay, reminderData());
   }
-  function showReminders() {
-    bindReminderOverlay();
-    loadBoardInvites({ force: true }).then(() => {
+  function reloadReminderInvites() {
+    const loading = loadBoardInvites({ force: true });
+    renderRemindersOverlay();
+    loading.then(() => {
       reminders = computeReminders();
       renderTopbar();
-      if (overlay?.querySelector('.rem-panel:not(.recovery-panel)')) renderRemindersOverlay();
+      renderRemindersOverlay();
     });
+  }
+  function showReminders() {
+    if (!overlay?.querySelector('.rem-panel')) bindReminderOverlay();
+    reloadReminderInvites();
   }
   function trophyMarkup() {
     const trophies = evalAchievements(context);
@@ -1867,61 +1982,44 @@
     const profileHref = `/character/?id=${encodeURIComponent(slayer.id || account.userId || '3720')}${(TEST_MODE || AUTOMATED) ? '&test=1' : ''}`;
     const recoveryCode = String(account.recoveryCode || '').trim();
     const drawerCopy = s();
-    const boardCards = boards.length ? boards.map(board => `<div class="pd-board ${board.archived ? 'arch' : ''}">
-      <a class="pd-board-main" href="${h(board.href)}">
-        <span class="pdb-crest">${board.archived ? '🗄️' : '🏕️'}</span>
-        <span class="pdb-body"><b>${h(board.name)}</b><i>#${h(board.id)} · ${board.participants} ${lang() === 'en' ? 'members' : 'คน'} · ${board.expenses} ${lang() === 'en' ? 'quests' : 'เควส'}</i></span>
-        <span class="pdb-status">${h(s().openBoard)} →</span>
-      </a>
-    </div>`).join('') : `<div class="pd-noboards">${h(s().noBoards)}</div>`;
-    mountOverlay(`<div class="drawer-overlay"><aside class="profile-drawer">
-      <div class="pd-head"><div class="pd-title">🏅 ${h(s().profile)}</div><button class="picker-close" type="button" data-close>✕</button></div>
-      <div class="pd-scroll">
-        <div class="pd-hero frame-${h(reward.frame)}">
-          ${avatarMarkup(slayer, 'pd-hero-ava').replace(/<\/span>$/, `<span class="pd-classbadge">${h(cls.glyph)}</span></span>`)}
-          <div class="pd-hero-info">
-            <div class="pd-hero-name">${h(slayer.name || s().hero)}</div>
-            <div class="pd-rank rank-${h(reward.frame)}">${h(reward.glyph || '')} ${h(reward.title?.[lang()] || reward.title?.en || '')} · ${h(cls[lang()] || cls.en)}</div>
-            <div class="pd-lvlrow"><span class="pd-lvl-k">${h(s().profileLvl)}</span><span class="pd-lvl-n">${context.level.lvl}</span><span class="pd-renown">${money(context.reputation || context.renown).replace('฿', '')} ${h(s().reputation || s().renown)}</span></div>
-            <div class="pd-bar"><div style="width:${context.level.pct}%"></div></div>
-            <a class="pd-fullprofile" href="${h(profileHref)}">${h(s().viewFullProfile)} →</a>
-          </div>
-        </div>
-        <div class="pd-sub">${h(s().profileSub)}</div>
-        <div class="pd-streak"><div class="pds-flame">🔥</div><div class="pds-main"><div class="pds-n">${profile.streak} <span>${h(s().streakDays)}</span></div><div class="pds-lab">${h(s().streakLab)} · ${h(s().bestStreak)} ${profile.bestStreak || 0}</div></div><div class="pds-note">${h(s().streakToday)}</div></div>
-        <div class="pd-section-h">🏆 ${h(s().trophies)} <span class="pd-count">${got} / ${trophies.length}</span></div>
-        <div class="trophy-grid">${trophyMarkup()}</div>
-        <div class="pd-section-h">🗺️ ${h(s().myBoards)} <span class="pd-count">${boards.length}</span></div>
-        <div class="pd-boardhint">${h(s().myBoardsSub)}</div>
-        <div class="pd-boards">${boardCards}</div>
-        <div class="pd-section-h">⚙️ ${h(s().settings)}</div>
-        <div class="pd-setting"><span class="pds-k">${currentTheme() === 'dungeon' ? '🌙 ' + h(s().themeDark) : '☀️ ' + h(s().themeLight)}</span><div class="pd-theme-seg"><button class="${currentTheme() === 'tavern' ? 'on' : ''}" data-theme-pick="tavern">☀️</button><button class="${currentTheme() === 'dungeon' ? 'on' : ''}" data-theme-pick="dungeon">🌙</button></div></div>
-        <div class="pd-setting"><span class="pds-k">🧭 ${h(s().takeTour)}</span><button class="btn-ghost xs" type="button" data-tour>${h(s().tourNext)} →</button></div>
-        <div class="pd-backup"><div class="pdb-h">💾 ${h(s().backup)}</div><div class="pdb-sub">${h(s().backupSub)}</div><div class="pdb-actions"><button class="btn-ghost sm" type="button" data-export>⬇️ ${h(s().exportData)}</button><button class="btn-ghost sm" type="button" data-import>⬆️ ${h(s().importData)}</button><input type="file" accept="application/json,.json" hidden data-file></div><div class="pdb-msg" hidden></div></div>
-        ${window.PointyProfileDrawer.recoveryBlock({ signedOut: account.signedOut, recoveryCode, copy: drawerCopy })}
-        ${window.PointyProfileDrawer.accountBlock({ signedOut: account.signedOut, avatarHtml: avatarMarkup(slayer, 'pda-ava'), name: account.name, username: account.username || accountLogin(account), userId: account.userId, copy: drawerCopy })}
-      </div>
-    </aside></div>`);
+    const state = window.PointyProfileDrawer.capture(overlay);
+    const opener = overlay?._drawerOpener || document.activeElement;
+    mountOverlay(window.PointyProfileDrawer.render({
+      copy: drawerCopy, language: lang(), theme: currentTheme(),
+      account: { ...account, username: account.username || accountLogin(account) },
+      avatarHtml: avatarMarkup(slayer, 'pd-hero-ava').replace(/<\/span>$/, `<span class="pd-classbadge">${h(cls.glyph)}</span></span>`),
+      name: slayer.name || s().hero,
+      rank: `${reward.title?.[lang()] || reward.title?.en || ''} · ${cls[lang()] || cls.en}`,
+      level: context.level, reputation: money(context.reputation || context.renown).replace('฿', ''),
+      profileHref, streak: profile.streak || 0, bestStreak: profile.bestStreak || 0,
+      got, trophyCount: trophies.length, trophyHtml: trophyMarkup(), boards, state
+    }));
+    drawerCleanup = window.PointyProfileDrawer.bind(overlay, { state, opener, language: lang() });
+    window.PointyProfileDrawer.updateRecovery(overlay, recoveryCode, lang(), s().recoveryMissing, state?.revealed);
     overlay.addEventListener('click', e => { if (e.target === overlay || e.target.closest('[data-close]')) closeOverlay(); });
-    overlay.querySelectorAll('[data-theme-pick]').forEach(btn => btn.addEventListener('click', () => { setTheme(btn.dataset.themePick); showProfile(); }));
+    overlay.querySelectorAll('[data-theme-pick]').forEach(btn => btn.addEventListener('click', () => { setTheme(btn.dataset.themePick); showProfile({ refreshLive: false }); }));
+    overlay.querySelectorAll('[data-drawer-lang]').forEach(btn => btn.addEventListener('click', () => { setPageLang(btn.dataset.drawerLang); showProfile({ refreshLive: false }); }));
+    overlay.querySelector('[data-reveal-recovery]')?.addEventListener('click', event => {
+      window.PointyProfileDrawer.updateRecovery(overlay, String(loadAuth()?.recoveryCode || '').trim(), lang(), s().recoveryMissing, event.currentTarget.getAttribute('aria-pressed') !== 'true');
+    });
     overlay.querySelector('[data-tour]').addEventListener('click', () => { closeOverlay(); showTour(); });
     overlay.querySelector('[data-export]').addEventListener('click', window.PointyProfileBackup.exportData);
     overlay.querySelector('[data-sign-out]')?.addEventListener('click', signOut);
     overlay.querySelector('[data-copy-recovery-side]')?.addEventListener('click', async () => {
       const code = String(loadAuth()?.recoveryCode || '').trim();
       if (!code) return;
-      try { await navigator.clipboard.writeText(code); showMiniToast(s().copyRecovery); } catch (_) {}
+      const drawer = overlay;
+      try { await navigator.clipboard.writeText(code); window.PointyProfileDrawer.copyFeedback(drawer, lang(), true); }
+      catch (_) { window.PointyProfileDrawer.copyFeedback(drawer, lang(), false); }
     });
     overlay.querySelector('[data-regenerate-recovery]')?.addEventListener('click', async event => {
       const btn = event.currentTarget;
-      const codeEl = overlay.querySelector('[data-recovery-code]');
-      const copyBtn = overlay.querySelector('[data-copy-recovery-side]');
+      const drawer = overlay;
       const status = overlay.querySelector('[data-recovery-msg]');
       try {
         btn.disabled = true;
         const next = await regenerateRecoveryCode();
-        if (codeEl) codeEl.textContent = next.recoveryCode || s().recoveryMissing;
-        if (copyBtn) copyBtn.disabled = !next.recoveryCode;
+        window.PointyProfileDrawer.updateRecovery(drawer, next.recoveryCode || '', lang(), s().recoveryMissing, true);
         if (status) {
           status.hidden = false;
           status.textContent = s().recoveryRegenerated;
@@ -1936,7 +2034,7 @@
       }
     });
     const file = overlay.querySelector('[data-file]');
-    const msg = overlay.querySelector('.pdb-msg');
+    const msg = overlay.querySelector('[data-backup-msg]');
     overlay.querySelector('[data-import]').addEventListener('click', () => file.click());
     file.addEventListener('change', () => {
       const f = file.files && file.files[0];

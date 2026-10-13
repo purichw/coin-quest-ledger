@@ -83,6 +83,23 @@ input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator {
 textarea {
   resize: vertical;
 }
+
+/* Center the contents of compact choice controls, including wrapped labels.
+   Row actions and prose keep their own alignment; stacked navigation keeps
+   its column direction in the component that owns it. */
+:is(.seg, .split-seg, .df-seg, .gender-toggle, .picker-filter,
+    .login-tabs, .mm-seg, .category-filters, .debt-filters,
+    .arena-filters, .bs-theme) > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: .35em;
+}
+
+:is(.mtab, .cq-nav a, .section-nav a, .bs-nav button) {
+  text-align: center;
+}
 /* Native/web module connection status, outside dynamic module render roots. */
 .module-sync-banner { margin: 12px auto; padding: 12px 16px; max-width: 1180px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; border: 1px solid var(--line, #d6c6a4); border-radius: 14px; background: var(--paper, #fbf6ea); color: var(--ink, #2f2515); font: 14px/1.6 var(--font-body, sans-serif); }
 .module-sync-banner span { flex: 1; min-width: 180px; }

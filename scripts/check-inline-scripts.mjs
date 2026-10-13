@@ -29,6 +29,7 @@ const scriptFiles = [
   'trip/trip-utils.js',
   'trip/entry.js',
   'trip/board.js',
+  'trip/settings.js',
   'trip/app.js',
   'admin/admin-utils.js',
   'admin/app.js',

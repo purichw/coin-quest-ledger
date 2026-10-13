@@ -1,0 +1,54 @@
+{
+  "generator": "Built-in image_gen",
+  "reference": "codex-clipboard-c54bd42d-8f15-4950-87bb-837609b97aca.png",
+  "assets": [
+    {
+      "name": "tavern-guild",
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Create a production website background illustration derived from the DESKTOP scene in the supplied reference, not a UI mockup. Wide 3:2 full bleed landscape. Rich hand-painted fantasy RPG tavern interior, old oak rafters, intricate hanging warm lanterns, evening golden glow, wooden floor and tables, ivy. Match the reference's richly detailed, sharp brushwork, dark walnut and forest green, brass highlights. At far left a large hanging deep forest-green cloth guild banner with gilt compass sun emblem and exactly three stacked gold serif words \"Coin\" \"Quest\" \"Ledger\", with thin gold edging and pointed bottom. Below left a charming brown/cream owl perched on old books beside a lantern and coins. Keep entire owl and banner visible with breathing room; left decorative cluster occupies x 5–32%. Center/right x 45–90% is quiet tavern depth for a future HTML form; no form or parchment card painted there. A few maps and coins on foreground floor. No UI, inputs, buttons, annotations, numbered circles, mockup frames, watermark or any other text. Reproduce the visual role and mood of the reference faithfully.",
+      "file": "assets/auth-guild/tavern.webp",
+      "bytes": 386554,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "b42400edae73cc3ff10a7c1da7344059710624c376df30113f7546048ade523a"
+    },
+    {
+      "name": "tavern-doorway",
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Create a portrait 2:3 production web background based on the TABLET and MOBILE tavern scenes in the supplied reference. ONLY environment artwork, no forms/cards/UI/banner/text. We stand inside a richly illustrated medieval timber tavern doorway looking toward a sunlit fantasy hillside town with distant layered blue-green mountains. Arched oak beams frame top and both side edges, green ivy, small warm lanterns left and right, wooden threshold and tiny coins at bottom. Detailed painterly fantasy game aesthetic with dark walnut wood, golden lantern light and blue sky. Center x20–80%, y20–85% visually quiet for future HTML form overlay. Near bottom a tiny dark silhouette of a hooded adventurer on a stone threshold, looking out toward layered mountain valley; strong scenic silhouette motif visible below future form. Full bleed portrait, no text, lettering, logos, annotations, frames, paper or controls.",
+      "file": "assets/auth-guild/doorway.webp",
+      "bytes": 326800,
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "sha256": "8a22b17ec34e3cfe0e55b2cdb86e72abb7a3e730b0671b195586d2fe157a7c92"
+    },
+    {
+      "name": "treasury-seal",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Transparent isolated UI crest based precisely on the GOLD TREASURY medallion sitting above the paper form in the supplied reference. Single upright gilded badge, about 1:1 square. An ornate hexagonal gold frame with little star points and scroll details surrounds a dark green miniature classical treasury building: triangular pediment, cream columns, dark central doorway. Large gold COIN with an embossed dollar S symbol at top center above columns. Warm polished gold, forest green enamel, cream stone; detailed fantasy RPG icon, dimensional painterly rendering, crisp silhouette legible at 90px. Whole badge fully visible with only 6% transparent margin. Genuine transparent background. No other letters, no scenery, no rectangular background, no UI, no shadow plate.",
+      "file": "assets/auth-guild/treasury-seal.webp",
+      "bytes": 31146,
+      "dimensions": [
+        320,
+        320
+      ],
+      "sha256": "0fa7691b63337ace37ccb4ebd98199bfadc15e23b112d5420a16fb5fe81a5773"
+    },
+    {
+      "name": "parchment-panel",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Isolated BLANK parchment panel for a working website form, derived from the cream paper form surface in the supplied reference. Portrait rectangle 2:3, all corners visible, about 4% transparent margin. Light warm ivory center with very subtle paper fiber, center must be clean and bright enough for dark text. Slightly irregular old edges, small natural tears, gently curled browned corners, fine amber-brown border, four tiny old brass corner tacks. Sophisticated painterly fantasy game material, no dark stains in center, no scroll rods, no thick frame, no lettering or symbols, no crest, no form fields, no UI. Genuinely transparent outside the parchment, flat straight-on front view, no perspective.",
+      "file": "assets/auth-guild/parchment.webp",
+      "bytes": 122326,
+      "dimensions": [
+        800,
+        1200
+      ],
+      "sha256": "255c1a5b89aff602f3ae7087f655a09b37ab151359f89e55f5edc9a48582d65f"
+    }
+  ]
+}

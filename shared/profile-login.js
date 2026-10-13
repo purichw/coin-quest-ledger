@@ -16,9 +16,10 @@
     </div>`;
   }
   function renderFrame({ copy, langKey, theme, content, mode }) {
-    return `<div class="login-wrap auth-entry auth-${mode}" lang="${langKey}" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-      <picture class="auth-scene"><source media="(max-width: 600px)" srcset="/assets/auth-reference/tavern-mobile.webp"><img src="/assets/auth-reference/tavern.webp" alt="" fetchpriority="high"></picture>
-      <div class="auth-brand"><img class="auth-banner" src="/assets/auth-reference/guild-banner.webp" alt="Coin Quest Ledger"><div class="auth-compact-brand">${icon('compass')}<span>Coin Quest<br> Ledger</span></div><p>Every Quest Counts</p></div>
+    const guild = mode !== 'character';
+    return `<div class="login-wrap auth-entry auth-${mode}${guild ? ' auth-guild' : ''}" lang="${langKey}" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <picture class="auth-scene"><source media="(max-width: ${guild ? '1023' : '600'}px)" srcset="/assets/${guild ? 'auth-guild/doorway' : 'auth-reference/tavern-mobile'}.webp"><img src="/assets/${guild ? 'auth-guild' : 'auth-reference'}/tavern.webp" alt="" fetchpriority="high"></picture>
+      ${guild ? '' : `<div class="auth-brand"><img class="auth-banner" src="/assets/auth-reference/guild-banner.webp" alt="Coin Quest Ledger"><div class="auth-compact-brand">${icon('compass')}<span>Coin Quest<br> Ledger</span></div><p>Every Quest Counts</p></div>`}
       <div class="login-langs" role="group" aria-label="${h(copy.authPreferences)}">
         <button class="login-theme" type="button" data-login-theme aria-label="${h(theme === 'dungeon' ? copy.authLight : copy.authDark)}">${icon(theme === 'dungeon' ? 'moon' : 'sun')}</button>
         <button type="button" class="${langKey === 'th' ? 'on' : ''}" data-login-lang="th" aria-pressed="${langKey === 'th'}">TH</button>
@@ -29,10 +30,12 @@
   }
   function shell({ copy, langKey, theme, content, mode }) {
     return renderFrame({ copy, langKey, theme, mode, content: `<div class="auth-main">${content}
-        <footer class="auth-reassurance"><div class="auth-divider">${icon('shield')}</div><p>${h(copy.authReassurance)}</p><small>Coin Quest Ledger · ${h(copy.authModules)}</small></footer>
+        <footer class="auth-reassurance"><p class="auth-motto">Every Quest Counts</p><p class="auth-promise">${h(copy.authReassurance)}</p><strong>Coin Quest Ledger</strong><small>${h(copy.authModules)}</small></footer>
       </div>
-      <aside class="auth-owl"><img src="/assets/auth-reference/owl-note.webp" alt=""><p>${h(copy.authEncouragement)}</p></aside>
     ` });
+  }
+  function crest() {
+    return '<div class="login-crest auth-seal" aria-hidden="true"><img src="/assets/auth-guild/treasury-seal.webp" width="112" height="112" alt=""></div>';
   }
   function renderAccountLoading({ langKey }) {
     const message = langKey === 'en' ? 'Preparing your adventure…' : 'กำลังเตรียมการผจญภัยของคุณ…';
@@ -94,7 +97,7 @@
   function renderRecoveryReset({ copy, langKey, theme }) {
     return shell({ copy, langKey, theme, mode: 'recovery', content: `
       <form class="login-card" data-recovery-form aria-labelledby="auth-title" novalidate>
-        <div class="login-crest" aria-hidden="true"><span>🔐</span></div>
+        ${crest()}
         <h1 class="login-title" id="auth-title">${h(copy.resetTitle)}</h1>
         <p class="login-sub">${h(copy.resetSub)}</p>
         ${field({ label: copy.loginEmail, attr: 'recovery-username', max: 32, autocomplete: 'username', placeholder: copy.loginEmailPlaceholder, copy })}
@@ -111,14 +114,14 @@
   function renderLoginGate({ copy, langKey, theme, isSignup, real, local, demoAccounts }) {
     return shell({ copy, langKey, theme, mode: isSignup ? 'signup' : 'signin', content: `
       <form class="login-card" data-login-form aria-labelledby="auth-title" novalidate>
-        <div class="login-crest" aria-hidden="true">${icon('toolbox')}</div>
+        ${crest()}
+        <h1 class="login-title" id="auth-title">${h(isSignup ? copy.signupWelcome : copy.loginWelcome)}</h1>
+        <p class="login-sub">${h(isSignup ? copy.signupSub : copy.loginSub)}</p>
         <div class="login-tabs" role="tablist" aria-label="${h(copy.authTabs)}">
           <button id="auth-tab-in" role="tab" aria-selected="${!isSignup}" aria-controls="auth-fields" tabindex="${isSignup ? '-1' : '0'}" type="button" class="${!isSignup ? 'on' : ''}" data-login-tab="in">${h(copy.loginSignIn)}</button>
           <button id="auth-tab-up" role="tab" aria-selected="${isSignup}" aria-controls="auth-fields" tabindex="${isSignup ? '0' : '-1'}" type="button" class="${isSignup ? 'on' : ''}" data-login-tab="up">${h(copy.loginSignUp)}</button>
         </div>
         <div role="tabpanel" id="auth-fields" aria-labelledby="auth-tab-${isSignup ? 'up' : 'in'}">
-        <h1 class="login-title" id="auth-title">${h(isSignup ? copy.signupWelcome : copy.loginWelcome)}</h1>
-        <p class="login-sub">${h(isSignup ? copy.signupSub : copy.loginSub)}</p>
         ${isSignup ? field({ label: copy.signupName, attr: 'login-name', max: 60, autocomplete: 'nickname', placeholder: copy.signupNamePlaceholder, copy }) : ''}
         ${field({ label: copy.loginEmail, attr: 'login-email', max: 32, autocomplete: 'username', placeholder: copy.loginEmailPlaceholder, copy })}
         ${field({ label: copy.loginPassword, attr: 'login-password', password: true, autocomplete: isSignup ? 'new-password' : 'current-password', placeholder: isSignup ? copy.signupPasswordPlaceholder : copy.loginPasswordPlaceholder, copy })}
@@ -126,8 +129,9 @@
         ${isSignup ? `<p class="auth-password-hint">${h(copy.signupPasswordShort)}</p>` : ''}
         <div class="login-err" data-login-error role="alert" tabindex="-1" hidden></div>
         <button type="submit" class="login-btn">${isSignup ? '✨ ' + h(copy.signupCreate) : '⚔️ ' + h(copy.loginEnter)}</button>
-        ${!isSignup && real ? `<button type="button" class="auth-secondary" data-forgot-password>${h(copy.forgotPassword)}</button>` : ''}
+        ${!isSignup && real ? `<div class="auth-account-options"><span>${icon('shield')}${h(copy.authRemember)}</span><button type="button" class="auth-forgot" data-forgot-password>${h(copy.forgotPassword)}</button></div>` : ''}
         </div>
+        <p class="auth-card-note">${icon('compass')}<span>${h(copy.authOneAccount)}</span></p>
         ${!isSignup && local ? `<div class="login-demo">
           <div class="login-demo-h">${h(copy.loginDemo)}</div>
           <div class="login-demo-list">

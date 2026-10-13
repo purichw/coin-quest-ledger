@@ -1,0 +1,80 @@
+
+Running 51 tests using 2 workers
+
+(node:94823) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94822) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94823) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:31:1 › Admin search retains focus and complete typed text across filtered rerenders (928ms)
+  ✓   3 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:73:1 › Admin export downloads the chosen board with satang and no credentials (397ms)
+  ✓   1 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:46:1 › Admin archives and reopens without deleting members, money, secrets or unknown data (1.5s)
+  ✓   4 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:91:1 › Admin dialogs cancel safely with Escape, close and trapped keyboard focus (425ms)
+  ✓   5 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:105:1 › Admin invalid drafts cannot publish; save failures retain edits and retry works (708ms)
+  ✓   6 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:126:1 › Corrupt local draft is reported and explicit Restore recovers published data (395ms)
+  ✓   7 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:154:1 › A failed Admin collection read shows retry instead of an empty or partially editable portal (381ms)
+  ✓   8 [chromium] › tests/e2e/admin-flow-audit.spec.mjs:136:1 › Admin no longer offers board-only identity mutation or fabricated financial charts (595ms)
+  ✓   9 [chromium] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 1440px (1.1s)
+  ✓  10 [chromium] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 768px (886ms)
+  ✓  11 [chromium] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 390px (826ms)
+  ✓  12 [chromium] › tests/e2e/reminders.spec.mjs:57:1 › Read state persists across routes while tasks remain, and changed amounts become unread (1.3s)
+  ✓  13 [chromium] › tests/e2e/reminders.spec.mjs:85:1 › Invite rejection preserves selected tab, prevents duplicate submits, and handles failure then retry (961ms)
+  ✓  14 [chromium] › tests/e2e/reminders.spec.mjs:116:1 › Load failure is recoverable without resetting filter or scroll, and expired invites cannot join (894ms)
+  ✓  15 [chromium] › tests/e2e/reminders.spec.mjs:142:1 › An older invitation request cannot replace the next account’s invitations (701ms)
+  ✓  16 [chromium] › tests/e2e/reminders.spec.mjs:164:1 › Overdue debt stays first and its details open Debt Dragon (791ms)
+(node:94856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  17 [chromium] › tests/e2e/reminders.spec.mjs:176:1 › Mobile dark English long names, empty state and focus containment (933ms)
+(node:94857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  18 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:31:1 › Admin search retains focus and complete typed text across filtered rerenders (447ms)
+  ✓  20 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:73:1 › Admin export downloads the chosen board with satang and no credentials (387ms)
+  ✓  19 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:46:1 › Admin archives and reopens without deleting members, money, secrets or unknown data (961ms)
+  ✓  21 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:91:1 › Admin dialogs cancel safely with Escape, close and trapped keyboard focus (471ms)
+  ✓  23 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:126:1 › Corrupt local draft is reported and explicit Restore recovers published data (346ms)
+  ✓  22 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:105:1 › Admin invalid drafts cannot publish; save failures retain edits and retry works (591ms)
+  ✓  25 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:154:1 › A failed Admin collection read shows retry instead of an empty or partially editable portal (379ms)
+  ✓  24 [tablet] › tests/e2e/admin-flow-audit.spec.mjs:136:1 › Admin no longer offers board-only identity mutation or fabricated financial charts (527ms)
+  ✓  27 [tablet] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 768px (887ms)
+  ✓  26 [tablet] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 1440px (1.0s)
+  ✓  28 [tablet] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 390px (760ms)
+  ✓  29 [tablet] › tests/e2e/reminders.spec.mjs:57:1 › Read state persists across routes while tasks remain, and changed amounts become unread (1.2s)
+  ✓  30 [tablet] › tests/e2e/reminders.spec.mjs:85:1 › Invite rejection preserves selected tab, prevents duplicate submits, and handles failure then retry (932ms)
+  ✓  31 [tablet] › tests/e2e/reminders.spec.mjs:116:1 › Load failure is recoverable without resetting filter or scroll, and expired invites cannot join (851ms)
+  ✓  32 [tablet] › tests/e2e/reminders.spec.mjs:142:1 › An older invitation request cannot replace the next account’s invitations (621ms)
+  ✓  33 [tablet] › tests/e2e/reminders.spec.mjs:164:1 › Overdue debt stays first and its details open Debt Dragon (762ms)
+  ✓  34 [tablet] › tests/e2e/reminders.spec.mjs:176:1 › Mobile dark English long names, empty state and focus containment (935ms)
+(node:94890) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94890) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94891) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  35 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:31:1 › Admin search retains focus and complete typed text across filtered rerenders (475ms)
+  ✓  37 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:73:1 › Admin export downloads the chosen board with satang and no credentials (407ms)
+  ✓  36 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:46:1 › Admin archives and reopens without deleting members, money, secrets or unknown data (961ms)
+  ✓  38 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:91:1 › Admin dialogs cancel safely with Escape, close and trapped keyboard focus (412ms)
+  ✓  40 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:126:1 › Corrupt local draft is reported and explicit Restore recovers published data (327ms)
+  ✓  39 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:105:1 › Admin invalid drafts cannot publish; save failures retain edits and retry works (631ms)
+  ✓  41 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:136:1 › Admin no longer offers board-only identity mutation or fabricated financial charts (575ms)
+  ✓  42 [mobile] › tests/e2e/admin-flow-audit.spec.mjs:154:1 › A failed Admin collection read shows retry instead of an empty or partially editable portal (357ms)
+  ✓  44 [mobile] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 768px (942ms)
+  ✓  43 [mobile] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 1440px (1.1s)
+  ✓  45 [mobile] › tests/e2e/reminders.spec.mjs:26:3 › Reminders reference composition and filters at 390px (853ms)
+  ✓  46 [mobile] › tests/e2e/reminders.spec.mjs:57:1 › Read state persists across routes while tasks remain, and changed amounts become unread (1.4s)
+  ✓  47 [mobile] › tests/e2e/reminders.spec.mjs:85:1 › Invite rejection preserves selected tab, prevents duplicate submits, and handles failure then retry (1.2s)
+  ✓  48 [mobile] › tests/e2e/reminders.spec.mjs:116:1 › Load failure is recoverable without resetting filter or scroll, and expired invites cannot join (1.0s)
+  ✓  49 [mobile] › tests/e2e/reminders.spec.mjs:142:1 › An older invitation request cannot replace the next account’s invitations (714ms)
+  ✓  50 [mobile] › tests/e2e/reminders.spec.mjs:164:1 › Overdue debt stays first and its details open Debt Dragon (722ms)
+  ✓  51 [mobile] › tests/e2e/reminders.spec.mjs:176:1 › Mobile dark English long names, empty state and focus containment (1.0s)
+
+  51 passed (22.3s)

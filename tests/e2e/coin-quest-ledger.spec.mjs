@@ -115,12 +115,12 @@ test('expense splitter pins the signed-in account hero and invites others by Cha
   });
   await page.goto('/?test=1');
   await page.locator('[data-profile-hub="reminders"]').click();
-  await expect(page.locator('.rem-panel')).toContainText('คำเชิญเข้าบอร์ด');
+  await expect(page.locator('.rem-panel')).toContainText('ชวนคุณเข้าปาร์ตี้');
   page.once('dialog', async dialog => {
     expect(dialog.message()).toContain('ปฏิเสธ');
     await dialog.accept();
   });
-  await page.getByRole('button', { name: 'Decline' }).click();
+  await page.getByRole('button', { name: 'ปฏิเสธ', exact: true }).click();
   await expect(page.evaluate(() => JSON.parse(localStorage.getItem('pointy_board_invites_v1') || '[]').find(i => i.targetCharacterId === '1358')?.status)).resolves.toBe('declined');
 
   await page.evaluate(() => {
@@ -135,9 +135,10 @@ test('expense splitter pins the signed-in account hero and invites others by Cha
   });
   await page.goto('/?test=1');
   await page.locator('[data-profile-hub="reminders"]').click();
-  await expect(page.locator('.rem-panel')).toContainText('คำเชิญเข้าบอร์ด');
+  await expect(page.locator('.rem-panel')).toContainText('ชวนคุณเข้าปาร์ตี้');
   await expect(page.locator('.rem-panel')).toContainText('Profile Hero');
-  await page.getByRole('button', { name: 'Accept' }).click();
+  await expect(page.locator('.ri-avatar img')).toHaveAttribute('src', /wizard-female\.png$/);
+  await page.getByRole('button', { name: 'ตอบรับ', exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/trip/\\?id=${tripId}&test=1`));
   await expect(page.locator('.hero-card').nth(0)).toContainText('Guest Hero');
   await expect(page.locator('.hero-card').nth(0).locator('.char-id')).toHaveText('#1357');
@@ -699,7 +700,7 @@ test('production profile gate ignores stale unsigned character-creation mirrors'
 
   await expect(page.locator('.login-gate')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('heading', { name: /สร้างตัวละครของคุณ|Create your character/ })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: /ยินดีต้อนรับกลับฮีโร่|Welcome back/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /ยินดีต้อนรับกลับสู่|Welcome back/ })).toBeVisible();
 });
 
 test('player modules ignore stale Firebase mirrors until auth is trusted', async ({ page }) => {
@@ -851,10 +852,10 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.getByText('Owned Boards')).toBeVisible();
 
   await page.getByRole('button', { name: 'Audit Log' }).click();
-  await expect(page.getByText('Every change across the system')).toBeVisible();
+  await expect(page.getByText('Published board changes and local draft changes')).toBeVisible();
   await page.getByRole('button', { name: 'Support Tools' }).click();
-  await expect(page.getByText('Impersonate')).toBeVisible();
-  await expect(page.getByText('Create / invite flows')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'View users', exact: true })).toBeVisible();
 });
 
 test('super admin separates active users, orphan admin identities, and deleted ID tombstones', async ({ page }) => {
@@ -1051,6 +1052,10 @@ test('profile drawer shows recovery ID and regeneration invalidates the previous
   }
 
   await expect(page.locator('.profile-drawer')).toBeVisible();
+  const recovery = page.locator('[data-drawer-section="recovery"]');
+  if (!await recovery.evaluate(el => el.open)) await recovery.locator('summary').click();
+  await expect(page.locator('[data-recovery-code]')).toContainText('ABCD-••••-••••');
+  await page.locator('[data-reveal-recovery]').click();
   await expect(page.locator('[data-recovery-code]')).toContainText(oldCode);
   await page.locator('[data-regenerate-recovery]').click();
   await expect(page.locator('[data-recovery-msg]')).toContainText(/สร้าง recovery ID ใหม่แล้ว|New recovery ID generated/);
@@ -1466,14 +1471,16 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
 
   await page.getByRole('button', { name: 'Users' }).click();
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
-  await page.getByRole('button', { name: '+ Add user' }).click();
+  await page.getByRole('button', { name: 'Support Tools' }).click();
+  const exportButton = page.locator('.admin-page').getByRole('button', { name: 'Export JSON', exact: true });
+  await exportButton.click();
   await expect(page.locator('.modal-bg.show')).toBeVisible();
   if (isPhone) {
     await expect(page.locator('.floating-modal')).toHaveCSS('bottom', '0px');
     await expect(page.locator('.floating-modal')).toHaveCSS('border-top-left-radius', '18px');
   } else {
-    const addUserHeight = await page.getByRole('button', { name: '+ Add user' }).evaluate(el => el.getBoundingClientRect().height);
-    expect(addUserHeight).toBeGreaterThanOrEqual(44);
+    const exportHeight = await exportButton.evaluate(el => el.getBoundingClientRect().height);
+    expect(exportHeight).toBeGreaterThanOrEqual(44);
   }
   await assertNoOverflow();
 });

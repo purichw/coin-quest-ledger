@@ -53,6 +53,7 @@ the relevant iPhone widths from `$mobile-web-qa` / `CLAUDE_TO_A_TEE_QA.md`.
 | Character/Profile aggregation | `npm run test:unit`, Character Profile e2e |
 | Auth/signup/recovery | targeted profile e2e, `npm run test:backend`, affected native contracts/Simulator |
 | Admin Portal | Admin e2e group; usually full `npm test` |
+| Admin cleanup / safe operations | `admin-flow-audit.spec.mjs`: continuous typing, Archive/Reopen persistence, JSON export redaction, modal cancellation/focus, invalid values, quota failure, corrupt drafts and incomplete server reads |
 | Admin delete backend | `tests/unit/admin-delete-user.test.mjs`; real Firebase e2e only with env |
 | Large refactor | targeted slice checks plus full `npm test`; update `REFACTOR_READINESS_AUDIT.md` when gates change |
 | Firestore rules | `npm run test:backend`, explicit deploy, active Rules source comparison and scoped live access checks |

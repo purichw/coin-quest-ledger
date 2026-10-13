@@ -2207,9 +2207,6 @@ function lockAdmin() {
   renderOverlay();
   toast(t('admin_locked'));
 }
-function copyAdminLink() {
-  navigator.clipboard.writeText(tripLinkFor()).then(() => toast(t('toast_link_copied')));
-}
 async function saveCharacterId(name) {
   if (!isAdminUnlocked()) return;
   const el = document.getElementById('char-id-' + hashOf(name));
@@ -2293,77 +2290,10 @@ function openOwnedBoard(id) {
   if (!id || id === tripId) return;
   window.location.href = tripLinkFor(id);
 }
-function renderOwnedBoards() {
-  const items = _ownedBoards.map(board => `<div class="board-card ${board.id === tripId ? 'active' : ''}">
-    <div><div class="board-title">${h(board.tripName || t('trip_fallback_name'))}</div><div class="board-meta">#${h(board.id)} · ${board.participants} ${t('party')} · ${board.expenses} ${t('quest_count')}</div></div>
-    <div class="board-actions">${board.id === tripId ? `<span class="settings-sub">${t('current_board')}</span>` : `<button class="btn-primary sm" onclick="openOwnedBoard(${q(board.id)})">${t('admin_open_board')}</button>`}</div>
-  </div>`).join('');
-  return `<div class="settings-section">
-    <div>
-      <div class="settings-label">${t('admin_boards')}</div>
-      <div class="settings-sub">${t('admin_boards_sub')}</div>
-    </div>
-    <div class="admin-box owned-board-list">
-      ${_ownedBoardsLoading ? `<div class="settings-sub">${t('admin_boards_loading')}</div>` : (items || `<div class="settings-sub">${t('admin_boards_empty')}</div>`)}
-    </div>
-  </div>`;
-}
-function renderAdminPanel() {
-  const link = tripLinkFor();
-  if (!isAdminConfigured()) {
-    const profile = adminOwnerProfile();
-    return `<div class="settings-section">
-      <div>
-        <div class="settings-label">${t('admin_setup')}</div>
-        <div class="settings-sub">${t('admin_setup_sub')}</div>
-      </div>
-      <div class="admin-box">
-        <div class="field"><label>${t('admin_url')}</label><input id="admin-url-id" class="field-input" value="${h(sanitizeTripSlug(tripId))}" ${canChangeTripUrl() ? '' : 'disabled'}></div>
-        <div class="field"><label>${t('admin_owner_id')}</label><input id="admin-owner-id" maxlength="80" class="field-input" value="${h(profile.adminId)}"></div>
-        <div class="field"><label>${t('admin_owner_name')}</label><input id="admin-owner-name" maxlength="80" class="field-input" value="${h(profile.adminName)}" placeholder="${h(t('admin_owner_name_placeholder'))}"></div>
-        <div class="field"><label>${t('admin_password')}</label><input id="admin-pass-new" class="field-input" type="password" autocomplete="new-password" placeholder="${h(t('admin_password_placeholder'))}"></div>
-        <button class="btn-primary sm" onclick="setupAdmin()">${t('admin_create')}</button>
-      </div>
-    </div>`;
-  }
-  if (!isAdminUnlocked()) {
-    return `<div class="settings-section">
-      <div>
-        <div class="settings-label">${t('admin_controls')}</div>
-        <div class="settings-sub">${t('admin_locked_sub')}</div>
-      </div>
-      <div class="admin-box admin-row">
-        <div class="field"><label>${t('admin_password')}</label><input id="admin-pass" class="field-input" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlockAdmin()"></div>
-        <button class="btn-primary sm" onclick="unlockAdmin()">${t('admin_unlock')}</button>
-      </div>
-    </div>`;
-  }
-  const rows = S.participants.map(name => {
-    const id = ensureCharacterId(name);
-    const rec = _characterRegistry[id] || {};
-    return `<tr>
-      <td>${h(name)}</td>
-      <td><input id="char-id-${hashOf(name)}" class="admin-id-input" maxlength="4" inputmode="numeric" value="${h(id)}"></td>
-      <td>${Math.round(Number(rec.xp) || characterBaseXp(name) || 0)} XP</td>
-      <td>${h(CLASSES[classOf(name)][LANG] || CLASSES[classOf(name)].th)}</td>
-      <td><div class="admin-actions"><a class="btn-ghost xs" href="${h(characterProfileLink(id))}">Profile</a><button class="btn-ghost xs" onclick="saveCharacterId(${q(name)})">${t('btn_save')}</button><button class="btn-ghost xs" onclick="resetCharacterId(${q(name)})">${t('char_id_new')}</button><button class="btn-ghost xs danger" onclick="adminDeleteHero(${q(name)})">${t('del_title')}</button></div></td>
-    </tr>`;
-  }).join('');
-  return `<div class="settings-section">
-    <div>
-      <div class="settings-label">${t('admin_controls')}</div>
-      <div class="settings-sub">${t('admin_controls_sub')}</div>
-    </div>
-    <div class="admin-box">
-      <div class="field"><label>${t('admin_url')}</label><input class="field-input" value="${h(link)}" readonly></div>
-      <div class="admin-actions"><button class="btn-ghost xs" onclick="copyAdminLink()">🔗 ${t('btn_share')}</button><button class="btn-ghost xs" onclick="lockAdmin()">${t('admin_lock')}</button></div>
-      <table class="admin-table"><thead><tr><th>${t('hero_name_short')}</th><th>${t('character_id')}</th><th>${t('xp')}</th><th>${t('pick_class')}</th><th>${t('admin_actions')}</th></tr></thead><tbody>${rows || `<tr><td colspan="5">${t('no_participants')}</td></tr>`}</tbody></table>
-    </div>
-  </div>${renderOwnedBoards()}`;
-}
 function renderOverlay() {
   const root = document.getElementById('app-overlays');
   if (!root) return;
+  if (_overlay !== 'settings') endBoardSettings();
   if (!_overlay) { root.innerHTML = ''; return; }
   if (_overlay === 'onboarding') {
     root.innerHTML = `<div class="picker-overlay"><div class="picker" onclick="event.stopPropagation()">
@@ -2484,17 +2414,7 @@ function renderOverlay() {
     return;
   }
   if (_overlay === 'settings') {
-    root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" onclick="event.stopPropagation()">
-      <div class="picker-head"><div class="picker-title">⚙ ${t('settings')}</div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
-      <div class="settings-grid">
-        <div class="settings-row"><div><div class="settings-label">${t('theme')}</div></div><div class="setting-seg"><button class="${S.settings.theme === 'tavern' ? 'on' : ''}" onclick="setTheme('tavern')">${t('theme_tavern')}</button><button class="${S.settings.theme === 'dungeon' ? 'on' : ''}" onclick="setTheme('dungeon')">${t('theme_dungeon')}</button></div></div>
-        <div class="settings-row"><div class="settings-label">${t('accent')}</div><div class="swatches">${ACCENTS.map(color => `<button class="swatch ${S.settings.accent === color ? 'on' : ''}" style="background:${color}" onclick="setAccent('${color}')" aria-label="${color}"></button>`).join('')}</div></div>
-        <div class="settings-row"><div><div class="settings-label">${t('game_stats')}</div><div class="settings-sub">HP / LVL / XP</div></div><button class="switch ${S.settings.stats ? 'on' : ''}" onclick="toggleSetting('stats')" aria-pressed="${S.settings.stats}"></button></div>
-        <div class="settings-row"><div class="settings-label">${t('sound_effects')}</div><button class="switch ${S.settings.sound ? 'on' : ''}" onclick="toggleSetting('sound')" aria-pressed="${S.settings.sound}"></button></div>
-        <div class="settings-row"><div class="settings-label">${t('animations')}</div><button class="switch ${S.settings.animations !== false ? 'on' : ''}" onclick="toggleSetting('animations')" aria-pressed="${S.settings.animations !== false}"></button></div>
-        ${renderAdminPanel()}
-      </div>
-    </div></div>`;
+    renderBoardSettings(root);
     return;
   }
   if (_overlay === 'victory') {

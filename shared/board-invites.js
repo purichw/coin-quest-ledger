@@ -51,6 +51,9 @@
       inviterUid: account.uid || '',
       inviterName: account.character?.name || account.name || account.username || 'Hero',
       inviterCharacterId: account.character?.id || account.userId || '',
+      inviterClass: account.character?.class || account.character?.cls || '',
+      inviterGender: account.character?.gender || '',
+      inviterSkin: account.character?.skin || '',
       status: 'pending',
       createdAt: now,
       expiresAt: now + TTL_MS

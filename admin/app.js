@@ -43,6 +43,8 @@ let adminAuthReady = TEST_MODE;
 let adminAuthStarted = false;
 let adminAuthSettling = false;
 let adminGateError = '';
+let adminLoadError = '';
+let draftWarning = '';
 let adminBackendStatus = TEST_MODE
   ? { checked: true, adminDeleteConfigured: true, mode: 'test' }
   : { checked: false, adminDeleteConfigured: false, mode: 'unknown' };
@@ -152,8 +154,7 @@ function startAdminAuth() {
     if (user && isAllowedAdmin(user)) {
       adminUser = user;
       adminGateError = '';
-      await Promise.all([loadPublished(), refreshAdminBackendStatus()]);
-      renderMain();
+      await refreshAdminData();
       return;
     }
     adminUser = null;
@@ -234,12 +235,11 @@ function normalizeBoard(id, data = {}) {
   board.baseDraftKey = PointyLogic.tripContentKey(materializeBoard(board));
   return board;
 }
-async function loadPublished() {
+async function loadPublished({ discardDraft = false } = {}) {
   initFirebase();
   let boards = [];
   let revisions = [];
-  cloudUsers = [];
-  cloudTombstones = [];
+  let nextUsers = [], nextTombstones = [];
   if (TEST_MODE) {
     boards = Object.keys(sessionStorage)
       .filter(k => k.startsWith('pointy_test_trip_'))
@@ -247,34 +247,40 @@ async function loadPublished() {
     revisions = JSON.parse(localStorage.getItem(LOCAL_REVISIONS_KEY) || '[]');
   } else {
     const db = firebase.firestore();
-    const snap = await freshFirestoreGet(db.collection('trips'));
+    const [snap, revSnap, usersSnap, tombSnap] = await Promise.all([
+      freshFirestoreGet(db.collection('trips')),
+      freshFirestoreGet(db.collection('adminRevisions').orderBy('createdAt', 'desc').limit(20)),
+      freshFirestoreGet(db.collection('users')),
+      freshFirestoreGet(db.collection('usernames').where('deleteReusable', '==', true).limit(100))
+    ]);
     boards = snap.docs.map(doc => normalizeBoard(doc.id, doc.data() || {}));
-    try {
-      const revSnap = await freshFirestoreGet(db.collection('adminRevisions').orderBy('createdAt', 'desc').limit(20));
-      revisions = revSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (_) {
-      revisions = [];
-    }
-    try {
-      const usersSnap = await freshFirestoreGet(db.collection('users'));
-      cloudUsers = usersSnap.docs.map(doc => normalizeCloudUser(doc.id, doc.data() || {})).filter(Boolean);
-    } catch (err) {
-      console.warn('Admin cloud users load failed', err);
-      cloudUsers = [];
-    }
-    try {
-      const tombSnap = await freshFirestoreGet(db.collection('usernames').where('deleteReusable', '==', true).limit(100));
-      cloudTombstones = tombSnap.docs.map(doc => normalizeUsernameTombstone(doc.id, doc.data() || {})).filter(Boolean);
-    } catch (err) {
-      console.warn('Admin username tombstones load failed', err);
-      cloudTombstones = [];
-    }
+    revisions = revSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    nextUsers = usersSnap.docs.map(doc => normalizeCloudUser(doc.id, doc.data() || {})).filter(Boolean);
+    nextTombstones = tombSnap.docs.map(doc => normalizeUsernameTombstone(doc.id, doc.data() || {})).filter(Boolean);
   }
   boards.sort((a, b) => a.id.localeCompare(b.id));
   published = { boards, revisions };
+  cloudUsers = nextUsers;
+  cloudTombstones = nextTombstones;
+  if (discardDraft) localStorage.removeItem(DRAFT_KEY);
   const saved = localStorage.getItem(DRAFT_KEY);
-  draft = saved ? JSON.parse(saved) : { boards: clone(boards) };
-  dirty = !!saved;
+  draftWarning = '';
+  draft = { boards: clone(boards) };
+  dirty = false;
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed.boards) || !parsed.boards.every(b => b && typeof b.originalId === 'string' && typeof b.urlId === 'string' && typeof b.tripName === 'string' && Array.isArray(b.participants) && b.characterIds && b.data)) throw new Error('invalid-draft');
+      draft = parsed;
+      dirty = true;
+    } catch (_) { draftWarning = 'อ่าน draft ที่บันทึกไว้ไม่ได้ กำลังแสดงข้อมูลที่ publish แล้ว ข้อมูล draft เดิมยังเก็บไว้จนกว่าจะ Save หรือ Restore'; }
+  }
+  adminLoadError = '';
+}
+async function refreshAdminData() {
+  try { await Promise.all([loadPublished(), refreshAdminBackendStatus()]); }
+  catch (_) { adminLoadError = 'โหลดข้อมูล Admin ไม่ครบ กรุณาลองใหม่ก่อนแก้ไขหรือ Publish'; }
+  render();
 }
 
 function boardById(id) { return draft.boards.find(b => b.originalId === id || b.urlId === id); }
@@ -292,12 +298,6 @@ function updateBoard(originalId, patch) {
   const board = boardById(originalId);
   if (!board) return;
   Object.assign(board, patch);
-  markDirty();
-}
-function updateUser(originalId, name, nextId) {
-  const board = boardById(originalId);
-  if (!board) return;
-  board.characterIds[name] = String(nextId || '').replace(/\D/g, '').slice(0, 4);
   markDirty();
 }
 function adminGroups() {
@@ -557,10 +557,11 @@ function boardStats(b) {
   const overdue = dragons.filter(d => Number(d.dueDay || 0) > 0).length;
   return { expenses: expenses.length, spend, dragons: dragons.length, balance, overdue };
 }
-function fmtMoney(v) { return '฿' + Math.round(Number(v || 0)).toLocaleString('th-TH'); }
+function fmtMoney(v) { return '฿' + Number(v || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function userReputation(u) { return u.chars.reduce((sum, c) => sum + Number(c.xp || 0), 0) + u.adminGroups.length * 800; }
 function userLevel(u) { return profileLevelFromReputation(userReputation(u)).lvl; }
 function idChip(kind, label, id = label, extra = '') {
+  if (kind === 'char') return staticIdChip(kind, label, extra);
   const safeKind = kind === 'debt' ? 'debt' : kind;
   const on = kind === 'char' ? '' : ` onclick="openDetail(${q(kind)},${q(id)})"`;
   const tag = kind === 'board' ? 'Board' : kind === 'admin' ? 'Admin' : kind === 'user' ? 'User' : 'Char';
@@ -601,13 +602,12 @@ function restoreBoard(id) {
     render();
   });
 }
-function supportAction(title, body) {
-  showModal(title, `${body} · Logged to Audit Log (Phase 1 local message)`, [{ label: 'ปิด', primary: true }]);
-}
-
 function addBoard() {
   confirmAction('เพิ่ม Board ใหม่?', 'จะเพิ่ม draft board ใหม่ ยังไม่ publish จนกด Publish', () => {
-    const id = 'new-' + uid().slice(-4);
+    const used = new Set(draft.boards.map(b => b.urlId));
+    const available = Array.from({ length: 9000 }, (_, i) => String(i + 1000)).filter(id => !used.has(id));
+    if (!available.length) throw new Error('ไม่มีรหัสบอร์ดว่าง');
+    const id = available[Math.floor(Math.random() * available.length)];
     const type = ['split', 'debt', 'treasury'].includes(boardFilter) ? boardFilter : 'split';
     draft.boards.push(normalizeBoard(id, { boardType: type, tripName: 'New Board', participants: [], characterIds: {}, admin: { adminId: 'ADM-' + uid().slice(-6), adminName: '' } }));
     draft.boards[draft.boards.length - 1].created = true;
@@ -615,24 +615,14 @@ function addBoard() {
     render();
   });
 }
-function addUser(boardId) {
+function setBoardArchived(boardId, archived) {
   const b = boardById(boardId);
   if (!b) return;
-  inputAction('เพิ่ม User', `เพิ่ม User ใหม่ใน Board ${b.urlId}`, 'ชื่อ User', name => {
-    if (!name || b.participants.includes(name)) return;
-    b.participants.push(name);
-    b.characterIds[name] = String(Math.floor(1000 + Math.random() * 9000));
-    dirty = true;
-    render();
-  });
-}
-function deleteUser(boardId, name) {
-  const b = boardById(boardId);
-  if (!b) return;
-  confirmAction('ลบ User?', `ลบ ${name} จาก ${b.urlId}`, () => {
-    b.participants = b.participants.filter(x => x !== name);
-    delete b.characterIds[name];
-    dirty = true;
+  confirmAction(archived ? 'Archive board?' : 'Reopen board?', `${b.urlId}: เก็บสมาชิกและรายการเงินทั้งหมดไว้ การเปลี่ยนแปลงมีผลเมื่อ Publish`, () => {
+    b.data.archived = archived;
+    b.data.archivedAt = archived ? Date.now() : null;
+    b.data.status = archived ? 'archived' : 'active';
+    markDirty();
     render();
   });
 }
@@ -666,6 +656,7 @@ function diffBoards() {
     old.participants.forEach(name => {
       if (!b.participants.includes(name)) changes.push({ area: 'Users', action: 'Deleted', detail: `${name} from ${b.urlId}` });
     });
+    if (PointyLogic.tripContentKey(old.data) !== PointyLogic.tripContentKey(b.data)) changes.push({ area: 'Boards', action: 'Updated', detail: `${b.urlId} board data updated${b.data.archived ? ' (archived)' : ''}` });
   });
   return changes;
 }
@@ -673,26 +664,29 @@ function validateDraft() {
   const ids = new Set();
   for (const b of draft.boards.filter(x => !x.deleted)) {
     if (!b.urlId) return 'Board URL ห้ามว่าง';
+    if ((b.created || b.urlId !== b.originalId) && !/^\d{4}$/.test(b.urlId)) return 'รหัสบอร์ดใหม่ต้องเป็นตัวเลข 4 หลัก';
+    if (!b.tripName.trim() || b.tripName.trim().length > 100) return 'ชื่อบอร์ดต้องมี 1–100 ตัวอักษร';
     if (ids.has(b.urlId)) return `Board URL ซ้ำ: ${b.urlId}`;
     ids.add(b.urlId);
   }
   return '';
 }
 function saveDraft() {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); }
+  catch (_) { showModal('บันทึกไม่สำเร็จ', 'พื้นที่จัดเก็บไม่พร้อม ข้อมูลที่แก้ยังอยู่บนหน้านี้ กรุณาลองใหม่', [{ label: 'ปิด' }]); return; }
   dirty = true;
+  draftWarning = '';
   showModal('Saved', 'บันทึก draft ลง localStorage แล้ว', [{ label: 'ปิด' }]);
   render();
 }
 function restoreDraft() {
-  confirmAction('Restore?', 'ทิ้ง draft และโหลดเวอร์ชันล่าสุดที่ publish แล้ว', () => {
-    localStorage.removeItem(DRAFT_KEY);
-    draft = { boards: clone(published.boards) };
-    dirty = false;
+  confirmAction('Restore?', 'ทิ้ง draft และโหลดข้อมูลที่ publish จากเซิร์ฟเวอร์อีกครั้ง', async () => {
+    await loadPublished({ discardDraft: true });
     render();
   });
 }
 async function publishDraft() {
+  if (adminLoadError || draftWarning) { showModal('Publish ไม่ได้', adminLoadError || draftWarning, [{ label: 'ปิด' }]); return; }
   const err = validateDraft();
   if (err) { showModal('Publish ไม่ได้', err, [{ label: 'ปิด' }]); return; }
   const changes = diffBoards();
@@ -737,7 +731,7 @@ function materializeBoard(b) {
   return data;
 }
 function revisionDoc(changes) {
-  return { id: uid(), createdAt: Date.now(), author: 'Phase 1 Super Admin', changes };
+  return { id: uid(), createdAt: Date.now(), author: TEST_MODE ? 'Test Admin' : adminUser?.email || SUPER_ADMIN_EMAIL, changes };
 }
 
 function filtered(list, keys) {
@@ -758,7 +752,22 @@ function statCard(label, value, detail, ico = '◇', tone = 'flat') {
   return `<div class="stat stat-card"><div class="s-top"><div class="s-label">${h(label)}</div><div class="s-ico">${ico}</div></div><div class="s-val">${value}</div>${detail ? `<div class="s-delta ${tone}">${detail}</div>` : ''}</div>`;
 }
 function searchBox(placeholder) {
-  return `<div class="search"><span class="s-ico">⌕</span><input placeholder="${h(placeholder)}" value="${h(query)}" oninput="query=this.value;render()"></div>`;
+  return `<div class="search"><span class="s-ico">⌕</span><input id="admin-search" aria-label="${h(placeholder)}" placeholder="${h(placeholder)}" value="${h(query)}" oninput="filterAdmin(this)"></div>`;
+}
+function filterAdmin(input) {
+  query = input.value;
+  const page = document.querySelector('.admin-page');
+  const toolbar = page?.querySelector(':scope > .toolbar');
+  if (!toolbar) return;
+  const next = document.createElement('div');
+  next.innerHTML = renderPageBody();
+  // Keep the live input mounted: replacing it interrupts typing and IME composition.
+  for (const child of [...page.children]) if (child !== toolbar) child.remove();
+  let afterToolbar = false;
+  for (const child of [...next.children]) {
+    if (child.classList.contains('toolbar')) { afterToolbar = true; continue; }
+    if (afterToolbar) page.append(child); else page.insertBefore(child, toolbar);
+  }
 }
 function seg(name, value, items) {
   return `<div class="seg">${items.map(([key, label]) => `<button type="button" class="${value === key ? 'on' : ''}" onclick="${name}='${key}';render()">${h(label)}</button>`).join('')}</div>`;
@@ -787,7 +796,7 @@ function modBadge(type) {
 function statusBadge(label, cls = 'active') {
   return `<span class="badge st-${cls}">${h(label)}</span>`;
 }
-function statusForBoard(b) { return b.deleted ? 'deleted' : b.data?.status || (b.deleted ? 'archived' : 'active'); }
+function statusForBoard(b) { return b.deleted ? 'deleted' : b.data?.archived ? 'archived' : b.data?.status || 'active'; }
 function statusBadgeFor(value) {
   const key = String(value || 'active').toLowerCase();
   const cls = key === 'flagged' || key === 'deactivated' || key === 'delete_requested' || key === 'deleted'
@@ -844,16 +853,6 @@ function auditEntries() {
     action: c.detail,
     target: c.detail.match(/\b\d{4}\b/)?.[0] || 'revision'
   })));
-  if (!drafts.length && !publishedRows.length) {
-    return activeBoards().slice(0, 8).map(b => ({
-      id: `board-${b.originalId}`,
-      ts: b.data?.updatedAt || Date.now(),
-      actor: b.adminName || 'Super Admin',
-      scope: 'board',
-      action: `${b.tripName} active snapshot`,
-      target: b.urlId
-    }));
-  }
   return [...drafts, ...publishedRows].sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0));
 }
 function renderDashboard() {
@@ -879,7 +878,7 @@ function renderDashboard() {
   </div>`;
   const quick = `<div class="log-list">
     <div class="log-item"><div class="log-ico add">＋</div><div class="log-body"><div class="log-text">Create a new board draft</div><div class="log-meta">Not published until Publish</div></div><div class="log-actions"><button class="btn btn-primary sm" onclick="addBoard()">New board</button></div></div>
-    <div class="log-item"><div class="log-ico edit">👤</div><div class="log-body"><div class="log-text">Invite / add user</div><div class="log-meta">Create character links inside a board</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('users')">Open</button></div></div>
+    <div class="log-item"><div class="log-ico edit">👤</div><div class="log-body"><div class="log-text">Inspect accounts</div><div class="log-meta">View profiles and account lifecycle</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('users')">Open</button></div></div>
     <div class="log-item"><div class="log-ico slay">🧾</div><div class="log-body"><div class="log-text">Version control</div><div class="log-meta">${diffBoards().length} local changes</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('revisions')">Open</button></div></div>
   </div>`;
   const feed = recent.length ? `<div class="log-list">${recent.map(c => `<div class="log-item"><div class="log-ico ${String(c.action).toLowerCase().slice(0,3) === 'add' ? 'add' : 'edit'}">✦</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div>` : '<div class="empty"><div class="e-ico">🧾</div><div class="e-t">No local draft changes yet</div><div class="e-d">Edits appear here before publishing.</div></div>';
@@ -923,7 +922,7 @@ function renderRelationshipMap() {
   </div>`;
   const rules = `<ul class="model-rules">
     <li>One User ID works across Split Expenses, Debt Dragon, Treasury, and Character Profile.</li>
-    <li>Current player/auth canon: one User ID has one active Character. Admin can edit that character's name/class/XP.</li>
+    <li>Current player/auth canon: one User ID has one active Character. Character identity is managed through the account profile, not board-local overrides.</li>
     <li>Character XP uses PointyLogic.levelFromXp(); Profile Reputation uses PointyLogic.levelFromReputation().</li>
     <li>A user can be a board admin through one or more Admin IDs, and one Admin ID can own multiple boards.</li>
     <li>Compare Prices is a tool, not a Board.</li>
@@ -941,14 +940,14 @@ function boardRows() {
       <td>${editInput(b.adminName, `updateBoard(${q(b.originalId)},{adminName:this.value})`)}</td>
       <td>${editInput('', `updateBoard(${q(b.originalId)},{newPassword:this.value})`, { type:'password', placeholder:'ตั้งรหัสใหม่' })}</td>
       <td><span class="pill">${b.participants.length}</span> <span class="muted">${b.type === 'debt' ? `${st.dragons} dragons` : `${st.expenses} quests`}</span></td>
-      <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Detail</button><button class="btn btn-ghost sm" onclick="addUser(${q(b.originalId)})">+ User</button><button class="btn btn-danger sm" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></td>
+      <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Detail</button><button class="btn btn-danger sm" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></td>
     </tr>`;
   }).join('');
 }
 function renderBoards() {
   if (detail?.kind === 'board') return renderBoardDetail(detail.id);
   const toolbar = `<div class="toolbar">${searchBox('ค้นหา board/admin')}${seg('boardFilter', boardFilter, [['all','all'],['split','split'],['debt','debt'],['treasury','treasury']])}<button class="btn btn-primary" onclick="addBoard()">+ เพิ่ม Board</button></div>`;
-  const visibleBoards = activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter);
+  const visibleBoards = filtered(activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter), ['urlId', 'tripName', 'adminId', 'adminName']);
   return `${pageHead('Boards', 'All created Split, Debt, and Treasury boards')}${toolbar}${quickOpen(visibleBoards, 'board', b => b.urlId)}${card('Boards', table(['URL','Type','ชื่อ Board','Admin ID','ชื่อเล่น Admin','Reset Password','Members',''], boardRows()))}`;
 }
 function renderBoardDetail(id) {
@@ -972,8 +971,8 @@ function renderBoardDetail(id) {
         ? `${statCard('Dragons', st.dragons, 'tracked debts', '🐉')}${statCard('Balance', fmtMoney(st.balance), 'outstanding', '💳')}${statCard('Overdue', st.overdue, 'needs attention', '🔥', st.overdue ? 'down' : 'flat')}${statCard('Party size', b.participants.length, 'slayers', '👥')}`
         : b.type === 'treasury'
         ? `${statCard('Monthly income', fmtMoney(b.data?.treasury?.income || 0), 'treasury', '💰')}${statCard('Spent', fmtMoney(st.spend), 'logged', '🗡️')}${statCard('Party size', b.participants.length, 'owner party', '👥')}${statCard('Quests', st.expenses, 'entries', '📜')}`
-        : `${statCard('Quests', st.expenses, 'ledger rows', '📜')}${statCard('Total spend', fmtMoney(st.spend), 'party spend', '💰')}${statCard('Party size', b.participants.length, 'heroes', '👥')}${statCard('Unsettled', fmtMoney(0), 'draft proxy', '💸')}`}
-    </div><div class="mt16"><div class="spark">${[22, 40, 28, 48, 36, 58, 44].map(v => `<i style="height:${v}%"></i>`).join('')}</div></div>`)}
+        : `${statCard('Quests', st.expenses, 'ledger rows', '📜')}${statCard('Total spend', fmtMoney(st.spend), 'party spend', '💰')}${statCard('Party size', b.participants.length, 'heroes', '👥')}`}
+    </div>`)}
     ${card('Owner / Admin', adminForm, '', 'wide')}
   </div>`;
   const members = b.participants.map(name => {
@@ -981,17 +980,17 @@ function renderBoardDetail(id) {
     const c = charById(charId) || { className: b.data?.heroClasses?.[name] || 'hero', xp: 0 };
     const uId = userKey(name, charId);
     const role = name === b.adminName || charId === b.data?.admin?.characterId ? 'Owner' : b.type === 'debt' ? 'Slayer' : 'Hero';
-    return `<tr><td><div class="flex gap8" style="align-items:center"><span style="font-size:18px">⚔️</span><span class="cell-strong">${h(name)}</span> ${idChip('char', charId || '-', charId)}</div></td><td>${idChip('user', uId, uId)}</td><td>${h(c.className)}</td><td>${levelBadge(characterLevelFromXp(c.xp).lvl)}</td><td><span class="badge ${role === 'Owner' ? 'role' : 'outline'}">${role === 'Owner' ? '👑 ' : ''}${role}</span></td><td>${editInput(charId, `updateUser(${q(b.originalId)},${q(name)},this.value)`, { small:true, max:4 })}</td><td class="td-actions"><button class="btn btn-danger sm" onclick="deleteUser(${q(b.originalId)},${q(name)})">ลบ</button></td></tr>`;
+    return `<tr><td><div class="flex gap8" style="align-items:center"><span style="font-size:18px">⚔️</span><span class="cell-strong">${h(name)}</span> ${idChip('char', charId || '-', charId)}</div></td><td>${idChip('user', uId, uId)}</td><td>${h(c.className)}</td><td>${levelBadge(characterLevelFromXp(c.xp).lvl)}</td><td><span class="badge ${role === 'Owner' ? 'role' : 'outline'}">${role === 'Owner' ? '👑 ' : ''}${role}</span></td></tr>`;
   }).join('');
-  const membersPanel = card('👥 Members', `${table(['Character','User ID','Class','Level','Role','Edit ID',''], members)}<button class="btn btn-ghost mt12" onclick="addUser(${q(b.originalId)})">+ Add user</button>`);
+  const membersPanel = card('👥 Members', `${table(['Character','User ID','Class','Level','Role'], members)}<p class="hint">สมาชิกจริงเข้าร่วมผ่านคำเชิญ Character ID; จัดการสมาชิกและ Guest ภายใน Party Ledger</p><a class="btn btn-ghost" href="/trip/?id=${encodeURIComponent(b.urlId)}${TEST_MODE ? '&test=1' : ''}">Open Party Ledger</a>`);
   const changeRows = diffBoards().filter(c => c.detail.includes(b.originalId) || c.detail.includes(b.urlId) || c.detail.includes(b.tripName)).map(c => `<div class="log-item"><div class="log-ico edit">✏️</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div><div class="log-actions"><button class="btn tiny btn-ghost" onclick="restoreBoard(${q(b.originalId)})">↩ Revert</button></div></div>`).join('') || '<div class="empty"><div class="e-t">No draft changes for this board</div></div>';
   const logPanel = card('📜 Change Log', `<div class="log-list">${changeRows}</div>`);
-  const versionRows = versions.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ` <span class="badge st-active">Current</span>` : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(typeof v.at === 'number' ? new Date(v.at).toLocaleString() : v.at)}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions">${!v.current ? `<button class="btn tiny btn-ghost" onclick="restoreBoard(${q(b.originalId)})">↺ Restore</button>` : ''}</div></div>`).join('');
+  const versionRows = versions.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ` <span class="badge st-active">Current</span>` : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(typeof v.at === 'number' ? new Date(v.at).toLocaleString() : v.at)}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions"></div></div>`).join('');
   const versionsPanel = card('🕰️ Versions', `<div class="log-list">${versionRows}</div>`);
   const dangerPanel = `<div class="grid" style="gap:14px">
     <div class="phase-note" style="margin:0"><span class="pn-ico">🔒</span><span>In-app board admins can only archive a board. Permanent delete is a Super Admin action here.</span></div>
-    <div class="danger-zone between"><div><h4>♻️ Reset board data</h4><div class="cell-sub">Clears quests/dragons but keeps members and admin metadata.</div></div><button class="btn btn-danger" onclick="restoreBoard(${q(b.originalId)})">Reset board data</button></div>
-    <div class="danger-zone between"><div><h4>📦 Archive board</h4><div class="cell-sub">Hide from use while keeping data recoverable.</div></div><button class="btn btn-gold" onclick="deleteBoard(${q(b.originalId)})">Archive board</button></div>
+
+    <div class="danger-zone between"><div><h4>${b.data.archived ? '📂 Reopen board' : '📦 Archive board'}</h4><div class="cell-sub">${b.data.archived ? 'Return this board to active use with its existing data.' : 'Hide from use while keeping data recoverable.'}</div></div><button class="btn btn-gold" onclick="setBoardArchived(${q(b.originalId)},${!b.data.archived})">${b.data.archived ? 'Reopen board' : 'Archive board'}</button></div>
     <div class="danger-zone between" style="border-color:var(--danger)"><div><h4>🗑️ Delete board</h4><div class="cell-sub">Delete the board and all data after Publish.</div></div><button class="btn btn-danger" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div>
   </div>`;
   const tabbed = `${tabs('boardDetailTab', boardDetailTab, [
@@ -1016,7 +1015,7 @@ function renderAdmins() {
       <td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td>
       <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('admin',${q(g.key)})">Detail</button></td>
     </tr>`).join('');
-  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards', `<button class="btn btn-ghost" onclick="supportAction('Invite Admin','เลือก user แล้วผูก Admin ID เข้ากับ board')">Invite admin</button>`)}<div class="toolbar">${searchBox('ค้นหา admin')}</div>${quickOpen(groups, 'admin', g => g.adminId || '-')}${card('Board Admins', table(['ID','ชื่อเล่น','User','Owner Hash','Boards',''], rows))}`;
+  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards')}<div class="toolbar">${searchBox('ค้นหา admin')}</div>${quickOpen(groups, 'admin', g => g.adminId || '-')}${card('Board Admins', table(['ID','ชื่อเล่น','User','Owner Hash','Boards',''], rows))}`;
 }
 function renderAdminDetail(key) {
   const g = adminGroupByKey(key);
@@ -1042,7 +1041,7 @@ function renderUsers() {
       <td>${statusBadgeFor(u.status)}</td>
       <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.chars[0]?.id || ''))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(u.userId)})">Detail</button></td>
     </tr>`).join('');
-  return `${pageHead('Users', `${records.length} global users · one active character per User ID`, `<button class="btn btn-primary" onclick="showAddUserModal()">+ Add user</button>`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Profile reputation','Admin role','Status',''], rows))}`;
+  return `${pageHead('Users', `${records.length} global users · one active character per User ID`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Profile reputation','Admin role','Status',''], rows))}`;
 }
 function renderTombstones() {
   const records = tombstoneRecords().filter(u => !query || `${u.username || ''} ${u.userId || ''} ${(u.characterIds || []).join(' ')}`.toLowerCase().includes(query.toLowerCase()));
@@ -1075,9 +1074,9 @@ function renderUserDetail(id) {
     <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
     <div class="kv-row"><span class="k">Is admin</span><span class="v">${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length}</span>` : 'Not an admin'}</span></div>
   </div>`);
-  const activitySpark = flatCard(`<p class="section-label">📊 14-day activity</p><div class="spark">${[18, 52, 38, 64, 42, 70, 54].map(v => `<i style="height:${v}%"></i>`).join('')}</div>`);
+
   const chars = u.chars.map(c => `<div class="card flat card-pad" style="padding:15px 16px">
-    <div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:48px;height:48px;font-size:24px;border-radius:12px;margin:0">⚔️</div><div><div style="font-weight:700;font-size:15px">${h(c.name)} ${idChip('char', c.id || '-', c.id)}</div><div class="cell-sub mt8" style="margin-top:3px">Class: <b>${h(c.className)}</b> · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</div></div></div><button class="btn sm btn-ghost" onclick="showEditCharModal(${q(u.userId)},${q(c.id)})">Edit</button></div>
+    <div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:48px;height:48px;font-size:24px;border-radius:12px;margin:0">⚔️</div><div><div style="font-weight:700;font-size:15px">${h(c.name)} ${idChip('char', c.id || '-', c.id)}</div><div class="cell-sub mt8" style="margin-top:3px">Class: <b>${h(c.className)}</b> · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</div></div></div><a class="btn sm btn-ghost" href="${h(characterProfileLink(c.id))}">Profile</a></div>
     <div class="xpbar mt12"><span style="width:${Math.min(100, characterLevelFromXp(c.xp).pct || 0)}%"></span></div>
     <div class="mt12"><div class="section-label" style="margin:0 0 7px">🔗 Appears in</div><div class="wrap-chips">${c.boards.map(bid => { const b = boardById(bid); return b ? `<button type="button" class="idchip k-board" onclick="openDetail('board',${q(b.originalId)})"><span class="ic-ico">${boardTypeIcon(b)}</span>${h(b.tripName)} · ${h(b.urlId)}</button>` : ''; }).join('') || '<span class="muted cell-sub">No boards</span>'}</div></div>
   </div>`).join('');
@@ -1102,20 +1101,20 @@ function renderUserDetail(id) {
     : userDetailTab === 'boards'
     ? card('🗂️ Boards', table(['Board','Name','Type','As character',''], boards))
     : userDetailTab === 'admin'
-    ? card('🛡️ Admin roles', `<div class="card-pad">${adminRows}<button class="btn btn-ghost mt12" onclick="showInviteAdminModal(${q(u.userId)})">+ Invite admin</button></div>`)
+    ? card('🛡️ Admin roles', `<div class="card-pad">${adminRows}</div>`)
     : userDetailTab === 'lifecycle'
     ? lifecyclePanel
     : card('📜 Activity', `<div class="card-pad" style="padding-top:4px;padding-bottom:8px"><div class="log-list">${activityRows}</div></div>`);
-  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div>${pageHead(u.name, 'User profile (one User ID)', `<button class="btn btn-ghost" onclick="showImpersonateModal(${q(u.userId)})">🎭 Impersonate user</button><button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">🔑 Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">📤 Export data</button><button class="btn btn-danger" onclick="userDetailTab='lifecycle';render()">🧯 Lifecycle</button>`)}<div class="detail-grid"><div>${profile}${activitySpark}</div><div>${tabs('userDetailTab', userDetailTab, [{key:'chars',label:'Character',count:u.chars.length},{key:'boards',label:'Boards',count:u.boards.length},{key:'admin',label:'Admin roles',count:u.adminGroups.length},{key:'activity',label:'Activity'},{key:'lifecycle',label:'Lifecycle'}])}${body}</div></div>`;
+  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div>${pageHead(u.name, 'User profile (one User ID)', `<button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">🔑 Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">📤 Export data</button><button class="btn btn-danger" onclick="userDetailTab='lifecycle';render()">🧯 Lifecycle</button>`)}<div class="detail-grid"><div>${profile}</div><div>${tabs('userDetailTab', userDetailTab, [{key:'chars',label:'Character',count:u.chars.length},{key:'boards',label:'Boards',count:u.boards.length},{key:'admin',label:'Admin roles',count:u.adminGroups.length},{key:'activity',label:'Activity'},{key:'lifecycle',label:'Lifecycle'}])}${body}</div></div>`;
 }
 function renderAuditLog() {
   const scopeIco = { board:'🗂️', user:'👤', admin:'🛡️', system:'⚙️' };
   const rows = auditEntries()
     .filter(a => auditFilter === 'all' || a.scope === auditFilter)
     .filter(a => !query || `${a.actor} ${a.action} ${a.target}`.toLowerCase().includes(query.toLowerCase()));
-  const body = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Actor</th><th>Scope</th><th>Action</th><th>Target</th><th></th></tr></thead><tbody>${rows.map(a => `<tr><td class="cell-sub mono nowrap">${h(new Date(a.ts).toLocaleString())}</td><td class="cell-strong">${h(a.actor)}</td><td><span class="badge outline">${scopeIco[a.scope] || '•'} ${h(a.scope)}</span></td><td>${h(a.action)}</td><td>${a.scope === 'board' && a.target !== 'draft' ? idChip('board', a.target, a.target) : a.scope === 'user' ? idChip('user', a.target, a.target) : `<span class="mono cell-sub">${h(a.target)}</span>`}</td><td class="td-right">${a.scope !== 'system' ? '<button class="btn tiny btn-ghost">View diff</button>' : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  const body = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Actor</th><th>Scope</th><th>Action</th><th>Target</th></tr></thead><tbody>${rows.map(a => `<tr><td class="cell-sub mono nowrap">${h(new Date(a.ts).toLocaleString())}</td><td class="cell-strong">${h(a.actor)}</td><td><span class="badge outline">${scopeIco[a.scope] || '•'} ${h(a.scope)}</span></td><td>${h(a.action)}</td><td>${a.scope === 'board' && a.target !== 'draft' ? idChip('board', a.target, a.target) : a.scope === 'user' ? idChip('user', a.target, a.target) : `<span class="mono cell-sub">${h(a.target)}</span>`}</td></tr>`).join('')}</tbody></table></div>`;
   const filter = `${searchBox('Search audit')} ${seg('auditFilter', auditFilter, [['all','All types'],['board','Board'],['user','User'],['admin','Admin'],['system','System']])}`;
-  return `${pageHead('Audit Log', 'Every change across the system, with actor and target')}${`<div class="toolbar">${filter}</div>`}${card('Audit Log', rows.length ? body : '<div class="empty"><div class="e-t">No audit entries yet</div></div>')}`;
+  return `${pageHead('Audit Log', 'Published board changes and local draft changes, with actor and target')}${`<div class="toolbar">${filter}</div>`}${card('Audit Log', rows.length ? body : '<div class="empty"><div class="e-t">No audit entries yet</div></div>')}`;
 }
 function renderRevisions() {
   const revs = published.revisions || [];
@@ -1124,25 +1123,29 @@ function renderRevisions() {
     { v:'current', at:Date.now(), by:'Local Draft', current:true, note: current.length ? `${current.length} unpublished changes` : 'Published version' },
     ...revs.map((rev, i) => ({ v:`v${revs.length - i}`, at:rev.createdAt, by:rev.author || 'Super Admin', current:false, note:`${(rev.changes || []).length} changes`, rev }))
   ];
-  const body = `<div class="log-list">${versionRows.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ' <span class="badge st-active">Published</span>' : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(v.at ? new Date(v.at).toLocaleString() : '—')}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions"><button class="btn tiny btn-ghost">View diff</button>${!v.current ? '<button class="btn tiny btn-ghost" onclick="restoreDraft()">↺ Restore</button>' : ''}</div></div>`).join('')}</div>`;
+  const body = `<div class="log-list">${versionRows.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ` <span class="badge st-active">${current.length ? 'Draft' : 'Published'}</span>` : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(v.at ? new Date(v.at).toLocaleString() : '—')}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div></div>`).join('')}</div>`;
   const revDetails = revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div></details>`).join('');
-  const actions = `<button class="btn btn-ghost" onclick="saveDraft()">💾 Save snapshot</button><button class="btn btn-primary" onclick="publishDraft()">🚀 Publish now${current.length ? ` (${current.length})` : ''}</button>`;
-  return `${pageHead('Versions & Publishing', 'System-wide snapshots: save, restore, and publish', actions)}<div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode writes the draft to session/local storage for regression.' : 'Super Admin is Google-auth protected. Publish writes the current admin draft to storage.')}</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
+  const actions = `<button class="btn btn-ghost" onclick="saveDraft()">💾 Save draft</button><button class="btn btn-primary" onclick="publishDraft()">🚀 Publish now${current.length ? ` (${current.length})` : ''}</button>`;
+  return `${pageHead('Versions & Publishing', 'Board draft publishing history; expand a revision below to view its changes', actions)}<div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode writes the draft to session/local storage for regression.' : 'Super Admin is Google-auth protected. Publish writes the current admin draft to storage.')}</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
 }
 function renderSupportTools() {
-  const cards = [
-    ['impersonate','🎭','Impersonate user','Open the app in a user view (read-only).','Open user view','showImpersonateModal()','btn-ghost'],
-    ['reset','🔑','Reset password','Set a temporary password for a user or admin.','Reset password','showResetPwModal()','btn-ghost'],
-    ['export','📤','Export data','Download board or user data as JSON.','Export JSON','showExportModal()','btn-gold'],
-    ['merge','🔗','Merge accounts','Merge duplicate users into one User ID.','Run','showMergeModal()','btn-ghost'],
-  ];
-  const toolCards = `<div class="grid g-2">${cards.map(c => `<div class="card card-pad"><div class="flex gap12" style="align-items:flex-start"><div class="s-ico" style="width:42px;height:42px;font-size:20px;background:var(--panel-2)">${c[1]}</div><div style="flex:1"><div style="font-family:var(--font-display);font-weight:600;font-size:16px">${c[2]}</div><div class="cell-sub mt8" style="margin-top:4px">${c[3]}</div><button class="btn ${c[6]} mt12" style="margin-top:14px" onclick="${c[5]}">${c[4]}</button></div></div></div>`).join('')}</div>`;
-  const flows = `<div class="page-head-actions"><button class="btn btn-primary" onclick="addBoard()">New board</button><button class="btn btn-ghost" onclick="showInviteAdminModal()">Invite admin</button><button class="btn btn-ghost" onclick="showAddUserModal()">Add user</button></div>`;
-  return `${pageHead('Support Tools', 'Tools for helping users; every action should be audit logged.')}${`<div class="phase-note"><span class="pn-ico">🛡️</span><span>Every action here is recorded in the Audit Log once wired to production security.</span></div>`}${toolCards}<div class="mt16">${card('Create / invite flows', flows)}</div>`;
+  return `${pageHead('Support Tools', 'Account support and data exports')}
+    <div class="grid g-2">
+      ${card('🔑 Reset password', '<p>Reset an existing account through the verified Admin backend.</p><button class="btn btn-ghost" onclick="showResetPwModal()">Reset password</button>')}
+      ${card('📤 Export data', '<p>Download the currently loaded board or user data as JSON, excluding authentication secrets.</p><button class="btn btn-gold" onclick="showExportModal()">Export JSON</button>')}
+      ${card('👤 Users', '<p>Inspect account profiles, board links and account lifecycle.</p><button class="btn btn-ghost" onclick="selectTab(\'users\')">View users</button>')}
+      ${card('🗂️ Boards', '<p>Review boards and publish verified draft changes.</p><button class="btn btn-ghost" onclick="selectTab(\'boards\')">View boards</button>')}
+    </div>`;
 }
-function panel(title, body) { return card(title, body); }
+function renderPageBody() {
+  return tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'tombstones' ? renderTombstones() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
+}
 function renderMain() {
-  const body = tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'tombstones' ? renderTombstones() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
+  if (adminLoadError) {
+    document.getElementById('app').innerHTML = `<main class="gate"><section class="gate-card card card-pad"><h1>โหลดข้อมูลไม่สำเร็จ</h1><p role="alert">${h(adminLoadError)}</p><button class="btn btn-primary" onclick="refreshAdminData()">ลองใหม่</button></section></main>`;
+    return;
+  }
+  const body = renderPageBody();
   const changes = diffBoards().length;
   const groups = [
     ['Overview', [['dashboard', 'Dashboard', '📊'], ['map', 'Relationship Map', '🕸️']]],
@@ -1172,8 +1175,9 @@ function renderMain() {
     <div class="shell">
       <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${visibleUserRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
       <main class="main">
+        ${draftWarning ? `<div class="phase-note" role="alert">${h(draftWarning)}</div>` : ''}
         <div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}. ${adminDeleteBackendNote()}`)}</span></div>
-        ${body}
+        <div class="admin-page">${body}</div>
       </main>
     </div>
   </div>`;
@@ -1194,25 +1198,55 @@ function render() { isUnlocked() ? renderMain() : renderGate(); }
 function userOptions(selected = '') {
   return visibleUserRecords().map(u => `<option value="${h(u.userId)}" ${u.userId === selected ? 'selected' : ''}>${h(u.name)} · ${h(u.userId)}</option>`).join('');
 }
-function boardOptions(selected = '') {
-  return activeBoards().map(b => `<option value="${h(b.originalId)}" ${b.originalId === selected || b.urlId === selected ? 'selected' : ''}>${h(b.tripName)} · ${h(b.urlId)}</option>`).join('');
+let modalReturnFocus = null;
+function activatePortalModal() {
+  const root = document.getElementById('modal-root');
+  if (!root.classList.contains('show')) modalReturnFocus = document.activeElement;
+  root.classList.add('show');
+  const dialog = root.querySelector('.modal');
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-labelledby', 'admin-modal-title');
+  dialog.querySelector('h3').id = 'admin-modal-title';
+  dialog.querySelector('.x-btn')?.setAttribute('aria-label', 'Close');
+  const focusable = () => [...dialog.querySelectorAll('button:not(:disabled),input:not([type="hidden"]):not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')].filter(el => el.getClientRects().length);
+  root.onkeydown = event => {
+    if (event.key === 'Escape') { event.preventDefault(); closePortalModal(); }
+    if (event.key === 'Tab') {
+      const elements = focusable(), first = elements[0], last = elements.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+  };
+  focusable()[0]?.focus();
 }
 function closePortalModal() {
   const root = document.getElementById('modal-root');
   root.classList.remove('show');
   root.innerHTML = '';
+  root.onkeydown = null;
+  if (modalReturnFocus?.isConnected) modalReturnFocus.focus();
 }
 function portalModal(title, body, footer = '') {
   const root = document.getElementById('modal-root');
   root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${title}</h3><button class="x-btn" onclick="closePortalModal()">×</button></div><div class="modal-body">${body}</div>${footer ? `<div class="modal-foot">${footer}</div>` : ''}</div>`;
-  root.classList.add('show');
+  activatePortalModal();
 }
 function showExportModal(target = '') {
-  const body = `<div class="field"><label>Select board / user</label><select id="export-target"><option value="">All</option><optgroup label="Boards">${activeBoards().map(b => `<option value="b:${h(b.originalId)}" ${b.originalId === target || b.urlId === target ? 'selected' : ''}>🗂️ ${h(b.tripName)} · ${h(b.urlId)}</option>`).join('')}</optgroup><optgroup label="Users">${visibleUserRecords().map(u => `<option value="u:${h(u.userId)}" ${u.userId === target ? 'selected' : ''}>👤 ${h(u.name)} · ${h(u.userId)}</option>`).join('')}</optgroup></select></div><div class="field"><label>Format</label><select><option>JSON</option><option>CSV</option></select></div>`;
-  portalModal('📤 Export data', body, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-gold" onclick="supportAction('Export data','Prepared coin-quest-export.json');closePortalModal()">Export JSON</button>`);
+  const body = `<div class="field"><label for="export-target">Select board / user</label><select id="export-target"><option value="">All</option><optgroup label="Boards">${activeBoards().map(b => `<option value="b:${h(b.originalId)}" ${b.originalId === target || b.urlId === target ? 'selected' : ''}>🗂️ ${h(b.tripName)} · ${h(b.urlId)}</option>`).join('')}</optgroup><optgroup label="Users">${visibleUserRecords().map(u => `<option value="u:${h(u.userId)}" ${u.userId === target ? 'selected' : ''}>👤 ${h(u.name)} · ${h(u.userId)}</option>`).join('')}</optgroup></select></div><p class="hint">JSON snapshot of the data currently loaded, including local draft changes. Authentication and recovery secrets are excluded.</p>`;
+  portalModal('📤 Export data', body, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-gold" onclick="exportAdminData()">Export JSON</button>`);
 }
-function showImpersonateModal(uid = '') {
-  portalModal('🎭 Impersonate user', `<div class="field"><label>Select user</label><select>${userOptions(uid)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">👁️</span><span>Read-only mode. Actions should be logged when production auth is wired.</span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Impersonate user','Opened read-only user view');closePortalModal()">Open user view</button>`);
+function exportAdminData() {
+  const target = document.getElementById('export-target').value;
+  const boards = activeBoards().filter(b => !target || target === `b:${b.originalId}`).map(b => ({ id: b.urlId, data: materializeBoard(b) }));
+  const accounts = visibleUserRecords().filter(u => !target || target === `u:${u.userId}`).map(u => ({ userId: u.userId, name: u.name, username: u.username || '', status: u.status, characters: u.chars.map(c => ({ id: c.id, name: c.name, class: c.className, xp: c.xp })), boardIds: u.boards.map(b => b.urlId) }));
+  const data = window.CoinQuestAdminUtils.redactExportSecrets({ schema: 'coin-quest-admin-export-v1', exportedAt: new Date().toISOString(), source: dirty ? 'local-draft' : 'loaded-published', boards, users: accounts });
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'coin-quest-admin-export.json';
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  closePortalModal();
 }
 function showResetPwModal(id = '') {
   const temp = tempPassword();
@@ -1234,7 +1268,6 @@ async function performAdminPasswordReset() {
   }
   if (TEST_MODE) {
     const recoveryCode = recoveryCodeValue();
-    supportAction('Reset password', `Prepared test-mode reset for ${username}`);
     portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(recoveryCode)}" readonly><div class="hint">Test mode simulates the backend handoff without touching Firebase Auth.</div></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
     return;
   }
@@ -1250,16 +1283,12 @@ async function performAdminPasswordReset() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || data.message || `Backend returned ${res.status}`);
-    supportAction('Reset password', `Admin reset username ${username}`);
     portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(data.username || username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(data.recoveryCode || '')}" readonly><div class="hint">Give this to the user once. It replaces their previous recovery code.</div></div><div class="field"><label>User ID</label><input class="mono" value="${h(data.userId || '')}" readonly></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
     await loadPublished();
     render();
   } catch (error) {
     setError(error?.message || 'Reset failed.');
   }
-}
-function showMergeModal() {
-  portalModal('🔗 Merge accounts', `<div class="field"><label>Keep this user</label><select>${userOptions()}</select></div><div class="field"><label>Merge from (will be removed)</label><select>${userOptions()}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">⚠️</span><span>All characters and boards move to the kept User ID. <b>This action cannot be undone.</b></span></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="supportAction('Merge accounts','Prepared duplicate-user merge');closePortalModal()">Confirm</button>`);
 }
 function showUserLifecycleModal(userId, nextStatus) {
   const u = userById(userId);
@@ -1283,6 +1312,8 @@ async function performUserLifecycle(userId, status) {
     err.textContent = text ? `⚠️ ${text}` : '';
   };
   if (!u) return setError('User not found.');
+  if (!TEST_MODE && !u.uid) return setError('This is a board-local identity, not an Auth account. Manage its membership in Party Ledger.');
+  if (!reason) return setError('Audit reason is required.');
   const nextStatus = normalizeUserStatus(status);
   const now = Date.now();
   const patch = {
@@ -1373,55 +1404,13 @@ async function performPermanentDeleteRequest(userId) {
     setError(error?.message || 'Permanent delete request failed.');
   }
 }
-function showInviteAdminModal(uid = '') {
-  portalModal('🛡️ Invite admin', `<div class="field"><label>Pick the user to make admin</label><select>${userOptions(uid)}</select><div class="hint">This User ID gets a new Admin ID.</div></div><div class="field"><label>Admin nickname</label><input placeholder="e.g. Organizer"></div><div class="field"><label>Assign admin → Boards</label><select>${boardOptions()}</select></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Invite admin','Prepared Admin ID invitation');closePortalModal()">Confirm</button>`);
-}
-function showAddUserModal(boardId = '') {
-  portalModal('👤 Add user', `<div class="field"><label>Type</label><div class="seg"><button type="button" class="on">Existing user</button><button type="button">New user</button></div></div><div class="field"><label>Select user</label><select>${userOptions()}</select></div><div class="field"><label>Select board</label><select id="add-user-board">${boardOptions(boardId)}</select><div class="hint">Creates/links one active character in this board.</div></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="supportAction('Add user','Prepared board user link');closePortalModal()">Confirm</button>`);
-}
-function showEditCharModal(userId, charId) {
-  const u = userById(userId);
-  const c = u?.chars.find(x => x.id === charId);
-  if (!u || !c) return;
-  const classKeys = PointyLogic.CLASS_ORDER || ['warrior', 'wizard', 'cleric', 'monk', 'bard', 'dragoon'];
-  const radios = classKeys.map(key => `<button type="button" class="radio-card av-card ${c.className === key ? 'on' : ''}" onclick="document.getElementById('edit-char-class').value='${h(key)}';this.parentElement.querySelectorAll('.radio-card').forEach(b=>b.classList.remove('on'));this.classList.add('on')"><div class="rc-ico">⚔️</div><div class="rc-t">${h(key)}</div></button>`).join('');
-  portalModal('🎭 Edit character · ' + h(c.name), `<div class="phase-note" style="margin-top:0;margin-bottom:14px"><span class="pn-ico">👤</span><span>Each user has one active character in the current player loop; admin edits that character here.</span></div><input id="edit-char-class" type="hidden" value="${h(c.className)}"><div class="field"><label>Character name</label><input id="edit-char-name" value="${h(c.name)}"></div><div class="field"><label>Avatar / Class</label><div class="radio-cards av-grid">${radios}</div></div><div class="grid g-2" style="gap:12px"><div class="field"><label>Level</label><input id="edit-char-level" type="number" min="1" value="${h(characterLevelFromXp(c.xp).lvl)}"></div><div class="field"><label>EXP</label><input id="edit-char-xp" type="number" min="0" value="${h(c.xp)}"></div></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditedCharacter(${q(userId)},${q(charId)})">Save</button>`);
-}
-function saveEditedCharacter(userId, charId) {
-  const u = userById(userId);
-  const c = u?.chars.find(x => x.id === charId);
-  if (!u || !c) return closePortalModal();
-  const nextName = document.getElementById('edit-char-name')?.value.trim() || c.name;
-  const nextClass = document.getElementById('edit-char-class')?.value || c.className;
-  const levelValue = Math.max(1, parseInt(document.getElementById('edit-char-level')?.value || '1', 10));
-  const xpValue = Math.max(0, parseInt(document.getElementById('edit-char-xp')?.value || String((levelValue - 1) * PointyLogic.CHARACTER_LEVEL_STEP), 10));
-  activeBoards().forEach(b => {
-    const currentName = Object.keys(b.characterIds || {}).find(name => b.characterIds[name] === charId);
-    if (!currentName) return;
-    if (nextName !== currentName && !b.participants.includes(nextName)) {
-      b.participants = b.participants.map(name => name === currentName ? nextName : name);
-      b.characterIds[nextName] = b.characterIds[currentName];
-      delete b.characterIds[currentName];
-      if (b.data?.heroClasses?.[currentName]) {
-        b.data.heroClasses[nextName] = b.data.heroClasses[currentName];
-        delete b.data.heroClasses[currentName];
-      }
-    }
-    b.data.heroClasses = { ...(b.data.heroClasses || {}), [nextName]: nextClass };
-    b.data.characterXp = { ...(b.data.characterXp || {}), [charId]: xpValue };
-  });
-  markDirty();
-  closePortalModal();
-  render();
-}
 function showModal(title, body, actions = []) {
   const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn" data-i="0">×</button></div><div class="modal-body">${h(body)}</div><div class="modal-foot">${actions.map((a, i) => `<button class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'} ${a.danger ? 'btn-danger' : ''}" data-i="${i}">${h(a.label || 'ตกลง')}</button>`).join('')}</div></div>`;
-  root.classList.add('show');
+  root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn">×</button></div><div class="modal-body">${h(body)}</div><div class="modal-foot">${actions.map((a, i) => `<button class="btn ${a.primary ? 'btn-primary' : 'btn-ghost'} ${a.danger ? 'btn-danger' : ''}" data-i="${i}">${h(a.label || 'ตกลง')}</button>`).join('')}</div></div>`;
+  activatePortalModal();
   [...root.querySelectorAll('button')].forEach(btn => btn.onclick = async () => {
-    const fn = actions[Number(btn.dataset.i)]?.onClick;
-    root.classList.remove('show');
-    root.innerHTML = '';
+    const fn = btn.hasAttribute('data-i') ? actions[Number(btn.dataset.i)]?.onClick : null;
+    closePortalModal();
     if (fn) {
       try { await fn(); }
       catch (error) { showModal('บันทึกไม่สำเร็จ', error?.message || 'ลองใหม่อีกครั้ง ข้อมูล draft ยังอยู่', [{ label: 'ปิด' }]); }
@@ -1431,31 +1420,12 @@ function showModal(title, body, actions = []) {
 function confirmAction(title, body, onConfirm) {
   showModal(title, body, [{ label: 'ยกเลิก' }, { label: 'ยืนยัน', primary: true, danger: /ลบ|Delete/.test(title), onClick: onConfirm }]);
 }
-function inputAction(title, body, placeholder, onConfirm) {
-  const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="modal floating-modal"><div class="modal-head"><h3>${h(title)}</h3><button class="x-btn" data-action="cancel">×</button></div><div class="modal-body"><p class="muted">${h(body)}</p>${formField(placeholder, `<input id="modal-input" placeholder="${h(placeholder)}">`)}</div><div class="modal-foot"><button class="btn btn-ghost" data-action="cancel">ยกเลิก</button><button class="btn btn-primary" data-action="ok">ยืนยัน</button></div></div>`;
-  root.classList.add('show');
-  const input = document.getElementById('modal-input');
-  const close = () => { root.classList.remove('show'); root.innerHTML = ''; };
-  root.querySelector('[data-action="cancel"]').onclick = close;
-  root.querySelector('[data-action="ok"]').onclick = () => {
-    const value = input.value.trim();
-    close();
-    if (value) onConfirm(value);
-  };
-  input.onkeydown = event => {
-    if (event.key === 'Enter') root.querySelector('[data-action="ok"]').click();
-    if (event.key === 'Escape') close();
-  };
-  input.focus();
-}
 async function boot() {
   if (!TEST_MODE) {
     startAdminAuth();
     if (adminAuthSettling || !adminAuthReady || !isUnlocked()) { renderGate(); return; }
   }
   if (!isUnlocked()) { renderGate(); return; }
-  await loadPublished();
-  renderMain();
+  await refreshAdminData();
 }
 boot();

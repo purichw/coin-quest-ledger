@@ -10,9 +10,9 @@ async function capturePlayer(page, path) {
 
 // Exercise the real production-mode frontend, replacing only Firebase transport.
 // No production account or bypass mode is involved in these fault-injection tests.
-async function installCloud(page, { existing = false, delayed = false, signedOut = false, ownedBoard = false, moduleError = false, authError = '', authDelay = false, newAccount = false, characterDelay = false } = {}) {
+async function installCloud(page, { existing = false, delayed = false, signedOut = false, ownedBoard = false, moduleError = false, authError = '', authDelay = false, newAccount = false, characterDelay = false, recoveryAccount = false } = {}) {
   await page.route('https://www.gstatic.com/firebasejs/**', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
-  await page.route('**/shared/firebase-client.js', route => route.fulfill({ contentType: 'application/javascript', body: `(${cloudFixture.toString()})(${JSON.stringify({ existing, delayed, signedOut, ownedBoard, moduleError, authError, authDelay, newAccount, characterDelay })})` }));
+  await page.route('**/shared/firebase-client.js', route => route.fulfill({ contentType: 'application/javascript', body: `(${cloudFixture.toString()})(${JSON.stringify({ existing, delayed, signedOut, ownedBoard, moduleError, authError, authDelay, newAccount, characterDelay, recoveryAccount })})` }));
 }
 
 test('shared loading scene releases the real login gate without losing focus', async ({ page }, testInfo) => {
@@ -28,7 +28,7 @@ test('shared loading scene releases the real login gate without losing focus', a
   await expect.poll(() => page.locator('.first-load-scene').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
   const output = testInfo.outputPath('loading-home-auth-1440.png');
   await page.screenshot({ path: output, animations: 'disabled' });
-  const qa = path.resolve('docs/loading-redesign-2026-10-13/qa');
+  const qa = path.resolve(process.env.POINTY_QA_DIR || 'docs/loading-redesign-2026-10-13/qa');
   await fs.mkdir(qa, { recursive: true });
   await fs.copyFile(output, path.join(qa, 'loading-home-auth-1440.png'));
   await expect.poll(() => Boolean(held)).toBe(true);
@@ -39,7 +39,7 @@ test('shared loading scene releases the real login gate without losing focus', a
   await expect(page.locator('[data-login-name]')).toBeVisible();
   await expect(page.locator('html')).not.toHaveClass(/first-load-(boot|open)/);
 });
-function cloudFixture({ existing, delayed, signedOut, ownedBoard, moduleError, authError, authDelay, newAccount, characterDelay }) {
+function cloudFixture({ existing, delayed, signedOut, ownedBoard, moduleError, authError, authDelay, newAccount, characterDelay, recoveryAccount }) {
   const user = { uid: 'qa-persistence', email: 'qa.persistence@coinquest.local' };
   const hero = { id: '8899', name: 'Existing TEST Hero', class: 'warrior', gender: 'male', ownerUid: user.uid, xp: 321 };
   const initial = { uid: user.uid, username: 'qa.persistence', userId: '8899', name: 'TEST Account', status: 'active', ...(existing ? { character: hero, characterId: hero.id } : {}) };
@@ -74,7 +74,7 @@ function cloudFixture({ existing, delayed, signedOut, ownedBoard, moduleError, a
   window.qaAuthCalls = 0;
   const failAuth = async () => { window.qaAuthCalls++; if (authDelay) await new Promise(resolve => { window.qaReleaseSignIn = resolve; }); throw Object.assign(new Error('Unexpected auth request'), { code: authError }); };
   const acceptAuth = async email => { window.qaAuthCalls++; user.email = email; auth.currentUser = user; sessionStorage.setItem('qa-signed-in', JSON.stringify(user)); return { user }; };
-  const auth = { currentUser: JSON.parse(sessionStorage.getItem('qa-signed-in') || 'null') || (signedOut ? null : user), onAuthStateChanged: callback => { setTimeout(() => callback(auth.currentUser), 0); return () => {}; }, signOut: async () => { auth.currentUser = null; sessionStorage.removeItem('qa-signed-in'); }, signInWithEmailAndPassword: newAccount ? acceptAuth : failAuth, createUserWithEmailAndPassword: newAccount ? acceptAuth : failAuth };
+  const auth = { currentUser: JSON.parse(sessionStorage.getItem('qa-signed-in') || 'null') || (signedOut ? null : user), onAuthStateChanged: callback => { setTimeout(() => callback(auth.currentUser), 0); return () => {}; }, signOut: async () => { auth.currentUser = null; sessionStorage.removeItem('qa-signed-in'); }, signInWithEmailAndPassword: newAccount || recoveryAccount ? acceptAuth : failAuth, createUserWithEmailAndPassword: newAccount ? acceptAuth : failAuth };
   window.firebase = { apps: [{}], auth: () => auth, firestore: Object.assign(() => db, { FieldValue: { serverTimestamp: () => Date.now(), delete: () => null } }) };
   window.qaModuleError = moduleError;
   window.PointyFirebase = { init: () => window.firebase, auth: () => auth, firestore: () => db, serverTimestamp: () => Date.now(), freshGet: ref => {
@@ -163,11 +163,24 @@ test('profile lists a Firebase-owned board even without legacy character/name ow
   await expect(page.locator('.pd-boards a')).toHaveAttribute('href', '/trip/?id=4466');
 });
 
+test('Account drawer signs out a Firebase session and releases its modal lock', async ({ page }) => {
+  await installCloud(page, { existing: true }); await page.goto('/');
+  await expect(page.locator('.login-gate')).toHaveCount(0);
+  await page.locator('[data-profile-hub="profile"]').click();
+  await page.locator('[data-sign-out]').click();
+  await expect(page.locator('.drawer-overlay')).toHaveCount(0);
+  await expect(page.locator('.login-gate')).toBeVisible();
+  await expect(page.locator('body')).not.toHaveClass(/account-drawer-open/);
+  expect(await page.evaluate(() => window.PointyFirebase.auth().currentUser)).toBeNull();
+  await page.locator('[data-login-email]').fill('qa.persistence');
+  await expect(page.locator('[data-login-email]')).toHaveValue('qa.persistence');
+});
+
 async function captureCreation(page, testInfo, name) {
   await page.evaluate(() => document.fonts.ready);
   const output = testInfo.outputPath(name);
   await page.screenshot({ path: output, animations: 'disabled' });
-  const qa = path.resolve('docs/character-creation-redesign-2026-10-13/qa');
+  const qa = path.resolve(process.env.POINTY_QA_DIR || 'docs/character-creation-redesign-2026-10-13/qa');
   await fs.mkdir(qa, { recursive: true });
   await fs.copyFile(output, path.join(qa, name));
 }
@@ -393,12 +406,12 @@ async function captureAuth(page, testInfo, name) {
   await page.locator('.auth-entry img').evaluateAll(images => Promise.all(images.map(img => img.decode())));
   const output = testInfo.outputPath(name);
   await page.screenshot({ path: output, animations: 'disabled' });
-  const qa = path.resolve('docs/auth-redesign-2026-10-13/qa');
+  const qa = path.resolve('docs/auth-guild-2026-10-14/qa');
   await fs.mkdir(qa, { recursive: true });
   await fs.copyFile(output, path.join(qa, name));
 }
 for (const width of [1440, 768, 390]) {
-  test(`Tavern auth Login and Sign Up composition at ${width}px`, async ({ page }, testInfo) => {
+  test(`Tavern auth Login, Sign Up and Recovery composition at ${width}px`, async ({ page }, testInfo) => {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await installCloud(page, { signedOut: true });
     await page.setViewportSize({ width, height: width === 768 ? 1024 : width === 390 ? 844 : 900 });
@@ -409,6 +422,10 @@ for (const width of [1440, 768, 390]) {
       await page.locator('.login-gate').evaluate(el => { el.scrollTop = 0; });
       await expect(page.locator(`[data-login-tab="${mode}"]`)).toHaveAttribute('aria-selected', 'true');
       await expect(page.locator('[data-login-form] input')).toHaveCount(mode === 'up' ? 4 : 2);
+      await expect(page.locator('.auth-seal img')).toHaveJSProperty('naturalWidth', 320);
+      const title = await page.locator('#auth-title').boundingBox();
+      const tabs = await page.locator('.login-tabs').boundingBox();
+      expect(title.y + title.height).toBeLessThan(tabs.y);
       expect(await page.locator('.auth-entry').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
       await captureAuth(page, testInfo, `auth-${width}-${mode}-top.png`);
       if (await page.locator('.login-gate').evaluate(el => el.scrollHeight > el.clientHeight + 1)) {
@@ -417,6 +434,15 @@ for (const width of [1440, 768, 390]) {
         await captureAuth(page, testInfo, `auth-${width}-${mode}-bottom.png`);
       }
     }
+    await page.locator('[data-login-tab="in"]').click();
+    await page.locator('[data-forgot-password]').click();
+    await expect(page.locator('[data-recovery-form] input')).toHaveCount(4);
+    await page.locator('.login-gate').evaluate(el => { el.scrollTop = 0; });
+    await captureAuth(page, testInfo, `auth-${width}-recovery-top.png`);
+    await page.locator('[data-back-login]').scrollIntoViewIfNeeded();
+    await expect(page.locator('.login-btn')).toBeInViewport();
+    expect(await page.locator('.auth-entry').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await captureAuth(page, testInfo, `auth-${width}-recovery-bottom.png`);
     await expect(page.locator('.auth-entry')).not.toContainText(/Firebase|regression|production auth/);
     expect(errors).toEqual([]);
   });
@@ -479,9 +505,9 @@ test('Tavern auth recovery, short viewport and shared module entry remain usable
   await page.locator('[data-login-password2]').fill('TEST-short-viewport');
   await expect(page.locator('[data-login-password2]')).toBeInViewport();
   // Simulate artwork completing late and moving the form after keyboard focus.
-  await page.locator('.auth-banner').evaluate(img => { img.style.height = '300px'; });
+  await page.locator('#auth-title').evaluate(title => { title.style.paddingBlock = '80px'; });
   await expect(page.locator('[data-login-password2]')).toBeInViewport();
-  await page.locator('.auth-banner').evaluate(img => { img.style.height = ''; });
+  await page.locator('#auth-title').evaluate(title => { title.style.paddingBlock = ''; });
   expect(await page.locator('.auth-entry').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.locator('.login-btn').click(); await expect(page.locator('[data-login-error]')).toBeInViewport();
   await page.locator('[data-login-tab="in"]').click(); await page.locator('[data-forgot-password]').click();
@@ -490,7 +516,7 @@ test('Tavern auth recovery, short viewport and shared module entry remain usable
   await expect(page.locator('[data-recovery-username]')).toHaveValue('test.recovery');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.login-gate').evaluate(el => { el.scrollTop = el.scrollHeight; });
-  await captureAuth(page, testInfo, 'auth-390-recovery-bottom.png');
+  await captureAuth(page, testInfo, 'auth-390-recovery-english-bottom.png');
   await page.locator('[data-back-login]').click(); await expect(page.locator('[data-login-email]')).toBeFocused();
   for (const route of ['/trip/', '/debt/', '/treasury/']) {
     await page.goto(route); await expect(page.locator('.auth-signin')).toBeVisible();
@@ -535,3 +561,134 @@ test('Tavern auth signup creates one identity, keeps Recovery ID and restores th
   await page.reload(); await expect(page.locator('[data-char-form]')).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1')).character.id)).toBe(identity);
 });
+
+// All recovery captures use this synthetic key and intercepted Firebase transport.
+async function createRecoveryPreview(page, { language = 'th', theme = 'tavern' } = {}) {
+  await installCloud(page, { signedOut: true, newAccount: true });
+  await page.addInitScript(({ language, theme }) => {
+    localStorage.setItem('lang', language); localStorage.setItem('pointy_theme', theme);
+  }, { language, theme });
+  await page.goto('/');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await page.evaluate(() => { window.PointyRecovery.generateCode = () => 'DEMO-TEST-ONLY'; });
+  await page.locator('[data-login-tab="up"]').click();
+  await page.locator('[data-login-name]').fill('TEST Recovery');
+  await page.locator('[data-login-email]').fill('test.recovery');
+  await page.locator('[data-login-password]').fill('TEST-password-only');
+  await page.locator('[data-login-password2]').fill('TEST-password-only');
+  await page.locator('.login-btn').click();
+  await page.locator('[data-char-name]').fill('Mali');
+  await page.locator('[data-char-open-picker]').click();
+  await page.locator('[data-char-class="ranger"][data-char-gender="female"]').click();
+  await page.locator('[data-char-form] .login-btn').click();
+  await expect(page.locator('.recovery-panel')).toBeVisible();
+  await expect(page.locator('.recovery-code')).toHaveText('DEMO-TEST-ONLY');
+  await page.evaluate(() => document.fonts.ready);
+  await page.locator('.recovery-crest img').evaluate(img => img.decode());
+}
+async function captureRecovery(page, file) {
+  const dir = path.resolve('docs/recovery-key-2026-10-14/qa');
+  await fs.mkdir(dir, { recursive: true });
+  await page.screenshot({ path: path.join(dir, file), animations: 'disabled', scale: 'css' });
+  if (file.endsWith('-copied.png')) await page.locator('.recovery-panel').screenshot({ path: path.join(dir, file.replace('.png', '-panel.png')), animations: 'disabled', scale: 'css' });
+}
+for (const width of [1440, 768, 390]) {
+  test(`Recovery save modal composition, copy and dismissal at ${width}px`, async ({ page, context }, testInfo) => {
+    test.skip(testInfo.project.name === 'tablet' && width !== 768 || testInfo.project.name === 'mobile' && width !== 390, 'Use the matching touch viewport for this composition.');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.setViewportSize({ width, height: width === 768 ? 1024 : width === 390 ? 844 : 900 });
+    const errors = []; page.on('pageerror', error => errors.push(error.message));
+    await createRecoveryPreview(page);
+    await expect(page.getByRole('dialog', { name: 'เก็บ recovery code นี้ไว้' })).toBeVisible();
+    await expect(page.locator('#recovery-title')).toBeFocused();
+    await expect(page.locator('.recovery-feedback')).toBeHidden();
+    const bounds = await page.locator('.recovery-panel').evaluate(el => {
+      const box = el.getBoundingClientRect(), buttons = [...el.querySelectorAll('button')];
+      const confirm = el.querySelector('.recovery-confirm').getBoundingClientRect(), back = el.querySelector('.recovery-back').getBoundingClientRect();
+      return { inside: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
+        overflow: el.scrollWidth > el.clientWidth, centered: Math.abs((box.left + box.right) / 2 - innerWidth / 2) < 1,
+        targets: buttons.every(button => button.getBoundingClientRect().height >= 44), primaryFirst: confirm.top < back.top,
+        sameRow: Math.abs(confirm.top - back.top) < 1, blur: getComputedStyle(el.parentElement).backdropFilter };
+    });
+    expect(bounds).toMatchObject({ inside: true, overflow: false, centered: true, targets: true, primaryFirst: width < 768, sameRow: width >= 768 });
+    expect(bounds.blur).toContain('blur');
+    await captureRecovery(page, `recovery-${width}.png`);
+    await page.locator('[data-copy-recovery]').click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('DEMO-TEST-ONLY');
+    await expect(page.getByRole('status').filter({ hasText: 'คัดลอกเรียบร้อยแล้ว!' })).toBeVisible();
+    await captureRecovery(page, `recovery-${width}-copied.png`);
+    await page.locator('.recovery-confirm').focus(); await page.keyboard.press('Tab');
+    await expect(page.locator('.recovery-close')).toBeFocused();
+    await page.keyboard.press('Shift+Tab'); await expect(page.locator('.recovery-confirm')).toBeFocused();
+    if (width === 1440) await page.locator('.recovery-confirm').click();
+    else if (width === 768) await page.locator('.recovery-close').click();
+    else await page.locator('.recovery-back').click();
+    await expect(page.locator('.recovery-overlay')).toHaveCount(0);
+    await expect(page.locator('body')).not.toHaveClass(/recovery-open/);
+    expect(await page.locator('[data-profile-hub="profile"]').evaluate(el => !!el.closest('[inert]'))).toBe(false);
+    await expect(page.locator('[data-profile-hub="profile"]')).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+}
+test('Recovery save modal handles clipboard denial, retry and Escape without losing the code', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createRecoveryPreview(page);
+  await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new DOMException('TEST denied', 'NotAllowedError'); }; });
+  await page.locator('[data-copy-recovery]').click();
+  await expect(page.locator('.recovery-feedback')).toContainText('คัดลอกไม่ได้');
+  await expect(page.locator('.recovery-code')).toBeFocused();
+  expect(await page.evaluate(() => getSelection().toString())).toBe('DEMO-TEST-ONLY');
+  await captureRecovery(page, 'recovery-390-copy-error.png');
+  await page.evaluate(() => { navigator.clipboard.writeText = async value => { window.qaCopiedCode = value; }; });
+  await page.locator('[data-copy-recovery]').click();
+  await expect(page.locator('.recovery-feedback')).not.toHaveClass(/is-error/);
+  expect(await page.evaluate(() => window.qaCopiedCode)).toBe('DEMO-TEST-ONLY');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.recovery-overlay')).toHaveCount(0);
+  await expect(page.locator('[data-profile-hub="profile"]')).toBeFocused();
+});
+test('Recovery save modal supports English Dungeon and short narrow viewports', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createRecoveryPreview(page, { language: 'en', theme: 'dungeon' });
+  await expect(page.getByRole('dialog', { name: 'Save this recovery code' })).toBeVisible();
+  await captureRecovery(page, 'recovery-390-en-dungeon.png');
+  await page.setViewportSize({ width: 320, height: 480 });
+  expect(await page.locator('.recovery-panel').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await expect(page.locator('.recovery-close')).toBeInViewport();
+  await page.locator('.recovery-back').scrollIntoViewIfNeeded();
+  await expect(page.locator('.recovery-confirm')).toBeInViewport();
+  await expect(page.locator('.recovery-back')).toBeInViewport();
+  await page.locator('.recovery-back').click();
+  await expect(page.locator('.recovery-overlay')).toHaveCount(0);
+});
+for (const existing of [true, false]) {
+  test(`Recovery reset reveals the rotated key and returns to ${existing ? 'the game' : 'character creation'}`, async ({ page }) => {
+    await installCloud(page, { signedOut: true, existing, recoveryAccount: true });
+    let requests = 0;
+    await page.route('**/api/recover-account', route => {
+      requests++;
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ authEmail: 'qa.persistence@coinquest.local', recoveryCode: 'DEMO-NEWK-EYAA', recoveryIssuedAt: Date.now() }) });
+    });
+    await page.goto('/debt/');
+    await expect(page.locator('[data-first-load]')).toHaveCount(0);
+    await page.locator('[data-forgot-password]').click();
+    await page.locator('[data-recovery-username]').fill('qa.persistence');
+    await page.locator('[data-recovery-code]').fill('DEMO-OLDK-EYAA');
+    await page.locator('[data-recovery-password]').fill('TEST-new-password');
+    await page.locator('[data-recovery-confirm]').fill('TEST-new-password');
+    await page.locator('[data-recovery-form] .login-btn').click();
+    await expect(page.locator('.recovery-code')).toHaveText('DEMO-NEWK-EYAA');
+    await expect(page.locator('#recovery-title')).toBeFocused();
+    expect(requests).toBe(1);
+    if (!existing) expect(await page.locator('[data-char-form]').evaluate(el => !!el.closest('[inert]'))).toBe(true);
+    await page.locator('.recovery-confirm').click();
+    await expect(page.locator('.recovery-overlay')).toHaveCount(0);
+    if (existing) await expect(page.locator('.login-gate')).toHaveCount(0);
+    else {
+      await expect(page.locator('[data-char-form]')).toBeVisible();
+      await expect(page.locator('[data-char-name]')).toBeFocused();
+      await page.locator('[data-char-name]').fill('TEST Recovered Hero');
+    }
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1')).recoveryCode)).toBe('DEMO-NEWK-EYAA');
+  });
+}

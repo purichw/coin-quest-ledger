@@ -1,0 +1,77 @@
+
+> coin-quest-ledger@1.0.0 test:backend
+> node scripts/test-backend.mjs
+
+⬢  emulators: firebase-tools will drop support for Java version < 21 soon in firebase-tools@15. Please install a JDK at version 21 or above to get a compatible runtime.
+i  emulators: Starting emulators: auth, firestore
+i  emulators: Detected demo project ID "demo-coin-quest", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator UI websocket is running on 9151.
+i  Running script: '/Users/point/.nvm/versions/node/v24.21.0/bin/node' --test '/Users/point/toolbox/tests/backend'/*.test.mjs
+✔ owner module replacement removes deleted map keys and preserves the other module (2454.415541ms)
+[2026-10-13T21:38:45.007Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eb9a error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L99:24 for 'update' @ L99, false for 'update' @ L99
+[2026-10-13T21:38:45.042Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eb9b error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L196:32 for 'create' @ L196, evaluation error at L196:32 for 'update' @ L196, false for 'update' @ L196
+[2026-10-13T21:38:45.059Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eb9c error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L69:32 for 'create' @ L69, evaluation error at L69:32 for 'update' @ L69, false for 'create' @ L69
+✔ blocked lifecycle cannot be hidden by active status or reset by the owner (202.756583ms)
+[2026-10-13T21:38:45.167Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eb9d error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L99:24 for 'update' @ L99, false for 'update' @ L99
+[2026-10-13T21:38:45.183Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eb9e error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L99:24 for 'update' @ L99, false for 'update' @ L99
+[2026-10-13T21:38:45.196Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eb9f error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L99:24 for 'update' @ L99, false for 'update' @ L99
+[2026-10-13T21:38:45.213Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eba0 error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L99:24 for 'update' @ L99, false for 'update' @ L99
+✔ player cannot change identity, claim another character, or add a reset lock (170.921416ms)
+[2026-10-13T21:38:45.319Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eba2 error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L99:24 for 'update' @ L99, false for 'update' @ L99
+✔ recovery lease rejects a concurrent client key rotation (88.305666ms)
+[2026-10-13T21:38:45.388Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eba3 error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L119:26 for 'update' @ L119, false for 'update' @ L119
+[2026-10-13T21:38:45.424Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eba4 error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L119:26 for 'update' @ L119, false for 'update' @ L119
+[2026-10-13T21:38:45.442Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eba5 error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L119:26 for 'update' @ L119, false for 'update' @ L119
+✔ invite responses cannot rewrite payload, replay, or accept an expired invitation (123.008042ms)
+✔ recovery recreates missing Auth under the same UID, preserving modules and invites (183.362416ms)
+✔ recovery refuses missing, blocked and conflicting identity records before Auth changes (133.785417ms)
+✔ parallel recovery is serialized and failure releases the lease without consuming the code (248.939209ms)
+[2026-10-13T21:38:46.232Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819eba6 error. Code: 7 Message: 7 PERMISSION_DENIED: No matching allow statements
+✔ recovery limiter counts across callers, expires, and is not writable by players (223.203542ms)
+[2026-10-13T21:38:46.401Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819ebaf error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L168:24 for 'create' @ L168, evaluation error at L173:24 for 'update' @ L173, false for 'create' @ L168
+✔ web signup reserves profile, username and User ID atomically; collisions leave no profile (170.274375ms)
+✔ web recovery key rotation preserves character and name changed on another device (165.465666ms)
+✔ web invitation acceptance retries a concurrent board write without losing it (818.188417ms)
+✔ Admin publish rejects stale drafts and URL collisions; only changed boards are written (204.732333ms)
+✔ Admin lifecycle applies to all identity records and reactivation clears both status fields (265.914834ms)
+[2026-10-13T21:38:47.988Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819ebce error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L196:32 for 'update' @ L196, false for 'update' @ L196
+✔ account deletion rejects mismatched pointers and protects a pending recovery (130.557292ms)
+✔ legacy cleanup reads again before writing so concurrent expenses survive (137.250125ms)
+✔ deleting a real account preserves every shared expense and settlement obligation (45.54375ms)
+[2026-10-13T21:38:48.258Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819ebcf error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L75:24 for 'create' @ L75, evaluation error at L81:24 for 'update' @ L81, false for 'create' @ L75
+[2026-10-13T21:38:48.327Z]  @firebase/firestore: Firestore (13.0.0): GrpcConnection RPC 'Write' stream 0x5819ebd0 error. Code: 7 Message: 7 PERMISSION_DENIED:
+evaluation error at L75:24 for 'create' @ L75, evaluation error at L81:24 for 'update' @ L81, evaluation error at L99:24 for 'update' @ L99, false for 'create' @ L75
+✔ character creation must link the user atomically; a second character cannot be minted (156.53725ms)
+✔ Admin can list username tombstones while players cannot enumerate accounts (100.924709ms)
+✔ a deleted UID cannot reclaim its own tombstones with a stale ID token (186.141125ms)
+✔ recovery cannot reactivate an Auth-disabled account even when its profile says active (126.766375ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7420.708458
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+⚠  emulators: firebase-tools will drop support for Java version < 21 soon in firebase-tools@15. Please install a JDK at version 21 or above to get a compatible runtime.

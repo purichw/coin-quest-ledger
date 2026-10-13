@@ -1,6 +1,6 @@
 # Admin Portal Implementation
 
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 
 ## Purpose
 
@@ -47,6 +47,9 @@ Test mode:
 Local Admin draft storage is an explicit unpublished-draft surface. It can keep
 operator edits visible until Save/Restore/Publish, but it is not a live fallback.
 Restore discards the draft and returns to the latest published server state.
+Collection reads are treated as one complete load: a failed users/revisions/
+tombstones read shows a retry screen, never an editable partial dataset. Invalid
+local draft JSON is retained with a visible warning until explicit Save/Restore.
 
 `userRecords()` merges:
 
@@ -68,9 +71,9 @@ Restore discards the draft and returns to the latest published server state.
 | Users | `renderUsers`, `renderUserDetail` | merged user/account records |
 | Board Admins | `renderAdmins`, `renderAdminDetail` | Admin IDs and owned boards |
 | Deleted IDs | `renderTombstones` | reusable username tombstones |
-| Audit | `renderAuditLog` | support/diff style audit surface |
+| Audit | `renderAuditLog` | published board revisions and local draft differences |
 | Revisions | `renderRevisions` | Admin publish history |
-| Support | `renderSupportTools` | reset/export/merge/invite/add helper modals |
+| Support | `renderSupportTools` | backend password reset, JSON export, links to Users/Boards |
 
 ## Draft And Publish
 
@@ -82,7 +85,7 @@ Publish flow:
 1. `validateDraft()`
 2. `diffBoards()`
 3. confirmation modal
-4. Firestore batch writes `trips/{id}` and `adminRevisions/{id}`
+4. Firestore transaction checks loaded baselines and writes only changed `trips/{id}` plus `adminRevisions/{id}`
 5. local draft is cleared
 6. published data is reloaded
 
@@ -96,7 +99,7 @@ Recoverable lifecycle:
 - `delete_requested`
 - `deleted`
 
-`applyUserLifecycle()` writes status fields to `users/{uid}` and
+`performUserLifecycle()` requires a reason and writes status fields to `users/{uid}` and
 `usernames/{username}` and `userIds/{userId}` atomically. Player login guards must
 respect blocked statuses.
 
@@ -119,12 +122,41 @@ Permanent delete:
 - backend verifies allowlisted Gmail and performs Auth/doc deletion and
   tombstoning.
 
+## Cleanup and flow corrections — 2026-10-14
+
+- Archive/Reopen changes `archived`, `archivedAt` and `status`, retaining members,
+  expenses and unknown fields. Permanent deletion remains a separate confirmed
+  action that takes effect on Publish. Archive must never call `deleteBoard`.
+- New board IDs are four digits; changed IDs and board names validate before
+  Publish. Unchanged legacy IDs remain readable. Board data-only edits are
+  included in the publish diff. Revisions identify the actual signed-in Admin.
+- Search updates results without replacing the focused input, including during
+  continuous typing/composition. Modal keyboard focus is contained and returned;
+  Close/Escape always cancel rather than executing the first action.
+- Export downloads a real `coin-quest-admin-export-v1` JSON snapshot of loaded
+  data (including drafts). Passwords, recovery values, tokens, owner hashes and
+  auth metadata are recursively omitted. This is a support export, not a
+  credential-complete disaster recovery backup.
+- Removed obsolete impersonation, merge, invite-admin and add-account stubs,
+  fabricated activity charts, fake unsettled totals, and unsupported historical
+  Restore/View-diff buttons. Revision details remain expandable.
+- Removed board-local character rename/class/XP and arbitrary Character ID
+  mutation. These could orphan ledger name references or contradict canonical
+  account identity. Profiles remain viewable; membership uses Party Ledger's
+  Character ID invitation/Guest flows. Admin does not create fake character IDs.
+- Removed the unused browser recovery hashing/email-minting helpers and CSS
+  belonging only to the retired prototype controls.
+
 ## Current Limitations
 
-- Admin Add User is not real Firebase Auth account creation yet.
-- Merge accounts is support-tool placeholder behavior.
-- Admin character edit primarily mutates board draft/published board data, not
-  canonical `characters/{id}`.
+- Account creation, merges, impersonation and canonical character editing are
+  not offered by this portal. No placeholder operation should report success.
+- Revisions store change summaries, not historical board snapshots; restoring
+  an arbitrary historical version is therefore not supported.
+- Audit Log displays board publish revisions/draft changes. It is not a claim
+  that every credential/lifecycle operation has an immutable audit event.
+- Debt/Treasury dashboard totals cover legacy board records, not all private
+  `playerModules/{uid}` finance data.
 - Board security is signed-in-only in Firestore rules, but not yet
   owner/member-scoped.
 
@@ -140,8 +172,13 @@ Focused checks:
 
 ```bash
 npx playwright test tests/e2e/coin-quest-ledger.spec.mjs --grep "super admin"
+npx playwright test tests/e2e/admin-flow-audit.spec.mjs
 node --test tests/unit/admin-delete-user.test.mjs
 ```
+
+Live browser and isolated-test evidence for this cleanup is in
+`docs/flow-audit-2026-10-14/README.md`. Local changes are not deployed until a
+separate release is completed.
 ## Backend repair notes — 2026-10-12
 
 Publishing now writes only changed boards and checks the draft's captured content
