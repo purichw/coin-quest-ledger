@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-13",
+  "route": "http://127.0.0.1:4569/?view=compare&test=1",
+  "reference": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-9e7bdf74-f446-4a93-9e77-06be7076d2a4.png",
+  "reference_crop_boxes": {
+    "desktop": [
+      165,
+      204,
+      695,
+      1003
+    ],
+    "tablet": [
+      723,
+      209,
+      1052,
+      956
+    ],
+    "mobile": [
+      1080,
+      210,
+      1292,
+      953
+    ]
+  },
+  "viewports": [
+    1440,
+    768,
+    390
+  ],
+  "heights": {
+    "1440": 1000,
+    "768": 1000,
+    "390": 844
+  },
+  "fixture": "tests/e2e/price-arena.spec.mjs:fixture, local synthetic comparison records, test=1",
+  "asset": {
+    "path": "assets/price-reference/market-banner.webp",
+    "source": "built-in imagegen; generated market illustration guided by supplied reference",
+    "generated_file": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-8ce447be-1060-42dd-a11c-0c15fa572a64.png"
+  },
+  "framing": "Reference excludes annotated board/device/shell framing. Development crop excludes global nav and desktop outer gutters. Images resized proportionally to equal display width; reference CSS scale is inferred, not measured. Full local screenshots retained. Fixed mobile navigation appears at the first viewport boundary in full-page captures.",
+  "development_game_crop_x": {
+    "desktop": [
+      200,
+      1240
+    ],
+    "tablet": [
+      0,
+      768
+    ],
+    "mobile": [
+      0,
+      390
+    ]
+  }
+}

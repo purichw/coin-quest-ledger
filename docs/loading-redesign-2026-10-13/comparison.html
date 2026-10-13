@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Loading — reference and implementation</title>
+<style>
+* { box-sizing: border-box; } body { margin: 0; padding: 24px; background: #f1eddf; color: #302a21; font: 16px/1.5 system-ui, sans-serif; }
+h1 { font-size: 22px; margin: 0 0 4px; } p { margin: 0 0 20px; font-size: 13px; }
+.pair { display: grid; grid-template-columns: 720px 720px; gap: 24px; }
+figure { margin: 0; } figcaption { margin: 0 0 8px; font-weight: 600; }
+.reference { width: 720px; height: 440px; background: url(reference.png) -20px -139px / 1389.35px 926.23px no-repeat; }
+img { display: block; width: 720px; height: 450px; object-fit: contain; }
+</style></head><body>
+<h1>Coin Quest · Loading State</h1>
+<p>Reference: desktop app viewport only, annotations retained. Implementation: 1440 × 900, real shared loader held by a test image request. Artwork recreated; live progress is 68%.</p>
+<div class="pair"><figure><figcaption>REFERENCE · supplied direction</figcaption><div class="reference" role="img" aria-label="Desktop area from the supplied loading mockup"></div></figure>
+<figure><figcaption>IMPLEMENTATION · local browser capture</figcaption><img src="qa/loading-1440.png" alt="Implemented desktop loading screen"></figure></div>
+</body></html>

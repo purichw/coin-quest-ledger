@@ -62,10 +62,19 @@ let S = PointyLogic.normalizeDebtState(loadDebtState());
 let SETTINGS = loadSettings();
 let STRIKE_OPEN = '';
 let EDIT_OPEN = '';
+const DRAGON_DETAILS = new Set();
+const DEBT_PANELS = { finance: innerWidth >= 600, slayer: innerWidth >= 600, strategy: false, manage: false };
+let DEBT_FILTER = 'all';
+let DEBT_QUERY = '';
+let DEBT_SORT = 'added';
+const debtCopy = (th, en) => LANG === 'th' ? th : en;
+const debtIcon = name => window.CoinQuestIcons(name);
 let EDIT_LOG = {};
 let EDIT_LOG_DRAFTS = {};
 let ADD_OPEN = false;
 let ADD_FORM_DRAFT = {};
+let EDIT_FORM_DRAFT = {};
+let STRIKE_DRAFT = {};
 let FX = {};
 let BREATHING = [];
 let OVERLAY = '';
@@ -200,7 +209,6 @@ function fallback(key) {
     dd_character_hint: 'เชื่อมกับโปรไฟล์เดิม หรือสร้าง ID ใหม่จากหน้านี้',
     dd_create_character: 'สร้าง ID',
     dd_open_profile: 'เปิดโปรไฟล์',
-    dd_account_hero_locked: 'ใช้ฮีโร่เดียวกับบัญชีของคุณ',
     dd_record: 'สถิตินักล่า',
     dd_reclaimed_life: 'ทวงคืนทั้งหมด',
     dd_interest_fed: 'จ่ายดอกเบี้ยไป',
@@ -306,7 +314,6 @@ function fallback(key) {
     dd_character_hint: 'Connect an existing profile or create a new ID here',
     dd_create_character: 'Create ID',
     dd_open_profile: 'Open profile',
-    dd_account_hero_locked: 'Using your account hero',
     dd_record: "Slayer's Record",
     dd_reclaimed_life: 'Total reclaimed',
     dd_interest_fed: 'Interest fed',
@@ -609,7 +616,7 @@ function renderDragonPortrait(type, opts = {}) {
     <div class="dragon-stage">
       <img class="dragon-png ${opts.face ? 'mode-face' : 'mode-full'} ${opts.hurt ? 'hurt' : ''}" src="${h(url)}" alt="" draggable="false" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <div class="dragon-ph" style="display:none" onclick="${opts.drop ? `pickDragonArt('${h(type)}','${h(inputId)}')` : ''}">
-        <span class="dragon-ph-ring"></span><span class="dragon-ph-glyph">${ty.glyph}</span>${opts.face ? '' : '<span class="dragon-ph-cap">drop art</span>'}
+        <span class="dragon-ph-ring"></span><span class="dragon-ph-glyph">${ty.glyph}</span>${opts.face ? '' : `<span class="dragon-ph-cap">${debtCopy('ภาพมังกร', 'Dragon artwork')}</span>`}
       </div>
       ${opts.drop ? `<button type="button" class="dragon-repick" title="Replace art" onclick="pickDragonArt('${h(type)}','${h(inputId)}')">⟲</button><input id="${h(inputId)}" type="file" accept="image/*" hidden onchange="setDragonArt('${h(type)}',this.files&&this.files[0])">` : ''}
     </div>
@@ -645,7 +652,8 @@ function targetId() { return PointyLogic.strategyTarget(S.dragons, SETTINGS.stra
 
 function renderStrikeForm(d) {
   const id = h(d.id);
-  const amt = Math.round(Number(d.payment) || Number(d.balance) || 0);
+  const draft = STRIKE_DRAFT[d.id] || {};
+  const amt = draft.amount ?? fmtInput(Math.round(Number(d.payment) || Number(d.balance) || 0));
   const cls = PointyLogic.normalizeClass(S.slayer.class || 'dragoon');
   const glyph = CLASSES[cls].glyph;
   const moves = [
@@ -654,19 +662,20 @@ function renderStrikeForm(d) {
     ['lightning', '⚡', tt('dd_move_bolt'), 'bolt']
   ];
   return `<div class="dc-strike-form">
-    <div class="dc-move-pick">${moves.map((m, i) => `<button type="button" class="dc-move ${m[3]} ${i === 0 ? 'on' : ''}" data-move="${m[0]}" onclick="pickMove('${id}','${m[0]}')"><span class="dc-move-ic">${m[1]}</span><span class="dc-move-nm">${h(m[2])}</span></button>`).join('')}</div>
+    <div class="dc-move-pick">${moves.map(m => `<button type="button" class="dc-move ${m[3]} ${(draft.move || 'projectile') === m[0] ? 'on' : ''}" data-move="${m[0]}" onclick="pickMove('${id}','${m[0]}')"><span class="dc-move-ic">${m[1]}</span><span class="dc-move-nm">${h(m[2])}</span></button>`).join('')}</div>
     <div class="dc-strike-row">
-      <div class="dc-strike-amt"><span>฿</span><input id="strike-amt-${id}" type="text" inputmode="decimal" value="${h(fmtInput(amt))}" oninput="PointyLogic.formatNumberInputElement(this)"></div>
-      <input id="strike-date-${id}" class="dc-strike-date" type="date" max="${todayISO()}" value="${todayISO()}">
+      <label class="df-field"><span>${debtCopy('จำนวนเงินที่จ่าย', 'Payment amount')}</span><div class="dc-strike-amt"><span>฿</span><input id="strike-amt-${id}" type="text" inputmode="decimal" value="${h(amt)}" oninput="PointyLogic.formatNumberInputElement(this)"></div></label>
+      <label class="df-field"><span>${debtCopy('วันที่จ่าย', 'Payment date')}</span><input id="strike-date-${id}" class="dc-strike-date" type="date" max="${todayISO()}" value="${h(draft.date || todayISO())}"></label>
     </div>
     <div class="dc-strike-go">
       <button class="btn-danger" style="flex:1" onclick="strikeDragon('${id}')">⚔️ ${tt('dd_hit')}</button>
-      <button class="btn-ghost sm" onclick="closeStrike()">✕</button>
+      <button class="btn-ghost sm" aria-label="${h(tt('dd_cancel'))}" onclick="closeStrike()">✕</button>
     </div>
   </div>`;
 }
 
 function renderDragonForm(form = {}, mode = 'add') {
+  if (mode === 'edit') form = { ...form, ...EDIT_FORM_DRAFT[form.id] };
   const d = {
     name: form.name || '',
     type: form.type || 'card',
@@ -684,7 +693,7 @@ function renderDragonForm(form = {}, mode = 'add') {
   const belowInterest = !isAdhoc && d.apr > 0 && d.payment > 0 && d.payment <= monthlyInterest;
   const originalLow = d.original > 0 && d.original < d.balance;
   return `<div class="dragon-form">
-    <input id="${prefix}-name" maxlength="80" class="df-name" placeholder="${h(tt('dd_name_ph'))}" value="${h(d.name)}">
+    <label class="df-field"><span>${debtCopy('ชื่อมังกร / ชื่อหนี้', 'Dragon / debt name')}</span><input id="${prefix}-name" maxlength="80" class="df-name" placeholder="${h(tt('dd_name_ph'))}" value="${h(d.name)}"></label>
     <div class="df-types">${DRAGON_ORDER.map(type => `<button type="button" class="df-type ${d.type === type ? 'on' : ''}" data-dragon-type="${h(type)}" aria-pressed="${d.type === type}" onclick="setDragonFormType('${prefix}','${type}')">
       ${renderDragonPortrait(type, { face: true, suffix: prefix })}<span>${h(dragonTypeName(type))}</span>
     </button>`).join('')}</div>
@@ -706,8 +715,6 @@ function renderDragonForm(form = {}, mode = 'add') {
 }
 
 function renderDragonCard(d) {
-  const type = PointyLogic.dragonType(d.type);
-  const pct = Math.max(0, Math.min(100, (Number(d.balance) / Math.max(1, Number(d.original))) * 100));
   const paidPct = Math.max(0, Math.min(100, ((Number(d.original) - Number(d.balance)) / Math.max(1, Number(d.original))) * 100));
   const months = PointyLogic.payoffMonths(d);
   const regen = PointyLogic.monthlyInterest(d);
@@ -715,40 +722,33 @@ function renderDragonCard(d) {
   const dailyRegen = PointyLogic.dailyInterest(d, todayMs, todayMs + 86400000);
   const adhoc = d.payMode === 'adhoc';
   const never = !adhoc && Number(regen) > 0 && !isFinite(months) && !d.slain;
-  const target = d.id === targetId();
   const fx = FX[d.id];
   const due = dueStatus(d);
-  const log = (d.log || []).slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 4);
-  const flags = `${target ? ' is-target' : ''}${never ? ' is-never' : ''}${d.slain ? ' slain' : ''}`;
-  const art = renderDragonPortrait(d.type, { drop: !d.slain, hurt: !!fx, dead: d.slain, suffix: d.id });
-  if (d.slain) {
-    return `<article class="dragon-card${flags}" data-dragon-id="${h(d.id)}">
-      <button class="dc-del" onclick="deleteDragon('${h(d.id)}')">🗑</button>
-      <div class="dc-body"><div class="dc-art-wrap">${art}<span class="dc-typebadge">🏆</span></div>
-      <div class="dc-main"><div class="dc-head"><div class="dc-name">${h(dragonName(d))}</div><div class="dc-type">⚔️ ${tt('dd_slain_tag')}</div></div>
-      <div class="dc-forecast">${tt('dd_reclaimed')} ${money(d.original)}</div></div></div>
-    </article>`;
-  }
-  return `<article class="dragon-card${flags}" data-dragon-id="${h(d.id)}">
-    ${target ? `<div class="dc-target-flag">🎯 ${tt('dd_target')}</div>` : ''}
-    <button class="dc-del" onclick="deleteDragon('${h(d.id)}')">🗑</button>
+  const log = (d.log || []).slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  const id = h(d.id);
+  const expanded = DRAGON_DETAILS.has(d.id) || STRIKE_OPEN === d.id || EDIT_OPEN === d.id || !!EDIT_LOG[d.id];
+  const forecast = d.slain ? `✓ ${tt('dd_slain_tag')}` : adhoc ? tt('dd_adhoc_note') : never ? `<span class="dc-never">⚠ ${tt('dd_never_warn')}</span>` : `${tt('dd_debt_free_by')} ${debtFreeLabel(months)}`;
+  const dueLabel = due ? (due.overdue ? tt('dd_overdue') : due.days === 0 ? tt('dd_due_today') : tt('dd_due_in', { n: due.days })) : '';
+  const aprLabel = `${debtCopy('ดอกเบี้ย', 'APR')} ${Number(d.apr)}%`;
+  return `<article class="dragon-card${d.slain ? ' slain' : ''}${never ? ' is-never' : ''}" data-dragon-id="${id}">
     <div class="dc-body">
-      <div class="dc-art-wrap">${art}${BREATHING.includes(d.id) ? '<span class="dc-breath-fire"></span>' : ''}${renderFx(fx)}<span class="dc-typebadge">${type.glyph}</span></div>
-      <div class="dc-main">
-        <div class="dc-head"><div class="dc-name">${h(dragonName(d))}</div><div class="dc-type">${h(dragonTypeName(d.type))}</div></div>
-        <div class="dc-hp"><div class="dc-hp-track"><div class="dc-hp-ghost" style="width:${pct}%"></div><div class="dc-hp-fill" style="width:${pct}%"></div><div class="dc-regen-ember"></div></div><div class="dc-hp-nums"><span class="dc-bal">${money(d.balance)}</span><span class="dc-orig">/ ${money(d.original)} · ${Math.round(paidPct)}% ${tt('dd_reclaimed')}</span></div></div>
-        <div class="dc-stats">
-          <span class="dc-stat"><span class="dc-stat-k">${tt('dd_apr')}</span><span class="dc-stat-v">${d.apr}%</span></span>
-          ${d.apr > 0 ? `<span class="pill">${d.interestMode === 'simple' ? '▭ ' + tt('dd_simple') : '⟳ ' + tt('dd_compound')}</span>` : ''}
-          ${dailyRegen > 0 ? `<span class="pill regen-pill">🔥 +${money(dailyRegen)} ${tt('dd_regen_day')}</span>` : ''}
-          ${adhoc ? `<span class="pill">🤝 ${tt('dd_adhoc')}</span>` : `<span class="dc-stat"><span class="dc-stat-k">${tt('dd_payment')}</span><span class="dc-stat-v gold">${money(d.payment)}/${tt('dd_month_short')}</span></span>`}
-        </div>
-        <div class="dc-forecast">${adhoc ? `🤝 ${tt('dd_adhoc_note')}` : never ? `<span class="dc-never">⚠️ ${tt('dd_never_warn')}</span>` : `⏳ ${months} ${tt('dd_month_short')} · ${tt('dd_debt_free_by')} ${debtFreeLabel(months)}`}${due ? (due.overdue ? ` <span class="dc-due overdue">⚠️ ${tt('dd_overdue')}</span>` : ` <span class="dc-due">📅 ${due.days === 0 ? tt('dd_due_today') : tt('dd_due_in', { n: due.days })}</span>`) : ''}</div>
-        ${log.length ? `<div class="dc-log"><div class="dc-log-h">📜 ${tt('dd_log')}</div><div class="dc-log-rows">${log.map(row => renderLogRow(d, row)).join('')}</div></div>` : ''}
-        <div class="dc-actions">${STRIKE_OPEN === d.id ? renderStrikeForm(d) : `<button class="dc-strike-btn" onclick="openStrike('${h(d.id)}')">⚔️ ${tt('dd_strike')}</button><button class="dc-edit" title="${tt('dd_edit')}" onclick="openEdit('${h(d.id)}')">✎</button>`}</div>
-      </div>
+      <button class="dc-summary" type="button" aria-expanded="${expanded}" aria-controls="detail-${id}" onclick="toggleDragonDetails('${id}')" aria-label="${h(debtCopy('รายละเอียด ', 'Details: ') + dragonName(d))}">
+        <span class="dc-art-wrap" data-drop-type="${d.slain ? '' : h(d.type)}">${renderDragonPortrait(d.type, { hurt: !!fx, suffix: d.id })}${BREATHING.includes(d.id) ? '<span class="dc-breath-fire"></span>' : ''}${renderFx(fx)}</span>
+        <span class="dc-main"><span class="dc-head"><span class="dc-name">${h(dragonName(d))}</span><span class="dc-type">${h(dragonTypeName(d.type))}</span><span class="dc-apr">${aprLabel}</span></span>
+          <span class="dc-hp-nums"><strong class="dc-bal">${money(d.balance)}</strong><span class="dc-orig">/ ${money(d.original)}</span></span>
+          <span class="dc-progress"><span class="dc-hp-track" role="progressbar" aria-label="${h(tt('dd_reclaimed'))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(paidPct)}"><span class="dc-hp-fill" style="width:${paidPct}%"></span></span><span class="dc-paid">${Math.round(paidPct)}% <span>${tt('dd_reclaimed')}</span></span><span class="dc-mobile-apr">${d.slain ? tt('dd_slain_tag') : aprLabel}</span></span>
+          <span class="dc-meta"><span>${adhoc ? tt('dd_adhoc') : `${tt('dd_payment')} <b>${money(d.payment)}</b>`}</span>${dueLabel ? `<span class="${due.overdue ? 'dc-never' : ''}">${h(dueLabel)}</span>` : ''}<span>${forecast}</span>${dailyRegen > 0 ? `<span class="regen-pill">+${money(dailyRegen)}${debtCopy('/วัน', '/day')}</span>` : ''}</span>
+        </span><span class="dc-chevron">${debtIcon('chevron')}</span>
+      </button>
+      <div class="dc-row-actions">${d.archived ? `<button class="btn-ghost sm" data-restore-dragon="${id}">${debtCopy('นำกลับมา', 'Restore')}</button>` : !d.slain ? `<button class="dc-strike-btn" onclick="openStrike('${id}')">${debtIcon('swords')}<span>${debtCopy('บันทึกการจ่าย', 'Record payment')}</span></button>` : `<span class="dc-paid-badge">✓ ${tt('dd_slain_tag')}</span>`}<button class="btn-ghost sm dc-details-button" aria-expanded="${expanded}" aria-controls="detail-${id}" onclick="toggleDragonDetails('${id}')">${debtCopy('ดูรายละเอียด', 'View details')}</button></div>
     </div>
-    ${EDIT_OPEN === d.id ? renderDragonForm({ ...d, name: dragonName(d), id: d.id }, 'edit') : ''}
+    <div class="dc-detail" id="detail-${id}" ${expanded ? '' : 'hidden'}>
+      <div class="dc-detail-facts"><span>${h(dragonTypeName(d.type))} · ${aprLabel} · ${tt(d.interestMode === 'simple' ? 'dd_simple' : 'dd_compound')}</span><span>${adhoc ? tt('dd_adhoc_note') : `${tt('dd_payment')} ${money(d.payment)}`}</span><span>${forecast}${dueLabel ? ` · ${h(dueLabel)}` : ''}</span>${dailyRegen > 0 ? `<span class="regen-pill">${tt('dd_regen_day')} +${money(dailyRegen)}</span>` : ''}</div>
+      <div class="dc-detail-tools">${d.archived ? `<button class="btn-ghost sm dc-mobile-restore" data-restore-dragon="${id}">${debtCopy('นำกลับมา', 'Restore')}</button>` : ''}${!d.slain && !d.archived ? `<button class="btn-danger sm dc-mobile-pay" onclick="openStrike('${id}')">${debtIcon('swords')} ${debtCopy('บันทึกการจ่าย', 'Record payment')}</button>` : ''}<button class="btn-ghost sm dc-edit" onclick="openEdit('${id}')">✎ ${tt('dd_edit')}</button><button class="btn-ghost sm" onclick="pickDragonArt('${h(d.type)}','detail-art-${id}')">${debtCopy('เปลี่ยนภาพมังกร', 'Change artwork')}</button><input id="detail-art-${id}" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="setDragonArt('${h(d.type)}',this.files&&this.files[0])"><button class="btn-ghost sm dc-remove" onclick="deleteDragon('${id}')">${tt('dd_delete')}</button></div>
+      ${STRIKE_OPEN === d.id ? renderStrikeForm(d) : ''}
+      ${EDIT_OPEN === d.id ? renderDragonForm({ ...d, name: dragonName(d), id: d.id }, 'edit') : ''}
+      <div class="dc-log"><h3 class="dc-log-h">${debtIcon('scroll')} ${tt('dd_log')}</h3><div class="dc-log-rows">${log.length ? log.map(row => renderLogRow(d, row)).join('') : `<span class="settings-sub">${debtCopy('ยังไม่มีรายการจ่าย', 'No payments recorded yet')}</span>`}</div></div>
+    </div>
   </article>`;
 }
 
@@ -783,15 +783,56 @@ function renderLogRow(d, row) {
 }
 
 function renderLair() {
-  const live = aliveDragons();
-  const endMonthControls = live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : '';
-  const clearControls = S.dragons.length ? `<button class="btn-danger sm" onclick="clearLair()">🧹 ${tt('dd_clear_lair')}</button>` : '';
+  const filters = [['all', debtCopy('ทั้งหมด', 'All')], ['active', debtCopy('กำลังสู้', 'Active')], ['due', debtCopy('ใกล้ครบกำหนด', 'Due soon')], ['paid', debtCopy('ชำระครบ', 'Paid')], ['archived', debtCopy('เก็บเข้าคลัง', 'Archived')]];
   return `<section class="panel lair-panel">
-    <div class="panel-head"><h2 class="panel-title">🏰 ${tt('dd_lair')} <span class="count-pill">${live.length}</span></h2><div class="lair-actions">${endMonthControls}${clearControls}</div></div>
-    <div class="lair-grid">${S.dragons.some(d => !d.archived) ? S.dragons.filter(d => !d.archived).map(renderDragonCard).join('') : `<div class="empty">${tt('dd_no_dragons')}</div>`}
-    ${S.dragons.filter(d => d.archived).map(d => `<button type="button" class="btn-ghost" data-restore-dragon="${h(d.id)}">${LANG === 'th' ? 'นำกลับมา' : 'Restore'} · ${h(dragonName(d))}</button>`).join('')}
-    ${ADD_OPEN ? `<article class="dragon-card"><div class="dc-name">${tt('dd_new')}</div>${renderDragonForm(ADD_FORM_DRAFT, 'add')}</article>` : `<button class="add-dragon" onclick="openAddDragon()"><span style="font-size:28px;line-height:1">＋</span><span>${tt('dd_add')}</span></button>`}</div>
+    <div class="panel-head"><h2 class="panel-title">${debtIcon('castle')} ${debtCopy('มังกรของฉัน', 'My dragons')} (${S.dragons.filter(d => !d.archived).length})</h2><button class="debt-view-all" onclick="resetDebtFilters()">${debtCopy('ดูทั้งหมด', 'View all')} ${debtIcon('arrow')}</button></div>
+    <details class="debt-filter-tools" ${DEBT_FILTER !== 'all' || DEBT_QUERY ? 'open' : ''}><summary>${debtCopy('ค้นหาและกรองมังกร', 'Search and filter dragons')}${debtIcon('chevron')}</summary><div class="debt-toolbar"><div class="debt-filters" aria-label="${debtCopy('สถานะหนี้', 'Debt status')}">${filters.map(([key, label]) => `<button type="button" data-debt-filter="${key}" aria-pressed="${DEBT_FILTER === key}" onclick="setDebtFilter('${key}')">${label} (${S.dragons.filter(d => matchesDebtFilter(d, key)).length})</button>`).join('')}</div><label class="debt-search"><span class="debt-sr">${debtCopy('ค้นหามังกร', 'Search dragons')}</span><input id="debt-query" type="search" placeholder="${debtCopy('ค้นหามังกร...', 'Search dragons...')}" value="${h(DEBT_QUERY)}" oninput="DEBT_QUERY=this.value;applyDebtFilters()"></label><label class="debt-sort"><span class="debt-sr">${debtCopy('เรียงลำดับ', 'Sort by')}</span><select id="debt-sort" onchange="DEBT_SORT=this.value;applyDebtFilters()">${[['added', debtCopy('วันที่เพิ่ม', 'Date added')], ['balance', debtCopy('ยอดหนี้สูงสุด', 'Highest balance')], ['apr', debtCopy('ดอกเบี้ยสูงสุด', 'Highest APR')]].map(([key,label]) => `<option value="${key}" ${DEBT_SORT === key ? 'selected' : ''}>${label}</option>`).join('')}</select></label></div></details>
+    <div class="lair-grid">${S.dragons.map(renderDragonCard).join('')}<div class="empty debt-no-results" hidden><p>${debtCopy('ไม่พบมังกรในรายการนี้', 'No dragons in this list')}</p><button class="btn-ghost sm" onclick="resetDebtFilters()">${debtCopy('ดูมังกรทั้งหมด', 'Show all dragons')}</button></div></div>
   </section>`;
+}
+
+function matchesDebtFilter(d, filter) {
+  if (filter === 'archived') return !!d.archived;
+  if (d.archived) return false;
+  if (filter === 'active') return !d.slain;
+  if (filter === 'paid') return !!d.slain;
+  if (filter === 'due') { const due = dueStatus(d); return !!due && (due.overdue || due.days <= 7); }
+  return true;
+}
+function applyDebtFilters() {
+  const grid = document.querySelector('.lair-grid');
+  if (!grid) return;
+  const query = DEBT_QUERY.trim().toLocaleLowerCase();
+  const ordered = S.dragons.slice().sort((a,b) => DEBT_SORT === 'balance' ? b.balance - a.balance : DEBT_SORT === 'apr' ? b.apr - a.apr : 0);
+  let visible = 0;
+  for (const d of ordered) {
+    const card = grid.querySelector(`[data-dragon-id="${CSS.escape(d.id)}"]`);
+    if (!card) continue;
+    card.hidden = !matchesDebtFilter(d, DEBT_FILTER) || !(dragonName(d) + ' ' + dragonTypeName(d.type)).toLocaleLowerCase().includes(query);
+    if (!card.hidden) visible++;
+    grid.appendChild(card);
+  }
+  grid.querySelector('.debt-no-results').hidden = visible > 0;
+  document.querySelectorAll('[data-debt-filter]').forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.debtFilter === DEBT_FILTER)));
+}
+function setDebtFilter(filter) { DEBT_FILTER = filter; applyDebtFilters(); }
+function resetDebtFilters() { DEBT_FILTER = 'all'; DEBT_QUERY = ''; const input = document.getElementById('debt-query'); if (input) input.value = ''; applyDebtFilters(); }
+function toggleDragonDetails(id) {
+  const detail = document.getElementById(`detail-${id}`);
+  if (!detail) return;
+  const open = detail.hidden;
+  detail.hidden = !open;
+  if (open) DRAGON_DETAILS.add(id); else DRAGON_DETAILS.delete(id);
+  document.querySelectorAll(`[aria-controls="detail-${CSS.escape(id)}"]`).forEach(btn => btn.setAttribute('aria-expanded', String(open)));
+}
+function debtDisclosure(key, title, contents) {
+  return `<details class="debt-disclosure" id="debt-${key}" ${DEBT_PANELS[key] ? 'open' : ''} ontoggle="DEBT_PANELS['${key}']=this.open"><summary>${title}${debtIcon('chevron')}</summary><div class="debt-disclosure-body">${contents}</div></details>`;
+}
+function openDebtStrategy() {
+  const panel = document.getElementById('debt-strategy');
+  panel.open = true; DEBT_PANELS.strategy = true;
+  panel.scrollIntoView({ behavior: SETTINGS.animations === false ? 'auto' : 'smooth', block: 'start' });
+  panel.querySelector('summary').focus({ preventScroll: true });
 }
 
 function renderSlayerPanel() {
@@ -804,7 +845,7 @@ function renderSlayerPanel() {
   const skins = avatarSkins(base);
   const characterLink = S.slayer.characterId ? `<a class="char-id-link" href="${h(profileUrl())}">#${h(S.slayer.characterId)}</a>` : `<span class="settings-sub">${tt('dd_character_hint')}</span>`;
   const characterActions = linkedHero
-    ? `${characterLink}<span class="account-hero-note">🔒 ${tt('dd_account_hero_locked')}</span>${S.slayer.characterId ? `<a class="btn-ghost sm" href="${h(profileUrl())}">${tt('dd_open_profile')}</a>` : ''}`
+    ? `${characterLink}${S.slayer.characterId ? `<a class="btn-ghost sm" href="${h(profileUrl())}">${tt('dd_open_profile')}</a>` : ''}`
     : `${characterLink}<button class="btn-ghost sm" onclick="ensureDebtCharacter()">${tt('dd_create_character')}</button>${S.slayer.characterId ? `<a class="btn-ghost sm" href="${h(profileUrl())}">${tt('dd_open_profile')}</a>` : ''}`;
   const classControls = linkedHero
     ? `<div class="field-input account-hero-lock">${CLASSES[cls].glyph} ${h(classLabel(cls))}</div>
@@ -819,9 +860,9 @@ function renderSlayerPanel() {
       <div class="char-row">${characterActions}</div>
       <div class="bar-row"><span class="bar-lab">${t('xp')}</span><div class="bar"><span class="bar-fill" style="display:block;width:${level.pct}%"></span></div><span class="bar-val">${level.into}/${level.need}</span></div>
     </div></div>
-    <div class="class-row">${classControls}</div>
+    ${linkedHero ? '' : `<details class="slayer-edit-controls"><summary>${debtCopy('ปรับแต่งนักล่ามังกร', 'Customize your slayer')}</summary><div class="class-row">${classControls}</div>`}
     ${!linkedHero && skins.length > 1 ? `<select class="field-input" style="margin-top:8px" onchange="updateSlayerField('skin',this.value)">${skins.map(sk => `<option value="${h(sk.id)}" ${S.slayer.skin === sk.id ? 'selected' : ''}>${h(sk[LANG] || sk.th || sk.en)}</option>`).join('')}</select>` : ''}
-    ${linkedHero ? '' : `<div class="slayer-editor"><input id="slayer-character-id" class="field-input" inputmode="numeric" maxlength="4" placeholder="${tt('dd_character')}" value="${h(S.slayer.characterId || '')}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4)"><button class="btn-primary sm" onclick="linkDebtCharacter()">${tt('dd_character')}</button></div>`}
+    ${linkedHero ? '' : `<div class="slayer-editor"><input id="slayer-character-id" class="field-input" aria-label="${h(tt('dd_character'))}" inputmode="numeric" maxlength="4" placeholder="${tt('dd_character')}" value="${h(S.slayer.characterId || '')}" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4)"><button class="btn-primary sm" onclick="linkDebtCharacter()">${tt('dd_character')}</button></div></details>`}
   </section>`;
 }
 
@@ -875,12 +916,15 @@ function renderRecordPanel() {
   </section>`;
 }
 
-function renderQuickToggles() {
-  document.getElementById('quick-toggles').innerHTML = `<button class="quick-toggle ${SETTINGS.sound ? '' : 'off'}" onclick="toggleSetting('sound')" aria-pressed="${SETTINGS.sound}" title="${h(tt('sound_effects'))}">${SETTINGS.sound ? '🔊' : '🔇'}</button>
-    <button class="quick-toggle ${SETTINGS.animations !== false ? '' : 'off'}" onclick="toggleSetting('animations')" aria-pressed="${SETTINGS.animations !== false}" title="${h(tt('animations'))}">${SETTINGS.animations !== false ? '✨' : '⏸'}</button>`;
-}
-
 function renderAll(shouldSave = true) {
+  // Retain input through language/theme changes, cloud refreshes and battle effects.
+  if (ADD_OPEN && document.getElementById('new-name')) ADD_FORM_DRAFT = formPayload('new');
+  if (EDIT_OPEN && document.getElementById(`edit-${EDIT_OPEN}-name`)) EDIT_FORM_DRAFT[EDIT_OPEN] = formPayload(`edit-${EDIT_OPEN}`);
+  if (STRIKE_OPEN && document.getElementById(`strike-amt-${STRIKE_OPEN}`)) STRIKE_DRAFT[STRIKE_OPEN] = {
+    amount: document.getElementById(`strike-amt-${STRIKE_OPEN}`).value,
+    date: document.getElementById(`strike-date-${STRIKE_OPEN}`).value,
+    move: document.querySelector(`[data-dragon-id="${CSS.escape(STRIKE_OPEN)}"] .dc-move.on`)?.dataset.move
+  };
   syncSlayerWithAccount();
   applySettings();
   translatePage();
@@ -888,14 +932,23 @@ function renderAll(shouldSave = true) {
   const live = aliveDragons();
   const totalDebt = live.reduce((sum, d) => sum + Number(d.balance || 0), 0);
   const sim = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, 0);
-  document.getElementById('app').innerHTML = `<section class="banner">
-    <div class="banner-crest">🐉</div><h1 class="banner-title">${tt('dd_title')}</h1><div class="banner-sub">${tt('dd_sub')}</div>
+  const monthly = live.reduce((sum, d) => sum + (d.payMode === 'adhoc' ? 0 : Number(d.payment || 0)), 0);
+  const stat = (icon, value, label) => `<div class="hoard-stat"><span class="hs-icon">${icon}</span><strong class="hs-val">${value}</strong><span class="hs-lab">${label}</span></div>`;
+  document.getElementById('app').innerHTML = `<section class="debt-hero">
+    <div class="debt-hero-heading"><span class="banner-crest" aria-hidden="true">🐉</span><div><h1 class="banner-title" aria-label="${h(tt('dd_title'))}">Debt Dragon</h1><p class="banner-sub">${debtCopy('ปราบมังกรทีละก้อน เพื่ออิสรภาพทางการเงินของคุณ', 'Face your debts. One step closer to freedom.')}</p></div></div>
+    <p class="debt-hero-note">${debtIcon('shield')}<span>${debtCopy('หนี้ไม่ใช่จุดจบ', 'One payment at a time.')}<small>${debtCopy('แต่คือมังกรที่เราเอาชนะได้', 'Every dragon can be defeated.')}</small></span></p>
+  </section>
+  <div class="debt-workspace"><div class="hoard-bar">${stat('🐉', money(totalDebt), debtCopy('ยอดหนี้คงเหลือ', 'Outstanding balance'))}${stat(debtIcon('trophy'), live.length, debtCopy('มังกรที่ยังอยู่', 'Active dragons'))}${stat('📜', S.dragons.filter(d => d.slain).length, tt('dd_slain_count'))}${stat(debtIcon('shield'), isFinite(sim.months) ? sim.months : '—', `${tt('dd_free_in')} · ${tt('dd_months')}`)}</div>
     ${ACCRUAL_NOTE ? `<div class="accrual-note">🔥 ${tt(ACCRUAL_NOTE.days ? 'dd_accrued_days' : 'dd_accrued', { n: ACCRUAL_NOTE.n, amt: money(ACCRUAL_NOTE.added) })}</div>` : ''}
-    <div class="hoard-bar"><div class="hoard-stat"><span class="hs-icon">🐉</span><span class="hs-val">${moneyShort(totalDebt)}</span><span class="hs-lab">${tt('dd_hoard')}</span></div>
-    <div class="hoard-stat"><span class="hs-icon">🏆</span><span class="hs-val">${S.dragons.filter(d => d.slain).length}</span><span class="hs-lab">${tt('dd_slain_count')}</span></div>
-    <div class="hoard-stat"><span class="hs-icon">🛡️</span><span class="hs-val">${isFinite(sim.months) ? sim.months : '∞'}</span><span class="hs-lab">${tt('dd_free_in')} · ${tt('dd_months')}</span></div></div>
-  </section><div class="debt-cols">${renderLair()}<aside class="debt-side">${renderSlayerPanel()}${renderTacticsPanel()}<div id="forecast-slot">${renderForecastPanel()}</div>${renderRecordPanel()}</aside></div>${flashToken ? '<div class="debt-flash"></div>' : ''}`;
-  renderQuickToggles();
+    <div class="debt-actions"><button class="btn-primary add-dragon" onclick="openAddDragon()"><span aria-hidden="true">＋</span>${debtCopy('เพิ่มมังกรหนี้', 'Add a debt dragon')}</button><button class="btn-ghost debt-strategy-button" onclick="openDebtStrategy()">${debtIcon('swords')} ${debtCopy('กลยุทธ์และจำลอง', 'Strategy & simulation')}</button><button class="btn-ghost debt-settings" aria-label="${debtCopy('ตั้งค่าเกม', 'Game settings')}" onclick="openSettings()">${debtIcon('settings')}<span>${debtCopy('ตั้งค่าเกม', 'Game settings')}</span></button></div>
+    ${ADD_OPEN ? `<section class="panel debt-add-panel" aria-label="${h(tt('dd_new'))}"><h2 class="panel-title">${tt('dd_new')}</h2>${renderDragonForm(ADD_FORM_DRAFT, 'add')}</section>` : ''}
+    ${renderLair()}
+    <div class="debt-support">${debtDisclosure('finance', `${debtIcon('scroll')} ${debtCopy('ภาพรวมการเงิน', 'Financial overview')}`, `<div class="finance-stats">${stat('', money(totalDebt), debtCopy('ยอดหนี้คงเหลือ', 'Outstanding balance'))}${stat('', money(Math.round(sim.interest)), tt('dd_interest_ahead'))}${stat('', money(monthly), debtCopy('ยอดจ่ายต่อเดือน', 'Monthly payments'))}${stat('', isFinite(sim.months) ? `${sim.months} ${tt('dd_months')}` : '—', `${tt('dd_debt_free_by')} ${debtFreeLabel(sim.months)}`)}</div>${renderRecordPanel()}`)}${debtDisclosure('slayer', `${debtIcon('swords')} ${tt('dd_slayer')}`, renderSlayerPanel())}</div>
+    ${debtDisclosure('strategy', `${debtIcon('swords')} ${debtCopy('กลยุทธ์และจำลองการจ่าย', 'Strategy & payment simulator')}`, `<div class="debt-strategy-grid">${renderTacticsPanel()}<div id="forecast-slot">${renderForecastPanel()}</div></div>`)}
+    ${debtDisclosure('manage', `${debtIcon('settings')} ${debtCopy('จัดการถ้ำมังกร', 'Manage your lair')}`, `<div class="lair-actions">${live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : ''}${S.dragons.length ? `<button class="btn-ghost sm dc-remove" onclick="clearLair()">${tt('dd_clear_lair')}</button>` : ''}</div><p class="settings-sub">${tt('dd_end_month_sub')}</p>`)}
+    <cq-footer></cq-footer>
+  </div>${flashToken ? '<div class="debt-flash"></div>' : ''}`;
+  applyDebtFilters();
   renderOverlay();
   attachDragonDropHandlers();
   if (shouldSave) { saveDebtState(); toast(tt('dd_saved')); }
@@ -907,7 +960,7 @@ function renderForecastOnly() {
 }
 
 function attachDragonDropHandlers() {
-  document.querySelectorAll('.dragon-medallion[data-drop-type]').forEach(el => {
+  document.querySelectorAll('[data-drop-type]').forEach(el => {
     const type = el.dataset.dropType;
     if (!type) return;
     el.ondragover = ev => { ev.preventDefault(); el.classList.add('drag-over'); };
@@ -919,8 +972,8 @@ function attachDragonDropHandlers() {
   });
 }
 
-function openStrike(id) { STRIKE_OPEN = id; EDIT_OPEN = ''; SFX.click(); renderAll(false); }
-function closeStrike() { STRIKE_OPEN = ''; renderAll(false); }
+function openStrike(id) { DRAGON_DETAILS.add(id); STRIKE_DRAFT = {}; STRIKE_OPEN = id; EDIT_OPEN = ''; SFX.click(); renderAll(false); document.getElementById(`strike-amt-${id}`)?.focus(); }
+function closeStrike() { STRIKE_OPEN = ''; STRIKE_DRAFT = {}; renderAll(false); }
 function pickMove(id, move) {
   document.querySelectorAll(`[data-dragon-id="${CSS.escape(id)}"] .dc-move`).forEach(btn => btn.classList.toggle('on', btn.dataset.move === move));
 }
@@ -981,9 +1034,9 @@ function endMonth() {
   setTimeout(() => { BREATHING = []; renderAll(false); }, 1150);
   renderAll();
 }
-function openEdit(id) { EDIT_OPEN = id; STRIKE_OPEN = ''; renderAll(false); }
-function cancelEdit() { EDIT_OPEN = ''; renderAll(false); }
-function openAddDragon() { ADD_OPEN = true; ADD_FORM_DRAFT = {}; renderAll(false); }
+function openEdit(id) { DRAGON_DETAILS.add(id); EDIT_OPEN = id; STRIKE_OPEN = ''; renderAll(false); document.getElementById(`edit-${id}-name`)?.focus(); }
+function cancelEdit() { EDIT_OPEN = ''; EDIT_FORM_DRAFT = {}; renderAll(false); }
+function openAddDragon() { ADD_OPEN = true; ADD_FORM_DRAFT = {}; renderAll(false); document.getElementById('new-name')?.focus(); }
 function closeAddDragon() { ADD_OPEN = false; ADD_FORM_DRAFT = {}; renderAll(false); }
 function formPayload(prefix, validate = false) {
   if (validate) {
@@ -1032,6 +1085,7 @@ function saveDragon(id) {
   const now = PointyLogic.dateOnlyMs(new Date());
   S.dragons = S.dragons.map(d => d.id === id ? { ...d, name: { th: form.name, en: form.name }, ...form, interestAccruedAt: ['balance', 'original', 'apr', 'interestMode'].some(key => d[key] !== form[key]) ? now : d.interestAccruedAt, slain: form.balance <= .005, slainAt: form.balance <= .005 ? d.slainAt || Date.now() : null } : d);
   EDIT_OPEN = '';
+  EDIT_FORM_DRAFT = {};
   SFX.click();
   renderAll();
 }
@@ -1110,6 +1164,8 @@ function setDragonArt(type, file) {
   reader.readAsDataURL(file);
 }
 function requestStrike(id, amount) {
+  DRAGON_DETAILS.add(id);
+  DEBT_FILTER = 'all'; DEBT_QUERY = '';
   STRIKE_OPEN = id;
   EDIT_OPEN = '';
   SFX.click();
@@ -1234,12 +1290,14 @@ function setTheme(theme) { SETTINGS.theme = applyGlobalTheme(theme); saveSetting
 function setAccent(color) { if (ACCENTS.includes(color)) SETTINGS.accent = color; saveSettings(); renderAll(false); }
 function setBattleFx(mode) { SETTINGS.battlefx = mode === 'minimal' ? 'minimal' : 'full'; saveSettings(); renderAll(false); }
 function openSettings() { OVERLAY = 'settings'; SFX.click(); renderOverlay(); }
-function closeOverlay() { OVERLAY = ''; renderOverlay(); }
+function closeOverlay() { OVERLAY = ''; renderOverlay(); document.querySelector('.debt-settings')?.focus(); }
 function renderOverlay() {
   const root = document.getElementById('overlay-root');
+  document.body.classList.toggle('debt-settings-open', OVERLAY === 'settings');
   if (OVERLAY !== 'settings') { root.innerHTML = ''; return; }
-  root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" onclick="event.stopPropagation()">
-    <div class="picker-head"><div class="picker-title">⚙ ${tt('settings')}</div><button class="picker-close" onclick="closeOverlay()">✕</button></div>
+  const focusAction = root.contains(document.activeElement) ? document.activeElement.getAttribute('onclick') : null;
+  root.innerHTML = `<div class="picker-overlay" onclick="closeOverlay()"><div class="picker" role="dialog" aria-modal="true" aria-labelledby="debt-settings-title" onclick="event.stopPropagation()">
+    <div class="picker-head"><h2 class="picker-title" id="debt-settings-title">⚙ ${tt('settings')}</h2><button class="picker-close" aria-label="${debtCopy('ปิด', 'Close')}" onclick="closeOverlay()">✕</button></div>
     <div class="settings-grid">
       <div class="settings-row"><div><div class="settings-label">${tt('theme')}</div></div><div class="seg"><button class="${SETTINGS.theme === 'tavern' ? 'on' : ''}" onclick="setTheme('tavern')">${tt('theme_tavern')}</button><button class="${SETTINGS.theme === 'dungeon' ? 'on' : ''}" onclick="setTheme('dungeon')">${tt('theme_dungeon')}</button></div></div>
       <div class="settings-row"><div class="settings-label">${tt('accent')}</div><div class="swatches">${ACCENTS.map(color => `<button class="swatch ${SETTINGS.accent === color ? 'on' : ''}" style="background:${color}" onclick="setAccent('${color}')" aria-label="${color}"></button>`).join('')}</div></div>
@@ -1248,6 +1306,15 @@ function renderOverlay() {
       <div class="settings-row"><div><div class="settings-label">${tt('battle_fx')}</div></div><div class="seg"><button class="${SETTINGS.battlefx !== 'minimal' ? 'on' : ''}" onclick="setBattleFx('full')">${tt('full')}</button><button class="${SETTINGS.battlefx === 'minimal' ? 'on' : ''}" onclick="setBattleFx('minimal')">${tt('minimal')}</button></div></div>
     </div>
   </div></div>`;
+  const focusTarget = [...root.querySelectorAll('button')].find(btn => focusAction && btn.getAttribute('onclick') === focusAction);
+  (focusTarget || root.querySelector('.picker-close')).focus();
+  root.onkeydown = event => {
+    if (event.key === 'Escape') { event.stopPropagation(); closeOverlay(); return; }
+    if (event.key !== 'Tab') return;
+    const buttons = [...root.querySelectorAll('button:not(:disabled)')];
+    if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons.at(-1).focus(); }
+    else if (!event.shiftKey && document.activeElement === buttons.at(-1)) { event.preventDefault(); buttons[0].focus(); }
+  };
 }
 
 function reconcileAccrualOnOpen() {
@@ -1264,6 +1331,7 @@ function reconcileAccrualOnOpen() {
 }
 
 Object.assign(window, {
+  setDebtFilter, resetDebtFilters, applyDebtFilters, toggleDragonDetails, openDebtStrategy,
   renderAll,
   openStrike,
   closeStrike,

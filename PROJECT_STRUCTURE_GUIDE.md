@@ -19,20 +19,34 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 
 ## Root Files
 
+- `PLAYER_DESIGN_SYSTEM.md`: shared player component and module-family contract;
+  includes responsive banner/frame tokens and intentional context exceptions.
+- `shared/player-layout.js`, `shared/player-layout.css`: common header/footer
+  elements, family artwork registry and responsive geometry. Use alongside
+  `shared/navigation.css`, `shared/mobile-shell.js` and `shared/quest-icons.js`.
+- `tests/e2e/player-consistency.spec.mjs`: cross-route shell, artwork family,
+  frame/banner geometry and phone menu checks; dated evidence in
+  `docs/player-design-system-2026-10-13/`.
+
 - `Memory.md`, `PLAYBOOK.md`: current checkpoint and operating/read order.
 - `skills/coin-quest-new-chat/`: versioned new-chat router, context map and UI
   metadata; installed copy is `/Users/point/.codex/skills/coin-quest-new-chat/`.
 - `index.html`: Home, toolbox launcher, and Price Arena.
+- `shared/price-arena.js`, `shared/price-arena.css`: Price Arena market hero,
+  responsive offer cards and product/offer dialogs; uses the shared unit/pricing
+  logic and existing comparison storage. Evidence: `docs/price-arena-redesign-2026-10-13/`.
 - `trip/index.html`: Party Ledger shell, CSS, static markup, script loading.
 - `trip/trip-utils.js`: Party Ledger utility helpers loaded before the app.
 - `trip/app.js`: Party Ledger behavior and rendering.
 - `trip/pixicons.js`: compact quest icon registry and migration helpers. The
   legacy `.jsx` copy is not loaded in production because Vercel serves `.jsx`
   with a non-executable MIME type under `nosniff`.
-- `character/index.html`: Character Profile shell and styles.
+- `character/index.html`: Character Profile shell and loader.
+- `character/design.css`: active October 13 Character Profile layout, forest hero,
+  parchment cards, tablet columns, mobile disclosures and sticky profile actions.
 - `character/app.js`: Character Profile loading and rendering.
 - `debt/index.html`, `debt/app.js`: Debt Dragon web module.
-- `treasury/index.html`, `treasury/app.js`: Treasury web module.
+- `treasury/index.html`, `treasury/app.js`, `treasury/design.css`: Treasury web module; monthly overview, responsive budget cards/disclosures, forms and saved-month browsing. Illustrations: `assets/treasury-reference/`; evidence: `docs/treasury-redesign-2026-10-13/`.
 - `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css`: Super Admin Portal.
 - `lang.js`: shared Thai/English copy.
 - `firestore.rules`: intended Firestore Rules source; deployed separately from Vercel.
@@ -51,14 +65,16 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 
 ## Shared Browser Modules
 
-- Player HTML entry points: original inline styles and composition restored
-  from `b726368`; current scripts/features are preserved.
+- Player game forms retain the restored `b726368` composition and current behavior.
+  Home and shared web navigation now follow the October 13 illustrated mockups;
+  see `docs/navigation-redesign-2026-10-13/README.md`.
 - `shared/player-brand.css`: historical colors-only override, no longer loaded
   by player pages after the complete pre-redesign restoration.
 - `shared/quest-tokens.css`: shared/Admin base palette. Do not change it for a
   player-only color request; Admin is intentionally outside that scope.
-- `shared/quest-design.css`, `character/design.css`: detached historical player
-  redesigns. `admin/design.css` remains active for Admin.
+- `shared/quest-design.css`: detached historical player redesign.
+  `character/design.css` was replaced by the October 13 profile mockup implementation;
+  `admin/design.css` remains active for Admin.
 - `shared/pointy-logic.js`: shared calculations, class registry, settlement,
   price comparison, leveling, profile aggregation helpers.
 - `shared/firebase-client.js`: Firebase app/Auth/Firestore initializer.
@@ -69,17 +85,33 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 - `shared/profile-auth.js`: username normalization, auth email mapping, blocked
   account status helpers.
 - `shared/profile-cloud.js`: Firebase Auth/Firestore access boundary.
-- `shared/profile-login.js`: Sign In, Sign Up, and recovery form renderers.
-- `shared/profile-character-create.js`: one-time Character Creation renderer.
+- `shared/profile-login.js`: shared Tavern Sign In, Sign Up and recovery shell,
+  field/reveal controls and keyboard focus. Art: `assets/auth-reference/`;
+  responsive styles: `.auth-entry` in `profile-hub.css`. Evidence and contracts:
+  `docs/auth-redesign-2026-10-13/`.
+- `shared/profile-character-create.js`: Tavern Character Creation form and hero
+  picker; reuses `profile-login.js` scene, with scoped `.auth-character` and
+  `.creation-picker` styles. Name/hero draft, modal focus and save lifecycle live
+  in `profile-hub.js`. See `docs/character-creation-redesign-2026-10-13/`.
 - `shared/profile-reminders.js`: Reminders overlay renderer.
 - `shared/profile-drawer.js`: profile drawer blocks.
 - `shared/profile-recovery.js`: Recovery ID generation and hashing.
 - `shared/profile-backup.js`: local data export/restore helpers.
-- `shared/profile-tour.js`: Welcome Tour content.
-- `shared/mobile-shell.js`, `shared/mobile-shell.css`: phone hamburger drawer
-  and bottom tab shell.
+- `shared/profile-tour.js`: five-step illustrated Welcome Tour renderer. Local art
+  lives in `assets/tour/`; responsive styles and lifecycle remain in
+  `profile-hub.css` / `profile-hub.js`. See `docs/welcome-tour-redesign-2026-10-13/`.
+- `shared/mobile-shell.js`, `shared/navigation.css`: shared desktop navigation,
+  tablet two-row header, phone utilities/bottom tabs and accessible overflow menu.
+- `shared/home.js`, `shared/home.css`: illustrated Home, live summary cards and
+  quick actions. `shared/quest-icons.js` owns the monochrome navigation SVG set;
+  `assets/home-reference/` holds the generated banner and module illustrations.
 - `shared/profile-hub.css`: shared profile/auth/reminder/tour styling.
-- `shared/first-load.js`, `shared/first-load.css`: first-load splash.
+- `shared/first-load.js`, `shared/first-load.css`: shared illustrated loading scene
+  for Home/Compare, Split, Debt, Treasury and Character. One renderer owns the
+  markup, page-preparation progress, responsive tips, reduced motion, focus
+  handoff and slow-load exit. Art: `assets/loading-reference/night-quest.webp`.
+  Reference, lifecycle contract and browser evidence:
+  `docs/loading-redesign-2026-10-13/`.
 - `shared/asset-urls.js`, `shared/cloudinary-assets.js`: asset URL resolution.
   Production and test routes default to deployed same-origin art. Explicit
   `?assets=cloud` uses the legacy CDN manifest for availability diagnostics.
@@ -145,7 +177,7 @@ trips and remaining limits are in `docs/mobile-completion-worklist.md`.
 | Change account creation/recovery/admin user flow | `shared/profile-hub.js`, `admin/app.js`, `admin/admin-utils.js`, `api/account-recovery-core.js`, `api/recover-account.js`, `api/admin-reset-user.js`, `api/admin-delete-user.js` | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `data-contracts.md`, Firestore rules |
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
 | Change production asset routing | `shared/asset-urls.js`, `.vercelignore`, `shared/cloudinary-assets.js` | `npm run test:assets`, `npm run smoke:prod` |
-| Change Character Profile | `character/app.js`, `character/index.html` | `shared/pointy-logic.js` aggregation |
+| Change Character Profile | `character/app.js`, `character/design.css`, `character/index.html` | `shared/pointy-logic.js` aggregation; `docs/character-profile-redesign-2026-10-13/README.md` |
 | Change Admin Portal | `admin/app.js`, `admin/admin-utils.js`, `admin/index.html`, `admin/admin.css` | `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, full `npm test` |
 | Change Firebase rules/security | `firestore.rules`, `api/*.js` | `SECURITY_AND_FIREBASE_RULES.md`, rules deploy |
 | Change CI/deploy/rollback | `.github/workflows/test.yml`, Vercel/Firebase config | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md` |

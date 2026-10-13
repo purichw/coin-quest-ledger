@@ -1,0 +1,72 @@
+[
+  {
+    "name": "home",
+    "headerHeight": 68,
+    "hero": {
+      "x": 124,
+      "y": 88,
+      "width": 1192,
+      "height": 260
+    }
+  },
+  {
+    "name": "split-entry",
+    "headerHeight": 68,
+    "hero": {
+      "x": 124,
+      "y": 88,
+      "width": 1192,
+      "height": 260
+    }
+  },
+  {
+    "name": "split-board",
+    "headerHeight": 68,
+    "hero": {
+      "x": 124,
+      "y": 110,
+      "width": 1192,
+      "height": 260
+    }
+  },
+  {
+    "name": "debt",
+    "headerHeight": 68,
+    "hero": {
+      "x": 124,
+      "y": 88,
+      "width": 1192,
+      "height": 260
+    }
+  },
+  {
+    "name": "treasury",
+    "headerHeight": 68,
+    "hero": {
+      "x": 125,
+      "y": 89,
+      "width": 1190,
+      "height": 260
+    }
+  },
+  {
+    "name": "price",
+    "headerHeight": 68,
+    "hero": {
+      "x": 124,
+      "y": 88,
+      "width": 1192,
+      "height": 260
+    }
+  },
+  {
+    "name": "character",
+    "headerHeight": 68,
+    "hero": {
+      "x": 124,
+      "y": 88,
+      "width": 1192,
+      "height": 266
+    }
+  }
+]

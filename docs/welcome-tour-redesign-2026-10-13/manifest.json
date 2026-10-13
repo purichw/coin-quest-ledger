@@ -1,0 +1,134 @@
+{
+  "date": "2026-10-13",
+  "scope": "Local website Welcome Tour only",
+  "reference": {
+    "file": "docs/welcome-tour-redesign-2026-10-13/reference.png",
+    "sha256": "6ebc574bb4d5b308e9fb50982319d8e9dccb14c087b8959f3f26a8766f93fd45",
+    "bytes": 1869904
+  },
+  "assets": [
+    {
+      "file": "assets/tour/welcome.webp",
+      "sha256": "cf82c8da24bd3dc8ef5d2ec5d994bbd1a4b9b0a92493f0bc6f113fa10525f6cc",
+      "bytes": 265906,
+      "dimensions": [
+        1881,
+        836
+      ],
+      "mode": "RGB",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-7a90fece-f289-4947-b975-b22184b42fa0.png"
+    },
+    {
+      "file": "assets/tour/party.webp",
+      "sha256": "aadfca53fdec56eb927fbfa29ab7fcbcbc44fac40b1ea13f2417e7ef8c2a8c54",
+      "bytes": 226574,
+      "dimensions": [
+        1881,
+        836
+      ],
+      "mode": "RGB",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-695379ef-ae51-4885-8f6d-5e1aec8bf0f9.png"
+    },
+    {
+      "file": "assets/tour/debt.webp",
+      "sha256": "449ac2bcb7768ebba794c49e2c4c88ff78716d8d60be0926cbf3269945a1c537",
+      "bytes": 182900,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-89aed200-dc5f-4c5e-9805-7f682a4e4566.png"
+    },
+    {
+      "file": "assets/tour/treasury.webp",
+      "sha256": "6157f1c58731e9abb6c730a40f31ae503e6ac5d202fdb820ba75a249ebd184bc",
+      "bytes": 439404,
+      "dimensions": [
+        1881,
+        836
+      ],
+      "mode": "RGB",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-b5549ed0-6639-4235-a117-78ade6d8d965.png"
+    },
+    {
+      "file": "assets/tour/compare.webp",
+      "sha256": "de02f56d3dd2c42774537be3fd55845c0399ff77e52eb9b062c5419a58e02b08",
+      "bytes": 121138,
+      "dimensions": [
+        1881,
+        836
+      ],
+      "mode": "RGB",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-f8911abc-9bce-46cd-87f0-4ce2428ebc22.png"
+    },
+    {
+      "file": "assets/tour/friends.webp",
+      "sha256": "acdcf9ac105af95c97c5ddce5e2c5fab98f1dbcfc4a943631057724912863e3f",
+      "bytes": 12166,
+      "dimensions": [
+        160,
+        160
+      ],
+      "mode": "RGBA",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-6cf1c9ef-f928-42c4-8780-f42b7d2a2aaf.png"
+    },
+    {
+      "file": "assets/tour/budget.webp",
+      "sha256": "b937b1e787c216312d653016944941f91209133ca6b0a12de27458740503f5c9",
+      "bytes": 6800,
+      "dimensions": [
+        160,
+        160
+      ],
+      "mode": "RGBA",
+      "generated_source": "/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-b4dfc641-361a-4304-837b-29dc880f0d18.png"
+    }
+  ],
+  "source": [
+    {
+      "file": "shared/profile-tour.js",
+      "sha256": "d1ccb407d7ce69a5c2c346b50462bcb92030ae5a3a0bdcdb158cfdfe3462be14",
+      "bytes": 3065
+    },
+    {
+      "file": "shared/profile-hub.js",
+      "sha256": "c8f2520de2584d60011ab7d1bc277fb4ae17c877ab2e638fb0240795a0fac762",
+      "bytes": 106101
+    },
+    {
+      "file": "shared/profile-hub.css",
+      "sha256": "b5999ae8b4d482fa04130e5366f5e5ceac1f3b19bfcc81dd822d08080c41020f",
+      "bytes": 34793
+    },
+    {
+      "file": "tests/e2e/welcome-tour.spec.mjs",
+      "sha256": "b6596cffa3c8c8da4921acdf52fc0b36fbc4503238388e0b29b9542ec97eea47",
+      "bytes": 7356
+    },
+    {
+      "file": "tests/e2e/coin-quest-ledger.spec.mjs",
+      "sha256": "dd5933c340edbacfec914bdd4a180d1c65c36411d7abf3d01dbfdafb6920f7a0",
+      "bytes": 78337
+    }
+  ],
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "short_screen": [
+    320,
+    400
+  ],
+  "reference_annotation": "Artwork generated to adapt the user supplied mockup; no pixel-parity claim."
+}

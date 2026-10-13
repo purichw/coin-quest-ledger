@@ -12,7 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/first-load.css">
   <link rel="stylesheet" href="/shared/profile-hub.css">
-  <link rel="stylesheet" href="/shared/mobile-shell.css">
+  <link rel="stylesheet" href="/shared/navigation.css">
+  <link rel="stylesheet" href="/trip/entry.css">
+  <script src="/shared/quest-icons.js"></script>
   <style>
     :root {
       --font-display: "Mitr", system-ui, sans-serif;
@@ -74,36 +76,12 @@
     }
     button, input, select { font-family: inherit; }
     button { cursor: pointer; }
-    .topbar { position: sticky; top: 0; z-index: 20; background: var(--topbar); color: var(--topbar-ink); }
-    .tb-inner { max-width: 980px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .tb-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
-    .tb-logo { width: 28px; height: 28px; display: grid; place-items: center; flex-shrink: 0; text-decoration: none; }
-    .tb-logo img { width: 28px; height: 28px; }
-    .tb-back { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; border: 0; border-radius: 11px; padding: 7px 16px; background: rgba(255,255,255,.12); color: var(--topbar-ink); font-size: 16px; font-weight: 700; text-decoration: none; }
-    .tb-wordmark { color: var(--topbar-ink); opacity: .86; font-family: var(--font-display); font-weight: 700; font-size: 16px; white-space: nowrap; }
-    .tb-nav { display: flex; gap: 6px; min-width: 0; }
-    .tb-link { color: var(--topbar-ink); text-decoration: none; opacity: .62; font-size: 14px; padding: 7px 14px; border-radius: 9px; font-weight: 600; white-space: nowrap; }
-    .tb-link.active { opacity: 1; background: rgba(255,255,255,.12); }
-    .lang-toggle { display: flex; background: rgba(255,255,255,.1); border-radius: 9px; padding: 3px; flex-shrink: 0; }
-    .lang-toggle button { border: 0; background: transparent; color: var(--topbar-ink); opacity: .62; padding: 5px 11px; border-radius: 7px; font-family: var(--font-stat); font-weight: 700; font-size: 13px; }
-    .lang-toggle button.lang-active { opacity: 1; background: var(--accent); color: #fff; }
     .page { max-width: 980px; margin: 0 auto; padding: 26px 20px 60px; }
-    .banner { text-align: center; padding: 8px 0 22px; }
-    .banner-crest { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.2)); }
-    .banner-crest img { width: 46px; height: 46px; }
-    .banner-title { margin: 6px 0 10px; font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--accent); letter-spacing: 0; }
-    .campaign-row { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex-wrap: wrap; }
-    .camp-label { font-family: var(--font-stat); font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); }
     .camp-name { border: 0; background: transparent; color: var(--ink); font-family: var(--font-display); font-size: 18px; font-weight: 500; border-radius: 9px; padding: 6px 8px; min-height: 40px; display: inline-flex; align-items: center; }
     .camp-name:hover { background: var(--panel-2); }
     .camp-edit { display: none; border: 2px solid var(--accent); border-radius: 8px; background: var(--panel-in); color: var(--ink); padding: 3px 8px; text-align: center; font-family: var(--font-display); font-size: 18px; }
-    .banner-gold { display: inline-flex; align-items: center; gap: 9px; margin: 16px auto 4px; padding: 8px 18px; border-radius: 999px; background: linear-gradient(var(--panel), var(--panel-2)); border: 1.5px solid var(--border-strong); box-shadow: var(--shadow); }
     .loot-logo { display: block; filter: drop-shadow(0 0 5px color-mix(in oklab, var(--gold), transparent 45%)) drop-shadow(0 2px 2px rgba(0,0,0,.4)); transition: transform .15s ease; }
     .loot-logo:hover { transform: translateY(-1px) scale(1.06) rotate(-3deg); }
-    .bg-coin { width: 30px; height: 30px; flex: 0 0 auto; }
-    .bg-amt { font-family: var(--font-stat); font-size: 22px; font-weight: 700; color: var(--gold); }
-    .bg-lab { font-size: 12px; color: var(--ink-soft); font-weight: 600; }
-    .banner-actions { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
     #save-status { font-size: 12px; color: var(--ink-soft); font-weight: 600; }
     #save-status.error { color: var(--hp); }
     .btn-primary, .btn-gold, .btn-ghost, .btn-tool, .seg button, .chip-all, .icon-btn, .icon-opt {
@@ -311,10 +289,8 @@
     .vc-award small { color: var(--ink-soft); }
     .confetti { position: absolute; inset: 0; pointer-events: none; }
     .confetti i { position: absolute; top: -16px; width: 9px; height: 14px; border-radius: 2px; animation: cf-fall 2.6s linear infinite; }
-    .foot { margin-top: 28px; color: var(--ink-soft); text-align: center; font-family: var(--font-stat); font-size: 12px; opacity: .7; }
     @keyframes pk-fade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes pk-pop { from { transform: scale(.94) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
-    .tools-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 18px; }
     .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
     .field.grow { flex: 1; }
     .field label, .field-label { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
@@ -361,12 +337,10 @@
     .receipt-chip { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid var(--border); border-radius: 999px; padding: 4px 8px 4px 5px; background: var(--panel-in); color: var(--ink-soft); font-size: 12px; font-weight: 700; }
     .receipt-thumb { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; border: 1.5px solid var(--border-strong); }
     .receipt-mini { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; border: 1.5px solid var(--border-strong); }
-    .date-field { width: 200px; flex-shrink: 0; }
     .field-input, .field-select { width: 100%; border: 1.5px solid var(--border-strong); border-radius: 11px; padding: 11px 13px; background: var(--panel-in); color: var(--ink); font-size: 15px; }
     .field-input:focus, .field-select:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 82%); }
     .qf-top { display: flex; gap: 11px; align-items: flex-end; margin-bottom: 13px; }
     .qf-top .field { margin-bottom: 0; }
-    .gold-field { width: 150px; flex-shrink: 0; }
     .gold-in { display: flex; align-items: center; border: 1.5px solid var(--border-strong); border-radius: 11px; background: var(--panel-in); padding-left: 12px; }
     .gold-in:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px color-mix(in oklab, var(--gold), transparent 82%); }
     .gold-in span { color: var(--gold); font-family: var(--font-stat); font-size: 16px; font-weight: 700; }
@@ -424,23 +398,9 @@
     .quick-amount span { font-family: var(--font-stat); font-size: 36px; color: var(--gold); font-weight: 700; }
     .quick-amount input { width: 5ch; border: 0; background: transparent; color: var(--ink); font-family: var(--font-stat); font-size: 56px; font-weight: 700; text-align: center; }
     .quick-amount input:focus { outline: 0; }
-    .quick-payers { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .quick-payer { border: 1.5px solid transparent; background: transparent; color: var(--ink-soft); border-radius: 13px; padding: 9px 13px; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; }
-    .quick-payer.on { border-color: var(--gold); background: var(--gold-soft); color: var(--ink); }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
-    .two-col .panel { margin-bottom: 0; }
-    .quest-rows, .tribute-list, .debt-map { display: flex; flex-direction: column; gap: 8px; }
-    .quest-row { position: relative; display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 12px; background: var(--panel-in); border: 1.5px solid var(--border); }
-    .qr-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; font-size: 24px; }
-    .qr-main { flex: 1; min-width: 0; }
-    .qr-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
-    .qr-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 2px; color: var(--ink-soft); font-size: 12px; }
-    .qr-right { text-align: right; flex-shrink: 0; }
-    .qr-amt { font-family: var(--font-stat); font-size: 16px; font-weight: 700; }
+    .tribute-list, .debt-map { display: flex; flex-direction: column; gap: 8px; }
     .qr-xp { color: var(--xp); font-family: var(--font-stat); font-size: 10px; font-weight: 600; }
-    .qr-del, .offer-del { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); opacity: 0; display: grid; place-items: center; padding: 0; font-size: 14px; line-height: 1; }
-    .quest-row:hover .qr-del { opacity: 1; }
-    .qr-del:hover { color: var(--hp); border-color: var(--hp); }
+    .offer-del { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--panel); color: var(--ink-soft); opacity: 0; display: grid; place-items: center; padding: 0; font-size: 14px; line-height: 1; }
     .log-total { display: flex; justify-content: space-between; align-items: center; padding: 12px 12px 4px; margin-top: 4px; border-top: 1.5px dashed var(--border); }
     .log-total span { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
     .log-total strong { color: var(--gold); font-family: var(--font-stat); font-size: 19px; }
@@ -473,37 +433,7 @@
     .board-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
     .board-meta { color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
     .board-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
-    .bc-page { display: flex; justify-content: center; }
-    .bc-shell { width: 100%; max-width: 460px; padding-top: 6px; }
-    .bc-back { border: none; background: none; color: var(--ink-soft); font-family: var(--font-display); font-weight: 600; font-size: 14px; cursor: pointer; padding: 6px 4px; margin-bottom: 8px; }
-    .bc-back:hover { color: var(--accent); }
-    .bc-choose,
-    .bc-form { background: var(--panel); border: 1.5px solid var(--border-strong); border-radius: 22px; box-shadow: var(--shadow); padding: 30px 26px; text-align: center; }
-    .bc-crest { display: inline-flex; align-items: center; justify-content: center; transform: scale(1.2); margin-bottom: 10px; }
-    .bc-crest img { width: 48px; height: 48px; display: block; }
-    .bc-title { font-family: var(--font-display); font-weight: 700; font-size: 24px; color: var(--accent); margin: 2px 0 6px; }
-    .bc-sub { color: var(--ink-soft); font-size: 14px; margin: 0 0 22px; text-wrap: pretty; }
-    .bc-options { display: grid; gap: 12px; }
-    .bc-opt { display: flex; align-items: center; gap: 14px; text-align: left; background: var(--panel-2); border: 1.5px solid var(--border-strong); border-radius: 16px; padding: 16px 16px; cursor: pointer; transition: border-color .14s, transform .1s, background .14s; }
-    .bc-opt:hover { border-color: var(--accent); transform: translateY(-2px); background: var(--panel); }
-    .bc-opt-ic { font-size: 30px; width: 52px; height: 52px; border-radius: 14px; background: var(--panel); border: 1.5px solid var(--border); display: grid; place-items: center; flex-shrink: 0; }
-    .bc-opt-ic.big { width: 64px; height: 64px; font-size: 36px; margin: 0 auto 6px; }
-    .bc-opt-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-    .bc-opt-body b { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--ink); }
-    .bc-opt-body i { font-style: normal; font-size: 12.5px; color: var(--ink-soft); line-height: 1.35; text-wrap: pretty; }
-    .bc-opt-go { font-size: 26px; color: var(--ink-soft); font-family: var(--font-display); }
-    .bc-opt:hover .bc-opt-go { color: var(--accent); }
-    .bc-existing { margin-top: 18px; border: none; background: none; color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; }
-    .bc-existing:hover { color: var(--accent); }
-    .bc-form .field { text-align: left; }
-    .bc-code-input { letter-spacing: 8px; font-family: var(--font-stat); font-weight: 700; font-size: 26px !important; text-align: center; }
-    .bc-samples { margin-top: 22px; border-top: 1px dashed var(--border-strong); padding-top: 16px; text-align: left; }
-    .bc-samples-h { font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
-    .bc-samples-list { display: grid; gap: 8px; }
-    .bc-sample { display: flex; align-items: center; gap: 12px; text-align: left; background: var(--panel-2); border: 1.5px solid var(--border); border-radius: 12px; padding: 9px 13px; cursor: pointer; transition: border-color .12s, background .12s; }
-    .bc-sample:hover { border-color: var(--accent); background: var(--panel); }
-    .bc-sample b { font-family: var(--font-stat); font-weight: 700; font-size: 16px; color: var(--gold); letter-spacing: 2px; }
-    .bc-sample span { font-size: 12.5px; color: var(--ink-soft); }
+
     .lightbox-img { max-width: min(86vw, 860px); max-height: 78vh; border-radius: 14px; border: 1.5px solid var(--border-strong); box-shadow: 0 24px 60px -20px rgba(0,0,0,.7); background: var(--panel); }
     .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: var(--topbar); color: var(--topbar-ink); padding: 10px 18px; border-radius: 999px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s; z-index: 50; font-weight: 600; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -522,18 +452,12 @@
     @keyframes cf-fall { to { transform: translateY(105vh) rotate(540deg); } }
     @media (max-width: 1024px) {
       .page { max-width: 880px; padding-left: 16px; padding-right: 16px; }
-      .two-col { grid-template-columns: 1fr; }
-      .two-col .panel { margin-bottom: 18px; }
       .qf-top { flex-wrap: wrap; }
       .qf-top .field.grow { flex-basis: min(420px, 100%); }
-      .gold-field, .date-field { width: min(220px, 100%); }
       .quest-row, .tribute { min-width: 0; }
     }
     @media (max-width: 760px) {
-      .tb-inner { padding: 10px 12px; }
-      .tb-link { padding: 7px 9px; font-size: 13px; }
       .page { padding: 22px 14px 52px; }
-      .banner-title { font-size: 30px; }
       .party-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
       .add-hero-form { grid-column: 1 / -1; }
       .add-hero-form .add-mode-seg, .add-hero-form .field-input { max-width: none; }
@@ -548,9 +472,7 @@
       .confirm-actions { flex-direction: column-reverse; }
       .confirm-actions button { width: 100%; }
       .qf-top { flex-wrap: wrap; }
-      .gold-field, .date-field { width: 100%; }
       .loot-row { grid-template-columns: 1fr; }
-      .two-col { grid-template-columns: 1fr; }
       .quest-row, .tribute { align-items: flex-start; }
       .tribute { flex-wrap: wrap; }
       .board-card { grid-template-columns: 1fr; }
@@ -612,25 +534,9 @@
       .mini-toggle {
         padding: 7px 12px;
       }
-      .banner-actions {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        align-items: stretch;
-        width: min(100%, 420px);
-        margin-right: auto;
-        margin-left: auto;
-      }
       #save-status {
         grid-column: 1 / -1;
         min-height: 20px;
-      }
-      .banner-actions .btn-ghost,
-      .banner-actions .btn-gold {
-        min-width: 0;
-        min-height: 44px;
-        padding-right: 8px;
-        padding-left: 8px;
-        white-space: normal;
       }
       .camp-name {
         min-height: 42px;
@@ -639,30 +545,9 @@
         min-height: 34px;
         padding: 6px 10px;
       }
-      .bc-choose,
-      .bc-form {
-        padding: 24px 18px;
-        border-radius: 18px;
-      }
-      .bc-opt {
-        padding: 14px;
-        gap: 12px;
-      }
-      .bc-opt-ic {
-        width: 46px;
-        height: 46px;
-        font-size: 26px;
-      }
-      .bc-opt-body b {
-        font-size: 16px;
-      }
+
     }
     @media (hover: none) and (pointer: coarse) and (min-width: 601px) {
-      .tb-logo { width: 44px; height: 44px; border-radius: 12px; }
-      .tb-logo img { width: 28px; height: 28px; }
-      .tb-link { padding: 9px 16px; }
-      .tb-back { min-height: 44px; }
-      .lang-toggle button,
       .theme-toggle,
       .profile-badge,
       .rem-bell,
@@ -673,7 +558,6 @@
       .seg button {
         min-height: 44px;
       }
-      .lang-toggle button,
       .theme-toggle,
       .rem-bell {
         min-width: 44px;
@@ -686,73 +570,57 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/trip/board.css">
   <link rel="stylesheet" href="/shared/player-controls.css">
+  <link rel="stylesheet" href="/shared/player-layout.css">
+  <script src="/shared/player-layout.js"></script>
 </head>
 <body data-page="trip">
-  <div class="first-load" data-first-load>
-    <div class="first-load-box">
-      <div class="first-load-emblem" aria-hidden="true">
-        <span class="first-load-torch left"></span>
-        <span class="first-load-eye"><span class="first-load-pupil"></span></span>
-        <span class="first-load-torch right"></span>
-      </div>
-      <div class="first-load-title">COIN QUEST</div>
-      <div class="first-load-track"><div class="first-load-fill"></div></div>
-      <div class="first-load-meta"><span>Lighting the torches...</span><span class="first-load-percent" data-first-load-percent>0%</span></div>
-    </div>
-  </div>
-  <nav class="topbar">
-    <div class="tb-inner">
-      <div class="tb-left">
-        <a class="tb-logo" href="/" aria-label="Coin Quest Ledger"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></a>
-        <a class="tb-back show" href="/">← <span data-i18n="home_back">หน้าหลัก</span></a>
-        <span class="tb-wordmark">Coin Quest Ledger</span>
-      </div>
-      <div class="lang-toggle">
-        <button class="lang-btn" data-lang="th">TH</button>
-        <button class="lang-btn" data-lang="en">EN</button>
-      </div>
-    </div>
-  </nav>
+  <div class="first-load" data-first-load></div>
+  <cq-player-header></cq-player-header>
 
-  <main class="page">
-    <section class="banner">
-      <div class="banner-crest"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" aria-hidden="true"></div>
-      <h1 class="banner-title" data-i18n="title_split">แบ่งค่าใช้จ่าย</h1>
-      <div class="campaign-row">
-        <span class="camp-label" data-i18n="campaign">เควสปัจจุบัน</span>
-        <button id="trip-name-display" class="camp-name" data-action="edit-trip-name"></button>
-        <input id="trip-name-input" class="camp-edit" />
+  <main class="page board-page">
+    <nav class="board-breadcrumb" aria-label="Breadcrumb"><a href="/trip/" data-board-entry-link>⌂ Party Ledger</a><span aria-hidden="true">›</span><span data-board-name></span></nav>
+    <section class="board-banner">
+      <div class="board-banner-actions">
+        <button class="btn-ghost" id="share-btn" data-action="share-trip" data-board-label="share"></button>
+        <button class="btn-ghost" data-action="settings" data-board-label="settings"></button>
+        <button class="btn-ghost" data-action="quest-board" data-board-label="history"></button>
       </div>
-      <div class="banner-gold">
-        <img class="loot-logo bg-coin" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" data-asset-src="assets/icons/loot-chest.svg" alt="" width="30" height="30" aria-hidden="true" />
-        <span class="bg-amt" id="party-total">฿0</span>
-        <span class="bg-lab" data-i18n="party_gold">ทองรวมของปาร์ตี้</span>
+      <div class="board-intro">
+        <span class="board-type" data-board-label="trip"></span>
+        <h1><button id="trip-name-display" class="camp-name" data-action="edit-trip-name"></button><span class="board-edit-mark" aria-hidden="true">✎</span><input id="trip-name-input" class="camp-edit" maxlength="80" aria-label="Board name" /></h1>
+        <div id="board-metadata" class="board-metadata"></div>
+        <p data-board-label="tagline"></p>
       </div>
-      <div class="banner-actions">
-        <span id="save-status"></span>
-        <button class="btn-ghost" data-action="quest-board" data-i18n="quest_board">🗺️ กระดานเควส</button>
-        <button class="btn-ghost" data-action="new-trip" data-i18n="new_trip_quest">✚ ออกเดินทางใหม่</button>
-        <button class="btn-gold" id="share-btn" data-action="share-trip" data-i18n="share_party">🔗 ชวนปาร์ตี้</button>
-      </div>
+      <div class="board-total"><span data-board-label="total"></span><strong id="party-total">฿0</strong></div>
     </section>
-
-    <section class="panel">
+    <div id="save-status" role="status"></div>
+    <div class="board-columns">
+    <div class="board-left">
+    <section class="panel board-members">
       <div class="panel-head">
-        <h2 class="panel-title"><span>🎖️</span><span data-i18n="party">ปาร์ตี้ของคุณ</span></h2>
-        <span class="count-pill" id="party-count">0</span>
+        <h2 class="panel-title"><span class="board-heading-icon" data-board-icon="split"></span><span data-board-label="members"></span> <span class="count-pill" id="party-count">0</span></h2>
+        <button class="btn-ghost xs" type="button" data-board-details aria-expanded="false" data-board-label="details"></button>
       </div>
       <div class="party-grid" id="party-grid"></div>
     </section>
-
+    <section class="panel board-log" id="board-log-panel">
+      <div class="panel-head">
+        <h2 class="panel-title"><button class="board-disclosure" type="button" data-board-collapse="board-log-content" aria-expanded="true"><span class="board-heading-icon" data-board-icon="scroll"></span><span data-board-label="log"></span> <span class="count-pill" id="expense-count">0</span><span class="board-chevron" aria-hidden="true">⌃</span></button></h2>
+      </div>
+      <button type="button" class="board-preview" id="board-log-preview" data-board-collapse="board-log-content" aria-expanded="true"></button>
+      <div id="board-log-content">
+        <div class="board-log-tools"><input type="search" id="board-log-search" data-board-placeholder="search" aria-label="Search expenses"><select id="board-log-filter" aria-label="Filter by payer"></select></div>
+        <div id="quest-log"></div>
+        <div class="board-log-footer"><button class="btn-ghost xs" data-action="export-excel" data-i18n="btn_export">📤 Export Excel</button><button class="btn-ghost xs danger" data-action="clear-expenses" data-i18n="clear_log">ล้างบันทึกนี้</button><button class="btn-ghost xs" data-action="new-trip" data-i18n="new_trip_quest">ออกเดินทางใหม่</button></div>
+      </div>
+    </section>
+    </div>
+    <div class="board-right">
     <input type="file" id="import-input" accept=".xlsx,.json" style="display:none">
     <input type="file" id="receipt-camera-input" accept="image/*" capture="environment" style="display:none">
     <input type="file" id="receipt-library-input" accept="image/*" style="display:none">
-    <div class="tools-row">
-      <button class="btn-tool" data-action="template-modal" data-i18n="quest_presets">📋 เควสสำเร็จรูป</button>
-      <button class="btn-tool" data-action="import-modal" data-i18n="import_scroll">📥 นำเข้ารายการ</button>
-    </div>
-
     <section class="panel" id="entry-section">
       <div class="panel-head">
         <h2 class="panel-title" id="entry-title">📜</h2>
@@ -762,32 +630,25 @@
         </div>
       </div>
       <div id="entry-body"></div>
+      <div class="board-form-tools"><button class="btn-ghost xs" data-action="template-modal" data-i18n="quest_presets">เควสสำเร็จรูป</button><button class="btn-ghost xs" data-action="import-modal" data-i18n="import_scroll">นำเข้ารายการ</button></div>
     </section>
-
-    <div class="two-col">
-      <section class="panel">
-        <div class="panel-head">
-          <h2 class="panel-title">📖 <span data-i18n="quest_log">สมุดบันทึกเควส</span> <span class="count-pill" id="expense-count">0</span></h2>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">
-            <button class="btn-ghost xs" data-action="export-excel" data-i18n="btn_export">📤 Export Excel</button>
-            <button class="btn-ghost xs danger" data-action="clear-expenses" data-i18n="clear_log">🗑️ ล้างบันทึกนี้</button>
-          </div>
-        </div>
-        <div id="quest-log"></div>
-      </section>
-
       <section class="panel" id="settle-panel">
         <div class="panel-head">
-          <h2 class="panel-title">⚖️ <span data-i18n="settle_party">ปรับสมดุลปาร์ตี้</span></h2>
+          <h2 class="panel-title"><button class="board-disclosure" type="button" data-board-collapse="board-settle-content" aria-expanded="true"><span class="board-heading-icon" data-board-icon="compare"></span><span data-board-label="settlement"></span><span class="board-chevron" aria-hidden="true">⌃</span></button></h2>
+        </div>
+        <button type="button" class="board-preview" id="board-settle-preview" data-board-collapse="board-settle-content" aria-expanded="true"></button>
+        <div id="board-settle-content">
           <div class="seg">
             <button id="settle-list-btn" data-settle-view="list" data-i18n="list_view">รายการ</button>
             <button id="settle-map-btn" data-settle-view="map" data-i18n="map_view">แผนผัง</button>
           </div>
-        </div>
         <div id="settle-body"></div>
+        </div>
       </section>
     </div>
-    <footer class="foot" data-i18n="footer_ledger">Coin Quest Ledger · Party Ledger</footer>
+    </div>
+    <aside class="board-sticky" aria-label="Board actions"><div><strong data-board-name></strong><span><span data-board-label="total"></span> <b id="board-sticky-total"></b></span></div><button type="button" class="btn-primary" data-board-add><span aria-hidden="true">＋</span><span data-board-label="add"></span></button><button type="button" class="board-to-top" data-board-top aria-label="Back to top">⌃</button></aside>
+    <cq-footer></cq-footer>
   </main>
 
   <div class="toast" id="toast"></div>
@@ -810,6 +671,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="/shared/firebase-client.js"></script>
   <script src="/shared/board-invites.js"></script>
+  <script src="/trip/entry.js"></script>
+  <script src="/trip/board.js"></script>
   <script src="/trip/app.js"></script>
   <script src="/shared/profile-session.js"></script>
   <script src="/shared/profile-auth.js"></script>

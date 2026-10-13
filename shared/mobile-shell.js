@@ -47,14 +47,18 @@
   };
 
   const TABS = [
-    { id: 'home', href: '/', icon: '🏠' },
-    { id: 'split', href: '/trip/', icon: '🧰' },
-    { id: 'debt', href: '/debt/', icon: '🐉' },
-    { id: 'compare', href: '/?view=compare', icon: '⚖️' },
-    { id: 'treasury', href: '/treasury/', icon: '🏦' }
+    { id: 'home', href: '/' },
+    { id: 'split', href: '/trip/' },
+    { id: 'debt', href: '/debt/' },
+    { id: 'compare', href: '/?view=compare' },
+    { id: 'treasury', href: '/treasury/' }
   ];
 
   const tabById = new Map(TABS.map(tab => [tab.id, tab]));
+  const icon = name => window.CoinQuestIcons(name);
+  let drawerOpen = false;
+  let returnFocus = null;
+  let inerted = [];
 
   function readJson(key, fallback) {
     try {
@@ -117,12 +121,15 @@
     document.documentElement.setAttribute('data-theme', next);
     document.body.setAttribute('data-theme', next);
     persistTheme(next);
+    window.CoinQuestLayout?.refresh();
+    window.PointyProfileHub?.refresh({ toast: false });
     renderDrawer();
   }
 
   function activeTabId() {
     const path = window.location.pathname || '/';
     const view = new URLSearchParams(window.location.search || '').get('view');
+    if (path.startsWith('/character')) return 'character';
     if (path.startsWith('/trip')) return 'split';
     if (path.startsWith('/debt')) return 'debt';
     if (path.startsWith('/treasury')) return 'treasury';
@@ -138,8 +145,9 @@
     const tab = tabById.get(tabId);
     if (!tab) return;
     closeDrawer();
-    if (tab.id === 'home' && isHomeShell() && typeof window.showHome === 'function') {
-      window.showHome();
+    if (['home', 'compare'].includes(tab.id) && isHomeShell()) {
+      if (tab.id === 'home') window.showHome();
+      else window.openCompare();
       refresh();
       return;
     }
@@ -168,11 +176,9 @@
   }
 
   function ensureHeader() {
-    const left = document.querySelector('.tb-left');
-    if (!left || left.querySelector('.tb-burger')) return;
-    left.insertAdjacentHTML('afterbegin', '<button class="tb-burger" type="button" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>');
-    const burger = left.querySelector('.tb-burger');
-    burger.insertAdjacentHTML('afterend', `<span class="tb-wordmark mobile-only">${html(text().app)}</span>`);
+    const right = document.querySelector('.tb-right');
+    if (!right || right.querySelector('.tb-burger')) return;
+    right.insertAdjacentHTML('beforeend', `<button class="cq-lang-compact" type="button" aria-label="Change language"></button><button class="tb-burger" type="button" aria-label="Menu" aria-haspopup="dialog" aria-controls="mobile-shell-root" aria-expanded="false">${icon('more')}</button>`);
   }
 
   function ensureTabs() {
@@ -185,8 +191,8 @@
 
   function tabMarkup(tab, active) {
     const label = text()[tab.id];
-    return `<a class="mtab ${tab.id === active ? 'on' : ''}" href="${html(withTestParam(tab.href))}" data-mtab="${html(tab.id)}" aria-label="${html(label)}">
-      <span class="mtab-ic"><span class="mt-emoji">${html(tab.icon)}</span></span>
+    return `<a class="mtab ${tab.id === active ? 'on' : ''}" href="${html(withTestParam(tab.href))}" data-mtab="${html(tab.id)}" ${tab.id === active ? 'aria-current="page"' : ''} aria-label="${html(label)}">
+      <span class="mtab-ic">${icon(tab.id)}</span>
       <span class="mtab-lab">${html(label)}</span>
     </a>`;
   }
@@ -196,11 +202,15 @@
     if (!nav) return;
     const active = activeTabId();
     nav.innerHTML = TABS.map(tab => tabMarkup(tab, active)).join('');
+    const full = currentLang() === 'en'
+      ? { home: 'Home', split: 'Split Expenses', debt: 'Debt Dragon', compare: 'Compare Prices', treasury: 'Treasury' }
+      : { home: 'หน้าหลัก', split: 'แบ่งค่าใช้จ่าย', debt: 'มังกรหนี้', compare: 'เปรียบเทียบราคา', treasury: 'คลังหลวง' };
+    document.querySelector('.cq-nav').innerHTML = TABS.map(tab => `<a href="${html(withTestParam(tab.href))}" data-mtab="${tab.id}" ${tab.id === active ? 'aria-current="page"' : ''}>${icon(tab.id)}<span>${full[tab.id]}</span></a>`).join('');
   }
 
   function tabDrawerMarkup(tab, active) {
-    return `<a class="mm-item" href="${html(withTestParam(tab.href))}" data-mm-tab="${html(tab.id)}">
-      <span class="mm-ic">${html(tab.icon)}</span><span class="mm-lab">${html(text()[tab.id])}</span><span class="mm-arr">${tab.id === active ? '•' : '›'}</span>
+    return `<a class="mm-item" href="${html(withTestParam(tab.href))}" data-mm-tab="${html(tab.id)}" ${tab.id === active ? 'aria-current="page"' : ''}>
+      <span class="mm-ic">${icon(tab.id)}</span><span class="mm-lab">${html(text()[tab.id])}</span><span class="mm-arr">${tab.id === active ? '•' : '›'}</span>
     </a>`;
   }
 
@@ -214,52 +224,75 @@
   }
 
   function renderDrawer() {
+    if (!drawerOpen) return;
+    const focused = document.activeElement;
+    const focusSelector = focused?.hasAttribute('data-mm-theme') ? `[data-mm-theme="${focused.dataset.mmTheme}"]`
+      : focused?.hasAttribute('data-mm-lang') ? `[data-mm-lang="${focused.dataset.mmLang}"]` : null;
     const root = ensureRoot();
     const active = activeTabId();
     const theme = currentTheme();
     const t = text();
     const account = window.PointyProfileHub?.loadAccount?.();
     root.innerHTML = `<div class="mm-overlay">
-      <aside class="mm-panel">
+      <aside class="mm-panel" role="dialog" aria-modal="true" aria-labelledby="cq-menu-title">
         <div class="mm-head">
-          <div class="mm-title">${html(t.app)}</div>
-          <button class="mm-close" type="button" data-mm-close aria-label="Close">✕</button>
+          <div class="mm-title" id="cq-menu-title">Coin Quest Ledger</div>
+          <button class="mm-close" type="button" data-mm-close aria-label="${currentLang() === 'en' ? 'Close menu' : 'ปิดเมนู'}">${icon('close')}</button>
         </div>
         <div class="mm-scroll">
-          <div class="mm-account"><span class="mm-avatar">🦸</span><div><div class="mm-name">${html(account?.name || t.account)}</div><div class="mm-sub">${html(accountHandle(account))}${account?.userId ? ` · ID ${html(account.userId)}` : ''}</div></div></div>
+          ${window.PointyProfileHub ? `<div class="mm-account"><span class="mm-avatar">${icon('profile')}</span><div><div class="mm-name">${html(account?.name || t.account)}</div><div class="mm-sub">${html(accountHandle(account))}${account?.userId ? ` · ID ${html(account.userId)}` : ''}</div></div></div>` : ''}
           ${TABS.map(tab => tabDrawerMarkup(tab, active)).join('')}
-          <button class="mm-item" type="button" data-mm-action="profile"><span class="mm-ic">🏅</span><span class="mm-lab">${html(t.profile)}</span><span class="mm-arr">›</span></button>
-          <button class="mm-item" type="button" data-mm-action="reminders"><span class="mm-ic">🔔</span><span class="mm-lab">${html(t.reminders)}</span><span class="mm-arr">›</span></button>
-          ${typeof window.openSettings === 'function' ? `<button class="mm-item" type="button" data-mm-action="settings"><span class="mm-ic">⚙️</span><span class="mm-lab">${html(t.settings)}</span><span class="mm-arr">›</span></button>` : ''}
+          ${window.PointyProfileHub ? `<button class="mm-item" type="button" data-mm-action="profile"><span class="mm-ic">${icon('profile')}</span><span class="mm-lab">${html(t.profile)}</span><span class="mm-arr">›</span></button>
+          <button class="mm-item" type="button" data-mm-action="reminders"><span class="mm-ic">${icon('bell')}</span><span class="mm-lab">${html(t.reminders)}</span><span class="mm-arr">›</span></button>
+          ` : ''}
+          ${typeof window.openSettings === 'function' ? `<button class="mm-item" type="button" data-mm-action="settings"><span class="mm-ic">${icon('settings')}</span><span class="mm-lab">${html(t.settings)}</span><span class="mm-arr">›</span></button>` : ''}
           <div class="mm-seg-row"><span class="mm-seg-k">${html(t.theme)}</span><span class="mm-seg"><button type="button" class="${theme !== 'dungeon' ? 'on' : ''}" data-mm-theme="tavern">${html(t.light)}</button><button type="button" class="${theme === 'dungeon' ? 'on' : ''}" data-mm-theme="dungeon">${html(t.dark)}</button></span></div>
           <div class="mm-seg-row"><span class="mm-seg-k">${html(t.lang)}</span><span class="mm-seg"><button type="button" class="${currentLang() === 'th' ? 'on' : ''}" data-mm-lang="th">TH</button><button type="button" class="${currentLang() === 'en' ? 'on' : ''}" data-mm-lang="en">EN</button></span></div>
-          <button class="mm-item mm-logout" type="button" data-mm-action="logout"><span class="mm-ic">🚪</span><span class="mm-lab">${html(t.signOut)}</span></button>
+          ${window.PointyProfileHub ? `<button class="mm-item mm-logout" type="button" data-mm-action="logout"><span class="mm-ic">${icon('logout')}</span><span class="mm-lab">${html(t.signOut)}</span></button>` : ''}
         </div>
       </aside>
     </div>`;
+    if (focusSelector) root.querySelector(focusSelector)?.focus();
   }
 
   function openDrawer() {
+    returnFocus = document.activeElement;
+    drawerOpen = true;
     const burger = document.querySelector('.tb-burger');
     if (burger) burger.setAttribute('aria-expanded', 'true');
     renderDrawer();
+    document.body.classList.add('cq-menu-open');
+    inerted = [...document.body.children].filter(el => el.id !== SHELL_ROOT_ID && !el.inert && !['SCRIPT','STYLE'].includes(el.tagName));
+    inerted.forEach(el => { el.inert = true; });
+    document.querySelector('[data-mm-close]')?.focus();
   }
 
   function closeDrawer() {
+    if (!drawerOpen) return;
+    drawerOpen = false;
     const root = document.getElementById(SHELL_ROOT_ID);
     if (root) root.innerHTML = '';
     const burger = document.querySelector('.tb-burger');
     if (burger) burger.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('cq-menu-open');
+    inerted.forEach(el => { el.inert = false; });
+    inerted = [];
+    (returnFocus?.isConnected ? returnFocus : document.querySelector('.tb-burger'))?.focus();
   }
 
   function setLanguage(next) {
-    if (typeof window.setLang === 'function') window.setLang(next);
+    if (typeof window.setProfileLanguage === 'function') window.setProfileLanguage(next);
+    else if (typeof window.setLang === 'function') window.setLang(next);
     else localStorage.setItem('lang', next);
     refresh();
     renderDrawer();
   }
 
   function handleClick(event) {
+    if (event.target.closest('.cq-lang-compact')) {
+      setLanguage(currentLang() === 'en' ? 'th' : 'en');
+      return;
+    }
     const burger = event.target.closest('.tb-burger');
     if (burger) {
       event.preventDefault();
@@ -269,6 +302,7 @@
 
     const tab = event.target.closest('[data-mtab], [data-mm-tab]');
     if (tab) {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
       openTab(tab.dataset.mtab || tab.dataset.mmTab);
       return;
@@ -301,10 +335,19 @@
   }
 
   function refresh() {
-    document.documentElement.classList.remove('cq-mobile-tab-home', 'cq-mobile-tab-split', 'cq-mobile-tab-debt', 'cq-mobile-tab-compare', 'cq-mobile-tab-treasury');
+    ensureHeader();
+    document.querySelector('.tb-burger')?.setAttribute('aria-expanded', String(drawerOpen));
+    window.CoinQuestLayout?.refresh();
+    document.documentElement.classList.remove('cq-mobile-tab-home', 'cq-mobile-tab-split', 'cq-mobile-tab-debt', 'cq-mobile-tab-compare', 'cq-mobile-tab-treasury', 'cq-mobile-tab-character');
     document.documentElement.classList.add(`cq-mobile-tab-${activeTabId()}`);
-    document.querySelectorAll('.tb-wordmark.mobile-only').forEach(el => { el.textContent = text().app; });
+    const compactLang = document.querySelector('.cq-lang-compact');
+    if (compactLang) {
+      compactLang.textContent = currentLang().toUpperCase();
+      compactLang.setAttribute('aria-label', currentLang() === 'en' ? 'Switch to Thai' : 'เปลี่ยนเป็นภาษาอังกฤษ');
+    }
     renderTabs();
+    const active = activeTabId();
+    if (tabById.has(active) && active !== 'home') window.PointyScope?.setJSON?.('coin_quest_recent_route_v1', { href: location.pathname + location.search });
   }
 
   function init() {
@@ -313,7 +356,15 @@
     ensureTabs();
     refresh();
     document.addEventListener('click', handleClick);
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); });
+    document.addEventListener('keydown', event => {
+      if (!drawerOpen) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeDrawer(); }
+      if (event.key !== 'Tab') return;
+      const els = [...document.querySelectorAll('.mm-panel a,.mm-panel button')];
+      if (event.shiftKey && document.activeElement === els[0]) { event.preventDefault(); els.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === els.at(-1)) { event.preventDefault(); els[0].focus(); }
+    });
+    window.matchMedia('(min-width:601px)').addEventListener('change', event => { if (event.matches) closeDrawer(); });
     window.addEventListener('popstate', refresh);
   }
 

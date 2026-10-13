@@ -35,6 +35,12 @@
 
 ## Change Modes
 
+Before a player UI change, read `PLAYER_DESIGN_SYSTEM.md`. Reuse shared header,
+footer, frame and banner-size owners. Match the existing visual family within
+the same module even on older screens. Different games deliberately use different
+artwork; preserve it. Record justified context variants instead of forcing every
+game into one composition or adding route-local copies of shared components.
+
 Use the lightest mode that fits the request. Escalate only when the change touches shared logic, data migration, cloud sync, deployment, or the user explicitly asks.
 
 ### Fast UI Patch
@@ -179,7 +185,7 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 - `trip/index.html` is the live Expense Splitter app shell and styles.
 - `trip/trip-utils.js` holds small Party Ledger browser-global helpers and must load before `trip/app.js`.
 - `trip/app.js` owns Expense Splitter behavior, state, rendering, Firebase/test persistence, event delegation, imports/exports, and overlays.
-- `shared/mobile-shell.css` and `shared/mobile-shell.js` provide the Claude native phone shell across Home/Compare, Split, Debt Dragon, and Treasury. They should stay hidden above `600px`; do not duplicate this shell per page unless a page truly needs custom behavior.
+- `shared/navigation.css` and `shared/mobile-shell.js` own the shared player navigation across Home/Compare, Split, Debt Dragon and Treasury. Desktop uses one row; tablet uses two rows; at `600px` and below, utilities stay above and five tabs appear below. Do not duplicate navigation styles per page. Home artwork/layout lives in `shared/home.css` and `shared/home.js`.
 - `lang.js` is shared across the toolbox; every new UI string needs Thai and English keys.
 - `shared/pointy-logic.js` owns shared calculation and normalization logic.
 - `tests/e2e/coin-quest-ledger.spec.mjs` covers critical Expense Splitter, Debt Dragon, Character Profile, Admin Portal, and price comparison flows; shared helpers live in `tests/e2e/helpers/coin-quest-helpers.mjs`.

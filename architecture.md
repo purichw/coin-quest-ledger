@@ -10,6 +10,11 @@ Claude Design handoffs are the visual/interaction source of truth for surfaces t
 
 Companion docs:
 
+- `PLAYER_DESIGN_SYSTEM.md`: shared player shell, responsive geometry and
+  module-specific artwork families. `shared/player-layout.js` supplies real
+  header/footer elements to the existing static app; no new framework or data
+  layer. Public Character reuses navigation with only available account actions.
+
 - `data-contracts.md`: persisted data shapes and migration rules.
 - `SITE_MAP_AND_INTERACTIONS.md`: route/module dependency map, interaction flows, side effects, and cross-module risks.
 - `PROJECT_STRUCTURE_GUIDE.md`: practical file-finding guide for common tasks.
@@ -43,10 +48,13 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ### Home / Price Arena
 
-- Files: `index.html`
+- Files: `index.html`, `shared/home.{js,css}`, `shared/price-arena.{js,css}`
 - Owns the toolbox launcher and price comparison view.
 - Loads `shared/profile-hub.*` and `shared/mobile-shell.*`.
 - Price comparison logic uses `shared/pointy-logic.js`.
+- Price Arena's October 13 responsive market layout, product/offer dialogs, search,
+  sorting and archive filters live in `shared/price-arena.*`. Existing account-scoped
+  `pointy_compare_v2` and `PointyModuleCloud` remain the persistence owners.
 
 ### Party Ledger / Expense Splitter
 
@@ -71,9 +79,12 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ### Treasury
 
-- Files: `treasury/index.html`, `treasury/app.js`
+- Files: `treasury/index.html`, `treasury/app.js`, `treasury/design.css`
 - Route: `/treasury/`
 - Treasury ledger/tool using account-scoped `localStorage` with the owner Firestore bridge in `shared/module-cloud.js`.
+- Reference-led Treasury layout (13 October): illustrated monthly overview, three-column budget cards on desktop, compact tablet rows, and phone disclosures for budgets/forecast/bills/history. Decorative assets live in `assets/treasury-reference/`.
+- Month navigation reads saved history without mutating the active month. Historical entries lacking expense snapshots show their saved totals only. Current-month income/category/expense/bill contracts and cloud schema remain unchanged; clearing a vault now returns an empty ledger instead of sample records.
+- Scoped visual/interaction evidence and asset provenance: `docs/treasury-redesign-2026-10-13/`; E2E owner: `tests/e2e/treasury.spec.mjs`.
 - Shares theme, profile hub, and mobile shell.
 
 ### Character Profile
@@ -208,7 +219,16 @@ See `data-contracts.md` for the practical shape of `trips`, `characters`, `admin
 
 ## Design Sources
 
-Current user direction restores the full player Website and rebuilt Mobile
+The October 13 Home/navigation mockups supersede the restored design for the
+website Home and shared player header only (1440/768/390px). The native app,
+Admin, public Character Profile and game form layouts retain their prior direction.
+`shared/home.js`/`.css`, `shared/navigation.css`, `shared/mobile-shell.js` and
+`shared/quest-icons.js` are the current owners. The replaced mobile-shell CSS
+and duplicated inline header/Home rules have been removed. Artwork provenance,
+reference crops and current verification are in
+`docs/navigation-redesign-2026-10-13/README.md`.
+
+The previous restoration restored the full player Website and rebuilt Mobile
 design immediately before the 12 October redesign, preserving current features
 and backend. Admin retains its redesign. Player HTML again owns the original
 inline styles from `b726368`; `shared/quest-design.css`, `character/design.css`

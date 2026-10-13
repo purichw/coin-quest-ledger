@@ -20,6 +20,15 @@ const SKIN_DEFS = {
 
 let hideMoney = PARAMS.get('private') === '1' || localStorage.getItem(PRIVACY_KEY) === '1';
 let activeProfile = null;
+const profileView = { expanded: new Set(['split', 'debt', 'compare', 'treasury']), allTrophies: false, boardDetails: {}, section: 'adventure' };
+function profileIcon(name) { return window.CoinQuestIcons(name); }
+function profileText(th, en) { return LANG === 'en' ? en : th; }
+function moduleHref(path) { return `${path}${TEST_MODE ? (path.includes('?') ? '&' : '?') + 'test=1' : ''}`; }
+function isOwnProfile(profile) {
+  const account = accountStore();
+  return !!account && String(account.character?.id || account.userId || '') === profile.id
+    && (TEST_MODE || profile.record?.ownerUid === firebase.auth().currentUser?.uid);
+}
 
 function h(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function safeInternalPath(value, fallback = '/') {
@@ -39,10 +48,6 @@ function dateLabel(ts) {
 function classLabel(id) {
   const cls = CLASSES[PointyLogic.normalizeClass(id)] || CLASSES.warrior;
   return cls[LANG] || cls.th || cls.en;
-}
-function avatarBg(clsId) {
-  const hue = (CLASSES[PointyLogic.normalizeClass(clsId)] || CLASSES.warrior).hue;
-  return `radial-gradient(125% 92% at 50% 16%, oklch(0.52 0.08 ${hue}), oklch(0.20 0.045 ${hue}) 78%)`;
 }
 function assetUrl(path) { return window.PointyAssets ? window.PointyAssets.url(path) : `/${String(path).replace(/^\/+/, '')}`; }
 function portraitFile(res) {
@@ -241,33 +246,29 @@ function copy() {
   };
 }
 function navMarkup() {
-  const c = copy();
-  return `<nav class="cnav">
-    <a class="cback" href="${h(returnHref())}">&larr; ${h(c.back)}</a>
-    <span class="cnav-title brand">${h(c.title)}</span>
-    <div class="lang">
-      <button type="button" class="${LANG === 'th' ? 'on' : ''}" onclick="setProfileLanguage('th')">TH</button>
-      <button type="button" class="${LANG === 'en' ? 'on' : ''}" onclick="setProfileLanguage('en')">EN</button>
-    </div>
-  </nav>`;
+  return `<cq-player-header profile></cq-player-header>${FROM_ADMIN ? `<div class="cq-context-back"><a href="${h(returnHref())}">&larr; ${h(copy().back)}</a></div>` : ''}`;
 }
 function renderSearch(message = '') {
   document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap">
     <section class="search-card">
       <h1>${h(t('profile_title'))}</h1>
       <div class="sub">${h(message || t('profile_search_hint'))}</div>
-      <div class="search-row"><input id="profile-id-input" inputmode="numeric" maxlength="4" placeholder="${h(t('character_id'))}" onkeydown="if(event.key==='Enter')openProfileSearch()"><button class="cback" onclick="openProfileSearch()">${h(t('profile_open'))}</button></div>
+      <div class="search-row"><input id="profile-id-input" aria-label="${h(t('character_id'))}" inputmode="numeric" maxlength="4" placeholder="${h(t('character_id'))}" onkeydown="if(event.key==='Enter')openProfileSearch()"><button class="cback" onclick="openProfileSearch()">${h(t('profile_open'))}</button></div>
     </section>
+    <cq-footer></cq-footer>
   </main>`;
+  window.CoinQuestMobileShell?.refresh();
 }
 function switchProfileLanguage() {
   setProfileLanguage(LANG === 'th' ? 'en' : 'th');
 }
 function setProfileLanguage(next) {
   LANG = next === 'en' ? 'en' : 'th';
+  document.documentElement.lang = LANG;
   localStorage.setItem('lang', LANG);
   if (activeProfile) renderProfile(activeProfile);
   else renderSearch();
+  document.querySelector(matchMedia('(max-width:600px)').matches ? '.cq-lang-compact' : '.lang-active')?.focus({ preventScroll:true });
 }
 function openProfileSearch() {
   const id = String(document.getElementById('profile-id-input')?.value || '').trim();
@@ -282,14 +283,17 @@ function toggleMoney() {
   else url.searchParams.delete('private');
   history.replaceState(null, '', url.pathname + url.search);
   if (activeProfile) renderProfile(activeProfile);
+  document.querySelector('[onclick="toggleMoney()"]')?.focus({ preventScroll:true });
 }
-function copyProfileLink() {
-  navigator.clipboard?.writeText(location.href).then(() => {
-    const button = document.getElementById('copy-profile-btn');
-    if (!button) return;
-    button.textContent = t('profile_copied');
-    setTimeout(() => { if (button) button.textContent = t('profile_copy_link'); }, 1200);
-  }).catch(() => {});
+async function copyProfileLink() {
+  try {
+    await navigator.clipboard.writeText(location.href);
+    const label = document.querySelector('#copy-profile-btn span');
+    if (label) label.textContent = t('profile_copied');
+    setTimeout(() => { if (label?.isConnected) label.textContent = t('profile_copy_link'); }, 1600);
+  } catch (_) {
+    document.getElementById('profile-status').textContent = profileText('คัดลอกไม่สำเร็จ กรุณาคัดลอกลิงก์จากแถบที่อยู่', 'Could not copy. Copy the link from the address bar.');
+  }
 }
 function boardInviteUrl(id) {
   return `${location.origin}${tripUrl(id)}`;
@@ -304,9 +308,10 @@ function copyBoardInvite(id) {
   }).catch(() => {});
 }
 async function setBoardArchived(id, archived) {
+  if (!activeProfile?.managedBoardIds?.includes(String(id))) return;
   if (TEST_MODE) {
     const key = `pointy_test_trip_${id}`;
-    const data = readJson(key, null);
+    const data = JSON.parse(sessionStorage.getItem(key) || 'null');
     if (data) {
       sessionStorage.setItem(key, JSON.stringify({ ...data, archived: !!archived, updatedAt: Date.now() }));
     }
@@ -314,8 +319,13 @@ async function setBoardArchived(id, archived) {
     return;
   }
   initFirebase();
-  await firebase.firestore().collection('trips').doc(String(id)).set({ archived: !!archived, updatedAt: Date.now() }, { merge: true });
-  boot();
+  try {
+    await firebase.firestore().collection('trips').doc(String(id)).set({ archived: !!archived, updatedAt: Date.now() }, { merge: true });
+    boot();
+  } catch (_) {
+    const status = document.getElementById('profile-status');
+    if (status) status.textContent = profileText('เปลี่ยนสถานะบอร์ดไม่สำเร็จ กรุณาลองอีกครั้ง', 'Could not update the board. Please try again.');
+  }
 }
 function moneyText(value) {
   return hideMoney ? '••••' : money(value);
@@ -323,32 +333,22 @@ function moneyText(value) {
 function stat(n, l, moneyValue = false) {
   return `<div class="ms"><span class="ms-n ${moneyValue ? 'money' : ''}">${h(moneyValue && hideMoney ? '••••' : n)}</span><span class="ms-l">${h(l)}</span></div>`;
 }
-function ribbon(n, l, moneyValue = false) {
-  return `<div class="rib"><div class="rib-n ${moneyValue ? 'money' : ''}">${h(moneyValue && hideMoney ? '••••' : n)}</div><div class="rib-l">${h(l)}</div></div>`;
-}
 function badgeIcon(id) {
-  return { 'party-member':'🧭', veteran:'🏕️', treasurer:'💰', 'debt-slayer':'⚔️', 'board-admin':'🗝️', 'debt-dragon':'🐉', 'high-level':'👑' }[id] || '✦';
+  const asset = { veteran:'camp', 'board-admin':'key', 'high-level':'crown' }[id];
+  return asset ? `<img src="/assets/split-entry/${asset}.svg" alt="">` : profileIcon({ 'party-member':'compass', treasurer:'coin', 'debt-slayer':'shield', 'debt-dragon':'debt' }[id] || 'star');
 }
 function badgeCopy(badge, profile) {
   const en = LANG === 'en';
   const copy = {
     'party-member': [en ? 'Party Member' : 'สมาชิกปาร์ตี้', en ? 'Joined the first board' : 'เข้าร่วมบอร์ดแรกแล้ว'],
     veteran: [en ? 'Veteran Traveler' : 'นักเดินทางรุ่นเก๋า', `${profile.totals.boards} ${en ? 'boards' : 'บอร์ด'}`],
-    treasurer: [en ? 'Treasurer' : 'เหรัญญิก', en ? 'Fronted plenty for the party' : 'ออกเงินแทนปาร์ตี้เยอะมาก'],
+    treasurer: [en ? 'Treasurer' : 'เหรัญญิก', en ? 'Funded the party' : 'ออกทองช่วยปาร์ตี้'],
     'debt-slayer': [en ? 'Debt Slayer' : 'ผู้ปราบหนี้', en ? 'Reached a settled board' : 'เคลียร์บอร์ดสำเร็จแล้ว'],
     'board-admin': [en ? 'Board Admin' : 'แอดมินบอร์ด', `${profile.adminBoards.length} ${en ? 'boards' : 'บอร์ด'}`],
     'debt-dragon': [en ? 'Dragon Slayer' : 'นักล่ามังกร', badge.detail],
     'high-level': [en ? 'Seasoned Hero' : 'ฮีโร่ชำนาญศึก', `Level ${profile.level.lvl}`]
   }[badge.id];
   return copy || [badge.label, badge.detail];
-}
-function classColors(clsId) {
-  const hue = (CLASSES[PointyLogic.normalizeClass(clsId)] || CLASSES.warrior).hue || 256;
-  return {
-    top: `oklch(0.60 0.16 ${hue})`,
-    bottom: `oklch(0.33 0.12 ${hue})`,
-    hue
-  };
 }
 function trophyList(profile) {
   const byId = new Map(profile.badges.map(b => [b.id, b]));
@@ -369,10 +369,10 @@ function trophyList(profile) {
 }
 function renderTrophies(profile) {
   const trophies = trophyList(profile);
-  return trophies.map(item => {
+  return trophies.sort((a,b) => Number(b.unlocked) - Number(a.unlocked)).map(item => {
     const pct = item.progress?.[1] ? Math.round((item.progress[0] / item.progress[1]) * 100) : 0;
     return `<div class="tr ${item.unlocked ? 'got' : 'locked'}">
-      <div class="tr-ic">${h(item.unlocked ? item.icon : '🔒')}</div>
+      <div class="tr-ic">${item.unlocked ? badgeIcon(item.id) : '<svg class="cq-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 10V7a6 6 0 0 1 12 0v3h2v12H4V10Zm3 0h6V7a3 3 0 0 0-6 0Zm2 4v4h2v-4Z"/></svg>'}</div>
       <div style="flex:1;min-width:0">
         <div class="tr-t">${h(item.label[0])}</div>
         <div class="tr-d">${h(item.label[1])}</div>
@@ -399,14 +399,14 @@ function renderAdminBoards(profile) {
   if (!profile.adminBoards.length) return `<div class="empty">${h(t('profile_no_admin_boards'))}</div>`;
   return profile.adminBoards.map(board => `<div class="board my-board ${board.archived ? 'arch' : ''}">
     <div class="bd-top">
-      <div class="bd-crest">${board.archived ? '🗄️' : '🏕️'}</div>
+      <div class="bd-crest"><img src="/assets/split-entry/camp.svg" alt=""></div>
       <div class="bd-main">
         <div class="board-title"><a href="${h(tripUrl(board.id))}">${h(board.tripName)}</a></div>
-        <div class="board-meta">${h(c.code)} ${h(board.id)} · Admin ID ${h(board.adminId || '-')} · ${h(board.adminName || '-')}</div>
+        <div class="board-meta">${h(c.code)} ${h(board.id)} · ${h(board.adminName || '-')}</div>
       </div>
       <span class="bd-status ${board.archived ? 'arch' : ''}">${h(board.archived ? c.archived : c.active)}</span>
     </div>
-    <div class="bd-meta">
+    <details class="board-details" ${(profileView.boardDetails[board.id] ?? matchMedia('(min-width:1024px)').matches) ? 'open' : ''} ontoggle="profileView.boardDetails['${h(board.id)}']=this.open"><summary>${profileText('รายละเอียดและจัดการบอร์ด', 'Board details and actions')} ${profileIcon('chevron')}</summary><div class="bd-meta">
       <div><span>${h(c.created)}</span><b>${h(dateLabel(board.createdAt))}</b></div>
       <div><span>${h(c.updated)}</span><b>${h(dateLabel(board.updatedAt))}</b></div>
       <div><span>${h(c.members)}</span><b>${Number(board.members) || 0}</b></div>
@@ -414,142 +414,105 @@ function renderAdminBoards(profile) {
     <div class="bd-actions">
       <a class="btn" href="${h(tripUrl(board.id))}">${h(t('profile_open_board'))}</a>
       <button class="btn" type="button" data-board-copy="${h(board.id)}" onclick="copyBoardInvite('${h(board.id)}')">🔗 ${h(c.copyInvite)}</button>
-      <button class="btn ${board.archived ? '' : 'danger'}" type="button" onclick="setBoardArchived('${h(board.id)}', ${board.archived ? 'false' : 'true'})">${board.archived ? '♻️ ' + h(c.restore) : '🗄️ ' + h(c.archive)}</button>
+      ${profile.managedBoardIds?.includes(String(board.id)) ? `<button class="btn ${board.archived ? '' : 'danger'}" type="button" onclick="setBoardArchived('${h(board.id)}', ${board.archived ? 'false' : 'true'})">${board.archived ? '♻️ ' + h(c.restore) : '🗄️ ' + h(c.archive)}</button>` : ''}
     </div>
+    </details>
   </div>`).join('');
+}
+function toggleProfileTheme() {
+  const theme = document.documentElement.dataset.theme === 'dungeon' ? 'tavern' : 'dungeon';
+  localStorage.setItem('pointy_theme', theme);
+  document.documentElement.dataset.theme = theme; document.body.dataset.theme = theme;
+  if (activeProfile) renderProfile(activeProfile); else renderSearch();
+  document.querySelector('[data-profile-theme]')?.focus({ preventScroll:true });
+}
+function toggleModule(id, button) {
+  const expanded = button.getAttribute('aria-expanded') !== 'true';
+  if (expanded) profileView.expanded.add(id); else profileView.expanded.delete(id);
+  button.setAttribute('aria-expanded', String(expanded));
+  document.getElementById(`stats-${id}`).hidden = !expanded;
+}
+function toggleTrophies(button) {
+  profileView.allTrophies = !profileView.allTrophies;
+  document.querySelector('.trophies').classList.toggle('show-all', profileView.allTrophies);
+  button.setAttribute('aria-expanded', String(profileView.allTrophies));
+  button.textContent = profileView.allTrophies ? profileText('ย่อรายการ ↑', 'Show less ↑') : profileText('ดูทั้งหมด →', 'View all →');
+}
+function setProfileSection(id) {
+  profileView.section = id;
+  document.querySelectorAll('.section-nav a').forEach(link => {
+    if (link.hash === `#${id}`) link.setAttribute('aria-current','location');
+    else link.removeAttribute('aria-current');
+  });
+}
+const profileTablet = matchMedia('(min-width:601px) and (max-width:1023px)');
+function arrangeProfilePanels() {
+  const grid = document.querySelector('.profile-grid');
+  if (!grid) return;
+  const panels = ['adventure','achievements','account','profile-tools-panel','history','boards'].map(id => document.getElementById(id));
+  // Keep reading/focus order equal to visual order; tablet uses two independent columns.
+  if (!profileTablet.matches) { grid.replaceChildren(...panels); return; }
+  const columns = [[panels[0],panels[2],panels[3]],[panels[1],panels[4],panels[5]]].map(items => {
+    const column = document.createElement('div'); column.className = 'profile-column'; column.append(...items); return column;
+  });
+  grid.replaceChildren(...columns);
+}
+profileTablet.addEventListener('change', arrangeProfilePanels);
+function renderModule(id, icon, label, contents, href) {
+  const expanded = profileView.expanded.has(id);
+  return `<article class="mod mod-${id}"><h3><button type="button" class="mod-h" aria-expanded="${expanded}" aria-controls="stats-${id}" onclick="toggleModule('${id}',this)">${profileIcon(icon)}<span>${h(label)}</span>${profileIcon('chevron')}</button></h3>
+    <div id="stats-${id}" ${expanded ? '' : 'hidden'}><div class="mod-stats">${contents}</div><a class="mod-link" href="${moduleHref(href)}">${profileText('ไปยังเกม', 'Open game')} ${profileIcon('arrow')}</a></div></article>`;
 }
 function renderProfile(profile) {
   activeProfile = profile;
-  const cls = CLASSES[profile.class] || CLASSES.warrior;
-  const c = copy();
-  const colors = classColors(profile.class);
+  const c = copy(), own = isOwnProfile(profile);
   const rewardTitle = profile.reward.title?.[LANG] || profile.reward.title?.th || '';
-  const store = profile.activity || profileStore();
-  const account = accountStore();
-  const trophies = trophyList(profile);
-  const got = trophies.filter(item => item.unlocked).length;
-  const debtXp = Number(profile.record?.debtXp) || 0;
+  const store = profile.activity || (own ? profileStore() : {});
+  const account = own ? accountStore() : null;
+  const trophies = trophyList(profile), got = trophies.filter(item => item.unlocked).length;
   const metrics = profile.moduleProgress;
+  const label = (th, en) => profileText(th,en);
+  const sections = [['adventure','shield',label('สถิติ','Stats')],['achievements','trophy',label('รางวัล','Awards')],['account','profile',label('บัญชี','Account')],['history','scroll',label('ประวัติ','History')],['boards','split',label('บอร์ด','Boards')]];
   document.body.classList.toggle('money-hidden', hideMoney);
   document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap">
-    <section class="banner" style="background:radial-gradient(125% 100% at 50% 8%, oklch(0.5 0.16 ${colors.hue}), oklch(0.17 0.07 ${colors.hue}) 88%)">
-      <div class="banner-art portrait-stage">
-        <img src="${h(resolveAvatarFile(profile.class, profile.gender, profile.skin))}" alt="${h(profile.displayName)}">
-      </div>
+    <section class="banner ${profile.displayName.length > 22 ? 'long-name' : ''}" aria-label="${h(c.title)}">
+      <div class="banner-art portrait-stage"><img src="${h(resolveAvatarFile(profile.class, profile.gender, profile.skin))}" alt="${h(profile.displayName)}"></div>
       <div class="banner-grad"></div>
-      <div class="banner-meta">
-        <h1 class="banner-name">${h(profile.displayName)}</h1>
-        <div class="banner-rank">${h(profile.reward.glyph || '')} ${h(rewardTitle)} &middot; ${h(classLabel(profile.class))}</div>
-      </div>
+      <p class="hero-quote">${label('“วินัยเล็ก ๆ ในวันนี้<br>สร้างการผจญภัยที่ยิ่งใหญ่ในวันข้างหน้า”','“Small steps today.<br>Brighter adventures tomorrow.”')}</p>
+      <div class="banner-meta"><h1 class="banner-name">${h(profile.displayName)}</h1><div class="hero-identity"><span class="banner-rank">${h(profile.reward.glyph || '')} ${h(rewardTitle)} · ${h(classLabel(profile.class))}</span><span class="char-id">#${h(profile.id)}</span></div></div>
+      <div class="hero-standard" aria-hidden="true"><svg viewBox="0 0 80 100"><g fill="none" stroke="currentColor" stroke-linecap="round"><path stroke-width="2.2" d="M32 95q12-16 8-69M40 70Q18 68 10 44m30 23q25-5 31-29M40 53Q23 43 24 24m17 28Q58 35 54 20M40 34l-6-17m7 17 6-18M27 95q14-7 27 0"/><path d="m16 55-9 1m11 1-3-13m10 19-1-12m-6-3-9-9m54 15 10 1m-13 6 1-15m6-1 9-12m-9 9 1-13M31 44l-9-4m7-4 2-10m18 17 12-4m-7-7 8-10M38 81l-16-6m19 6 17-10"/><path d="M9 34q-6-7 1-10 7 3-1 10Zm10-10q-5-8 3-9 6 5-3 9Zm45-4q-6-7 1-10 7 3-1 10ZM7 68q-6-6 1-10 7 4-1 10Zm64-5q-6-7 1-10 7 3-1 10Z" fill="currentColor"/></g><path d="m40 4 2 5 5 1-4 3 1 5-4-3-4 3 1-5-4-3 5-1Z" fill="currentColor"/></svg><span>Disciplined<br>Today<br>Richer<br>Tomorrow</span></div>
+      <div class="hero-level"><span class="level-emblem">${profileIcon('shield')}</span><div class="level-title"><strong>Lv. ${profile.level.lvl}</strong><span>${label('นักสำรวจการเงิน','Financial adventurer')}</span></div><div class="level-progress"><b>${profile.level.into.toLocaleString()} / ${profile.level.need.toLocaleString()} XP</b><div class="ci-bar" role="progressbar" aria-label="XP" aria-valuenow="${profile.level.into}" aria-valuemin="0" aria-valuemax="${profile.level.need}"><div style="width:${profile.level.pct}%"></div></div></div></div>
     </section>
-
-    <section class="idcard">
-      <div class="ci-ava">
-        <div class="ci-bg" style="background:linear-gradient(160deg, ${colors.top}, ${colors.bottom})"></div>
-        <img src="${h(resolveAvatarFile(profile.class, profile.gender, profile.skin))}" alt="${h(profile.class)}">
-        <span class="ci-badge">${h(cls.glyph)}</span>
-      </div>
-      <div class="ci-info portrait-info">
-        <div class="ci-name">${h(profile.displayName)}</div>
-        <div class="ci-rank">${h(profile.reward.glyph || '')} ${h(rewardTitle)} &middot; ${h(classLabel(profile.class))}</div>
-        <span class="char-id">#${h(profile.id)}</span>
-        <div class="ci-lvlrow">
-          <span class="ci-lvl-k">${h(c.lvl)}</span>
-          <span class="ci-lvl-n">${profile.level.lvl}</span>
-          <span class="ci-renown">${profile.xp.toLocaleString()} ${h(c.renown)}</span>
-        </div>
-        <div class="ci-bar"><div style="width:${profile.level.pct}%"></div></div>
-      </div>
-    </section>
-
-    <section class="ribbon summary">
-      ${ribbon(profile.level.lvl, c.lvl)}
-      ${ribbon(profile.xp.toLocaleString(), c.renown)}
-      ${ribbon(store.streak || 0, c.streakLab)}
-      ${ribbon(money(profile.totals.paid), t('profile_paid'), true)}
-    </section>
-
-    <section class="streak">
-      <div class="streak-flame">🔥</div>
-      <div>
-        <div class="streak-n">${store.streak || 0} <span>${h(c.streakDays)}</span></div>
-        <div class="streak-l">${h(c.streakLab)} &middot; ${h(c.best)} ${store.bestStreak || 0}</div>
-      </div>
-      <div class="streak-note">${h(c.today)}</div>
-    </section>
-
-    <div class="sec-h">${h(c.stats)}</div>
-    <section class="mods">
-      <div class="mod" style="--mc:#2f9e54">
-        <div class="mod-h">&#9876;&#65039; ${h(c.mPL)}</div>
-        <div class="mod-stats">
-          ${stat(profile.totals.quests, c.quests)}
-          ${stat(moneyText(profile.totals.paid), c.logged, true)}
-          ${stat(moneyText(profile.totals.fronted), c.fronted, true)}
-          ${stat(profile.totals.settledBoards, c.settled)}
-        </div>
-      </div>
-      <div class="mod" style="--mc:#c0492f">
-        <div class="mod-h">&#128009; ${h(c.mDD)}</div>
-        <div class="mod-stats">
-          ${stat(metrics?.slain ?? '—', c.slain)}
-          ${stat(debtXp, 'XP')}
-          ${stat(metrics ? moneyText(metrics.reclaimed) : '—', c.reclaimed, true)}
-          ${stat(metrics?.liveDragons ?? '—', c.live)}
-        </div>
-      </div>
-      <div class="mod" style="--mc:#3a6fd0">
-        <div class="mod-h">&#9878;&#65039; ${h(c.mPA)}</div>
-        <div class="mod-stats">
-          ${stat(metrics?.showdowns ?? '—', c.showdowns)}
-          ${stat(metrics?.merchants ?? '—', c.merchants)}
-          ${stat(metrics ? `${metrics.bestRescue}%` : '—', c.deal)}
-        </div>
-      </div>
-      <div class="mod" style="--mc:#caa033">
-        <div class="mod-h">&#127974; ${h(c.mTR)}</div>
-        <div class="mod-stats">
-          ${stat(metrics?.monthsWon ?? '—', c.months)}
-          ${stat(metrics?.trLogged ?? '—', c.tlog)}
-          ${stat(metrics?.treasuryReputation ?? '—', c.disc)}
-        </div>
-      </div>
-    </section>
-
-    <div class="sec-h">${h(c.trophies)} <span class="count">${got} / ${trophies.length}</span></div>
-    <section class="trophies badges">${renderTrophies(profile)}</section>
-
-    ${account ? `<section class="acct">
-      <div class="acct-ava">&#128100;</div>
-      <div class="acct-info">
-        <b>${h(account.name || 'Hero')}</b>
-        <span>@${h(account.username || String(account.email || '').split('@')[0] || '')}</span>
-        <span>${h(c.userId)} &middot; ${h(account.userId || '')}</span>
-      </div>
-    </section>` : ''}
-
-    <section class="profile-tools" aria-label="${h(c.actions)}">
-      <button class="cback" onclick="toggleMoney()">${h(hideMoney ? t('profile_show_money') : t('profile_hide_money'))}</button>
-      <button id="copy-profile-btn" class="cback" onclick="copyProfileLink()">${h(t('profile_copy_link'))}</button>
-      <a class="cback" href="/trip/">Party Ledger</a>
-    </section>
-
-    <section class="grid">
-      <section class="panel">
-        <div class="panel-head"><h2>${h(t('profile_board_history'))}</h2><span class="muted">${h(t('profile_records', { n: profile.boards.length }))}</span></div>
-        <div class="board-list">${profile.boards.length ? renderBoards(profile) : `<div class="empty">${h(t('profile_no_boards'))}</div>`}</div>
+    <div class="profile-content">
+      <section class="ribbon summary" aria-label="${label('สรุปข้อมูลตัวละคร','Character summary')}">
+        ${[['shield',profile.level.lvl,c.lvl,''],['star',profile.xp.toLocaleString(),c.renown,''],['flame',store.streak ?? '—',c.streakLab, store.bestStreak == null ? '' : `${c.best} ${store.bestStreak} ${c.streakDays}`],['coins',moneyText(profile.totals.paid),t('profile_paid'),'money']].map(([icon,n,l,sub]) => `<div class="rib">${profileIcon(icon)}<div><div class="rib-n ${sub === 'money' ? 'money' : ''}">${h(n)}</div><div class="rib-l">${h(l)}</div>${sub && sub !== 'money' ? `<small>${h(sub)}</small>` : ''}</div></div>`).join('')}
+        <aside class="daily-note"><span>${profileIcon('compass')}</span><p>${label('ทุกก้าวเล็ก ๆ<br>คือจุดเริ่มต้นของการเดินทาง','Every small step<br>starts a new adventure')}</p></aside>
       </section>
-      <aside class="panel">
-        <div class="panel-head"><h2>🗺️ ${h(c.myBoards)}</h2><span class="muted">${h(c.boardsSub)}</span></div>
-        <div class="board-list">${renderAdminBoards(profile)}</div>
-        ${profile.adminBoards.length ? `<div class="bd-locknote">🔒 ${h(c.cantDelete)}</div>` : ''}
-      </aside>
-    </section>
+      <nav class="section-nav" aria-label="${label('ส่วนต่าง ๆ ของโปรไฟล์','Profile sections')}">${sections.map(([id,icon,title]) => `<a href="#${id}" ${profileView.section === id ? 'aria-current="location"' : ''} onclick="setProfileSection('${id}')">${profileIcon(icon)}${title}</a>`).join('')}</nav>
+      <div class="profile-grid grid"><div class="profile-column profile-left">
+        <section class="panel adventure-panel" id="adventure"><div class="panel-head"><h2>${profileIcon('shield')}${h(c.stats.replace('📊 ',''))}</h2></div><div class="mods">
+          ${renderModule('split','split',c.mPL,stat(profile.totals.quests,c.quests)+stat(moneyText(profile.totals.paid),c.logged,true)+stat(moneyText(profile.totals.fronted),c.fronted,true)+stat(profile.totals.settledBoards,c.settled),'/trip/')}
+          ${renderModule('debt','debt',c.mDD,stat(metrics?.slain ?? '—',c.slain)+stat(Number(profile.record?.debtXp)||0,'XP')+stat(metrics ? moneyText(metrics.reclaimed) : '—',c.reclaimed,true)+stat(metrics?.liveDragons ?? '—',c.live),'/debt/')}
+          ${renderModule('compare','compare',c.mPA,stat(metrics?.showdowns ?? '—',c.showdowns)+stat(metrics?.merchants ?? '—',c.merchants)+stat(metrics ? `${metrics.bestRescue}%` : '—',c.deal),'/?view=compare')}
+          ${renderModule('treasury','treasury',c.mTR,stat(metrics?.monthsWon ?? '—',c.months)+stat(metrics?.trLogged ?? '—',c.tlog)+stat(metrics?.treasuryReputation ?? '—',c.disc),'/treasury/')}
+        </div></section>
+        <section class="panel account-panel" id="account"><div class="panel-head"><h2>${profileIcon('profile')}${label('ข้อมูลบัญชี','Account information')}</h2></div><div class="acct"><div class="acct-ava"><img src="${h(resolveAvatarFile(profile.class,profile.gender,profile.skin))}" alt=""></div><div class="acct-info"><b>${h(account?.name || profile.displayName)}</b>${account ? `<span>@${h(account.username || String(account.email || '').split('@')[0] || '')}</span>` : ''}<span>${h(c.userId)} : ${h(profile.id)}</span></div></div></section>
+        <section id="profile-tools-panel" class="panel tools-panel" aria-label="${h(c.actions)}"><div class="panel-head"><h2>${label('จัดการโปรไฟล์','Profile tools')}</h2></div><div class="profile-tools"><button type="button" class="cback" onclick="toggleMoney()">${profileIcon('eye')}<span>${h(hideMoney ? t('profile_show_money') : t('profile_hide_money'))}</span></button><button type="button" id="copy-profile-btn" class="cback" onclick="copyProfileLink()">${profileIcon('link')}<span>${h(t('profile_copy_link'))}</span></button><a class="cback primary" href="${moduleHref('/trip/')}">${profileIcon('split')}<span>Party Ledger</span></a></div></section>
+</div><div class="profile-column profile-right">
+        <section class="panel awards-panel" id="achievements"><div class="panel-head"><h2>${profileIcon('trophy')}${h(c.trophies.replace('🏆 ',''))}</h2><span class="count">${got} / ${trophies.length}</span><button class="text-button" type="button" aria-expanded="${profileView.allTrophies}" aria-controls="trophy-list" onclick="toggleTrophies(this)">${profileView.allTrophies ? label('ย่อรายการ ↑','Show less ↑') : label('ดูทั้งหมด →','View all →')}</button></div><div id="trophy-list" class="trophies badges ${profileView.allTrophies ? 'show-all' : ''}">${renderTrophies(profile)}</div></section>
+        <section class="panel history-panel" id="history"><div class="panel-head"><h2>${profileIcon('scroll')}${h(t('profile_board_history'))}</h2><span class="muted">${h(t('profile_records',{n:profile.boards.length}))}</span></div><div class="board-list">${profile.boards.length ? renderBoards(profile) : `<div class="empty">${h(t('profile_no_boards'))}<a class="text-button" href="${moduleHref('/trip/')}">${label('เริ่มปาร์ตี้แรก →','Start your first party →')}</a></div>`}</div></section>
+        <section class="panel owned-panel" id="boards"><div class="panel-head"><h2>${profileIcon('split')}${own ? h(c.myBoards) : label('บอร์ดที่ดูแล','Managed boards')}</h2><span class="muted">${profile.adminBoards.length} ${label('บอร์ด','boards')}</span></div><div class="board-list">${renderAdminBoards(profile)}</div></section>
+      </div></div><p id="profile-status" role="status" aria-live="polite"></p>
+      <cq-footer></cq-footer>
+    </div>
   </main>`;
+  arrangeProfilePanels();
+  window.CoinQuestMobileShell?.refresh();
 }
 async function boot() {
+  document.documentElement.lang = LANG;
   if (!CHARACTER_ID || CHARACTER_ID.length !== 4) { renderSearch(); return; }
-  document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap"><section class="search-card"><h1>${h(t('profile_loading'))}</h1><div class="sub">${h(t('profile_loading_sub'))}</div></section></main>`;
+  document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap"><section class="search-card" role="status"><h1>${h(t('profile_loading'))}</h1></section></main>`;
   try {
     if (!TEST_MODE) {
       initFirebase();
@@ -558,6 +521,8 @@ async function boot() {
     }
     const [record, boards] = await Promise.all([loadCharacterRecord(CHARACTER_ID), loadBoards()]);
     const profile = PointyLogic.buildCharacterProfile(CHARACTER_ID, boards, record, { lang: LANG, boardFallback: LANG === 'en' ? 'Untitled board' : 'บอร์ดไม่มีชื่อ' });
+    const uid = TEST_MODE ? accountStore()?.uid : firebase.auth().currentUser?.uid;
+    profile.managedBoardIds = boards.filter(board => uid && board.data?.access?.ownerUids?.includes(uid)).map(board => String(board.id));
     if (!TEST_MODE && record.ownerUid === firebase.auth().currentUser?.uid) {
       const uid = record.ownerUid; const [modules, user] = await Promise.all([freshFirestoreGet(firebase.firestore().collection('playerModules').doc(uid)), freshFirestoreGet(firebase.firestore().collection('users').doc(uid))]);
       const data = modules.data() || {};

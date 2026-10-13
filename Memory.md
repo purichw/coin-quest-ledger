@@ -1,6 +1,21 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-10-12
+Last updated: 2026-10-13
+
+## Current shared design direction — 2026-10-13
+
+Player website mockups are screens in one product. Read `PLAYER_DESIGN_SYSTEM.md`
+before changing shared UI or any game page, including a page not redesigned yet.
+Header/footer, frame/gutters and banner scale have shared owners in
+`shared/player-layout.{css,js}`, `shared/navigation.css` and `shared/mobile-shell.js`.
+Keep artwork different between games; keep screens within one game in the same
+visual family. Explicit context variants accommodate real differences.
+This consolidation includes Character's common header and Party entry/board
+artwork continuity; it does not redesign native/Admin. The October 13 release
+also updates all affected integration selectors and responsive disclosure flows,
+removes obsolete footer rules and keeps focused auth controls visible on short
+screens. Release status is established by the exact commit's CI/deploy result.
+Evidence: `docs/player-design-system-2026-10-13/README.md`.
 
 ## Project
 
@@ -53,18 +68,21 @@ Last updated: 2026-10-12
 - Claude/offline design exports are kept outside Git; do not commit large offline HTML or zip copies.
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
+- `trip/entry.js` and `trip/entry.css`: 2026-10-13 mockup-led Split entry/create/join screen, shared navigation and account-scoped recent boards; QA/design adaptations in `docs/split-entry-redesign-2026-10-13/README.md`.
+- `trip/board.js` and `trip/board.css`: October 13 Party Ledger board presentation at `/trip/?id=…`; village banner, compact member summaries, form/log/settlement columns, phone accordion previews and sticky entry action. State/math/storage stay in `trip/app.js` and `shared/pointy-logic.js`. Phone module navigation remains available in the top overflow menu while the board uses its own bottom action. Evidence and deliberate mockup adaptations: `docs/split-board-redesign-2026-10-13/README.md`.
 - `trip/trip-utils.js`: Party Ledger browser-global utility helpers for IDs, theme persistence, escaping, money formatting, and board/admin hashes. Must load before `trip/app.js`.
 - `admin/index.html`, `admin/design.css`: Super Admin Portal shell and current responsive design.
 - `admin/app.js`: Super Admin Portal behavior for Google-auth allowlist, board/admin/user editing, account lifecycle, drafts, publish, restore, and revision logs.
 - `admin/admin-utils.js`: Super Admin browser-global utility helpers for escaping, cloning, user lifecycle status, username/reset helpers, recovery hash, and level display. Must load before `admin/app.js`.
 - `character/index.html`: responsive Character Profile shell and portrait/stats/history layout.
+- `character/design.css` is now the active October 13 mockup-led profile presentation (its historical unused contents and old inline CSS were replaced). `character/app.js` retains canonical aggregation and real character portraits; layout includes desktop four-module cards, tablet independent columns and mobile disclosure/anchor navigation with sticky privacy/share/Party Ledger actions. Other-character views no longer display the signed-in viewer's account or streak. Archive controls require matching account ownership. See `docs/character-profile-redesign-2026-10-13/README.md` for evidence, real-data adaptations and intentionally unsupported mockup actions.
 - `character/app.js`: Character Profile loading, board aggregation, privacy/share mode, i18n, and rendering.
 - `index.html`: live toolbox home and price comparison entry.
 - `lang.js`: shared i18n for Thai and English across the toolbox. Every user-facing string needs both languages.
 - `shared/pointy-logic.js`: shared calculation, normalization, class registry, split logic, price comparison logic, and canonical level helpers.
 - `shared/profile-hub.js` / `.css`: shared profile/auth orchestrator. Keep behavior orchestration here, but new pure helpers or isolated renderers should live in the focused `shared/profile-*.js` modules.
 - `shared/profile-session.js`, `shared/profile-auth.js`, `shared/profile-cloud.js`, `shared/profile-recovery.js`, `shared/profile-backup.js`, `shared/profile-login.js`, `shared/profile-character-create.js`, `shared/profile-drawer.js`, `shared/profile-reminders.js`, and `shared/profile-tour.js`: focused profile helper modules split out from the original hub so auth, recovery, backup, login/character rendering, drawer blocks, reminder rendering, and Welcome Tour slices can be reverted independently.
-- `shared/mobile-shell.css` and `shared/mobile-shell.js`: Claude-style native phone shell shared by Home/Compare, Split, Debt Dragon, and Treasury. It injects the hamburger drawer and bottom tab bar at `max-width: 600px`; desktop/tablet topbars remain controlled by each page.
+- `shared/navigation.css` and `shared/mobile-shell.js`: shared web navigation for Home/Compare, Split, Debt Dragon and Treasury, following the October 13 mockups. Desktop is one row, tablet two rows, phone utilities plus five bottom tabs and an accessible overflow menu. `shared/home.js`/`.css` own the new illustrated Home; `shared/quest-icons.js` owns navigation SVGs. Native and Admin are excluded from this redesign.
 - `mobile/`: rebuilt Expo 57 / React Native player app using Expo Router and the
   app's own Simulator binary. All player modules use the existing Firebase
   project; `playerModules/{uid}` is shared with the website storage bridge.

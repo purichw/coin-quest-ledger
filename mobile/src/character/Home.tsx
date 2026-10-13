@@ -29,7 +29,7 @@ export function Home({ account, character: savedCharacter }: { account: Account;
       <View style={ui.panel}><Text style={styles.section}>การเดินทางของคุณ</Text><Action title="แบ่งเงิน · Party Ledger" onPress={() => router.push('/split')} /><Action title="มังกรหนี้ · Debt Dragon" secondary onPress={() => router.push('/debt')} /><Action title="การแจ้งเตือนและคำเชิญ" secondary onPress={() => router.push('/reminders')} /></View>
       <Action title="คลังหลวง · Treasury" secondary onPress={() => router.push('/treasury')} />
       <Action title="เทียบราคา · Price Arena" secondary onPress={() => router.push('/prices')} />
-      <View style={styles.accountNote}><Text style={ui.hint}>@{account.username}</Text><Text style={ui.hint}>บัญชีเดียวกันทั้งเว็บและแอป</Text></View>
+      <View style={styles.accountNote}><Text style={ui.hint}>@{account.username}</Text></View>
       <Action title="รีเฟรชข้อมูล" secondary onPress={retry} />
     </ScrollView>
   </SafeAreaView>;

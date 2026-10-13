@@ -1,0 +1,132 @@
+{
+  "recordedAt": "2026-10-13T14:08:25.175805+00:00",
+  "baseCommit": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "workingTree": "uncommitted; includes pre-existing redesign work, preserved",
+  "sourceSha256": {
+    "shared/profile-character-create.js": "d56fd9000e80f601236eef1744a96b25c9f3fb26dbda68f985eabf53be99e703",
+    "shared/profile-login.js": "6ee8aaf881f3a2e6669e828464f1d0d124e85a1f07f270b396ef8f5737501dfe",
+    "shared/profile-hub.js": "6240fb2d5acd945b9a1a5def46c692d85c281627c385ac7f196e2360cac644ea",
+    "shared/profile-hub.css": "76c15600c6574a305a2102712ebd1deb74828eb5d03ae79013b057d12846724e",
+    "shared/quest-icons.js": "de0b9efc5b2da94ac6deb957dee82dc020f8cc44bd3172a8c1d2ac5c81b742a1",
+    "tests/e2e/account-persistence.spec.mjs": "16da042373692bdae9758688b5dc8b66e1b38cee035e6a07e73c93c9578d7e40"
+  },
+  "referenceSha256": "8baab4ab97c2b8b4f5c73181c253537ccde2f217a66e409ca6f320c16c27bd3c",
+  "captureContext": {
+    "origin": "http://127.0.0.1:4569",
+    "route": "/",
+    "data": "mock Firebase transport; actual production-mode frontend; new account ID 8899",
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        768,
+        1024
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "additionalReflowCheck": [
+      320,
+      480
+    ],
+    "browser": "Chromium; selected tests also exercised with touch/mobile configuration",
+    "animations": "disabled for screenshots",
+    "scroll": "form at top; picker starts at top; last item reachability exercised separately",
+    "states": [
+      "no hero selected",
+      "open hero picker",
+      "female ranger selected",
+      "English dark",
+      "pending save",
+      "failed save"
+    ],
+    "review": "all three forms/pickers, selected mobile, English dark, failure, final reference comparison personally inspected"
+  },
+  "captures": [
+    {
+      "file": "qa/before-1440-empty.png",
+      "sha256": "d1d21b0eb793facaf355dd611e471c0e1e199af30979226cce57f1fe89c30048",
+      "provenance": "pre-edit capture"
+    },
+    {
+      "file": "qa/before-1440-picker.png",
+      "sha256": "97727efcfe16657500642cc8f3dfdf63f02eebbff7fde4bbfbf3a04a41343311",
+      "provenance": "pre-edit capture"
+    },
+    {
+      "file": "qa/comparison.jpg",
+      "sha256": "c53649330f5331376d80d959ddef0989244f5f690c07c6fc9dc28dfb6b9d9519",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-1440-empty.png",
+      "sha256": "ac0e93ffa4180ed0bfe5ca34fbb0aeabb21ca2cfbc74440cffbd0fb69f3939db",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-1440-error.png",
+      "sha256": "febc754fb03d373f94a8058ffbb99dcba8a7d4c5cf59cce4230713b12d70690a",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-1440-picker.png",
+      "sha256": "b8547d4fc46b9130e951a6db44a4a293a41471e7bb8c44b6142937590f27eff8",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-1440-saving.png",
+      "sha256": "378323494debfad62fb0b26391ee8acec7c787e099341cbf43fd6e8336f2cbde",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-1440-selected.png",
+      "sha256": "e4aff99c31abd0f5e8940b2f70b2d349e8cebec110646b3c0918baf0d5e988f6",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-390-empty.png",
+      "sha256": "75a3cee28f8c5196e091026c65c011be4e4b8b78ed671ee49c4b1326901803c5",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-390-en-dark.png",
+      "sha256": "22dcaf4ecdc15f94719a9ba6667a3ccba6b6fdaa1331c29d8fc2eceb8c818bcc",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-390-picker.png",
+      "sha256": "c02df3c7ea8b991fe46c15914c66ff2d95df32599625d8803efa14cc83ee46c1",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-390-selected.png",
+      "sha256": "2d97045a243f67f8f571222f96b05ae6a95ec9c71c75d3dfefb751fe6bce28a7",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-768-empty.png",
+      "sha256": "539cdf36ca9aaf3e0355d9f8c05366344b60c4b4eecd60497fe85e302c2bebf7",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-768-picker.png",
+      "sha256": "24da866ee7cc2fd30d954ecbaedf258d4eda4a679245543468821f616efc253d",
+      "provenance": "current implementation or labeled comparison"
+    },
+    {
+      "file": "qa/creation-768-selected.png",
+      "sha256": "a667102fd9edc8ae07a0677658bdbae1b8c0fa2ef7223feaaee00c95e7a96b08",
+      "provenance": "current implementation or labeled comparison"
+    }
+  ],
+  "scopeLimits": [
+    "no live Firebase writes or backend/Rules test",
+    "no Safari or physical-device test",
+    "no full-game suite",
+    "no push/deploy"
+  ]
+}

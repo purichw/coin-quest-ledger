@@ -1,0 +1,57 @@
+/* Shared player navigation: desktop, tablet and phone. */
+:root { --cq-wood:#382619; --cq-nav-ink:#f6edd9; }
+.cq-icon{display:inline-block;width:24px;height:24px;flex:0 0 auto;vertical-align:middle}
+.topbar,.mtabbar{background-color:var(--cq-wood);background-image:repeating-linear-gradient(2deg,transparent 0 7px,#160d0726 8px 9px,transparent 10px 17px),linear-gradient(90deg,#21190e88,#64412540 45%,#20160e88);color:var(--cq-nav-ink)}
+.topbar{position:sticky;top:0;z-index:60;border-bottom:2px solid #9c774b;box-shadow:0 3px 10px #23130730}
+.tb-inner{max-width:var(--cq-frame);min-height:66px;padding:8px var(--cq-gutter);margin:auto;display:flex;align-items:center;gap:22px}
+.tb-left{min-width:0;flex:0 0 auto}
+.cq-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--cq-nav-ink);white-space:nowrap;font:600 17px var(--font-display,sans-serif);min-height:44px}
+.cq-brand img{width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 2px 1px #140900)}
+.cq-nav{display:flex;align-items:center;justify-content:center;gap:5px;flex:1}
+.cq-nav a{min-height:44px;display:flex;align-items:center;justify-content:center;gap:9px;padding:7px 11px;border:1px solid transparent;border-radius:7px;color:var(--cq-nav-ink);text-decoration:none;white-space:nowrap;font-size:13px;font-weight:600}
+.cq-nav a .cq-icon{width:22px;height:22px}
+.cq-nav a:hover{background:#ead4a31a}
+.cq-nav a[aria-current="page"]{color:#fff3b5;border-color:#ab975e;background:linear-gradient(#747b354a,#59622645);box-shadow:inset 0 0 0 2px #211c1633,0 1px 5px #0e070a80}
+.tb-right{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex:0 0 auto}
+.theme-toggle,.rem-bell,.profile-badge,.lang-toggle,.tb-burger{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:44px;padding:6px;border:1px solid #9d80563d;border-radius:9px;background:linear-gradient(#f9e5c016,#f9e5c00a);color:var(--cq-nav-ink);box-shadow:0 2px 3px #11090366,inset 0 1px #f4daaf17;cursor:pointer}
+.theme-toggle{order:0}.rem-bell{order:1}.lang-toggle{order:2;padding:3px;min-width:0}.profile-badge{order:3;gap:8px;padding:4px 9px 4px 5px;min-width:119px}
+.theme-toggle:hover,.rem-bell:hover,.profile-badge:hover{background-color:#f9e5c012}
+.theme-toggle .cq-icon{width:23px;color:#f3d886}
+.lang-toggle button{display:grid;place-items:center;border:0;border-radius:6px;height:36px;min-width:32px;padding:0 6px;color:#eadfc9;background:transparent;font:700 13px var(--font-stat,sans-serif)}
+.lang-toggle button.lang-active{color:#fff;background:linear-gradient(#219875,#087255);box-shadow:inset 0 0 0 1px #9ae2bd55}
+.cq-lang-compact{display:none}
+.pb-ava{width:32px;height:32px;border-radius:50%;border-color:#bca25a}.pb-meta{gap:2px;min-width:34px}.pb-lvl{color:var(--cq-nav-ink);font-size:12px}.pb-streak{display:flex;align-items:center;gap:3px;font:500 10px var(--font-body,sans-serif);color:var(--cq-nav-ink);white-space:nowrap}.pb-streak .cq-icon{width:13px;height:13px}.profile-badge>.cq-icon{width:14px;height:14px;margin-left:2px}
+.rb-badge{background:#b83128;border-color:#382619;top:-4px;right:-4px}
+.tb-burger,.mtabbar{display:none}
+.topbar :focus-visible,.mtabbar :focus-visible{outline:2px solid #ffdf7c;outline-offset:3px}
+.mm-overlay{position:fixed;inset:0;z-index:100;display:block;background:#160f0b88;backdrop-filter:blur(3px)}
+.mm-panel{position:absolute;inset:0 0 0 auto;display:flex;width:min(360px,92vw);flex-direction:column;border-left:1px solid var(--border-strong);background:var(--bg);box-shadow:-18px 0 60px #1d13074d}
+.mm-head{display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--panel);border-bottom:1px solid var(--border)}.mm-title{font:500 17px var(--font-display)}
+.mm-close{display:grid;place-items:center;width:44px;height:44px;padding:8px;border:1px solid var(--border-strong);border-radius:9px;color:var(--ink);background:var(--panel-in)}
+.mm-scroll{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:8px;padding:14px}
+.mm-account,.mm-item,.mm-seg-row{border:1px solid var(--border);border-radius:10px;background:var(--panel-in);color:var(--ink)}
+.mm-account{display:flex;align-items:center;gap:12px;padding:12px}.mm-avatar{display:grid;place-items:center;width:42px;height:42px;background:var(--panel-2);border-radius:50%}.mm-name{font-weight:700}.mm-sub{color:var(--ink-soft);font-size:12px;overflow-wrap:anywhere}
+.mm-item{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:11px 14px;font-size:14px;text-decoration:none;text-align:left}.mm-item:hover,.mm-item[aria-current="page"]{background:var(--panel-2)}.mm-ic{display:flex}.mm-lab{flex:1}.mm-arr{color:var(--ink-soft)}.mm-logout{color:var(--hp,#a83429)}
+.mm-seg-row{display:flex;align-items:center;justify-content:space-between;padding:7px 12px}.mm-seg{display:flex;padding:3px;background:var(--panel-2);border-radius:9px}.mm-seg button{min-height:38px;padding:6px 12px;border:0;border-radius:7px;background:transparent;color:var(--ink)}.mm-seg button.on{background:#167d5e;color:white}
+.pb-meta{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+.pb-lvl{font-family:var(--font-stat,sans-serif);font-weight:700}
+body.cq-menu-open{overflow:hidden}
+@media (min-width:601px) and (max-width:1199px){
+ .tb-inner{padding:8px var(--cq-gutter) 5px;flex-wrap:wrap;gap:4px 16px}.tb-left{flex:1}.cq-brand{font-size:21px}.cq-nav{order:3;flex-basis:100%;gap:6px}.cq-nav a{flex:1;padding:7px 8px}.cq-nav a+a{position:relative}.cq-nav a+a::before{content:'';position:absolute;left:-4px;height:18px;width:1px;background:#a6875a40}
+}
+@media (max-width:600px){
+ .tb-inner{min-height:56px;padding:4px 8px;gap:4px}.tb-left{flex:1}.cq-brand{gap:3px;font-size:13.5px}.cq-brand img{width:34px;height:40px}.cq-nav{display:none}.tb-right{gap:1px}
+ .theme-toggle,.rem-bell,.profile-badge,.cq-lang-compact,.tb-burger{width:36px;min-width:36px;height:44px;padding:6px;border-color:transparent;background:none;box-shadow:none;border-radius:6px}
+ .theme-toggle .cq-icon,.rem-bell .cq-icon{width:22px;height:22px}.cq-lang-compact{display:grid;place-items:center;order:1;color:#fff;border:0;font:700 12px var(--font-stat);background:linear-gradient(#279575,#0b654e);height:34px;align-self:center;box-shadow:inset 0 0 0 1px #beedca33,0 2px 4px #160c08}.rem-bell{order:2}.profile-badge{order:3;padding:3px}.pb-ava{width:30px;height:30px}.profile-badge .pb-meta,.profile-badge>.cq-icon,.lang-toggle{display:none}
+ .tb-burger{display:flex;order:4;width:24px;min-width:24px;padding:4px}.tb-burger .cq-icon{width:18px}.rb-badge{top:0;right:0;min-width:16px;height:16px;font-size:9px}
+ .mtabbar{position:fixed;inset:auto 0 0;z-index:60;display:grid;grid-template-columns:repeat(5,1fr);padding:7px 6px calc(7px + env(safe-area-inset-bottom));border-top:2px solid #977341;box-shadow:0 -3px 8px #29190940;border-radius:16px 16px 0 0}
+ .mtab{display:flex;min-height:49px;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:#d5cbb8;text-decoration:none;border-radius:8px}.mtab .cq-icon{width:25px;height:25px}.mtab.on{color:#fff0a8;text-shadow:0 0 12px #efcb69a0;background:radial-gradient(ellipse at center,#bda14924,transparent 75%)}.mtab.on .cq-icon{filter:drop-shadow(0 0 5px #f1d06966)}.mtab-lab{font-size:11px;line-height:1.2}
+ .page{padding-bottom:calc(98px + env(safe-area-inset-bottom))!important}.settings-fab{bottom:calc(84px + env(safe-area-inset-bottom))!important}.toast{bottom:calc(88px + env(safe-area-inset-bottom))!important}
+}
+@media (max-width:359px){.cq-brand{max-width:108px;white-space:normal;font-size:11px;line-height:1.2}.cq-brand img{width:28px}.tb-inner{padding-inline:4px}}
+@media (min-width:360px) and (max-width:600px){.cq-brand img{width:42px;height:44px}}
+@media (max-width:600px){
+ .theme-toggle::before,.rem-bell::before{content:'';position:absolute;inset:5px 1px;border:1px solid #a58b5a30;border-radius:7px;background:linear-gradient(#fff4d315,#fff4d309);box-shadow:0 2px 3px #100b0755}
+ .theme-toggle .cq-icon,.rem-bell .cq-icon{position:relative}
+}
+@media (prefers-reduced-motion:reduce){.topbar *,.mtabbar *{transition:none}}

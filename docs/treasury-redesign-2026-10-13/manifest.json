@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-13",
+  "route": "http://127.0.0.1:4569/treasury/?test=1",
+  "reference": "reference.png",
+  "reference_crop_boxes": {
+    "desktop": [
+      163,
+      134,
+      891,
+      840
+    ],
+    "tablet": [
+      926,
+      152,
+      1252,
+      795
+    ],
+    "mobile": [
+      1291,
+      151,
+      1511,
+      791
+    ]
+  },
+  "viewports": {
+    "desktop": [
+      1440,
+      1000
+    ],
+    "tablet": [
+      768,
+      1000
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "data": "Local synthetic fixture from tests/e2e/treasury.spec.mjs, fixed date 2026-10-13; no production writes",
+  "auth": "test=1, no Firebase login",
+  "theme": "tavern/th and dungeon/en",
+  "source_base": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "source_sha256": {
+    "treasury/app.js": "d4f02b244273a1c1302b5f2c158edb6a9e21b5ce136517921ea50d9abe8056eb",
+    "treasury/design.css": "ee545291652b0d40da7114dfe08f3a0a5e7391dc14070ba343e34687f93cd90c",
+    "treasury/index.html": "fa4e01a7af0699e55f24497468bc93034d9e9b869527a622792613185644b644",
+    "tests/e2e/treasury.spec.mjs": "93ca2850e3cfc580f4da069c75b389b6455cb77a724df114f863b12def940f66"
+  },
+  "reviewed": "Personally inspected all three default viewports, dark English mobile, mobile expanded budgets, and corrected mobile expense form. No pixel-equivalence claim.",
+  "framing": "Crops omit annotation/device/global navigation, scaled proportionally for comparison; reference CSS scale inferred. Full screenshots remain in qa/. Fixed mobile bottom navigation appears at the first viewport boundary in long full-page images.",
+  "assets": {
+    "directory": "assets/treasury-reference",
+    "source": "Built-in imagegen guided by supplied reference; generated PNG sources retained in Codex generated_images. Hero resized and encoded WebP; transparent sprite sheet divided into 12 inventory icons, cropped and resized preserving alpha."
+  }
+}

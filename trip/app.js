@@ -23,7 +23,6 @@ const {
   ownerHash
 } = window.CoinQuestTripUtils;
 let _boardLanding = !INITIAL_TRIP_ID;
-let _boardChooseMode = 'choose';
 let tripId = INITIAL_TRIP_ID;
 if (!tripId) {
   tripId = LAST_TRIP_ID || makeTripCode();
@@ -821,7 +820,7 @@ function profileSnapshotState() {
   };
 }
 window.PointyTripSnapshot = function() {
-  return { id: tripId, data: profileSnapshotState() };
+  return _boardLanding ? null : { id: tripId, data: profileSnapshotState() };
 };
 function cacheProfileSnapshot() {
   if (window.PointyProfileHub?.updateTripSnapshot) {
@@ -964,95 +963,7 @@ function boardChooseSamples() {
     { code: '9184', name: LANG === 'en' ? 'Japan squad' : 'ทีมญี่ปุ่น' }
   ];
 }
-function renderBoardChoose() {
-  const main = document.querySelector('main.page');
-  if (!main) return;
-  document.getElementById('quick-toggles').innerHTML = '';
-  document.querySelector('.settings-fab')?.classList.add('hidden');
-  document.getElementById('app-overlays').innerHTML = '';
-  main.className = 'page bc-page';
-  const crest = `<span class="bc-crest"><img src="/assets/icons/loot-chest.svg" alt="" aria-hidden="true"></span>`;
-  const back = `<button class="bc-back" type="button" onclick="goHome()">‹ ${h(t('bd_back'))}</button>`;
-  const current = LAST_TRIP_ID ? `<button class="bc-existing" type="button" onclick="openCurrentBoardFromChoose()">${h(t('bd_open_current'))}</button>` : '';
-  if (_boardChooseMode === 'new') {
-    main.innerHTML = `<div class="bc-shell">${back}
-      <div class="bc-form">
-        <span class="bc-opt-ic big" aria-hidden="true">🏕️</span>
-        <h1 class="bc-title">${h(t('bd_start_new'))}</h1>
-        <p class="bc-sub">${h(t('bd_start_new_sub'))}</p>
-        <div class="field">
-          <label for="bc-board-name">${h(t('bd_new_name'))}</label>
-          <input id="bc-board-name" maxlength="80" class="field-input" value="" placeholder="${h(t('bd_new_name_ph'))}">
-        </div>
-        <button class="btn-primary big" type="button" onclick="createBoardFromChoose()">✚ ${h(t('bd_create_btn'))}</button>
-      </div>
-    </div>`;
-    requestAnimationFrame(() => document.getElementById('bc-board-name')?.focus());
-    return;
-  }
-  if (_boardChooseMode === 'join') {
-    const sampleBlock = TEST_MODE ? `<div class="bc-samples">
-          <div class="bc-samples-h">${h(t('bd_try_codes'))}</div>
-          <div class="bc-samples-list">${boardChooseSamples().map(sample => `<button class="bc-sample" type="button" onclick="fillBoardChooseCode('${sample.code}')"><b>${sample.code}</b><span>${h(sample.name)}</span></button>`).join('')}</div>
-        </div>` : '';
-    main.innerHTML = `<div class="bc-shell">${back}
-      <div class="bc-form">
-        <span class="bc-opt-ic big" aria-hidden="true">🔑</span>
-        <h1 class="bc-title">${h(t('bd_join'))}</h1>
-        <p class="bc-sub">${h(t('bd_join_sub'))}</p>
-        <div class="field">
-          <label for="bc-code">${h(t('bd_enter_code'))}</label>
-          <input id="bc-code" class="field-input bc-code-input" inputmode="numeric" maxlength="4" value="" placeholder="${h(t('bd_code_placeholder'))}">
-        </div>
-        <button class="btn-primary big" type="button" onclick="joinBoardFromChoose()">🔑 ${h(t('bd_join_btn'))}</button>
-        ${sampleBlock}
-      </div>
-    </div>`;
-    requestAnimationFrame(() => document.getElementById('bc-code')?.focus());
-    return;
-  }
-  main.innerHTML = `<div class="bc-shell">${back}
-    <div class="bc-choose">
-      ${crest}
-      <h1 class="bc-title">${h(t('bd_choose_title'))}</h1>
-      <p class="bc-sub">${h(t('bd_choose_sub'))}</p>
-      <div class="bc-options">
-        <button class="bc-opt" type="button" onclick="setBoardChooseMode('new')">
-          <span class="bc-opt-ic" aria-hidden="true">🏕️</span>
-          <span class="bc-opt-body"><b>${h(t('bd_start_new'))}</b><i>${h(t('bd_start_new_sub'))}</i></span>
-          <span class="bc-opt-go" aria-hidden="true">›</span>
-        </button>
-        <button class="bc-opt" type="button" onclick="setBoardChooseMode('join')">
-          <span class="bc-opt-ic" aria-hidden="true">🔑</span>
-          <span class="bc-opt-body"><b>${h(t('bd_join'))}</b><i>${h(t('bd_join_sub'))}</i></span>
-          <span class="bc-opt-go" aria-hidden="true">›</span>
-        </button>
-      </div>
-      ${current}
-    </div>
-  </div>`;
-}
-function setBoardChooseMode(mode) {
-  _boardChooseMode = mode || 'choose';
-  SFX.click();
-  renderBoardChoose();
-}
-function goHome() {
-  const url = new URL('/', window.location.origin);
-  if (TEST_MODE) url.searchParams.set('test', '1');
-  window.location.href = url.pathname + url.search;
-}
-function openCurrentBoardFromChoose() {
-  if (!LAST_TRIP_ID) return;
-  SFX.click();
-  window.location.href = tripLinkFor(LAST_TRIP_ID);
-}
-function fillBoardChooseCode(code) {
-  const input = document.getElementById('bc-code');
-  if (!input) return;
-  input.value = sanitizeTripCode(code);
-  input.focus();
-}
+function renderBoardChoose() { window.CoinQuestEntry.render(); }
 function sampleTripState(code) {
   const state = freshTripState({
     passwordHash: adminHash('demo'),
@@ -1075,54 +986,74 @@ function sampleTripState(code) {
   return state;
 }
 async function createBoardFromChoose() {
+  if (window.CoinQuestEntry.isBusy()) return;
   const input = document.getElementById('bc-board-name');
   let name;
-  try { name = PointyLogic.readField(input, { type: 'text', label: 'ชื่อบอร์ด', max: 80 }); }
-  catch (error) { toast(error.message); return; }
-  const profile = adminOwnerProfile();
-  const ownerToken = adminOwnerToken();
-  let code = makeTripCode();
-  for (let i = 0; i < 8 && await tripExists(code); i++) code = makeTripCode();
-  tripId = code;
-  tripRef = tripRefFor(tripId);
-  S = freshTripState({
-    passwordHash: '',
-    ownerHash: ownerHash(ownerToken),
-    adminId: profile.adminId,
-    adminName: profile.adminName,
-    createdAt: Date.now(),
-    urlLocked: true
-  });
-  S.tripName = name;
-  sessionStorage.setItem(ownerSessionKey(tripId), ownerToken);
-  sessionStorage.setItem(adminSessionKey(), '1');
-  sessionStorage.removeItem(adminLockKey());
-  resetTripRuntime();
-  ensureCampaignState();
-  ensureAllCharacterIds();
-  syncActiveCampaign();
-  applySettings();
-  await TripStore.write(S);
-  if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, tripId);
-  window.location.href = tripLinkFor(tripId);
+  try { name = PointyLogic.readField(input, { type: 'text', label: LANG === 'en' ? 'Board name' : 'ชื่อบอร์ด', max: 80 }); }
+  catch (error) { window.CoinQuestEntry.error('new', error.message); return; }
+  window.CoinQuestEntry.busy('new');
+  const previous = { tripId, tripRef, state: S };
+  let code = '';
+  try {
+    if (!TEST_MODE && !await waitForTripAuth()) throw new Error('auth-required');
+    // Bound collision handling, and never overwrite a board when all candidates exist.
+    for (let i = 0; i < 8; i++) {
+      const candidate = makeTripCode();
+      if (!await tripExists(candidate)) { code = candidate; break; }
+    }
+    if (!code) throw new Error('board-code-unavailable');
+    const profile = adminOwnerProfile(), token = adminOwnerToken(), hero = accountHero();
+    tripId = code;
+    tripRef = tripRefFor(code);
+    S = freshTripState({
+      passwordHash: '', ownerHash: ownerHash(token),
+      adminId: profile.adminId, adminName: profile.adminName,
+      ...(hero ? { characterId: hero.id } : {}),
+      createdAt: Date.now(), urlLocked: true
+    });
+    S.tripName = name;
+    ensureCampaignState();
+    ensureAllCharacterIds();
+    syncActiveCampaign();
+    await TripStore.write(S);
+    sessionStorage.setItem(ownerSessionKey(code), token);
+    sessionStorage.setItem(adminSessionKey(), '1');
+    sessionStorage.removeItem(adminLockKey());
+    if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, code);
+    window.location.href = tripLinkFor(code);
+  } catch (error) {
+    tripId = previous.tripId; tripRef = previous.tripRef; S = previous.state;
+    console.warn('Board creation failed', error);
+    window.CoinQuestEntry.error('new', error.message === 'auth-required'
+      ? (LANG === 'en' ? 'Please sign in before creating a board.' : 'กรุณาเข้าสู่ระบบก่อนสร้างบอร์ด')
+      : (LANG === 'en' ? 'Could not create your board. Your name is saved here; please try again.' : 'ยังสร้างบอร์ดไม่สำเร็จ ชื่อที่กรอกยังอยู่ ลองอีกครั้งได้เลย'));
+  }
 }
 async function joinBoardFromChoose() {
+  if (window.CoinQuestEntry.isBusy()) return;
   const code = String(document.getElementById('bc-code')?.value || '').trim();
   if (!/^\d{4}$/.test(code)) {
-    toast(t('bd_code_bad'));
+    window.CoinQuestEntry.error('join', LANG === 'en' ? 'Enter a 4-digit board code.' : 'กรุณากรอกรหัสบอร์ดให้ครบ 4 หลัก');
     return;
   }
-  if (TEST_MODE && boardChooseSamples().some(item => item.code === code) && !sessionStorage.getItem('pointy_test_trip_' + code)) {
-    await tripRefFor(code).set(sampleTripState(code));
+  window.CoinQuestEntry.busy('join');
+  try {
+    if (!TEST_MODE && !await waitForTripAuth()) throw new Error('auth-required');
+    if (TEST_MODE && boardChooseSamples().some(item => item.code === code) && !sessionStorage.getItem('pointy_test_trip_' + code)) {
+      await tripRefFor(code).set(sampleTripState(code));
+    }
+    if (!await tripExists(code)) {
+      window.CoinQuestEntry.error('join', t('bd_code_bad'));
+      return;
+    }
+    if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, code);
+    window.location.href = tripLinkFor(code);
+  } catch (error) {
+    console.warn('Board join failed', error);
+    window.CoinQuestEntry.error('join', error.message === 'auth-required'
+      ? (LANG === 'en' ? 'Please sign in to join this board.' : 'กรุณาเข้าสู่ระบบก่อนเข้าร่วมบอร์ด')
+      : (LANG === 'en' ? 'Could not open this board. Check your connection and try again.' : 'ยังเปิดบอร์ดไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง'));
   }
-  const exists = await tripExists(code);
-  if (!exists) {
-    toast(t('bd_code_bad'));
-    return;
-  }
-  if (!TEST_MODE) localStorage.setItem(LAST_TRIP_KEY, code);
-  toast(t('bd_joined_toast'));
-  window.location.href = tripLinkFor(code);
 }
 function randomizeNewTripCode() {
   _newTripCode = makeTripCode();
@@ -1262,6 +1193,7 @@ function renderTripName() {
   document.getElementById('trip-name-display').style.display = '';
   document.getElementById('trip-name-input').style.display = 'none';
   document.title = `${S.tripName || t('title_split')} — Party Ledger`;
+  refreshBoardPresentation();
 }
 
 function uniqueParticipantName(baseName, characterId = '') {
@@ -1594,6 +1526,7 @@ function renderParty() {
         </div>` : ''}
       </div>
       <div class="hero-name">${h(hero.name)}${isGuestHero ? `<span class="char-id">${h(t('guest_badge'))}</span>` : `<a class="char-id" href="${h(characterProfileLink(heroId))}" title="Character Profile">#${h(heroId)}</a>`}</div>
+      <div class="board-member-money"><span>${boardText('paid')}<b>${money(hero.paid)}</b></span><span>${boardText('balance')}<b class="${outstanding > .005 ? 'positive' : outstanding < -.005 ? 'negative' : ''}">${outstanding > .005 ? '+' : outstanding < -.005 ? '−' : ''}${money(Math.abs(outstanding))}</b></span></div>
       <div class="hero-class-row">
         <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
         ${S.settings.stats ? `<span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>` : ''}
@@ -1696,15 +1629,6 @@ function setPayerMode(mode) {
   }
   SFX.click(); renderEntry();
 }
-function setSinglePayer(name) {
-  document.getElementById('exp-payer').value = name;
-  renderPayerChips();
-}
-function renderPayerChips() {
-  const box = document.getElementById('payer-chip-row');
-  const payer = document.getElementById('exp-payer')?.value || S.participants[0];
-  if (box) box.innerHTML = S.participants.map(name => heroChip(name, name === payer, false, `setSinglePayer(${q(name)})`)).join('');
-}
 function toggleIconPicker(ev) {
   const willOpen = !_iconOpen;
   if (willOpen && ev?.currentTarget) {
@@ -1757,8 +1681,9 @@ function removeReceipt() { _receiptData = null; _receiptPickerOpen = false; rend
 function openReceipt(data) { _receiptView = data; _overlay = 'receipt'; SFX.click(); renderOverlay(); }
 function renderReceiptField() {
   return `<div class="receipt-row">
+    <span class="board-receipt-icon">${boardIcon('receipt')}</span>
     <div class="receipt-picker ${_receiptPickerOpen ? 'open' : ''}">
-      <button type="button" class="receipt-btn" data-entry-action="toggle-receipt-picker" aria-expanded="${_receiptPickerOpen}" aria-haspopup="menu">📎 ${t('attach_receipt')}</button>
+      <button type="button" class="receipt-btn" data-entry-action="toggle-receipt-picker" aria-label="📎 ${h(t('attach_receipt'))}" aria-expanded="${_receiptPickerOpen}" aria-haspopup="menu"><strong>${boardText('receipt')}</strong><span class="receipt-help">${t('receipt_camera')} · ${t('receipt_library')}</span><span class="receipt-help">${boardText('imageHelp')}</span></button>
       ${_receiptPickerOpen ? `<div class="receipt-menu" role="menu">
         <button type="button" role="menuitem" data-entry-action="receipt-camera">📷 ${t('receipt_camera')}</button>
         <button type="button" role="menuitem" data-entry-action="receipt-library">🖼️ ${t('receipt_library')}</button>
@@ -1866,7 +1791,7 @@ function renderEntry() {
   const mode = S.settings.entry || 'form';
   document.getElementById('entry-form-btn').classList.toggle('on', mode === 'form');
   document.getElementById('entry-quick-btn').classList.toggle('on', mode === 'quick');
-  document.getElementById('entry-title').innerHTML = mode === 'quick' ? `⚡ ${t('quick_strike')}` : `📜 ${t('log_encounter')}`;
+  document.getElementById('entry-title').innerHTML = `<span class="board-heading-icon">${boardIcon('write')}</span>${mode === 'quick' ? boardText('quick') : boardText('add')}`;
   const resetDraft = _resetEntryDraft;
   _resetEntryDraft = false;
   if (resetDraft) { _splitMode = 'equal'; _payerMode = 'one'; _splitWeights = {}; _payerAmounts = {}; _lootItems = []; _receiptData = null; _receiptPickerOpen = false; _expenseDate = ''; }
@@ -1878,10 +1803,9 @@ function renderEntry() {
   const split = _splitMode === 'items' ? S.participants.slice() : (resetDraft ? S.participants.slice() : sharedBy());
   const hiddenShares = S.participants.map(p => `<input type="checkbox" class="share-cb" value="${h(p)}" ${!split.length || split.includes(p) ? 'checked' : ''}>`).join('');
   const iconPicker = `<div class="icon-picker ${_iconDropUp ? 'drop-up' : ''}" style="--icon-pop-max:${_iconPickerMax}px"><button class="icon-btn" data-entry-action="toggle-icon-picker" type="button" aria-label="${h(questIconLabel(prevIcon) || t('quest_name'))}">${questIconMarkup(prevIcon, 34)}</button>${_iconOpen ? `<div class="icon-pop labeled">${QUEST_ICONS.map(ic => `<button class="icon-opt ${questIconId(ic) === prevIcon ? 'on' : ''}" data-entry-action="pick-icon" data-icon="${h(ic)}" type="button" title="${h(questIconLabel(ic))}">${questIconMarkup(ic, 18)}<span class="io-lab">${h(questIconLabel(ic))}</span></button>`).join('')}</div>` : ''}</div><input type="hidden" id="exp-icon-value" value="${h(prevIcon)}">`;
-  const payerBlock = `<div class="field">
+  const payerBlock = `<div class="field board-payer">
     <div class="field-lab-row"><label>${t('who_paid')}</label><button type="button" class="mini-toggle" data-payer-mode="${_payerMode === 'one' ? 'multi' : 'one'}">${_payerMode === 'one' ? '＋ ' + t('multi_payer') : '↩ ' + t('one_payer')}</button></div>
-    <input type="hidden" id="exp-payer" value="${h(prevPayer)}">
-    ${_payerMode === 'one' ? `<div class="chip-row" id="payer-chip-row"></div>` : `<div class="payer-amts">${S.participants.map(name => `
+    ${_payerMode === 'one' ? `<select id="exp-payer" class="field-input" aria-label="${h(boardText('payer'))}">${S.participants.map(name => `<option value="${h(name)}" ${name === prevPayer ? 'selected' : ''}>${h(name)}</option>`).join('')}</select>` : `<input type="hidden" id="exp-payer" value="${h(prevPayer)}"><div class="payer-amts">${S.participants.map(name => `
       <div class="payer-amt-row">${heroChip(name, numInput(_payerAmounts[name]) > 0, !numInput(_payerAmounts[name]), 'void(0)')}
         <div class="mini-gold"><span>฿</span><input class="payer-value" data-name="${h(name)}" type="text" inputmode="decimal" value="${h(fmtInput(_payerAmounts[name] || ''))}" placeholder="0"></div>
       </div>`).join('')}<div id="pay-total" class="pay-total"></div></div>`}
@@ -1893,9 +1817,11 @@ function renderEntry() {
     const suffix = _splitMode === 'percent' ? '%' : _splitMode === 'exact' ? '฿' : t('share_label');
     return `<div class="weight-row">${heroAvatar(name,26)}<span class="wr-name">${h(name)}</span><div class="weight-in"><input class="weight-value" data-name="${h(name)}" type="text" inputmode="decimal" value="${h(fmtInput(_splitWeights[name] || ''))}" placeholder="${_splitMode === 'shares' ? '1' : '0'}"><span class="wr-suffix">${suffix}</span></div><span class="wr-share" data-name="${h(name)}">${money2(0)}</span></div>`;
   }).join('')}</div>`;
-  const shareBlock = `<div id="hidden-shares" class="hidden">${hiddenShares}</div><div class="field">
-    <div class="field-lab-row"><label>${t('split_with')} <span class="lab-hint" id="split-info"></span></label><div class="split-seg">${modeButtons}</div></div>
-    ${_splitMode === 'items' ? renderLootItems() : `<div class="chip-row" id="share-chip-row"></div>${weightRows}`}
+  const shareBlock = `<div id="hidden-shares" class="hidden">${hiddenShares}</div><div class="field board-shares">
+    <div class="field-lab-row"><label>${boardText('sharers')} <span class="lab-hint" id="split-info"></span></label></div>
+    ${_splitMode === 'items' ? '' : `<div class="chip-row" id="share-chip-row"></div>`}
+    <div class="board-split-method"><label>${boardText('method')}</label><div class="split-seg">${modeButtons}</div></div>
+    ${_splitMode === 'items' ? renderLootItems() : weightRows}
   </div>`;
   const receiptField = renderReceiptField();
   const amountAttrs = _splitMode === 'items' ? 'readonly aria-readonly="true"' : '';
@@ -1905,20 +1831,18 @@ function renderEntry() {
     ${receiptField}
     ${payerBlock}
     ${shareBlock}
-    <button class="btn-primary big" data-entry-action="add-expense">⚔️ ${t('log_it')}</button>` : `
-    <div class="qf-top">
-      ${iconPicker}
-      <div class="field grow"><label>${t('quest_name')}</label><input class="field-input" id="exp-desc" maxlength="120" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div>
-      <div class="field gold-field"><label>${t('gold_spent')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="text" inputmode="decimal" value="${h(fmtInput(prevAmt))}" placeholder="0" ${amountAttrs}></div></div>
-      <div class="field date-field"><label>${t('date_label')} <span class="lab-hint">${t('date_optional')}</span></label><input class="field-input" id="exp-date" type="datetime-local" value="${h(prevDate)}"></div>
-    </div>
-    ${receiptField}
+    <button class="btn-primary big" data-entry-action="add-expense">＋ ${boardText('save')}</button>` : `
+    <div class="board-entry-grid">
+      <div class="board-description">${iconPicker}<div class="field grow"><label for="exp-desc">${boardText('description')}</label><input class="field-input" id="exp-desc" maxlength="120" value="${h(prevDesc)}" placeholder="${h(t('placeholder_desc'))}"></div></div>
+      <div class="field"><label for="exp-amount">${boardText('amount')}</label><div class="gold-in"><span>฿</span><input class="field-input" id="exp-amount" type="text" inputmode="decimal" value="${h(fmtInput(prevAmt))}" placeholder="0.00" ${amountAttrs}></div></div>
+      <div class="field board-date"><label for="exp-date">${t('date_label')} <span class="lab-hint">${t('date_optional')}</span></label><input class="field-input" id="exp-date" type="datetime-local" value="${h(prevDate)}"></div>
     ${payerBlock}
+    </div>
     ${shareBlock}
-    <button class="btn-primary big" data-entry-action="add-expense">⚔️ ${t('add_entry')}</button>`;
-  updateSplitInfo(); if (_splitMode !== 'items') renderShareChips(); renderPayerChips();
+    ${receiptField}
+    <div class="board-entry-actions"><button type="button" class="btn-ghost" data-entry-action="reset-draft">${boardText('reset')}</button><button class="btn-primary big" data-entry-action="add-expense">＋ ${boardText('save')}</button></div>`;
+  updateSplitInfo(); if (_splitMode !== 'items') renderShareChips();
 }
-function setQuickPayer(name) { setSinglePayer(name); }
 function handleEntryAction(button, event) {
   const action = button.dataset.entryAction;
   if (action === 'toggle-icon-picker') {
@@ -1941,6 +1865,10 @@ function handleEntryAction(button, event) {
     selectAllShares();
   } else if (action === 'add-expense') {
     addExpense();
+  } else if (action === 'reset-draft') {
+    _resetEntryDraft = true;
+    renderEntry();
+    document.getElementById('exp-desc')?.focus();
   }
 }
 function bindAppShellEvents() {
@@ -2099,37 +2027,19 @@ function renderLog(party) {
   document.getElementById('party-total').textContent = money(total);
   const el = document.getElementById('quest-log');
   if (!S.expenses.length) { el.innerHTML = `<div class="empty">⚔️ ${t('no_quests')}</div>`; return; }
-  const byName = Object.fromEntries(party.map(p => [p.name, p]));
-  el.innerHTML = `<div class="quest-rows">${S.expenses.slice().reverse().map(e => {
+  const query = (document.getElementById('board-log-search')?.value || '').trim().toLocaleLowerCase();
+  const filter = document.getElementById('board-log-filter')?.value || '';
+  const entries = S.expenses.slice().reverse().filter(e => (!query || e.desc.toLocaleLowerCase().includes(query)) && (!filter || payerMap(e)[filter] > 0));
+  if (!entries.length) { el.innerHTML = `<div class="board-empty-filter">${boardText('noMatches')}<br><button type="button" class="btn-ghost xs" data-board-clear-filter>${boardText('clearFilter')}</button></div>`; return; }
+  el.innerHTML = `<div class="board-table-wrap"><table class="board-table"><thead><tr>${['date','description','payer','sharers','amount','actions'].map(key => `<th scope="col">${boardText(key)}</th>`).join('')}</tr></thead><tbody>${entries.map(e => {
     const shares = splitShares(e, S.participants);
     const parts = Object.keys(shares);
-    const payers = Object.keys(payerMap(e)).filter(name => byName[name]);
-    const payer = payers.length === 1 ? byName[payers[0]] : null;
+    const payers = Object.keys(payerMap(e));
     const splitMode = e.split?.mode || 'equal';
-    const modeKey = { shares:'split_shares', exact:'split_exact', percent:'split_percent', items:'split_items' }[splitMode];
-    const generosityXp = PointyLogic.splitFrontedXp(Object.entries(payerMap(e)).reduce((sum, [name, paid]) => sum + Math.max(0, paid - (shares[name] || 0)), 0));
-    const splitLabel = splitMode === 'equal' && parts.length
-      ? `${money2(e.amount / parts.length)} ${t('each')}`
-      : parts.map(name => `${h(name)} ${money2(shares[name] || 0)}`).join(' · ');
-    const dateLabel = e.date ? (/^\d{4}-\d{2}-\d{2}$/.test(e.date)
-      ? new Date(`${e.date}T00:00:00`).toLocaleDateString(LANG === 'th' ? 'th-TH' : 'en-US', { dateStyle: 'medium' })
-      : new Date(e.date).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })) : '';
-    return `<div class="quest-row">
-      <div class="qr-icon">${questIconMarkup(e.icon || QUEST_ICONS[0], 32)}</div>
-      <div class="qr-main">
-        <div class="qr-name">${h(e.desc)}${modeKey ? `<span class="qr-mode">${t(modeKey)}</span>` : ''}</div>
-        <div class="qr-meta">
-          ${payer ? `<span>${heroAvatar(payer.name, 18)} ${h(payer.name)}</span>` : payers.length > 1 ? `<span>${payers.map(name => CLASSES[classOf(name)].glyph).join('')} ${t('payer_count',{n:payers.length})}</span>` : ''}
-          <span>·</span>
-          <span>${parts.map(p => CLASSES[classOf(p)].glyph).join('')} <span style="font-family:var(--font-stat)">${splitLabel}</span></span>
-          ${dateLabel ? `<span>·</span><span>${h(dateLabel)}</span>` : ''}
-          ${e.receipt ? `<button type="button" class="receipt-btn" style="padding:3px 7px;font-size:11px" onclick="openReceipt(${q(e.receipt)})"><img class="receipt-mini" src="${e.receipt}" alt=""> ${t('view_receipt')}</button>` : ''}
-        </div>
-      </div>
-      <div class="qr-right"><div class="qr-amt">${money(e.amount)}</div>${generosityXp ? `<div class="qr-xp">+${generosityXp} ${t('xp')}</div>` : ''}</div>
-      <button class="qr-del" onclick="deleteExpense(${q(e.id)})">×</button>
-    </div>`;
-  }).join('')}<div class="log-total"><span>${t('party_gold')}</span><strong>${money(total)}</strong></div></div>`;
+    const modeKey = { equal:'split_equal', shares:'split_shares', exact:'split_exact', percent:'split_percent', items:'split_items' }[splitMode];
+    const dateLabel = e.date ? new Date(e.date).toLocaleDateString(LANG === 'th' ? 'th-TH' : 'en-GB', { day:'numeric', month:'short', year:'2-digit' }) : '';
+    return `<tr class="quest-row"><td>${h(dateLabel || '—')}</td><td><div class="qr-name">${h(e.desc)}</div><span class="qr-mode">${t(modeKey || 'split_equal')}</span>${e.receipt ? `<button type="button" class="receipt-btn" onclick="openReceipt(${q(e.receipt)})"><img class="receipt-mini" src="${e.receipt}" alt="">${t('view_receipt')}</button>` : ''}<details class="board-expense-details"><summary>${LANG === 'en' ? 'Details' : 'รายละเอียด'}</summary><div>${boardText('payer')}: ${payers.map(name => `${h(name)} ${money2(payerMap(e)[name])}`).join(' · ')}</div><div>${boardText('sharers')}: ${parts.map(name => `${h(name)} ${money2(shares[name])}`).join(' · ')}</div><div class="qr-xp">+${PointyLogic.splitFrontedXp(Object.entries(payerMap(e)).reduce((sum, [name, paid]) => sum + Math.max(0, paid - (shares[name] || 0)), 0))} ${t('xp')}</div></details></td><td><div class="board-row-payers">${payers.map(name => `${heroAvatar(name,20)}<span>${h(name)}</span>`).join('')}</div></td><td><div class="board-row-payers" title="${h(parts.join(', '))}">${parts.slice(0,3).map(name => `<span title="${h(name)}">${heroAvatar(name,20)}</span>`).join('')}${parts.length > 3 ? `+${parts.length - 3}` : ''}</div></td><td><div class="qr-amt">${money2(e.amount)}</div></td><td><button class="qr-del" aria-label="${h(boardText('remove') + ' ' + e.desc)}" onclick="deleteExpense(${q(e.id)})">${boardIcon('trash')}</button></td></tr>`;
+  }).join('')}</tbody></table></div><div class="log-total"><span>${boardText('total')}</span><strong>${money2(total)}</strong></div>`;
 }
 function setSettleView(view) { S.settings.settleView = view; save(); renderSettlement(computeParty()); }
 function settleOne(key, from, to) {
@@ -2184,13 +2094,13 @@ function renderSettlement(party) {
     }).join('')}</div>`;
     return;
   }
-  el.innerHTML = `<div class="tribute-list"><div class="field-label">${t('tributes')}</div>${txns.map(tx => {
+  el.innerHTML = `<div class="tribute-list">${txns.map(tx => {
     const from = byName[tx.from], to = byName[tx.to], key = tx.from + '>' + tx.to;
     return `<div class="tribute">
       <div class="tr-person">${heroAvatar(tx.from, 38, from?.hp ?? null)}<span>${h(tx.from)}</span></div>
-      <div class="tr-mid"><div class="tr-amt">${money2(tx.amount)}</div><div>⮕</div></div>
+      <span aria-hidden="true">→</span>
       <div class="tr-person">${heroAvatar(tx.to, 38)}<span>${h(tx.to)}</span></div>
-      <button class="btn-primary sm" onclick="openTribute(${q(tx.from)},${q(tx.to)},${Number(tx.amount) || 0})">💸 ${t('send_tribute')}</button>
+      <div class="board-settle-action"><div class="tr-amt">${money2(tx.amount)}</div><button class="btn-primary sm" onclick="openTribute(${q(tx.from)},${q(tx.to)},${Number(tx.amount) || 0})">${boardText('repay')}</button></div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -2607,7 +2517,7 @@ function renderAll(checkLevels = true) {
     translatePage();
     return;
   }
-  document.querySelector('main.page')?.classList.remove('bc-page');
+  document.querySelector('main.page')?.classList.remove('be-page');
   document.querySelector('.settings-fab')?.classList.remove('hidden');
   ensureAllCharacterIds();
   syncActiveCampaign();
@@ -2620,6 +2530,7 @@ function renderAll(checkLevels = true) {
   renderEntry();
   renderLog(party);
   renderSettlement(party);
+  refreshBoardPreviews();
   const outstanding = PointyLogic.pendingSettlements(S).length;
   if (_prevOutstanding !== null && _prevOutstanding > 0 && outstanding === 0 && S.expenses.length) {
     syncActiveCampaign({ completedAt: Date.now() });
@@ -2799,10 +2710,16 @@ translatePage();
 if (_boardLanding) {
   renderBoardChoose();
   translatePage();
+  if (new URLSearchParams(location.search).get('action') === 'new') {
+    window.CoinQuestEntry.mode('new');
+    const next = new URL(location.href);
+    next.searchParams.delete('action');
+    history.replaceState(history.state, '', next.pathname + next.search);
+  }
 } else {
   load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
 }
 window.addEventListener('pointy-auth-changed', () => {
-  if (_boardLanding) return;
+  if (_boardLanding) { renderBoardChoose(); return; }
   load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
 });

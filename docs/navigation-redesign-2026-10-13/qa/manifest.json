@@ -1,0 +1,39 @@
+{
+  "recordedAt": "2026-10-13T09:34:41.355114+00:00",
+  "baseCommit": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "url": "http://127.0.0.1:4569/?test=1",
+  "viewports": [
+    [
+      1440,
+      1000
+    ],
+    [
+      768,
+      1000
+    ],
+    [
+      390,
+      844
+    ],
+    [
+      390,
+      1120
+    ]
+  ],
+  "data": "Synthetic navigation fixture; zero financial totals; one test party; two-day streak",
+  "sourceSha256": {
+    "index.html": "7e6b8043664f0858592934fe4bc36bc2bf8a313a6328e122cfd0904980dfc0f0",
+    "trip/index.html": "d6ab6304d056eeab72a35b5f9fa3d928757d290784bad53956eca07b8a6ac613",
+    "debt/index.html": "5085f45d5e765eb5a04b8c4bcf858357a3d253a65247c098b99df1694297bfa3",
+    "treasury/index.html": "29274a6ab9a28f0465a6e3e35a69a523bf127a28bf68a80dd2577a70bdce808a",
+    "lang.js": "0ffce62d0a5cf08a90893ca81d1724ec39268479829080310e91945407a4a472",
+    "shared/home.js": "53e309a323ab2bfbc6b0740d610125d9774f9b0850e339c74c6a767cc8441a34",
+    "shared/home.css": "e191f8cbdf386317ceac655ab3f5fc5ce0377bc12a24086e8c715d9bc9c94513",
+    "shared/quest-icons.js": "8f5f56c37c25eae9cc22ebc0bf5649cbf6a3144a3c8fa4cb71dcf37a5e0a2a51",
+    "shared/navigation.css": "952978b3758e7521d4dc511299c9769aafd7bfce5973135aa8c41f7a6b47a16d",
+    "shared/mobile-shell.js": "76f79707fb6e3c0bd9a5b836c64391bb155c2a1144c0fb557ed424c58a828253",
+    "shared/profile-hub.js": "e8af93d04a8f41bb3be142f765e6be321db5bf5daee50155e035003866465176",
+    "shared/profile-hub.css": "be69005ecd664f3c84693561139551e476f35730073b21e6775706fe66f20bf6",
+    "trip/app.js": "5caa7d726ee218b2a56cc279d5478eaac9392fa0b3af4605da6768c3ff75a2e1"
+  }
+}

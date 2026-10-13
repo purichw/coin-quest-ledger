@@ -44,11 +44,18 @@ not authorization to start another chat or publish changes.
   `mobile/AGENTS.md`, `mobile/README.md` and `mobile/IOS_BUILD_NOTES.md` for native
   work. Accept affected flows only with the own binary on an actual Simulator;
   Expo Go, JS exports and phone browser viewports are different evidence.
-- Read current visual direction in `Memory.md` and `mobile/DESIGN_DIRECTION.md`.
-  The full pre-redesign player Website/rebuilt Mobile design is the latest
-  direction, superseding colors-only restoration; Admin remains excluded.
-  Living docs take precedence over historical release/skill summaries. Do not
-  revive the retired app or overwrite backend fixes to restore a visual reference.
+- Read current visual direction in `Memory.md`, `PLAYER_DESIGN_SYSTEM.md` and
+  `mobile/DESIGN_DIRECTION.md`. Player website screens follow the latest supplied
+  mockups and shared design contract; native and Admin retain their own direction.
+  Living docs take precedence over historical restoration/release summaries. Do
+  not revive retired UI or overwrite backend fixes to restore a visual reference.
+- Keep player headers, footers, frames, banner scale and navigation in their
+  shared owners. A new mockup is one screen in the same product. Within the same
+  module, carry its visual family through entry/detail/forms and older screens
+  that have not been redesigned. Different games deliberately use different
+  artwork, palettes and compositions; do not force identical illustrations.
+  Accommodate necessary context differences with a documented scoped variant.
+  Before changing a page, inspect the shared owner and its closest module sibling.
 - Scope verification to risk: docs need factual/path/diff validation, visible
   changes need current targeted browser/Simulator evidence, shared data/auth and
   releases need their contract gates. Onboarding alone needs no app build,

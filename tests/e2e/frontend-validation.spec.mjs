@@ -6,15 +6,15 @@ test('ledger rejects negative money and incomplete percentages, preserves draft,
   await addWarrior(page, 'TEST A'); await addWarrior(page, 'TEST B');
   await page.locator('#exp-desc').fill('TEST invalid amount');
   await page.locator('#exp-amount').fill('-1');
-  await page.getByRole('button', { name: /บันทึกเควส/ }).click();
+  await page.locator('[data-entry-action="add-expense"]').click();
   await expect(page.locator('#expense-count')).toHaveText('0');
   await expect(page.locator('#exp-amount')).toHaveValue('-1');
   await page.locator('#exp-amount').fill('100'); await page.locator('[data-entry-action="select-all-shares"]').click();
   await page.getByRole('button', { name: 'เปอร์เซ็นต์', exact: true }).click();
   await page.locator('.weight-value').nth(0).fill('30'); await page.locator('.weight-value').nth(1).fill('30');
-  await page.getByRole('button', { name: /บันทึกเควส/ }).click();
+  await page.locator('[data-entry-action="add-expense"]').click();
   await expect(page.locator('#toast')).toContainText('100'); await expect(page.locator('#expense-count')).toHaveText('0');
-  await page.locator('.weight-value').nth(1).fill('70'); await page.getByRole('button', { name: /บันทึกเควส/ }).click();
+  await page.locator('.weight-value').nth(1).fill('70'); await page.locator('[data-entry-action="add-expense"]').click();
   await expect(page.locator('#expense-count')).toHaveText('1');
 });
 
@@ -73,14 +73,16 @@ test('renaming accrued debt preserves principal, precise balance and the interes
 
 test('price builder refuses fractional promotion and partially completed rows without dropping user input', async ({ page }) => {
   await page.goto('/?test=1&view=compare');
-  await page.getByRole('button', { name: /เพิ่มไอเทม/ }).click(); await page.locator('#new-name').fill('TEST price validation'); await page.getByRole('button', { name: 'เพิ่มไอเทม', exact: true }).click();
+  await page.locator('.arena-new').click(); await page.locator('#new-name').fill('TEST price validation'); await page.locator('.form-actions .btn-primary').click();
   const card = page.locator('.cmp-card').filter({ hasText: 'TEST price validation' });
-  const first = card.locator('.draft-slot').nth(0), second = card.locator('.draft-slot').nth(1);
+  const dialog = page.locator('#arena-dialog');
+  const first = dialog.locator('.draft-slot').nth(0), second = dialog.locator('.draft-slot').nth(1);
   await first.locator('.calc-row input').nth(0).fill('10.01'); await first.locator('.calc-row input').nth(1).fill('500');
   await second.locator('.draft-note input').fill('TEST incomplete');
-  await card.locator('.offer-actions .btn-primary').click(); await expect(card.locator('.offer-row')).toHaveCount(0); await expect(second.locator('.draft-note input')).toHaveValue('TEST incomplete');
+  await expect(dialog.locator('.offer-actions .btn-primary')).toBeDisabled(); await expect(card.locator('.offer-row')).toHaveCount(0); await expect(second.locator('.draft-note input')).toHaveValue('TEST incomplete');
   await second.locator('.draft-note input').fill(''); await first.locator('.draft-tools button').click(); await first.locator('.promo-mini input').nth(0).fill('1.5');
-  await expect(card.locator('.offer-actions .btn-primary')).toBeDisabled();
-  await first.locator('.promo-mini input').nth(0).fill('2'); await first.locator('.promo-mini input').nth(1).fill('1'); await card.locator('.offer-actions .btn-primary').click();
-  await expect(card).toContainText('TEST price validation'); await expect(card.locator('.draft-slot').nth(0).locator('.calc-row input').nth(0)).toHaveValue('');
+  await expect(dialog.locator('.offer-actions .btn-primary')).toBeDisabled();
+  await first.locator('.promo-mini input').nth(0).fill('2'); await first.locator('.promo-mini input').nth(1).fill('1'); await dialog.locator('.offer-actions .btn-primary').click();
+  await expect(dialog).not.toBeVisible(); await expect(card.locator('.offer-row')).toHaveCount(1);
+  await expect(card.locator('.of-pu')).toContainText('฿0.013');
 });

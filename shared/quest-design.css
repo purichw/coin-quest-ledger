@@ -42,7 +42,6 @@ th { text-align: center; }
 .modal .x, .modal-close, .pd-close { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
 .module-sync-banner { margin: 0; max-width: none; padding: 8px max(28px,calc((100vw - 1144px)/2)); border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: var(--panel-2); color: var(--ink-soft); font-size: 12px; }
 .module-sync-banner button { min-height: 36px; padding: 5px 10px; border-color: var(--border-strong); border-radius: 8px; font-size: 12px; }
-.foot { padding-top: 14px; margin-top: 28px; font-weight: 500; }
 .player-preferences { max-width: 1144px; margin: 0 auto 32px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .player-preferences .quick-toggles { position: static; flex-direction: row; }
 .player-preferences .settings-fab { position: static; box-shadow: none; }

@@ -1,0 +1,39 @@
+/* Player-wide geometry and module identity. See PLAYER_DESIGN_SYSTEM.md.
+   Game surfaces own composition; they consume these tokens instead of forking them. */
+:root {
+  --cq-frame:1240px;
+  --cq-gutter:24px;
+  --cq-page-top:20px;
+  --cq-hero-height:260px;
+  --cq-profile-hero-height:266px;
+  --cq-hero-radius:12px;
+  --cq-art-home:url('/assets/home-reference/tavern-banner.webp');
+  --cq-art-party:url('/assets/board-reference/village-dusk.webp');
+  --cq-art-debt:url('/assets/debt-reference/valley-dragon.webp');
+  --cq-art-price:url('/assets/price-reference/market-banner.webp');
+  --cq-art-treasury:url('/assets/treasury-reference/castle-banner.webp');
+  --cq-art-character:url('/assets/character-reference/forest-valley.webp');
+  --cq-footer-ink:#77644c;
+  --cq-footer-brand:#79572e;
+}
+cq-player-header { display:contents; }
+cq-footer { display:block; }
+/* Landing pages use the same scenic frame as game workspaces. */
+.home-hero,.be-hero { width:calc(100% - 2 * var(--cq-gutter)); max-width:calc(var(--cq-frame) - 2 * var(--cq-gutter)); margin:var(--cq-page-top) auto 0; border-radius:var(--cq-hero-radius); overflow:hidden; }
+.cq-footer { padding:28px 12px 18px; text-align:center; color:var(--cq-footer-ink); font:12px/1.6 var(--font-body,'IBM Plex Sans Thai',sans-serif); }
+.cq-footer p { display:flex; justify-content:center; align-items:center; gap:12px; margin:0 0 4px; }
+.cq-footer p::before,.cq-footer p::after { content:''; flex:0 1 60px; height:1px; background:linear-gradient(90deg,transparent,#ab8750); }
+.cq-footer p::after { transform:rotate(180deg); }
+.cq-footer strong { display:block; font-weight:500; color:var(--cq-footer-brand); }
+.cq-context-back { display:flex; align-items:center; gap:8px; width:min(100%,var(--cq-frame)); margin:auto; padding:12px var(--cq-gutter); }
+.cq-context-back a { color:var(--ink); background:var(--panel,#fffaf0); border:1px solid var(--border,#ddc9a3); border-radius:8px; min-height:44px; padding:10px 14px; text-decoration:none; }
+[data-theme=dungeon] { --cq-footer-ink:#c2b7ae; --cq-footer-brand:#dfc29a; }
+@media (min-width:601px) and (max-width:1199px) {
+  :root { --cq-gutter:16px; --cq-page-top:16px; --cq-hero-height:220px; --cq-profile-hero-height:210px; }
+}
+@media (max-width:600px) {
+  :root { --cq-gutter:12px; --cq-page-top:0px; --cq-hero-height:234px; --cq-profile-hero-height:234px; --cq-art-home:url('/assets/home-reference/tavern-mobile.webp'); }
+  .cq-footer { padding:24px 4px 16px; font-size:11px; }
+  .cq-footer p { gap:8px; }
+  .cq-footer p::before,.cq-footer p::after { flex-basis:24px; }
+}

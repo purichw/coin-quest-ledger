@@ -1,0 +1,78 @@
+{
+  "recordedAt": "2026-10-13T13:35:44.811206+00:00",
+  "baseCommit": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "workingTree": "uncommitted, including pre-existing redesign changes",
+  "sourceSha256": {
+    "shared/first-load.js": "56b1b6dad4f425f88af7dd54f8a3ade42fbf253ca29f62f44486c6e9f745d6cd",
+    "shared/first-load.css": "8e0704e1911297a7306e5be244dc4d6f3ed3398511b9ba6eb72b16ca7faa3222",
+    "index.html": "97bd4a10b7115c6878815b32692f070f4d0ab1bc60e7ec7544738dd37ba6c720",
+    "trip/index.html": "8a6532b367ac5b67d8067ad9c2ae455a8acbcae831c62311468f3dd0fcc5a2e3",
+    "debt/index.html": "e412eb12066e070cf497d3b6b11265811d162f38f902b41636e112f3f1391fb1",
+    "treasury/index.html": "75281775ff8cbd7a84ce8da3c090249172188048801e1210bbc4fc0f77a58350",
+    "character/index.html": "7992f6f77a464973831eccb237b61482736ac3cc8b1061ad59d50e0b2e2b2caf",
+    "assets/loading-reference/night-quest.webp": "51dbfc659c708e934b73b27e35878d1238860b83c17286312fec6dbab9091270",
+    "tests/e2e/first-load.spec.mjs": "8b8c82958730f10cbbeec74274ccfd570b2008be4120abe6e7a6b8b0bba6cf05",
+    "tests/e2e/account-persistence.spec.mjs": "96563bc5b475df808054a4f00f28d3b071414ba5be86225f0f7690c7199b48d6"
+  },
+  "referenceSha256": "56820b91af58ba270488c8543d1602ce56e10a74ce2b27500de035de67baaf8f",
+  "captures": [
+    {
+      "file": "qa/comparison-desktop.png",
+      "sha256": "537b9b53dceac4b63d46c00af387daf70856bfe0c4a8db8738894d03ec5f750c"
+    },
+    {
+      "file": "qa/loading-1440.png",
+      "sha256": "5e37e46938060d4e787fa327eaaea23f1bbfb0481e69497369c275d13a308244"
+    },
+    {
+      "file": "qa/loading-320-fallback.png",
+      "sha256": "34004b229c363ec5fd2fe72979b1034b92e4c056feb7ee234135808d67671f6a"
+    },
+    {
+      "file": "qa/loading-390-slow-th.png",
+      "sha256": "c50ac3fe9087b43d9269eb960a9b5080974026715cefa542c77c513263c6ef71"
+    },
+    {
+      "file": "qa/loading-390.png",
+      "sha256": "0b07544085eb639979c357531c5a856d3be80a53f304ff2f28ab324c8e99985a"
+    },
+    {
+      "file": "qa/loading-768.png",
+      "sha256": "342aded03fea7c3894256dd47d4ffe750767cc390eb5b89743096bfc8d0e2f08"
+    },
+    {
+      "file": "qa/loading-home-auth-1440.png",
+      "sha256": "233737f14071fddf7f2a1298ab774ccb844ff954cbfd8604fbda32585bbe74b7"
+    }
+  ],
+  "captureContext": {
+    "origin": "http://127.0.0.1:4569",
+    "route": "/__loading-fixture (Playwright response fixture), actual Home / for auth integration",
+    "state": "eager image request held; no production data",
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        768,
+        1024
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        320,
+        450
+      ]
+    ],
+    "browser": "Chromium; 390px final also uses Pixel 5 touch/mobile configuration",
+    "scroll": [
+      0,
+      0
+    ],
+    "screenshotAnimations": "disabled for stable captures; runtime animation and reduced-motion verified separately",
+    "reviewed": "desktop, tablet, mobile, Thai slow exit, actual Home/auth and reference comparison"
+  }
+}

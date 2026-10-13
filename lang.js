@@ -799,9 +799,11 @@ function setLang(l) {
   localStorage.setItem('lang', l);
   translatePage();
   if (typeof renderAll === 'function') renderAll();
+  window.PointyProfileHub?.refresh({ toast: false });
 }
 
 function translatePage() {
+  document.documentElement.lang = LANG;
   document.querySelectorAll('[data-i18n]').forEach(function(el) {
     el.textContent = t(el.dataset.i18n);
   });
@@ -814,4 +816,5 @@ function translatePage() {
   document.querySelectorAll('.lang-btn').forEach(function(btn) {
     btn.classList.toggle('lang-active', btn.dataset.lang === LANG);
   });
+  window.CoinQuestMobileShell?.refresh();
 }

@@ -50,6 +50,9 @@ and what must be verified before native work continues.
   requires an explicit choice, with backups. Native writes the same owner record.
 - Cross-device changes load on connection/refresh. This is not realtime sync or
   a native offline write queue. Conflicting writes fail visibly and need reload.
+- Successful web loads/saves run without a persistent sync banner. Reload the
+  page to fetch changes from another device; connection failures offer retry,
+  and conflicting drafts still require a choice and backup before replacement.
 - Web uses Firebase compat SDK from script tags.
 - Native uses the Firebase modular SDK and fresh owner/lifecycle reads before writes.
 - Web uses shared browser globals such as `PointyLogic`.

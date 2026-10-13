@@ -17,7 +17,20 @@
   const STR = {
     th: {
       loginWelcome: 'ยินดีต้อนรับกลับฮีโร่',
-      loginSub: 'ลงชื่อเข้าสู่บัญชีของคุณ',
+      loginSub: 'ลงชื่อเข้าสู่บัญชีของคุณ\nเพื่อกลับสู่ภารกิจทางการเงิน',
+      showPassword: 'แสดงรหัสผ่าน',
+      hidePassword: 'ซ่อนรหัสผ่าน',
+      authPreferences: 'ธีมและภาษา',
+      authTabs: 'เข้าสู่ระบบหรือสมัครบัญชี',
+      authLight: 'เปลี่ยนเป็นโหมดสว่าง',
+      authDark: 'เปลี่ยนเป็นโหมดมืด',
+      authReassurance: 'จัดการเงินแบบเกมฮีโร่ ให้ทุกภารกิจในชีวิตไปได้ไกลกว่าเดิม',
+      authModules: 'แบ่งเงิน · ปราบหนี้ · เทียบราคา · ดูแลชีวิต',
+      authEncouragement: 'การผจญภัยทางการเงิน เริ่มได้เสมอ',
+      authSubmitting: 'กำลังเข้าสู่ระบบ…',
+      signupSubmitting: 'กำลังสร้างบัญชี…',
+      invalidUsername: 'ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว',
+      nameTooLong: 'ชื่อที่แสดงต้องไม่เกิน 60 ตัวอักษร',
       loginEmail: 'Username',
       loginPassword: 'รหัสผ่าน',
       loginEnter: 'ผจญภัยต่อ!',
@@ -30,8 +43,7 @@
       loginEmpty: 'กรอก username และรหัสผ่าน',
       loginDemo: 'บัญชีทดสอบ - ใช้เฉพาะ regression mode',
       loginNote: 'Test mode เท่านั้น - ไม่ใช่ระบบ production',
-      loginNoteReal: 'บัญชีจริงผ่าน Firebase Auth - ใช้ username/password ไม่ต้องใช้อีเมลจริง',
-      authLoading: 'ระบบบัญชีจริงกำลังโหลดอยู่ ลองอีกครั้งในไม่กี่วินาที',
+      authLoading: 'กำลังเปิดบัญชีของคุณ กรุณารอสักครู่',
       authUserExists: 'username นี้ถูกใช้แล้ว',
       authUserMissing: 'ไม่พบ username นี้',
       authWeakPassword: 'รหัสผ่านอย่างน้อย 6 ตัว',
@@ -57,7 +69,7 @@
       loginSignIn: 'เข้าสู่ระบบ',
       loginSignUp: 'สมัครใหม่',
       signupWelcome: 'ร่วมกิลด์นักผจญภัย',
-      signupSub: 'สร้างบัญชีและรับ User ID 4 หลัก',
+      signupSub: 'สร้างบัญชีของคุณ\nแล้วเริ่มการผจญภัยทางการเงินไปด้วยกัน',
       signupName: 'ชื่อที่แสดง',
       signupNamePlaceholder: 'ชื่อเล่นหรือชื่อที่ต้องการแสดง',
       signupConfirm: 'ยืนยันรหัสผ่าน',
@@ -74,6 +86,10 @@
       tapToChoose: 'แตะเลือกฮีโร่',
       chooseHero: 'เลือกฮีโร่ของคุณ',
       chooseHeroSub: 'แตะเพื่อเลือกตัวละคร',
+      closeHeroPicker: 'ปิดหน้าต่างเลือกฮีโร่',
+      heroFilter: 'กรองฮีโร่ตามเพศ',
+      changeHero: 'เปลี่ยนฮีโร่',
+      charSaving: 'กำลังบันทึกตัวละคร…',
       allHeroes: 'ทั้งหมด',
       female: 'หญิง',
       male: 'ชาย',
@@ -84,7 +100,7 @@
       openBoard: 'เปิดบอร์ด',
       viewFullProfile: 'ดูโปรไฟล์เต็ม',
       profile: 'โปรไฟล์นักผจญภัย',
-      profileSub: 'Reputation จากพฤติกรรมการเงินที่ดีในทุกโมดูล',
+      profileSub: 'ชื่อเสียงจากพฤติกรรมการเงินที่ดีในทุกเกม',
       profileLvl: 'เลเวลรวม',
       reputation: 'Reputation',
       renown: 'Reputation',
@@ -126,15 +142,22 @@
       tourBack: 'กลับ',
       tourNext: 'ถัดไป',
       tourDone: 'เริ่มลุย',
-      tourT0: 'ยินดีต้อนรับสู่ Coin Quest',
-      tourB0: 'ทุกโมดูลช่วยสะสม Profile Reputation, Trophy และ Hero Profile',
+      tourT0: 'ยินดีต้อนรับ\nสู่ Coin Quest Ledger!',
+      tourB0: 'เปลี่ยนการจัดการเงิน ให้กลายเป็นการผจญภัยกับเพื่อน ๆ ของคุณ',
+      tourStep: 'ขั้นที่',
+      tourProgress: 'ขั้นตอนแนะนำการใช้งาน',
+      tourFeatures: [['แบ่งเงินกับเพื่อน', 'อย่างยุติธรรม'], ['จัดการหนี้', 'ทีละขั้น'], ['วางงบและค่าใช้จ่าย', 'อย่างมั่นใจ'], ['เทียบราคา', 'ให้คุ้มค่าที่สุด']],
+      tourPartyPoints: ['รองรับหลายรูปแบบการแบ่งค่าใช้จ่าย', 'ดูยอดค้างและสรุปการคืนเงิน', 'ใช้ได้ทั้งตัวละครและแขก (Guest)'],
+      tourDebtPoints: ['บันทึกยอดหนี้และวันครบกำหนด', 'จ่ายแต่ละงวดเพื่อโจมตีมังกร', 'ติดตามยอดคงเหลือและความคืบหน้า'],
+      tourTreasuryPoints: ['ตั้งรายรับและงบตามหมวดหมู่', 'บันทึกรายจ่ายและบิลประจำ', 'ดูเงินคงเหลือในแต่ละเดือน'],
+      tourComparePoints: ['เปรียบเทียบราคาต่อหน่วย', 'เห็นดีลที่คุ้มค่าจากหลายร้าน', 'ส่งรายการที่เลือกเข้า Party Ledger'],
       tourT1: 'Compare Prices',
       tourB1: 'เทียบดีลต่อหน่วย เก็บสถิตินักล่าดีล แล้วส่งรายการที่ชนะเข้า Party Ledger ได้',
       tourT2: 'Debt Dragon',
       tourB2: 'เปลี่ยนหนี้เป็นมังกร ตั้งวันครบกำหนด และฟันทีละงวดจนถ้ำโล่ง',
       tourT3: 'Party Ledger',
-      tourB3: 'บันทึกเควส แบ่งค่าใช้จ่าย แนบใบเสร็จ และเคลียร์บรรณาการหลังทริป',
-      tourT4: 'คลังหลวง',
+      tourB3: 'แบ่งค่าใช้จ่ายกับเพื่อนในทุกทริป ใครจ่ายอะไร ใครต้องคืนเท่าไหร่ เคลียร์ได้ในที่เดียว',
+      tourT4: 'Treasury · คลังหลวง',
       tourB4: 'ตั้งงบรายเดือน ปกป้องคลังจากรายจ่ายและบิลที่บุกมาทุกเดือน',
       hero: 'Hero',
       lvl: 'LVL',
@@ -144,7 +167,20 @@
     },
     en: {
       loginWelcome: 'Welcome back, hero',
-      loginSub: 'Sign in to your guild account',
+      loginSub: 'Sign in to your guild account\nand continue your financial adventure',
+      showPassword: 'Show password',
+      hidePassword: 'Hide password',
+      authPreferences: 'Theme and language',
+      authTabs: 'Sign in or create an account',
+      authLight: 'Switch to light theme',
+      authDark: 'Switch to dark theme',
+      authReassurance: 'Manage money like a hero. Take every everyday quest a little further.',
+      authModules: 'Split · Pay off debt · Compare · Plan',
+      authEncouragement: 'Your money adventure can start anytime',
+      authSubmitting: 'Signing in…',
+      signupSubmitting: 'Creating your account…',
+      invalidUsername: 'Use 1–32 letters (a–z), numbers, dots, hyphens or underscores for your username',
+      nameTooLong: 'Display name must be 60 characters or fewer',
       loginEmail: 'Username',
       loginPassword: 'Password',
       loginEnter: 'Enter the realm!',
@@ -157,8 +193,7 @@
       loginEmpty: 'Enter a username and password',
       loginDemo: 'Test accounts - regression mode only',
       loginNote: 'Test mode only - not production auth',
-      loginNoteReal: 'Real Firebase Auth account - username/password only, no real email required',
-      authLoading: 'Real account auth is still loading. Try again in a few seconds.',
+      authLoading: 'Opening your account. Please wait a moment.',
       authUserExists: 'That username is already taken',
       authUserMissing: 'Username not found',
       authWeakPassword: 'Password must be 6+ characters',
@@ -184,7 +219,7 @@
       loginSignIn: 'Sign In',
       loginSignUp: 'Sign Up',
       signupWelcome: 'Join the adventure',
-      signupSub: 'Create an account and receive a 4-digit User ID',
+      signupSub: 'Create your guild account\nand begin your financial adventure',
       signupName: 'Display name',
       signupNamePlaceholder: 'Name shown to your party',
       signupConfirm: 'Confirm password',
@@ -201,6 +236,10 @@
       tapToChoose: 'Tap to choose your hero',
       chooseHero: 'Choose your hero',
       chooseHeroSub: 'Pick the character that represents you',
+      closeHeroPicker: 'Close hero picker',
+      heroFilter: 'Filter heroes by gender',
+      changeHero: 'Change hero',
+      charSaving: 'Saving your character…',
       allHeroes: 'All',
       female: 'Female',
       male: 'Male',
@@ -211,7 +250,7 @@
       openBoard: 'Open board',
       viewFullProfile: 'View full profile',
       profile: 'Hero Profile',
-      profileSub: 'Reputation from positive financial behavior across every module',
+      profileSub: 'Reputation from positive financial habits across every game',
       profileLvl: 'Profile level',
       reputation: 'Reputation',
       renown: 'Reputation',
@@ -253,14 +292,21 @@
       tourBack: 'Back',
       tourNext: 'Next',
       tourDone: 'Begin',
-      tourT0: 'Welcome to Coin Quest',
-      tourB0: 'Every module feeds Profile Reputation, trophies, and reminders.',
+      tourT0: 'Welcome to\nCoin Quest Ledger!',
+      tourB0: 'Turn everyday money into an adventure with your friends.',
+      tourStep: 'Step',
+      tourProgress: 'Tour progress',
+      tourFeatures: [['Split with friends', 'Fair shares'], ['Manage debt', 'Step by step'], ['Plan your budget', 'With confidence'], ['Compare prices', 'Find the best value']],
+      tourPartyPoints: ['Choose how to split each expense', 'See balances and settle up', 'Include characters and guests'],
+      tourDebtPoints: ['Track balances and due dates', 'Strike a dragon with each payment', 'See your progress toward paying it off'],
+      tourTreasuryPoints: ['Set income and category budgets', 'Log expenses and recurring bills', 'See what remains each month'],
+      tourComparePoints: ['Compare prices per unit', 'Find the best value across shops', 'Send your pick to Party Ledger'],
       tourT1: 'Compare Prices',
       tourB1: 'Compare unit prices, track deal-hunting wins, and send winners into Party Ledger.',
       tourT2: 'Debt Dragon',
       tourB2: 'Turn debts into dragons, track due dates, and strike them down payment by payment.',
       tourT3: 'Party Ledger',
-      tourB3: 'Log quests, split expenses, attach receipts, and settle tribute after the trip.',
+      tourB3: 'Split expenses on every trip. See who paid, who owes whom, and settle up in one place.',
       tourT4: 'Personal Treasury',
       tourB4: 'Set a monthly budget, defend the vault from spending, and tame recurring bills.',
       hero: 'Hero',
@@ -291,6 +337,7 @@
   let toastTimer = null;
   let pendingTourAfterOverlay = false;
   let tourTimer = null;
+  let tourCleanup = null;
   let signingOut = false;
   let baselineDone = false;
   let firebaseAuthResolved = TEST_MODE || !!window.PointyProfileSession.isFirebaseAuthTrusted?.();
@@ -597,7 +644,7 @@
     if (code === 'permission-denied') return 'บันทึกข้อมูลบัญชีไม่ได้ กรุณาลองใหม่หรือติดต่อผู้ดูแล / Could not save account';
     if (code === 'account/blocked') return 'บัญชีถูกระงับหรือกำลังกู้คืน กรุณาลองใหม่หรือติดต่อผู้ดูแล';
     if (code === 'account/profile-invalid' || code === 'account/identity-conflict') return 'ข้อมูลระบุตัวตนไม่ครบ กรุณาติดต่อผู้ดูแลเพื่อรักษาบัญชีเดิม';
-    if (code.includes('operation-not-allowed') || code.includes('configuration-not-found')) return 'Firebase Authentication ยังไม่ได้เปิดใน Firebase Console';
+    if (code.includes('operation-not-allowed') || code.includes('configuration-not-found')) return lang() === 'en' ? 'Sign-in is temporarily unavailable. Please try again later.' : 'ยังเข้าสู่ระบบไม่ได้ในขณะนี้ กรุณาลองใหม่ภายหลัง';
     return s().authGeneric;
   }
   async function recoverWithCode(username, code, password) {
@@ -823,6 +870,7 @@
       return liveTripEntries;
     } finally {
       liveTripLoading = false;
+      window.dispatchEvent(new Event('pointy-boards-updated'));
     }
   }
   function refreshLiveTripEntries({ force = false, rerenderProfile = false } = {}) {
@@ -832,7 +880,7 @@
       reminders = computeReminders();
       renderTopbar();
       if (rerenderProfile && overlay?.querySelector('.profile-drawer')) showProfile({ refreshLive: false });
-      if (overlay?.querySelector('.rem-panel')) renderRemindersOverlay();
+      if (overlay?.querySelector('.rem-panel:not(.recovery-panel)')) renderRemindersOverlay();
     });
   }
   function tripEntries() {
@@ -1191,8 +1239,8 @@
     }
     if (right.querySelector('[data-profile-hub]')) return;
     right.insertAdjacentHTML('afterbegin', `
-      <button class="theme-toggle" type="button" data-profile-hub="theme" aria-label="Theme" title="Theme">🌙</button>
-      <button class="rem-bell" type="button" data-profile-hub="reminders" aria-label="Reminders" title="Reminders"><span class="rb-ico">🔔</span></button>
+      <button class="theme-toggle" type="button" data-profile-hub="theme" aria-label="Theme" title="Theme">${window.CoinQuestIcons('moon')}</button>
+      <button class="rem-bell" type="button" data-profile-hub="reminders" aria-label="Reminders" title="Reminders">${window.CoinQuestIcons('bell')}</button>
       <button class="profile-badge" type="button" data-profile-hub="profile" aria-label="${h(s().profile)}" title="${h(s().profile)}"></button>
     `);
     right.querySelector('[data-profile-hub="theme"]').addEventListener('click', toggleTheme);
@@ -1216,8 +1264,9 @@
     writeJson(UI_KEY, { ...readJson(UI_KEY, {}), theme: next });
     const btn = document.querySelector('[data-profile-hub="theme"]');
     if (btn) {
-      btn.textContent = next === 'dungeon' ? '☀️' : '🌙';
+      btn.innerHTML = window.CoinQuestIcons(next === 'dungeon' ? 'sun' : 'moon');
       btn.title = next === 'dungeon' ? s().themeLight : s().themeDark;
+      btn.setAttribute('aria-label', btn.title);
     }
   }
   function setTheme(theme) {
@@ -1284,6 +1333,23 @@
       try { await navigator.clipboard.writeText(code); showMiniToast(s().copyRecovery); } catch (_) {}
     });
   }
+  // Presentation changes keep draft values only in this render closure, never in storage.
+  function bindAuthPresentation(render, copy) {
+    window.PointyProfileLogin.bindControls(loginGate, copy);
+    const repaint = (change, focusSelector) => {
+      const values = [...loginGate.querySelectorAll('input[id]')].map(input => [input.id, input.value]);
+      const scrollTop = loginGate.scrollTop;
+      change();
+      render();
+      values.forEach(([id, value]) => { const input = loginGate.querySelector(`#${id}`); if (input) input.value = value; });
+      loginGate.scrollTop = scrollTop;
+      loginGate.querySelector(focusSelector)?.focus({ preventScroll: true });
+    };
+    loginGate.querySelector('[data-login-theme]')?.addEventListener('click', () => repaint(
+      () => setTheme(currentTheme() === 'dungeon' ? 'tavern' : 'dungeon'), '[data-login-theme]'));
+    loginGate.querySelectorAll('[data-login-lang]').forEach(button => button.addEventListener('click', () => repaint(
+      () => setPageLang(button.dataset.loginLang), `[data-login-lang="${button.dataset.loginLang}"]`)));
+  }
   function showRecoveryReset() {
     if (!realAuthEnabled()) return;
     const copy = STR[loginLanguage()];
@@ -1293,17 +1359,24 @@
       document.body.appendChild(loginGate);
     }
     document.body.classList.add('login-locked');
-    loginGate.innerHTML = window.PointyProfileLogin.renderRecoveryReset({ copy });
+    loginGate.innerHTML = window.PointyProfileLogin.renderRecoveryReset({ copy, langKey: loginLanguage(), theme: currentTheme() });
+    bindAuthPresentation(showRecoveryReset, copy);
     const form = loginGate.querySelector('[data-recovery-form]');
     const error = loginGate.querySelector('[data-recovery-error]');
     const setError = text => {
       error.hidden = !text;
       error.textContent = text ? `⚠️ ${text}` : '';
+      if (text) error.focus();
     };
-    loginGate.querySelector('[data-back-login]').addEventListener('click', () => { loginMode = 'in'; showLoginGate(); });
+    loginGate.querySelector('[data-back-login]').addEventListener('click', () => { loginMode = 'in'; showLoginGate(); loginGate.querySelector('[data-login-email]')?.focus(); });
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const submit = form.querySelector('.login-btn');
+      if (submit.disabled) return;
+      const setBusy = on => {
+        form.setAttribute('aria-busy', String(on));
+        loginGate.querySelectorAll('button, input').forEach(control => { control.disabled = on; });
+      };
       try {
         const username = form.querySelector('[data-recovery-username]').value.trim();
         const code = form.querySelector('[data-recovery-code]').value.trim();
@@ -1312,7 +1385,8 @@
         if (!/^[A-Z0-9]{12}$/.test(code.toUpperCase().replace(/[\s-]/g, ''))) { setError('กรอก Recovery ID 12 ตัวอักษร / Invalid Recovery ID'); return; }
         if (password.length < 6) { setError(copy.signupPasswordShort); return; }
         if (password !== form.querySelector('[data-recovery-confirm]').value) { setError(copy.signupPasswordMismatch); return; }
-        submit.disabled = true;
+        setError('');
+        setBusy(true);
         const account = await recoverWithCode(
           form.querySelector('[data-recovery-username]')?.value,
           form.querySelector('[data-recovery-code]')?.value,
@@ -1324,7 +1398,7 @@
         showRecoveryCode(consumePendingRecovery());
         if (!account.character) showCharacterCreation(account);
       } catch (err) {
-        submit.disabled = false;
+        setBusy(false);
         setError(String(err?.message || '').includes('bad-recovery-code') ? copy.resetBadCode : authErrorMessage(err));
       }
     });
@@ -1365,6 +1439,7 @@
       userId: account.userId
     }));
     loginGate.innerHTML = window.PointyProfileLogin.renderLoginGate({ copy, langKey, theme, isSignup, real, local, demoAccounts });
+    bindAuthPresentation(showLoginGate, copy);
     const name = loginGate.querySelector('[data-login-name]');
     const email = loginGate.querySelector('[data-login-email]');
     const password = loginGate.querySelector('[data-login-password]');
@@ -1373,6 +1448,7 @@
     const setError = text => {
       error.hidden = !text;
       error.textContent = text ? `⚠️ ${text}` : '';
+      if (text) error.focus();
     };
     loginGate.querySelector('[data-login-form]').addEventListener('submit', async event => {
       event.preventDefault();
@@ -1380,20 +1456,25 @@
       const em = real ? usernameEmail(loginName) : String(email.value || '').trim();
       const pw = String(password.value || '');
       const submit = loginGate.querySelector('.login-btn');
+      if (submit.disabled) return;
+      const submitLabel = submit.textContent;
       const setBusy = on => {
-        if (submit) submit.disabled = !!on;
+        loginGate.querySelector('[data-login-form]').setAttribute('aria-busy', String(on));
+        loginGate.querySelectorAll('button').forEach(button => { button.disabled = !!on; });
+        submit.textContent = on ? (isSignup ? copy.signupSubmitting : copy.authSubmitting) : submitLabel;
         if (email) email.disabled = !!on;
         if (password) password.disabled = !!on;
         if (name) name.disabled = !!on;
         if (password2) password2.disabled = !!on;
       };
-      if (real && !/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError('ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว'); return; }
+      setError('');
+      if (real && !/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError(copy.invalidUsername); return; }
       if (isSignup) {
         const display = String(name?.value || '').trim();
         const pw2 = String(password2?.value || '');
         if (!display) { setError(copy.signupNameMissing); return; }
-        if (display.length > 60) { setError('ชื่อที่แสดงต้องไม่เกิน 60 ตัวอักษร'); return; }
-        if (!/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError('ชื่อผู้ใช้ใช้ a–z, 0–9, จุด, ขีดกลาง หรือขีดล่าง ไม่เกิน 32 ตัว'); return; }
+        if (display.length > 60) { setError(copy.nameTooLong); return; }
+        if (!/^[a-z0-9._-]{1,32}$/i.test(String(email.value || '').trim())) { setError(copy.invalidUsername); return; }
         if (!loginName || !pw) { setError(copy.loginEmpty); return; }
         if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
         if (pw !== pw2) { setError(copy.signupPasswordMismatch); return; }
@@ -1508,18 +1589,21 @@
       email.focus();
     }));
     loginGate.querySelector('[data-forgot-password]')?.addEventListener('click', showRecoveryReset);
-    loginGate.querySelectorAll('[data-login-tab]').forEach(btn => btn.addEventListener('click', () => {
-      loginMode = btn.dataset.loginTab === 'up' ? 'up' : 'in';
+    const selectTab = mode => {
+      const username = email.value;
+      loginMode = mode;
       showLoginGate();
-    }));
-    loginGate.querySelector('[data-login-theme]').addEventListener('click', () => {
-      setTheme(currentTheme() === 'dungeon' ? 'tavern' : 'dungeon');
-      showLoginGate();
+      loginGate.querySelector('[data-login-email]').value = username;
+      loginGate.querySelector(`[data-login-tab="${mode}"]`).focus({ preventScroll: true });
+    };
+    loginGate.querySelectorAll('[data-login-tab]').forEach(btn => {
+      btn.addEventListener('click', () => { if (btn.dataset.loginTab !== loginMode) selectTab(btn.dataset.loginTab); });
+      btn.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        selectTab(event.key === 'Home' ? 'in' : event.key === 'End' ? 'up' : loginMode === 'in' ? 'up' : 'in');
+      });
     });
-    loginGate.querySelectorAll('[data-login-lang]').forEach(btn => btn.addEventListener('click', () => {
-      setPageLang(btn.dataset.loginLang);
-      showLoginGate();
-    }));
   }
 
   function classLabel(id) {
@@ -1533,7 +1617,6 @@
     let copy = STR[langKey];
     let pickedClass = '';
     let pickedGender = '';
-    let pickerOpen = false;
     let pickerGender = 'all';
     let saving = false;
     if (!loginGate) {
@@ -1542,66 +1625,123 @@
       document.body.appendChild(loginGate);
     }
     document.body.classList.add('login-locked');
-    const render = () => {
+
+    const pickerOptions = () => heroOptions()
+      .filter(opt => pickerGender === 'all' || opt.gender === pickerGender)
+      .map(opt => {
+        const meta = classMeta(opt.cls);
+        return {
+          classId: opt.cls, gender: opt.gender,
+          genderLabel: opt.gender === 'female' ? copy.female : copy.male,
+          artHtml: heroPickerArt(opt.cls, opt.gender),
+          label: meta[langKey] || meta.th || meta.en || opt.cls,
+          selected: pickedClass === opt.cls && pickedGender === opt.gender
+        };
+      });
+
+    function closePicker() {
+      loginGate.querySelector('.creation-picker')?.remove();
+      const entry = loginGate.querySelector('.auth-entry');
+      if (entry) entry.inert = false;
+      loginGate.querySelector('[data-char-open-picker]')?.focus({ preventScroll: true });
+    }
+
+    function openPicker() {
+      if (saving || loginGate.querySelector('.creation-picker')) return;
+      loginGate.insertAdjacentHTML('beforeend', window.PointyProfileCharacterCreate.renderPicker({ copy, langKey, pickerGender, options: pickerOptions() }));
+      loginGate.querySelector('.auth-entry').inert = true;
+      const overlay = loginGate.querySelector('.creation-picker');
+      const dialog = overlay.querySelector('[data-picker-dialog]');
+      const grid = dialog.querySelector('.picker-grid');
+      const bindChoices = () => grid.querySelectorAll('[data-char-class]').forEach(button => button.addEventListener('click', () => {
+        pickedClass = button.dataset.charClass;
+        pickedGender = button.dataset.charGender;
+        render('[data-char-open-picker]');
+      }));
+      bindChoices();
+      dialog.querySelectorAll('[data-picker-gender]').forEach(button => button.addEventListener('click', () => {
+        pickerGender = button.dataset.pickerGender;
+        dialog.querySelectorAll('[data-picker-gender]').forEach(filter => {
+          const selected = filter.dataset.pickerGender === pickerGender;
+          filter.classList.toggle('on', selected);
+          filter.setAttribute('aria-pressed', String(selected));
+        });
+        grid.innerHTML = window.PointyProfileCharacterCreate.renderChoices(pickerOptions());
+        grid.scrollTop = 0;
+        bindChoices();
+      }));
+      overlay.addEventListener('click', event => {
+        if (event.target === overlay || event.target.closest('.picker-close')) closePicker();
+      });
+      dialog.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); closePicker(); return; }
+        if (event.key !== 'Tab') return;
+        const controls = [...dialog.querySelectorAll('button:not(:disabled)')];
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && (document.activeElement === first || document.activeElement.id === 'cc-picker-title')) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || document.activeElement.id === 'cc-picker-title')) {
+          event.preventDefault(); first.focus();
+        }
+      });
+      const selected = grid.querySelector('[aria-pressed="true"]');
+      if (selected) selected.focus();
+      else dialog.querySelector('.picker-title').focus({ preventScroll: true });
+    }
+
+    function render(focusSelector) {
       langKey = loginLanguage();
       copy = STR[langKey];
       const nameInputValue = loginGate.querySelector('[data-char-name]')?.value;
       if (nameInputValue !== undefined) base.name = nameInputValue;
-      const pickedMeta = pickedClass ? classMeta(pickedClass) : null;
       const picked = pickedClass ? {
-        portraitHtml: `<span class="cc-picked" style="--avatar-bg:${avatarBg(pickedClass)}"><img src="${h(avatarFile(pickedClass, pickedGender, ''))}" alt=""><span class="pd-q" style="display:none">${h(pickedMeta.glyph)}</span></span>`,
-        glyph: pickedMeta.glyph || '',
+        portraitHtml: '<span class="cc-picked" style="--avatar-bg:' + avatarBg(pickedClass) + '"><img src="' + h(avatarFile(pickedClass, pickedGender, '')) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="pd-q" style="display:none">' + h(classMeta(pickedClass).glyph) + '</span></span>',
         label: classLabel(pickedClass)
       } : null;
-      const pickerOptions = pickerOpen ? heroOptions()
-        .filter(opt => pickerGender === 'all' || opt.gender === pickerGender)
-        .map(opt => {
-          const meta = classMeta(opt.cls);
-          return {
-            classId: opt.cls,
-            gender: opt.gender,
-            artHtml: heroPickerArt(opt.cls, opt.gender),
-            label: meta[langKey] || meta.th || meta.en || opt.cls,
-            selected: pickedClass === opt.cls && pickedGender === opt.gender
-          };
-        }) : [];
       loginGate.innerHTML = window.PointyProfileCharacterCreate.render({
-        copy,
-        langKey,
-        userId: base.userId,
-        name: base.name,
-        lootChestSrc: assetUrl('assets/icons/loot-chest.svg'),
-        picked,
-        pickerOpen,
-        pickerGender,
-        options: pickerOptions
+        copy, langKey, theme: currentTheme(), userId: base.userId, name: base.name, picked
       });
-      loginGate.querySelector('[data-char-form]').addEventListener('submit', async event => {
+      bindAuthPresentation(render, copy);
+      const form = loginGate.querySelector('[data-char-form]');
+      const nameInput = loginGate.querySelector('[data-char-name]');
+      const error = loginGate.querySelector('[data-char-error]');
+      const submit = form.querySelector('.login-btn');
+      const setBusy = busy => {
+        saving = busy;
+        form.setAttribute('aria-busy', String(busy));
+        loginGate.querySelectorAll('button, input').forEach(control => { control.disabled = busy; });
+        submit.disabled = busy || !pickedClass;
+        submit.querySelector('span').textContent = busy ? copy.charSaving : copy.charCreate;
+      };
+      const setError = text => {
+        error.hidden = !text;
+        error.textContent = text || '';
+        if (text) error.focus({ preventScroll: true });
+      };
+      nameInput.addEventListener('input', () => {
+        nameInput.removeAttribute('aria-invalid');
+        setError('');
+      });
+      form.addEventListener('submit', async event => {
         event.preventDefault();
         if (saving) return;
-        if (!pickedClass || !pickedGender) {
-          pickerOpen = true;
-          render();
-          return;
-        }
-        const error = loginGate.querySelector('[data-char-error]');
-        const submit = loginGate.querySelector('.login-btn');
-        const setError = text => {
-          if (!error) return;
-          error.hidden = !text;
-          error.textContent = text ? `⚠️ ${text}` : '';
-        };
+        if (!pickedClass || !pickedGender) return openPicker();
         let character;
         try {
-          const charName = PointyLogic.readField(loginGate.querySelector('[data-char-name]'), { type: 'text', label: 'ชื่อตัวละคร', max: 30 });
+          const charName = PointyLogic.readField(nameInput, { type: 'text', label: copy.charName, max: 30 });
           character = normalizeCharacter({ id: base.userId, name: charName, class: pickedClass, cls: pickedClass, gender: pickedGender, skin: '' }, base);
-          saving = true;
+        } catch (err) {
+          nameInput.setAttribute('aria-invalid', 'true');
+          setError(err.message);
+          return;
+        }
+        setError('');
+        setBusy(true);
+        try {
           authRevision++;
-          if (submit) submit.disabled = true;
           if (realAuthEnabled() && base.uid) character = await saveCloudCharacter(base, character);
         } catch (err) {
-          saving = false;
-          if (submit) submit.disabled = false;
+          setBusy(false);
           setError(err?.code ? authErrorMessage(err) : err.message);
           return;
         }
@@ -1618,30 +1758,10 @@
         showRecoveryCode(consumePendingRecovery());
         scheduleWelcomeTour(300);
       });
-      loginGate.querySelector('[data-char-open-picker]')?.addEventListener('click', () => {
-        pickerOpen = true;
-        render();
-      });
-      loginGate.querySelectorAll('[data-char-class][data-char-gender]').forEach(btn => btn.addEventListener('click', () => {
-        pickedClass = btn.dataset.charClass || pickedClass;
-        pickedGender = btn.dataset.charGender === 'female' ? 'female' : 'male';
-        pickerOpen = false;
-        render();
-      }));
-      loginGate.querySelectorAll('[data-picker-gender]').forEach(btn => btn.addEventListener('click', () => {
-        pickerGender = ['all', 'female', 'male'].includes(btn.dataset.pickerGender) ? btn.dataset.pickerGender : 'all';
-        render();
-      }));
-      loginGate.querySelectorAll('[data-picker-close]').forEach(el => el.addEventListener('click', event => {
-        if (event.target.closest('[data-picker-dialog]') && !event.target.matches('.picker-close')) return;
-        pickerOpen = false;
-        render();
-      }));
-      loginGate.querySelectorAll('[data-login-lang]').forEach(btn => btn.addEventListener('click', () => {
-        setPageLang(btn.dataset.loginLang);
-        render();
-      }));
-    };
+      loginGate.querySelector('[data-char-open-picker]').addEventListener('click', openPicker);
+      loginGate.querySelector('[data-char-back]').addEventListener('click', () => { if (!saving) signOut(); });
+      if (focusSelector) loginGate.querySelector(focusSelector)?.focus({ preventScroll: true });
+    }
     render();
   }
 
@@ -1652,24 +1772,27 @@
     const theme = document.querySelector('[data-profile-hub="theme"]');
     if (theme) {
       const ct = currentTheme();
-      theme.textContent = ct === 'dungeon' ? '☀️' : '🌙';
+      theme.innerHTML = window.CoinQuestIcons(ct === 'dungeon' ? 'sun' : 'moon');
       theme.title = ct === 'dungeon' ? s().themeLight : s().themeDark;
+      theme.setAttribute('aria-label', theme.title);
     }
     if (btn && context) {
       const slayer = accountCharacter(loadAccount()) || loadDebt().slayer || {};
       btn.setAttribute('aria-label', s().profile);
       btn.title = s().profile;
-      btn.innerHTML = `${avatarMarkup(slayer, 'pb-ava')}<span class="pb-meta"><span class="pb-lvl"><i>${h(s().lvl)}</i>${context.level.lvl}</span>${profile.streak > 0 ? `<span class="pb-streak">🔥 ${profile.streak}</span>` : ''}</span>`;
+      btn.innerHTML = `${avatarMarkup(slayer, 'pb-ava')}<span class="pb-meta"><span class="pb-lvl">LV ${context.level.lvl}</span><span class="pb-streak">${window.CoinQuestIcons('flame')} ${profile.streak || 0} ${lang() === 'en' ? 'days' : 'วันติด'}</span></span>${window.CoinQuestIcons('chevron')}`;
     }
     if (rem) {
-      rem.innerHTML = `<span class="rb-ico">🔔</span>${reminders.length ? `<span class="rb-badge">${reminders.length > 9 ? '9+' : reminders.length}</span>` : ''}`;
+      rem.innerHTML = `${window.CoinQuestIcons('bell')}${reminders.length ? `<span class="rb-badge">${reminders.length > 9 ? '9+' : reminders.length}</span>` : ''}`;
       rem.title = s().reminders;
+      rem.setAttribute('aria-label', s().reminders);
     }
   }
   function closeOverlay() {
     const wasRecovery = recoveryOverlayActive();
     if (overlay) overlay.remove();
     overlay = null;
+    if (tourCleanup) { const cleanup = tourCleanup; tourCleanup = null; cleanup(); }
     if (wasRecovery && pendingTourAfterOverlay) {
       pendingTourAfterOverlay = false;
       setTimeout(() => showTour(), 80);
@@ -1710,7 +1833,7 @@
     loadBoardInvites({ force: true }).then(() => {
       reminders = computeReminders();
       renderTopbar();
-      if (overlay?.querySelector('.rem-panel')) renderRemindersOverlay();
+      if (overlay?.querySelector('.rem-panel:not(.recovery-panel)')) renderRemindersOverlay();
     });
   }
   function trophyMarkup() {
@@ -1827,18 +1950,46 @@
       pendingTourAfterOverlay = true;
       return;
     }
+    clearTimeout(tourTimer);
     let idx = 0;
     const steps = window.PointyProfileTour.steps(s());
+    const opener = document.activeElement;
+    mountOverlay(window.PointyProfileTour.render({ steps, index: idx, copy: s() }));
+    const tour = overlay;
+    const background = [...document.body.children].filter(el => el !== tour).map(el => [el, el.inert]);
+    background.forEach(([el]) => { el.inert = true; });
+    document.body.classList.add('tour-open');
+    tourCleanup = () => {
+      background.forEach(([el, inert]) => { el.inert = inert; });
+      document.body.classList.remove('tour-open');
+      const target = opener?.isConnected && opener !== document.body ? opener : document.querySelector('[data-profile-hub="profile"]');
+      target?.focus({ preventScroll: true });
+    };
+    function focusTitle() { tour.querySelector('#tour-title').focus({ preventScroll: true }); }
     function render() {
-      mountOverlay(window.PointyProfileTour.render({ steps, index: idx, copy: s() }));
-      overlay.querySelector('[data-done]').addEventListener('click', finish);
-      overlay.querySelector('[data-next]').addEventListener('click', () => { if (idx === steps.length - 1) finish(); else { idx += 1; render(); } });
-      const back = overlay.querySelector('[data-back]');
-      if (back) back.addEventListener('click', () => { idx -= 1; render(); });
-      overlay.querySelectorAll('[data-step]').forEach(btn => btn.addEventListener('click', () => { idx = Number(btn.dataset.step) || 0; render(); }));
+      tour.innerHTML = window.PointyProfileTour.render({ steps, index: idx, copy: s(), contentOnly: true });
+      focusTitle();
     }
     function finish() { patchProfile({ tourSeen: true }); closeOverlay(); }
-    render();
+    tour.addEventListener('click', event => {
+      const button = event.target.closest('button');
+      if (!button || button.disabled) return;
+      if (button.hasAttribute('data-done')) return finish();
+      if (button.hasAttribute('data-next')) { if (idx === steps.length - 1) return finish(); idx += 1; }
+      else if (button.hasAttribute('data-back')) idx = Math.max(0, idx - 1);
+      else if (button.hasAttribute('data-step')) idx = Number(button.dataset.step);
+      else return;
+      render();
+    });
+    tour.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); finish(); }
+      if (event.key !== 'Tab') return;
+      const buttons = [...tour.querySelectorAll('button:not(:disabled)')];
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement.id === 'tour-title')) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
+    focusTitle();
   }
   function showAchievementToast(item) {
     const txt = item[lang()] || item.en;
@@ -1866,6 +2017,7 @@
       if (item) showAchievementToast(item);
     }
     renderTopbar();
+    window.dispatchEvent(new Event('pointy-profile-updated'));
     if (shouldUseLiveTripEntries(loadAuth())) refreshLiveTripEntries({ force: !!opts.forceLiveTripRefresh });
     refreshBoardInvites({ force: !!opts.forceInviteRefresh });
   }
@@ -1957,6 +2109,8 @@
     refresh({ toast: false });
   });
   window.PointyProfileHub = {
+    // Read the existing account-scoped board source; entry must not issue a second query.
+    boardEntries: () => ({ entries: tripEntries(), loading: liveTripLoading, error: shouldUseLiveTripEntries(loadAuth()) && !liveTripLoading && !liveTripLoaded }),
     refresh,
     updateTripSnapshot,
     computeProfile,

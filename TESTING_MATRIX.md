@@ -1,6 +1,6 @@
 # Testing Matrix
 
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 
 ## Purpose
 
@@ -66,6 +66,24 @@ the relevant iPhone widths from `$mobile-web-qa` / `CLAUDE_TO_A_TEE_QA.md`.
 | Commit/push/deploy | full `npm test`, backend suite for shared data/Rules, native checks for mobile/shared logic; CI requires both jobs |
 
 ## Useful Targeted Tests
+
+October 13 website coverage is split into focused files:
+`navigation-home`, `player-consistency`, `split-entry`, `split-board`,
+`character-profile`, `welcome-tour`, `first-load`, `debt-dragon`, `price-arena`
+and `treasury`. Auth/signup/creation and Firebase transport fault injection live
+in `account-persistence`; invalid inputs remain in `frontend-validation`.
+The legacy `coin-quest-ledger` integration file still owns cross-module financial,
+import/export, identity, permissions and responsive regression contracts.
+
+When adapting tests to the current UI, open responsive disclosures with their
+real buttons, use `expandBoardSection` for log/settlement where needed, and use
+the offer dialog for Price Arena drafts. Keep persistence/math/validation
+assertions; do not replace user interaction with forced clicks or remove checks
+just because the layout changed. Mobile recent boards intentionally preview one
+item until “View all”.
+
+Keep redirected release logs outside `test-results/`: Playwright clears its
+output directory at startup. Use `mobile/.artifacts/release-<date>/` locally.
 
 ```bash
 node --test tests/unit/pointy-logic.test.mjs

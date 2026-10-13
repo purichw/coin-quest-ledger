@@ -1,0 +1,138 @@
+{
+  "createdAt": "2026-10-13T11:05:58.551556+00:00",
+  "route": "http://127.0.0.1:4569/trip/?id=4821&test=1",
+  "sourceHead": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "workingTree": "uncommitted board changes plus preserved earlier tasks",
+  "viewports": [
+    [
+      1440,
+      1000
+    ],
+    [
+      768,
+      1000
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "fixture": "Four synthetic members; one Guest; five expenses totalling 12450 THB. Auth test mirror; test sessionStorage, no production Firebase writes.",
+  "theme": "tavern; additional English dungeon capture after a test settlement",
+  "references": "User attachments. Product-surface crops omit surrounding slide/device frame; original scale is inferred, not measured CSS.",
+  "visuallyInspected": [
+    "desktop full page",
+    "tablet full page",
+    "mobile top/form/bottom",
+    "mobile English dark mode",
+    "reference-development comparison"
+  ],
+  "sourceSha256": {
+    "trip/index.html": "a6dd26cb8bd81d5e2082af1f970034f87aa2477756a4beecacf865420aa81813",
+    "trip/app.js": "5c987a222d6c715585d51a9b5787dad03231c0f069084f3a1d878f00f8d480b7",
+    "trip/board.js": "30d36f829601b349672ee327e574400789f0e299fb52d26e6f9de820cd6dcbff",
+    "trip/board.css": "43e8ccb07e3a0e2a4e6e0ce3a12f50144aaa9ea55123a133b5a2ef5da80de4b3",
+    "assets/board-reference/village-dusk.webp": "c3fb3902393a7f3b284330be91453e3fc939db33ce7d8cf261d87a07d1904918",
+    "tests/e2e/split-board.spec.mjs": "3ee5810518e016aebe8ab03969d6f38be9cf824a9b975f8d4b1e8c0059735c8d"
+  },
+  "captures": {
+    "reference-mobile-surface.png": {
+      "pixels": [
+        505,
+        1345
+      ],
+      "sha256": "7a63a8d9a65b6703a9367ce33624bdfd9135630a1ab880d9bf88ddc47bccb789"
+    },
+    "board-mobile-top.png": {
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "d3f47a5c13cdb3cfa970e4f64f591adb2bff96dcaeee357aa7cfd5d62916bc7c"
+    },
+    "reference-tablet-surface.png": {
+      "pixels": [
+        966,
+        802
+      ],
+      "sha256": "16e6450343fcf2f1fddd076e63f40a35bb75784d4b8f0856d736c4d2cfe02220"
+    },
+    "board-mobile-en-dark.png": {
+      "pixels": [
+        390,
+        1957
+      ],
+      "sha256": "63e91a49bca21b7c4922e08ffa62056575d65e02eb5db9bfa35202f7a31b9d0e"
+    },
+    "mobile-scroll-states.png": {
+      "pixels": [
+        1242,
+        934
+      ],
+      "sha256": "5ed7c88d3544eb8c6abe88d80da956e6a4264e2df4c4ceeb25fdfc79eb175cc3"
+    },
+    "comparison-mobile.png": {
+      "pixels": [
+        836,
+        1719
+      ],
+      "sha256": "fb3ff8d8bbc97a4daf95d55b0fa6b5ebc9662a5541c9af0d96c293900b6d9dbf"
+    },
+    "comparison-desktop.png": {
+      "pixels": [
+        1176,
+        740
+      ],
+      "sha256": "52e760a8cbb34e8d88ed4d9f14de7265acdb535f7a60866384cfe81471652f30"
+    },
+    "reference-desktop-surface.png": {
+      "pixels": [
+        1070,
+        870
+      ],
+      "sha256": "1568d7b56dd00489a1fa6ef86d4a53c7e7e288686a82f180bfa055f73373d00f"
+    },
+    "board-mobile-bottom.png": {
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "c8c591bd54c0f1a4b947a9b4c12b034962aeeb8f99915d3058861484ab887c4c"
+    },
+    "comparison-tablet.png": {
+      "pixels": [
+        1176,
+        1359
+      ],
+      "sha256": "56629726e4679113f1a86c76e6dc5d4c7e127253fe1a7caa1ad77e12485c3697"
+    },
+    "board-mobile-form.png": {
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "d65aba85885321c4eb8634ebdc79bd534706686ef3455e0ab8df46cc0c481c71"
+    },
+    "board-1440.png": {
+      "pixels": [
+        1440,
+        1671
+      ],
+      "sha256": "1835d52cd677aa863956f57e6be553b2762760ec3b349bb8600e4cd759019fb6"
+    },
+    "board-390.png": {
+      "pixels": [
+        390,
+        1629
+      ],
+      "sha256": "8b9000e25a30170b04db2a9a798bc17cf74d92c5e4cc1fcd01086f7f1b6d7d6c"
+    },
+    "board-768.png": {
+      "pixels": [
+        768,
+        1741
+      ],
+      "sha256": "49a9bffb99646a7cb0d3a859ef9ed62cb24d74d227acd81bbb2da8d34d9a2459"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "baseCommit": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "workingTree": "uncommitted; pre-existing changes preserved",
+  "route": "http://127.0.0.1:4569/debt/?test=1",
+  "reference": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-ba515f09-cdf2-4b53-8292-01af1e9abe11.png",
+  "capturedAt": "2026-10-13T21:48:25.077732",
+  "viewports": [
+    [
+      1440,
+      1000
+    ],
+    [
+      768,
+      1000
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "data": "isolated SEED_DEBT, frozen 2026-06-14; localStorage only; no production writes",
+  "visualStates": [
+    "Thai/tavern overview",
+    "English/dungeon overview",
+    "payment form",
+    "paid debt"
+  ],
+  "sourceSha256": {
+    "debt/app.js": "50f177bb0c78ad699853693eeba52b47347eb68a03f7724f73577f3b6906361e",
+    "debt/index.html": "a5618d4cd778e7b0c886464dd34319ca17573240e2bae1dcfb4c6fe4dee5ca42",
+    "debt/design.css": "6ff4445dfd7b6105f7f4f08a028067eb956384fc2dc121ec76a6b946c48ee56c",
+    "assets/debt-reference/valley-dragon.webp": "c083f08de8dacdf7fefcd0dab6464cc9765417163a0ef3f4967a9d5fa1e17b37",
+    "tests/e2e/debt-dragon.spec.mjs": "3577e571672730b9a4b287c04293d430bb6edbf12086ca3f8f568f74f2b7c685"
+  },
+  "before": "captured before Debt Dragon redesign; other earlier UI work was already present",
+  "art": "imagegen generated valley-dragon; optimized to WebP; existing seven debt dragon portraits retained"
+}

@@ -1,0 +1,140 @@
+{
+  "date": "2026-10-13",
+  "baseCommit": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "source": "local working tree; uncommitted",
+  "route": "http://127.0.0.1:4569/character/?id=1111&test=1",
+  "fixture": "Mali, ranger female, 1500 XP, three expenses totaling 3600, board 9001, owned account; no Firebase writes",
+  "defaultState": "Thai / tavern / amounts visible / all module summaries open / desktop board details open, compact details closed",
+  "sourceHashes": {
+    "character/app.js": "e901144cf7ca077f34c124d43a983dcee1a5b6c057e9250ed5393438497d7584",
+    "character/index.html": "681d00ce002f16079e8e0e756a3fdae7b634943472fa3243a2e0ed4b4efd206e",
+    "character/design.css": "b1d74847c9783d228268f6d36ba77da1e9ad1628fd3d8ae494077ed10f0ab8c4",
+    "shared/quest-icons.js": "50797b1b70521a96ccc5382d60c9acb12db519ac81c630693378c06eaa4584de",
+    "assets/character-reference/forest-valley.webp": "fa525b3e42ad4ffa8d9c9b33a57e773fcfe6cf11b6cf0f1eeb83028309a84194",
+    "tests/e2e/character-profile.spec.mjs": "a199ad0bd831ed8dca2476d65e43f54bb15511c833943028b547b9223653ccf1"
+  },
+  "captures": [
+    {
+      "file": "qa/character-1440.png",
+      "pixels": [
+        1440,
+        1395
+      ],
+      "sha256": "9d0e80282ff035f68f200f1bcde7a78c64bbafe5378222f4e84a26b79ecbf56c"
+    },
+    {
+      "file": "qa/character-390.png",
+      "pixels": [
+        390,
+        1375
+      ],
+      "sha256": "afa51b87e773c9ecd3ac6938f21aad14f47aaff2397612aac8dd5b767869e93d"
+    },
+    {
+      "file": "qa/character-768.png",
+      "pixels": [
+        768,
+        1028
+      ],
+      "sha256": "7066df992f65df152fd51bf14e6abaf9ae3cb4ed9c7ae82c8beb5e8519927e7c"
+    },
+    {
+      "file": "qa/character-mobile-dark-long.png",
+      "pixels": [
+        390,
+        1473
+      ],
+      "sha256": "8493a586cebdc6d84f46dc4e94d8517ea5e65ef523e89fa301f8073bc783cea5"
+    },
+    {
+      "file": "qa/comparison-desktop.png",
+      "pixels": [
+        1136,
+        613
+      ],
+      "sha256": "006eddb9898de2323483fb86e96488b48269ba5fc3c6c2e8c502dd5941e9600d"
+    },
+    {
+      "file": "qa/comparison-mobile.png",
+      "pixels": [
+        816,
+        1455
+      ],
+      "sha256": "73a9806ca309c3c28e5b02814dbaa702064230ad26698f0032ed5b33c67e24d2"
+    },
+    {
+      "file": "qa/comparison-tablet.png",
+      "pixels": [
+        1136,
+        816
+      ],
+      "sha256": "37c659f2a2e75c335eb545c7fff74597762b03e789c54123eed80a3444517652"
+    },
+    {
+      "file": "qa/mobile-bottom.png",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "de42acad88d561f76ba66f6b1c11617363b33fb842c713b09374ee52e6ad43a3"
+    },
+    {
+      "file": "qa/mobile-middle.png",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "de42acad88d561f76ba66f6b1c11617363b33fb842c713b09374ee52e6ad43a3"
+    },
+    {
+      "file": "qa/mobile-scroll-states.png",
+      "pixels": [
+        816,
+        900
+      ],
+      "sha256": "fe4e475099e893a9549c5c63fb3c8e001f1c4c600f460af959cc427105e254c3"
+    },
+    {
+      "file": "qa/mobile-top.png",
+      "pixels": [
+        390,
+        844
+      ],
+      "sha256": "65ea2213247f49b4d8e2053f430e07cb2360ef5d650e1c97f6396f38888dbc78"
+    },
+    {
+      "file": "qa/reference-desktop-surface.png",
+      "pixels": [
+        956,
+        892
+      ],
+      "sha256": "f61a690ff563a2846bc7a886a0d7be57ae0304e12480ab8d604cb50e873c812d"
+    },
+    {
+      "file": "qa/reference-mobile-surface.png",
+      "pixels": [
+        428,
+        1192
+      ],
+      "sha256": "8dcd8609be4d0e9cf4b5d11cbe07634a23f68e0e42d7fe367700fd90306d90c4"
+    },
+    {
+      "file": "qa/reference-tablet-surface.png",
+      "pixels": [
+        861,
+        893
+      ],
+      "sha256": "68436285d1e5f992930cec33b14fd570a9b1ce193a1d2f09479c9dd5c90c26db"
+    }
+  ],
+  "personallyInspected": [
+    "character-1440.png",
+    "character-768.png",
+    "character-390.png",
+    "comparison-desktop.png",
+    "comparison-tablet.png",
+    "comparison-mobile.png",
+    "mobile-scroll-states.png",
+    "character-mobile-dark-long.png"
+  ]
+}

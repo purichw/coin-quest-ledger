@@ -42,7 +42,6 @@ function Login({ notice }: { notice?: string }) {
       <Text style={ui.footer}>แอปจะจำการเข้าสู่ระบบบนเครื่องนี้</Text>
     </View>
     <View style={{ gap: 10 }}><Text style={ui.footer}>เพิ่งเริ่มการผจญภัย?</Text><Action title="สร้างบัญชีใหม่" secondary disabled={busy} onPress={() => { Keyboard.dismiss(); setPassword(''); router.push('/signup'); }} /></View>
-    <Text style={ui.footer}>ใช้บัญชีเดียวกันทั้งเว็บไซต์และแอป</Text>
     <Action title="ลืมรหัสผ่าน · กู้ด้วย Recovery ID" secondary disabled={busy} onPress={() => { setPassword(''); router.push('/recover'); }} />
   </AuthPage>;
 }
@@ -51,7 +50,7 @@ function CompleteProfile({ initialName, username }: { initialName: string; usern
   const { busy, finishSignup, logOut } = useAuth();
   const [name, setName] = useState(initialName);
   const [error, setError] = useState('');
-  return <AuthPage><Brand /><View><Text style={ui.title}>สร้างบัญชีต่อให้ครบ</Text><Text style={ui.description}>บัญชี @{username} ถูกสร้างแล้ว เหลือบันทึกชื่อและ User ID ลองต่อได้โดยไม่ต้องสมัครซ้ำ</Text></View><View style={ui.panel}>
+  return <AuthPage><Brand /><View><Text style={ui.title}>สร้างบัญชีต่อให้ครบ</Text><Text style={ui.description}>บัญชี @{username} ถูกสร้างแล้ว กรอกชื่อเพื่อเริ่มเล่นต่อได้เลย</Text></View><View style={ui.panel}>
     <Field label="ชื่อที่แสดง" value={name} onChangeText={setName} placeholder="ชื่อที่เพื่อนจะเห็น" editable={!busy} maxLength={60} autoCapitalize="words" />
     <ErrorNote message={error} /><Action title="บันทึกบัญชีให้เสร็จ" busy={busy} onPress={async () => { Keyboard.dismiss(); setError(name.trim() ? await finishSignup(name) : 'กรอกชื่อที่อยากให้เพื่อนเห็น'); }} />
   </View><Action title="ออกจากระบบ" secondary busy={busy} onPress={async () => setError(await logOut())} /></AuthPage>;
@@ -72,7 +71,7 @@ export function AccountSummary({ account, header = false }: { account: Account; 
   const { logOut, busy, regenerateRecovery } = useAuth();
   const [error, setError] = useState('');
   return <AuthPage header={header}><Brand /><View><Text style={ui.title}>{account.name}</Text><Text style={ui.description}>บัญชี Coin Quest ของคุณ</Text></View>
-    <View style={ui.panel}><Text style={[ui.label, { textAlign: 'left', color: colors.green }]}>บัญชีของคุณ</Text><View style={ui.divider} /><View style={ui.row}><Text style={ui.description}>ชื่อผู้ใช้</Text><Text style={ui.value}>@{account.username}</Text></View><View style={ui.row}><Text style={ui.description}>User ID</Text><Text style={[ui.value, { fontFamily: fonts.stat, fontVariant: ['tabular-nums'], letterSpacing: 2 }]}>{account.userId}</Text></View><Text style={ui.hint}>ข้อมูลบัญชีเดียวกับเว็บไซต์ Coin Quest</Text></View>
+    <View style={ui.panel}><Text style={[ui.label, { textAlign: 'left', color: colors.green }]}>บัญชีของคุณ</Text><View style={ui.divider} /><View style={ui.row}><Text style={ui.description}>ชื่อผู้ใช้</Text><Text style={ui.value}>@{account.username}</Text></View><View style={ui.row}><Text style={ui.description}>User ID</Text><Text style={[ui.value, { fontFamily: fonts.stat, fontVariant: ['tabular-nums'], letterSpacing: 2 }]}>{account.userId}</Text></View></View>
     <Action title="สำรองและกู้คืนข้อมูล" secondary onPress={() => router.push('/backup')} />
     <Action title="สร้าง Recovery ID ใหม่" secondary busy={busy} onPress={() => Alert.alert('สร้าง Recovery ID ใหม่?', 'รหัสกู้บัญชีเดิมจะใช้ไม่ได้ คุณต้องเก็บรหัสใหม่ที่แสดงในขั้นตอนถัดไป', [{ text: 'ยกเลิก', style: 'cancel' }, { text: 'สร้างรหัสใหม่', onPress: async () => setError(await regenerateRecovery()) }])} />
     <ErrorNote message={error} /><Action title="ออกจากระบบ" secondary busy={busy} onPress={() => Alert.alert('ออกจากระบบ?', 'คุณสามารถกลับมาเข้าสู่ระบบด้วยบัญชีเดิมได้ทุกเมื่อ', [{ text: 'อยู่ต่อ', style: 'cancel' }, { text: 'ออกจากระบบ', onPress: async () => setError(await logOut()) }])} />

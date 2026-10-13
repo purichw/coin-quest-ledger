@@ -28,7 +28,7 @@ export function CreateCharacter() {
     }
     setError('');
     confirming.current = true;
-    Alert.alert('พร้อมออกผจญภัย?', `สร้าง “${draft.name.trim()}” เป็น${classInfo(draft.classId as typeof classes[number]['id']).th}\nตัวละครนี้จะผูกกับบัญชี และใช้บนเว็บไซต์ได้ด้วย`, [
+    Alert.alert('พร้อมออกผจญภัย?', `สร้าง “${draft.name.trim()}” เป็น${classInfo(draft.classId as typeof classes[number]['id']).th}`, [
       { text: 'กลับไปแก้', style: 'cancel', onPress: () => { confirming.current = false; } },
       { text: 'สร้างตัวละคร', onPress: async () => { confirming.current = false; setError(await createHero(draft)); } },
     ], { cancelable: false });

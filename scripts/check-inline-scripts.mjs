@@ -27,6 +27,8 @@ const scriptFiles = [
   ...filesIn('shared', '.js'),
   'lang.js',
   'trip/trip-utils.js',
+  'trip/entry.js',
+  'trip/board.js',
   'trip/app.js',
   'admin/admin-utils.js',
   'admin/app.js',

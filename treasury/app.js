@@ -1,9 +1,6 @@
 const TR_KEY = 'pointy_treasury_v1';
 const THEME_KEY = 'pointy_theme';
 const UI_KEY = 'coin_quest_ui_v1';
-const TR_XP_MONTH = 800;
-const TR_XP_ONTIME = 60;
-const TR_XP_LOG = 8;
 
 const TR_STR = {
   th: {
@@ -142,37 +139,11 @@ const TR_STR = {
   }
 };
 
-const SEED_TREASURY = {
-  keeper: { name: 'Treasurer', avatar: 'engineer-male' },
-  income: 45000,
-  categories: [
-    { id: 'home', name: { th: 'บ้าน & บิล', en: 'Home & Bills' }, glyph: '🏠', monster: { th: 'โทรลล์ค่าเช่า', en: 'Rent Troll' }, budget: 16000 },
-    { id: 'food', name: { th: 'กินดื่ม', en: 'Food & Drink' }, glyph: '🍜', monster: { th: 'ก็อบลินหิว', en: 'Hunger Goblin' }, budget: 9000 },
-    { id: 'transport', name: { th: 'เดินทาง', en: 'Transport' }, glyph: '🛵', monster: { th: 'ภูตถนน', en: 'Road Wraith' }, budget: 3000 },
-    { id: 'fun', name: { th: 'บันเทิง', en: 'Fun & Leisure' }, glyph: '🎮', monster: { th: 'ภูตปาร์ตี้', en: 'Party Imp' }, budget: 4000 },
-    { id: 'shop', name: { th: 'ช้อปปิ้ง', en: 'Shopping' }, glyph: '🛍️', monster: { th: 'เกรมลินช้อป', en: 'Loot Gremlin' }, budget: 3500 },
-    { id: 'health', name: { th: 'สุขภาพ', en: 'Health' }, glyph: '💊', monster: { th: 'ค้างคาวโรคร้าย', en: 'Plague Bat' }, budget: 2500 }
-  ],
-  bills: [
-    { id: 'tb1', name: { th: 'ค่าเช่าห้อง', en: 'Rent' }, catId: 'home', amount: 12000, dueDay: 1, glyph: '🏠' },
-    { id: 'tb2', name: { th: 'ค่าไฟ', en: 'Electricity' }, catId: 'home', amount: 1400, dueDay: 18, glyph: '⚡' },
-    { id: 'tb3', name: { th: 'เน็ต + มือถือ', en: 'Internet + Phone' }, catId: 'home', amount: 899, dueDay: 22, glyph: '📶' },
-    { id: 'tb4', name: { th: 'Netflix + Spotify', en: 'Netflix + Spotify' }, catId: 'fun', amount: 419, dueDay: 5, glyph: '📺' },
-    { id: 'tb5', name: { th: 'ฟิตเนส', en: 'Gym' }, catId: 'health', amount: 1200, dueDay: 10, glyph: '🏋️' }
-  ],
-  expenses: [],
-  history: [
-    { month: '2026-05', income: 45000, spent: 41250, surplus: 3750, won: true },
-    { month: '2026-04', income: 45000, spent: 47600, surplus: -2600, won: false },
-    { month: '2026-03', income: 45000, spent: 43800, surplus: 1200, won: true }
-  ],
-  stats: { monthsWon: 2, logged: 31, onTime: 11 },
-  month: null
-};
 
 let S = loadTreasury();
 let modal = null;
 let toastTimer = null;
+let modalReturnFocus = null;
 
 function readJsonSetting(key, fallback = {}) {
   try {
@@ -223,22 +194,6 @@ function monthLabel(mk) {
   const mon = lang() === 'en' ? d.toLocaleString('en-US', { month: 'short' }) : ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][(m || 1) - 1];
   return `${mon} ${lang() === 'en' ? y : (y + 543) % 100}`;
 }
-function freshTreasury(mk = monthKey(new Date())) {
-  const today = new Date();
-  const dom = today.getDate();
-  const exps = [];
-  SEED_TREASURY.bills.forEach(b => {
-    if (b.dueDay <= dom) exps.push({ id: truid(), catId: b.catId, billId: b.id, amount: b.amount, note: b.name.en, date: isoDay(mk, b.dueDay), onTime: true });
-  });
-  [
-    { catId: 'food', amount: 320, note: 'Chicken rice', day: 2 },
-    { catId: 'food', amount: 540, note: 'Groceries', day: 4 },
-    { catId: 'transport', amount: 180, note: 'BTS top-up', day: 3 },
-    { catId: 'fun', amount: 480, note: 'Movie night', day: 7 },
-    { catId: 'shop', amount: 690, note: 'T-shirt', day: 9 }
-  ].forEach(e => { if (e.day <= dom) exps.push({ ...e, id: truid(), date: isoDay(mk, e.day) }); });
-  return JSON.parse(JSON.stringify({ ...SEED_TREASURY, expenses: exps, month: mk }));
-}
 function blankTreasury(mk = monthKey(new Date())) {
   return { keeper: {}, income: 0, categories: [], bills: [], expenses: [], history: [], stats: { monthsWon: 0, logged: 0, onTime: 0 }, month: mk };
 }
@@ -264,7 +219,7 @@ function loadTreasury() {
     const raw = localStorage.getItem(TR_KEY);
     if (raw) return normalizeTreasury(JSON.parse(raw));
   } catch (_) {}
-  return freshTreasury();
+  return blankTreasury();
 }
 function save() {
   try {
@@ -300,6 +255,16 @@ function projectMonth(tr = S, today = new Date()) {
   return PointyLogic.treasuryProjection(tr, today);
 }
 function toast(msg) {
+  if (modal) {
+    let feedback = modal.querySelector('.modal-feedback');
+    if (!feedback) {
+      feedback = document.createElement('p');
+      feedback.className = 'modal-feedback';
+      feedback.setAttribute('role','alert');
+      modal.querySelector('.modal-head').after(feedback);
+    }
+    feedback.textContent = msg;
+  }
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
@@ -307,15 +272,38 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
 }
 function closeModal() {
-  if (modal) modal.remove();
+  if (modal) { modal.close(); modal.remove(); }
   modal = null;
+  const previous = modalReturnFocus;
+  requestAnimationFrame(() => {
+    if (previous?.element?.isConnected) previous.element.focus();
+    else if (previous?.action) [...document.querySelectorAll('[data-action]')].find(el=>el.dataset.action===previous.action && (el.dataset.id||'')===previous.id)?.focus();
+  });
 }
 function mountModal(title, body) {
-  closeModal();
-  modal = document.createElement('div');
+  if (modal) { modal.close(); modal.remove(); }
+  const active = document.activeElement;
+  modalReturnFocus = {element:active,action:active?.dataset?.action,id:active?.dataset?.id||''};
+  modal = document.createElement('dialog');
   modal.className = 'modal-cover';
-  modal.innerHTML = `<div class="modal"><div class="modal-head"><div class="modal-title">${h(title)}</div><button class="x" type="button" data-close>×</button></div>${body}</div>`;
+  modal.setAttribute('aria-labelledby','treasury-dialog-title');
+  modal.innerHTML = `<div class="modal"><div class="modal-head"><h2 class="modal-title" id="treasury-dialog-title">${h(title)}</h2><button class="x" type="button" data-close aria-label="${h(trText('ปิด','Close'))}">×</button></div>${body}</div>`;
   document.body.appendChild(modal);
+  modal.showModal();
+  modal.addEventListener('input',()=>modal?.querySelector('.modal-feedback')?.remove());
+  modal.addEventListener('change',()=>modal?.querySelector('.modal-feedback')?.remove());
+  (modal.querySelector('input, select') || modal.querySelector('[data-close]')).focus();
+  modal.addEventListener('cancel', e=>{e.preventDefault();closeModal();});
+  modal.addEventListener('keydown', e=>{
+    if (e.key === 'Enter' && e.target.matches('input')) {
+      e.preventDefault(); modal.querySelector('.btn-primary')?.click();
+    }
+    if (e.key !== 'Tab') return;
+    const items = [...modal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(el=>el.getClientRects().length);
+    const first = items[0], last = items[items.length - 1];
+    if (!e.shiftKey && document.activeElement === last) { e.preventDefault();first?.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault();last?.focus(); }
+  });
   modal.addEventListener('click', e => { if (e.target === modal || e.target.closest('[data-close]')) closeModal(); });
 }
 function statusTextForBill(bill) {
@@ -337,88 +325,75 @@ function rolloverIfNeeded() {
   save();
 }
 function renderAll() { render(); }
+// View-only controls never change the active month's financial state.
+let viewedMonth = null;
+let categoryFilter = 'all';
+const sectionState = new Map();
+const categoryState = new Set();
+const trText = (th, en) => lang() === 'th' ? th : en;
+const catName = cat => cat?.name?.[lang()] || cat?.name?.en || cat?.name || '';
+const art = (name, extra = '') => '<img class="tr-art ' + extra + '" src="/assets/treasury-reference/' + name + '.webp" alt="" width="48" height="48">';
+const glyphArt = glyph => ({'🏠':'home','🍜':'food','🛵':'transport','🎮':'fun','🛍️':'shop','💊':'health'})[glyph];
+function categoryIcon(cat) { return glyphArt(cat.glyph) ? art(glyphArt(cat.glyph)) : '<span class="tr-glyph" aria-hidden="true">' + h(cat.glyph || '📦') + '</span>'; }
+function categoryStatus(cat) {
+  const spent = catSpent(S,cat.id), budget = Number(cat.budget) || 0;
+  return spent > budget ? 'over' : budget > 0 && spent / budget >= .8 ? 'near' : 'normal';
+}
+function isSectionOpen(id) {
+  if (sectionState.has(id)) return sectionState.get(id);
+  return id === 'wards' ? innerWidth >= 600 : id === 'forecast' && innerWidth >= 1100;
+}
+function section(id, icon, title, body, count = '') {
+  return '<details class="treasury-section panel section-' + id + '" id="section-' + id + '" ' + (isSectionOpen(id) ? 'open' : '') + '><summary>' + art(icon) + '<h2>' + h(title) + '</h2>' + (count !== '' ? '<span class="section-count">' + h(count) + '</span>' : '') + '<span class="chevron" aria-hidden="true">›</span></summary><div class="section-body">' + body + '</div></details>';
+}
+function availableMonths() { return [...new Set([S.month, ...S.history.map(row=>row.month)])].filter(Boolean).sort(); }
+function showMonth(mk) {
+  if (!availableMonths().includes(mk)) return;
+  viewedMonth = mk === S.month ? null : mk;
+  render();
+  document.getElementById('treasury-month')?.focus();
+}
+function stepMonth(step) {
+  const months = availableMonths(), index = months.indexOf(viewedMonth || S.month);
+  showMonth(months[index + step]);
+}
 function render() {
   rolloverIfNeeded();
-  const L = st();
-  document.title = `Coin Quest Ledger — ${L.trTitle}`;
-  document.querySelectorAll('[data-tr-i18n]').forEach(el => { el.textContent = L[el.dataset.trI18n] || el.textContent; });
+  const L = st(), past = viewedMonth && S.history.find(row => row.month === viewedMonth && row.month !== S.month);
+  if (!past) viewedMonth = null;
+  const activeMonth = past?.month || S.month, months = availableMonths(), index = months.indexOf(activeMonth);
+  document.title = 'Coin Quest Ledger — ' + L.trTitle;
   translatePage();
-  const spent = totalSpent(S);
-  const remaining = Number(S.income || 0) - spent;
-  const vaultPct = Math.max(0, Math.min(100, Math.round((remaining / Math.max(1, Number(S.income || 0))) * 100)));
-  const forecast = projectMonth(S);
-  const budget = totalBudget(S);
-  document.getElementById('app').innerHTML = `
-    <section class="banner">
-      <h1 class="banner-title">🏦 ${h(L.trTitle)}</h1>
-      <div class="banner-sub">${h(L.trSub)} · <b>${h(monthLabel(S.month))}</b></div>
-      <div class="hoard-bar">
-        <div class="hoard-stat"><span class="hs-icon">💰</span><button class="hs-val btn-ghost sm" type="button" onclick="editIncome()">${money(S.income)} ✎</button><span class="hs-lab">${h(L.trIncome)}</span></div>
-        <div class="hoard-stat"><span class="hs-icon">🗡️</span><span class="hs-val" style="color:var(--hp)">${money(spent)}</span><span class="hs-lab">${h(L.trSpent)}</span></div>
-        <div class="hoard-stat"><span class="hs-icon">🛡️</span><span class="hs-val">${money(remaining)}</span><span class="hs-lab">${h(L.trRemaining)}</span></div>
-        <div class="hoard-stat"><span class="hs-icon">⏳</span><span class="hs-val">${forecast.daysLeft}</span><span class="hs-lab">${h(L.trDaysLeft)} · ${h(L.trDays)}</span></div>
-      </div>
-      <div class="vault">
-        <div class="vault-head"><span>🏰 ${h(L.trVault)}</span><span class="vault-state ${remaining < 0 ? 'breached' : ''}">${h(remaining < 0 ? L.trVaultBreached : vaultPct < 25 ? L.trVaultLow : L.trVaultSafe)}</span></div>
-        <div class="vault-track"><div class="vault-fill" style="width:${vaultPct}%"></div></div>
-      </div>
-    </section>
-
-    <div class="main-grid">
-      <section class="panel">
-        <div class="panel-head">
-          <h2 class="panel-title">🛡️ ${h(L.trWards)}</h2>
-          <div>
-            <button class="btn-ghost sm" type="button" onclick="openExpenseForm()">${h(L.trAddExpense)}</button>
-            <button class="btn-primary sm" type="button" onclick="openCategoryForm()">${h(L.trAddCat)}</button>
-          </div>
-        </div>
-        <div class="ward-grid">${S.categories.map(renderWard).join('')}</div>
-      </section>
-
-      <aside>
-        <section class="panel">
-          <div class="panel-head">
-            <h2 class="panel-title">🔮 ${h(L.trForecast)}</h2>
-          </div>
-          <div class="log-list forecast-stats">
-            <div class="log-row"><span>📈</span><div><div class="row-title">${money(forecast.projected)}</div><div class="row-sub">${h(L.trProjected)}</div></div><span class="row-amt">${forecast.onTrack ? h(L.trOnTrack) : h(L.trOverspend)}</span></div>
-            <div class="log-row"><span>${forecast.surplus >= 0 ? '💎' : '🔥'}</span><div><div class="row-title">${money(Math.abs(forecast.surplus))}</div><div class="row-sub">${h(forecast.surplus >= 0 ? L.trSurplus : L.trDeficit)}</div></div><span class="row-amt">${lang() === 'th' ? 'ใช้ได้เฉลี่ย' : 'Daily allowance'} ${money(forecast.dailyLeft)} / ${lang() === 'th' ? 'วัน' : 'day'}</span></div>
-            <div class="log-row"><span>📊</span><div><div class="row-title">${money(budget)}</div><div class="row-sub">${h(L.trAllocated)}</div></div><span class="row-amt">${lang() === 'th' ? 'ยังไม่จัดสรร' : 'Unallocated'} ${money((Number(S.income) || 0) - budget)}</span></div>
-          </div>
-        </section>
-        <section class="panel">
-          <div class="panel-head"><h2 class="panel-title">📜 ${h(L.trBills)}</h2><button class="btn-primary sm" type="button" onclick="openBillForm()">${h(L.trAddBill)}</button></div>
-          <div class="bill-list">${S.bills.filter(b => !b.archived).length ? S.bills.filter(b => !b.archived).map(renderBill).join('') : `<div class="row-sub">${h(L.trNoBills)}</div>`}${S.bills.filter(b => b.archived).map(b => `<button type="button" class="btn-ghost" data-restore-bill="${h(b.id)}">${lang() === 'th' ? 'นำบิลกลับมา' : 'Restore bill'} · ${h(b.name?.[lang()] || b.name)}</button>`).join('')}</div>
-        </section>
-        <section class="panel">
-          <div class="panel-head"><h2 class="panel-title">📅 ${h(L.trHistory)}</h2><span class="row-amt">XP ${treasuryXp(S)}</span></div>
-          <div class="history-list">${S.history.slice(0, 5).map(row => `<div class="history-row"><span>${row.won ? '🏆' : '💥'}</span><div><div class="row-title">${h(monthLabel(row.month))}</div><div class="row-sub">${money(row.spent)} ${h(L.trOf)} ${money(row.income)}</div></div><span class="row-amt">${h(row.won ? L.trWon : L.trLost)}</span></div>`).join('')}</div>
-          <div class="ward-actions"><button class="btn-gold sm" onclick="closeMonth()">${h(L.trCloseMonth)}</button><button class="btn-danger sm" onclick="resetTreasury()">${h(L.trReset)}</button></div>
-        </section>
-      </aside>
-    </div>
-  `;
+  const income = Number(past?.income ?? S.income) || 0;
+  const spent = past ? Number(past.spent) || 0 : totalSpent(S), remaining = income - spent;
+  const vaultPct = Math.max(0, Math.min(100, Math.round(remaining / Math.max(1,income) * 100)));
+  const forecast = projectMonth(S), budget = totalBudget(S);
+  const summaryMoney = n => '<span class="amount-full">' + money(n) + '</span><span class="amount-compact">' + (Math.abs(n) >= 10000 ? '฿' + (n / 1000).toLocaleString(lang() === 'th' ? 'th-TH' : 'en-US',{maximumFractionDigits:1}) + 'K' : money(n)) + '</span>';
+  const pendingBills = S.bills.filter(b=>!b.archived && !billPaidThisMonth(S,b.id));
+  const stat = (icon, key, value, label, editable = false) => '<' + (editable ? 'button type="button" data-action="income" aria-label="' + h(L.trSetIncome) + '"' : 'div') + ' class="hoard-stat stat-' + key + '">' + art(icon) + '<span class="stat-copy"><span class="hs-val">' + value + '</span><span class="hs-lab">' + h(label) + (editable ? ' <span aria-hidden="true">✎</span>' : '') + '</span></span></' + (editable ? 'button' : 'div') + '>';
+  const filterLabels = {all:trText('ทั้งหมด','All'),normal:trText('ปกติ','On track'),near:trText('ใกล้เกินงบ','Near limit'),over:L.trOver};
+  const filtered = S.categories.filter(c=>categoryFilter === 'all' || categoryStatus(c) === categoryFilter);
+  const filters = '<div class="category-tools"><div class="category-filters" role="group" aria-label="' + h(trText('กรองหมวดหมู่','Filter categories')) + '">' + Object.entries(filterLabels).map(([key,label])=>'<button type="button" data-filter="' + key + '" aria-pressed="' + (categoryFilter === key) + '">' + h(label) + ' <span>(' + S.categories.filter(c=>key === 'all'||categoryStatus(c) === key).length + ')</span></button>').join('') + '</div></div>';
+  const wards = filters + '<div class="ward-grid">' + (filtered.length ? filtered.map(renderWard).join('') : '<div class="empty-state">' + art('chest') + '<p>' + h(S.categories.length ? trText('ไม่มีหมวดในกลุ่มนี้','No categories in this group') : trText('เริ่มวางแผนด้วยงบหมวดแรกของคุณ','Start planning with your first budget category')) + '</p></div>') + '</div><button type="button" class="btn-ghost category-add" data-action="category">＋ ' + h(L.trAddCat) + '</button>';
+  const forecastBody = '<div class="forecast-stats"><div class="forecast-row">' + art('forecast') + '<div><span class="row-sub">' + h(trText('คาดใช้จ่ายสิ้นเดือน','Projected spending')) + '</span><strong>' + money(forecast.projected) + '</strong></div><span class="status-pill ' + (forecast.onTrack?'safe':'over') + '">' + h(forecast.onTrack?L.trOnTrack:L.trOverspend) + '</span></div><div class="forecast-row">' + art('coins') + '<div><span class="row-sub">' + h(trText('ใช้ได้เฉลี่ยต่อวัน','Daily allowance')) + '</span><strong>' + money(forecast.dailyLeft) + ' <small>/ ' + h(L.trDays) + '</small></strong></div></div><div class="forecast-row forecast-surplus"><span class="row-sub">' + h(forecast.surplus >= 0?L.trSurplus:L.trDeficit) + '</span><strong class="' + (forecast.surplus >= 0?'positive':'negative') + '">' + money(Math.abs(forecast.surplus)) + '</strong></div></div><div class="forecast-categories">' + S.categories.map(c=>'<button type="button" class="forecast-category" data-action="category" data-id="' + h(c.id) + '">' + categoryIcon(c) + '<span>' + h(catName(c)) + '<small>' + money(catSpent(S,c.id)) + ' / ' + money(c.budget) + '</small></span><span aria-hidden="true">›</span></button>').join('') + '</div><div class="allocation"><span>' + h(L.trAllocated) + '<strong>' + money(budget) + '</strong></span><span>' + h(budget>income?trText('จัดเกินรายรับ','Over-allocated'):L.trUnalloc) + '<strong class="' + (budget>income?'negative':'') + '">' + money(Math.abs(income-budget)) + '</strong></span></div>';
+  const bills = '<p class="section-help">' + h(trText('ติดตามบิลประจำและบันทึกเมื่อชำระแล้ว','Track recurring bills and record payments.')) + '</p><div class="bill-list">' + (S.bills.filter(b=>!b.archived).map(renderBill).join('') || '<p class="row-sub">' + h(L.trNoBills) + '</p>') + S.bills.filter(b=>b.archived).map(b=>'<button type="button" class="btn-ghost" data-restore-bill="' + h(b.id) + '">' + h(trText('นำบิลกลับมา','Restore bill')) + ' · ' + h(catName(b)) + '</button>').join('') + '</div><button type="button" class="btn-ghost category-add" data-action="bill">＋ ' + h(L.trAddBill) + '</button>';
+  const history = '<div class="history-list">' + (S.history.slice().sort((a,b)=>b.month.localeCompare(a.month)).map(row=>'<button type="button" class="history-row" data-month="' + h(row.month) + '"><span aria-hidden="true">' + (row.won?'✓':'!') + '</span><span><strong>' + h(monthLabel(row.month)) + '</strong><small>' + money(row.spent) + ' / ' + money(row.income) + '</small></span><span class="' + (row.won?'positive':'negative') + '">' + h(row.won?L.trWon:L.trLost) + ' ›</span></button>').join('') || '<p class="row-sub">' + h(trText('ยังไม่มีสรุปเดือน','No monthly summaries yet')) + '</p>') + '</div><div class="history-xp">XP ' + treasuryXp(S) + ' · ' + h(L.trMonthsWon) + ' ' + wonMonthCount() + '</div><div class="ward-actions"><button type="button" class="btn-gold" data-action="close-month">' + h(L.trCloseMonth) + '</button><button type="button" class="btn-danger" data-action="reset">' + h(L.trReset) + '</button></div>';
+  document.getElementById('app').innerHTML = '<section class="treasury-overview"><div class="treasury-hero"><div class="hero-title">' + art('chest') + '<h1>' + h(L.trTitle) + '</h1></div><p class="hero-sub">' + h(trText('ปกป้องคลังประจำเดือน — ตั้งงบ คุมค่าใช้จ่าย และเก็บเป้าหมายการผจญภัย','Protect your monthly vault. Plan, spend wisely, and save for your next quest.')) + '</p><div class="month-picker"><button type="button" data-month-step="-1" aria-label="' + h(trText('เดือนก่อนหน้า','Previous month')) + '" ' + (index<=0?'disabled':'') + '>‹</button><select id="treasury-month" aria-label="' + h(trText('เลือกเดือน','Choose month')) + '">' + months.map(m=>'<option value="' + h(m) + '" ' + (m===activeMonth?'selected':'') + '>' + h(monthLabel(m)) + '</option>').join('') + '</select><button type="button" data-month-step="1" aria-label="' + h(trText('เดือนถัดไป','Next month')) + '" ' + (index>=months.length-1?'disabled':'') + '>›</button></div><button type="button" class="btn-primary hero-add" data-action="' + (past?'current':'expense') + '">＋ ' + h(past?trText('กลับเดือนนี้','Back to this month'):L.trAddExpense) + '</button></div><div class="overview-content"><div class="hoard-bar">' + stat('coins','income',summaryMoney(income),trText('รายรับทั้งหมด','Income'),!past) + stat('swords','spent',summaryMoney(spent),L.trSpent) + stat('chest','remaining',summaryMoney(remaining),L.trRemaining) + stat('hourglass','days',past?'—':forecast.daysLeft,trText('วันคงเหลือ','Days left')) + '</div><div class="vault ' + (remaining<0?'breached':'') + '">' + art('chest') + '<span class="vault-label">' + h(trText('สถานะคลัง','Vault status')) + '</span><div class="vault-track" role="meter" aria-label="' + h(L.trRemaining) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + vaultPct + '"><div class="vault-fill" style="width:' + vaultPct + '%"></div></div><span class="vault-percent">' + vaultPct + '%<span> ' + h(trText('ของรายรับเดือนนี้','of monthly income')) + '</span></span>' + (remaining<0?'<strong class="negative">' + h(L.trOver) + '</strong>':'') + '</div><button type="button" class="btn-primary overview-add" data-action="' + (past?'current':'expense') + '">＋ ' + h(past?trText('กลับเดือนนี้','Back to this month'):L.trAddExpense) + '</button></div></section>' + (past ? renderHistoricalMonth(past) : '<div class="main-grid">' + section('wards','home',trText('หมวดงบของฉัน','My budgets'),wards,S.categories.length) + '<aside>' + section('forecast','forecast',L.trForecast,forecastBody) + section('bills','history',trText('บิลและรายการที่ต้องจ่าย','Bills & payments'),bills,pendingBills.length || '') + section('history','history',trText('ประวัติเดือน','Monthly history'),history) + '</aside></div>') + '<cq-footer></cq-footer>';
+  document.querySelectorAll('.treasury-section').forEach(el=>el.querySelector('summary').addEventListener('click',()=>sectionState.set(el.id.replace('section-',''),!el.open)));
+  document.querySelectorAll('.ward-card').forEach(el=>el.querySelector('summary').addEventListener('click',()=>!el.open?categoryState.add(el.dataset.categoryId):categoryState.delete(el.dataset.categoryId)));
+}
+function renderHistoricalMonth(row) {
+  const expenses = Array.isArray(row.expenses) ? row.expenses : null;
+  return '<section class="panel historical-month"><div class="historical-heading">' + art('history') + '<div><h2>' + h(trText('สรุปเดือน','Monthly summary')) + ' · ' + h(monthLabel(row.month)) + '</h2><p class="' + (row.won?'positive':'negative') + '">' + h(row.won?st().trWon:st().trLost) + ' · ' + money(Math.abs(row.surplus)) + ' ' + h(row.surplus>=0?st().trLeft:st().trOver) + '</p></div><button type="button" class="btn-ghost" data-action="current">' + h(trText('กลับเดือนนี้','This month')) + '</button></div><div class="log-list">' + (expenses ? expenses.map(renderExpenseRow).join('') || '<p class="row-sub">' + h(trText('ไม่มีรายจ่ายในเดือนนี้','No expenses this month')) + '</p>' : '<p class="row-sub">' + h(trText('เดือนนี้มีเฉพาะยอดสรุป ไม่มีรายการรายจ่ายที่บันทึกไว้','Only totals were saved for this month; individual expenses are unavailable.')) + '</p>') + '</div></section>';
+}
+function renderExpenseRow(e) {
+  return '<div class="log-row"><span aria-hidden="true">▤</span><div><div class="row-title">' + h(e.note || st().trAddExpense) + '</div><div class="row-sub">' + h(e.date || '') + '</div></div><span class="row-amt negative">−' + money(e.amount) + '</span></div>';
 }
 function renderWard(cat) {
-  const L = st();
-  const spent = catSpent(S, cat.id);
-  const budget = Math.max(1, Number(cat.budget) || 0);
-  const pct = Math.min(100, Math.round((spent / budget) * 100));
-  const over = spent > budget;
-  const recent = S.expenses.filter(e => e.catId === cat.id).slice(-2).reverse();
-  return `<article class="ward-card ${over ? 'breached' : ''}">
-    <div class="ward-top">
-      <span class="ward-glyph">${h(cat.glyph || '📦')}</span>
-      <div class="ward-id"><div class="ward-name">${h(cat.name?.[lang()] || cat.name?.en || cat.name || '')}</div><div class="ward-monster">${over ? '🔥' : '🛡️'} ${h(cat.monster?.[lang()] || cat.monster?.en || L.trMonster)}</div></div>
-      <button class="btn-ghost sm" onclick="openCategoryForm('${h(cat.id)}')">✎</button>
-    </div>
-    <div class="ward-bar-track"><div class="ward-bar-fill" style="width:${pct}%"></div></div>
-    <div class="ward-nums"><span class="ward-spent ${over ? 'over' : ''}">${money(spent)}</span><span>${money(budget)}</span></div>
-    <div class="ward-status"><span class="ward-tag ${over ? 'breach' : 'hold'}">${over ? `${h(L.trOver)} ${money(spent - budget)}` : `${money(budget - spent)} ${h(L.trLeft)}`}</span><span>${pct}%</span></div>
-    <div class="log-list" style="margin-top:12px">${recent.length ? recent.map(e => `<div class="log-row"><span>${e.billId ? '🔁' : '🧾'}</span><div><div class="row-title">${h(e.note || L.trAddExpense)}</div><div class="row-sub">${h(e.date || '')}</div></div><span class="row-amt">-${money(e.amount)}</span></div>`).join('') : `<div class="row-sub">${h(L.trNoExpenses)}</div>`}</div>
-    <div class="ward-actions"><button class="btn-primary sm" onclick="openExpenseForm('${h(cat.id)}')">＋ ${h(L.trAddExpense)}</button></div>
-  </article>`;
+  const L=st(), spent=catSpent(S,cat.id), budget=Number(cat.budget)||0;
+  const ratio=budget>0?Math.round(spent/budget*100):spent>0?100:0, pct=Math.min(100,ratio);
+  const over=spent>budget, recent=S.expenses.filter(e=>e.catId===cat.id).slice(-2).reverse();
+  return '<details class="ward-card ' + (over?'breached':'') + '" data-category-id="' + h(cat.id) + '" ' + (innerWidth>=1100||categoryState.has(cat.id)?'open':'') + '><summary><span class="ward-top">' + categoryIcon(cat) + '<span class="ward-name">' + h(catName(cat)) + '</span><span class="ward-edit-hint" aria-hidden="true">›</span></span><span class="ward-bar-track"><span class="ward-bar-fill" style="width:' + pct + '%"></span></span><span class="ward-mini-percent">' + ratio + '%</span></summary><div class="ward-content"><div class="ward-nums"><span><strong>' + money(spent) + '</strong> / ' + money(budget) + '</span><span>' + ratio + '%</span></div><div class="ward-status ' + (over?'negative':'positive') + '">' + (over?h(L.trOver)+' '+money(spent-budget):money(budget-spent)+' '+h(L.trLeft)) + '</div><div class="log-list">' + (recent.length?recent.map(renderExpenseRow).join(''):'<p class="row-sub">' + h(L.trNoExpenses) + '</p>') + '</div><button type="button" class="btn-primary" data-action="expense" data-id="' + h(cat.id) + '">＋ ' + h(L.trAddExpense) + '</button><button type="button" class="ward-edit btn-ghost" data-action="category" data-id="' + h(cat.id) + '" aria-label="' + h(L.trEditCat+' '+catName(cat)) + '"><span aria-hidden="true">✎</span><span class="edit-caption">' + h(L.trEditCat) + '</span></button></div></details>';
 }
 function renderBill(bill) {
   const L = st();
@@ -427,7 +402,7 @@ function renderBill(bill) {
   return `<div class="bill-row ${due?.overdue ? 'overdue' : ''}">
     <span>${h(bill.glyph || '📜')}</span>
     <div><div class="row-title">${h(bill.name?.[lang()] || bill.name?.en || bill.name || '')}</div><div class="row-sub">${h(cat?.name?.[lang()] || '')} · ${h(L.trDueDay)} ${h(bill.dueDay)} · ${h(statusTextForBill(bill))}</div></div>
-    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap"><span class="row-amt">${money(bill.amount)}</span>${due?.paid ? `<span class="row-sub">✓</span>` : `<button class="btn-primary sm" onclick="payBill('${h(bill.id)}')">${h(L.trPayBill)}</button>`}<button class="btn-ghost sm" onclick="openBillForm('${h(bill.id)}')">✎</button></div>
+    <div class="bill-actions"><span class="row-amt">${money(bill.amount)}</span>${due?.paid ? `<span class="row-sub">✓ ${h(L.trPaid)}</span>` : `<button type="button" class="btn-primary sm" data-action="pay" data-id="${h(bill.id)}">${h(L.trPayBill)}</button>`}<button type="button" class="btn-ghost sm" data-action="bill" data-id="${h(bill.id)}" aria-label="${h(trText('แก้ไขบิล','Edit bill')+' '+catName(bill))}">✎</button></div>
   </div>`;
 }
 function localToday() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
@@ -446,7 +421,7 @@ function openExpenseForm(catId = '') {
   const today = localToday();
   mountModal(L.trAddExpense, `<div class="form-grid">
     <label class="field">${h(L.trCategory)}<select id="expense-cat">${S.categories.map(c => `<option value="${h(c.id)}" ${catId === c.id ? 'selected' : ''}>${h(c.glyph)} ${h(c.name?.[lang()] || c.name?.en || c.name)}</option>`).join('')}</select></label>
-    <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="expense-amount" type="text" inputmode="decimal" placeholder="0" oninput="PointyLogic.formatNumberInputElement(this)"></label><label class="field">Date<input id="expense-date" type="date" value="${today}"></label></div>
+    <div class="form-grid two"><label class="field">${h(L.trAmount)}<input id="expense-amount" type="text" inputmode="decimal" placeholder="0" oninput="PointyLogic.formatNumberInputElement(this)"></label><label class="field">${h(trText('วันที่','Date'))}<input id="expense-date" type="date" min="${S.month}-01" max="${isoDay(S.month,31)}" value="${today}"></label></div>
     <label class="field">${h(L.trNote)}<input id="expense-note" maxlength="120" placeholder="${h(L.trNotePh)}"></label>
     <button class="btn-primary" onclick="saveExpense()">${h(L.trLogExpense)}</button>
   </div>`);
@@ -463,6 +438,9 @@ function saveExpense(extra = {}) {
   } catch (error) { toast(error.message); return; }
   S.expenses.push({ id: truid(), catId, amount, note, date, ...extra });
   S.stats = { ...(S.stats || {}), logged: (S.stats?.logged || 0) + 1, onTime: (S.stats?.onTime || 0) + (extra.onTime ? 1 : 0) };
+  sectionState.set('wards',true);
+  categoryState.add(catId);
+  categoryFilter = 'all';
   save(); closeModal(); toast(L.trLogged); render();
 }
 function openCategoryForm(id = '') {
@@ -473,7 +451,7 @@ function openCategoryForm(id = '') {
     <label class="field">Icon<select id="cat-glyph">${glyphs.map(g => `<option value="${h(g)}" ${cat?.glyph === g ? 'selected' : ''}>${h(g)}</option>`).join('')}</select></label>
     <label class="field">${h(L.trCatName)}<input id="cat-name" maxlength="80" value="${h(cat?.name?.[lang()] || cat?.name?.en || '')}"></label>
     <label class="field">${h(L.trMonster)}<input id="cat-monster" maxlength="80" value="${h(cat?.monster?.[lang()] || cat?.monster?.en || '')}"></label>
-    <label class="field">${h(L.trBudget)}<input id="cat-budget" type="text" inputmode="decimal" value="${h(fmtInput(cat?.budget || 3000))}" oninput="PointyLogic.formatNumberInputElement(this)"></label>
+    <label class="field">${h(L.trBudget)}<input id="cat-budget" type="text" inputmode="decimal" value="${h(fmtInput(cat?.budget ?? 3000))}" oninput="PointyLogic.formatNumberInputElement(this)"></label>
     <div class="ward-actions">${cat ? `<button class="btn-danger" onclick="deleteCategory('${h(cat.id)}')">${h(L.trDelete)}</button>` : ''}<button class="btn-primary" onclick="saveCategory('${h(cat?.id || '')}')">${h(L.trSave)}</button></div>
   </div>`);
 }
@@ -486,6 +464,8 @@ function saveCategory(id = '') {
   } catch (error) { toast(error.message); return; }
   if (id) S.categories = S.categories.map(c => c.id === id ? { ...c, ...data } : c);
   else S.categories.push({ id: truid(), ...data });
+  sectionState.set('wards',true);
+  categoryFilter = 'all';
   save(); closeModal(); render();
 }
 function deleteCategory(id) {
@@ -497,6 +477,7 @@ function deleteCategory(id) {
   save(); closeModal(); render();
 }
 function openBillForm(id = '') {
+  if (!S.categories.length) { toast(trText('เพิ่มหมวดงบประมาณก่อนสร้างบิล','Add a budget category before creating a bill')); openCategoryForm(); return; }
   const L = st();
   const bill = S.bills.find(b => b.id === id);
   const glyphs = ['📜', '🏠', '⚡', '📶', '📺', '🏋️', '🚗', '💳', '💧'];
@@ -518,6 +499,7 @@ function saveBill(id = '') {
   } catch (error) { toast(error.message); return; }
   if (id) S.bills = S.bills.map(b => b.id === id ? { ...b, ...data } : b);
   else S.bills.push({ id: truid(), ...data });
+  sectionState.set('bills',true);
   save(); closeModal(); render();
 }
 function deleteBill(id) {
@@ -546,18 +528,46 @@ function closeMonth() {
 }
 function resetTreasury() {
   if (!confirm(st().trResetConfirm)) return;
-  S = freshTreasury();
+  S = blankTreasury();
+  viewedMonth = null;
+  categoryFilter = 'all';
   save(); render();
 }
 
 window.billDueStatus = billDueStatus;
 document.getElementById('app').addEventListener('click', event => { const button = event.target.closest('[data-restore-bill]'); if (!button) return; S.bills = S.bills.map(b => b.id === button.dataset.restoreBill ? { ...b, archived: false } : b); save(); render(); });
 window.treasuryXp = treasuryXp;
+document.getElementById('app').addEventListener('change', event => {
+  if (event.target.id === 'treasury-month') showMonth(event.target.value);
+});
+document.getElementById('app').addEventListener('click', event => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  if (button.dataset.monthStep) return stepMonth(Number(button.dataset.monthStep));
+  if (button.dataset.month) return showMonth(button.dataset.month);
+  if (button.dataset.filter) {
+    categoryFilter = button.dataset.filter; render();
+    document.querySelector('[data-filter="'+categoryFilter+'"]')?.focus();
+    return;
+  }
+  const id = button.dataset.id || '';
+  switch (button.dataset.action) {
+    case 'income': editIncome(); break;
+    case 'expense': openExpenseForm(id); break;
+    case 'category': openCategoryForm(id); break;
+    case 'bill': openBillForm(id); break;
+    case 'pay': payBill(id); break;
+    case 'close-month': closeMonth(); break;
+    case 'reset': resetTreasury(); break;
+    case 'current': showMonth(S.month); break;
+  }
+});
 window.projectMonth = projectMonth;
 window.monthKey = monthKey;
 window.totalSpent = totalSpent;
 window.catSpent = catSpent;
 window.setTheme = setTheme;
+for (const breakpoint of [600,1100]) matchMedia('(min-width: '+breakpoint+'px)').addEventListener('change',()=>render());
 
 setTheme(currentGlobalTheme('tavern'));
 render();

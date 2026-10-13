@@ -1,0 +1,135 @@
+{
+  "createdAt": "2026-10-13T13:03:58.409Z",
+  "baseCommit": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "sourceState": "Uncommitted working tree; no deploy",
+  "route": "http://127.0.0.1:4569/",
+  "data": "Anonymous production-mode frontend with stubbed Firebase transport; English dark screenshot uses synthetic TEST draft",
+  "viewports": {
+    "desktop": {
+      "width": 1440,
+      "height": 900
+    },
+    "tablet": {
+      "width": 768,
+      "height": 1024
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "files": {
+    "shared/profile-login.js": "eeeedcfd865b09cc38ca15a3f7e7beb560db305bd1bac95c81b53b6309323dd5",
+    "shared/profile-hub.js": "2b4334d84af43f0a20441ebac67891e936e8559b825c3e594a7ccba352f7892b",
+    "shared/profile-hub.css": "08bc3c0ed6f9627915a9fac66ce4ce277a873257ae803c044fc3ccb1a497083f",
+    "shared/quest-icons.js": "985b25c158b887a414efe8eacbeaafae1868308fd17b78b5c3c247995c27345a",
+    "tests/e2e/account-persistence.spec.mjs": "27b7cfc780dcefc3b87948e34051db202821a3e102d8cfed3afc709b880ad7c6",
+    "scripts/check-assets.mjs": "34d98b2a4102d5742b27c749ffdf440c9a7f09ecf14e15d7c9b4cf2dcf439967"
+  },
+  "assets": {
+    "assets/auth-reference/guild-banner.webp": "f31c52f814d6e02666a20930d9dd91a37ff1d8055191d4015380118ef16c1cc7",
+    "assets/auth-reference/owl-note.webp": "d54a8c536f0fefb166f4eee195c83735f3fb5b7bb9820f184482a25ee646a522",
+    "assets/auth-reference/tavern-mobile.webp": "337bcfada15cda9ae45449bec5d0ee10749ec4712a6f91122a6935295e76a3c7",
+    "assets/auth-reference/tavern.webp": "48115b1db527fab4a5074da5e1cb89389944086390e363305828ef7077f9853b"
+  },
+  "inspectedCaptures": [
+    {
+      "file": "qa/auth-1440-in-top.png",
+      "sha256": "27fea910f05f504cc11b5795359155c106eb03eeba3737832369a9a58b274528",
+      "scroll": "Gate at top",
+      "state": "Thai Login, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-1440-up-top.png",
+      "sha256": "2175bb7c6708d164cc4951e00c3451a9a2c621cc54cca60ddf9cf731a6d8cb72",
+      "scroll": "Gate at top",
+      "state": "Thai Signup, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-1440-up-bottom.png",
+      "sha256": "6f18e05b549ad6bdcd5b7b905e7effce914f91f0b08a619850c4190243090d29",
+      "scroll": "Gate scrolled to bottom",
+      "state": "Thai Signup, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-768-in-top.png",
+      "sha256": "a8f21d63545fe6ffc32c586fea9208d846007a3790ece19e95cbcd217e173087",
+      "scroll": "Gate at top",
+      "state": "Thai Login, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-768-up-top.png",
+      "sha256": "7d87a12a680d01c578a235211d52fc96c6bf75dbbcc47cdc4b75b18ad4ca3608",
+      "scroll": "Gate at top",
+      "state": "Thai Signup, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-390-in-top.png",
+      "sha256": "c7ae0ca0affa516533bbe0f3d671a89a6c6ce7f343afe3618173a5d49d21afce",
+      "scroll": "Gate at top",
+      "state": "Thai Login, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-390-up-top.png",
+      "sha256": "d7175cbb0fe0f9461733b44ff49178ad7945f7a8c8fb1a8a8aeb773e9fd865b6",
+      "scroll": "Gate at top",
+      "state": "Thai Signup, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-390-up-bottom.png",
+      "sha256": "a824a9db6213ca3595c383945515f244cb8dc2286d559a24e7a530337559ff12",
+      "scroll": "Gate scrolled to bottom",
+      "state": "Thai Signup, empty",
+      "personallyInspected": true
+    },
+    {
+      "file": "qa/auth-390-signup-english-dark-top.png",
+      "sha256": "02c04665b3dedc71bf473031772a0548cd88597c2c18ca51ce6dc200bb5c6547",
+      "scroll": "Gate at top",
+      "state": "English/dark Signup TEST draft",
+      "personallyInspected": true
+    }
+  ],
+  "verification": {
+    "chromiumTargetedTests": 9,
+    "touchSignupRoundTrips": 2,
+    "visualCasesRerunAfterFinalCSS": 4,
+    "syntax": "48 browser scripts and 22 module files pass",
+    "assets": "76 deployed local assets and 47 optional CDN manifest entries pass",
+    "diffCheck": "pass",
+    "notRun": [
+      "Production Firebase writes",
+      "native Simulator",
+      "Safari engine/real software keyboard",
+      "whole-game suite",
+      "push/deploy"
+    ]
+  },
+  "references": [
+    {
+      "viewport": "mobile",
+      "file": "reference-mobile.png",
+      "source": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-ed68e1ff-a1c4-43c5-a374-8f705098e240.png",
+      "sha256": "f68c3374adfd2e0e1990f2117390b6596fae5eb653091e7644b0eacd8876c761"
+    },
+    {
+      "viewport": "tablet",
+      "file": "reference-tablet.png",
+      "source": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-a953fc17-6423-459d-8891-68cbe257e008.png",
+      "sha256": "6edbeaad5a872552e3a851a330bcab73ff099db7488828b691e850a9164a32de"
+    },
+    {
+      "viewport": "desktop",
+      "file": "reference-desktop.png",
+      "source": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-2417a97f-fae8-4534-9f42-4f6b2bef7260.png",
+      "sha256": "84b0f43f7f61295000656c1caa19eff38f599b2291bcf2e88e399b8d02a74304"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "generator": "Built-in image_gen",
+  "assets": [
+    {
+      "path": "assets/auth-reference/tavern.webp",
+      "prompt": "Use case: stylized-concept. Production background asset for Coin Quest Ledger authentication. Reference image is only art direction; produce ONLY the medieval tavern interior artwork, absolutely NO UI, text, lettering, icons, banner, owl, frames or annotations. Wide landscape 3:2 composition. Match the reference's softly painterly 3D fantasy game illustration, muted honey amber and warm walnut timbers. Spacious cozy tavern, heavy carved ceiling beams and wooden posts, hanging lanterns with warm flame, glowing pointed leaded windows in distance, benches, a wooden counter along foreground lower edge, deep green vines around side edges. Camera looks into tavern at eye level. Upper left is dark wood negative space, center softly hazy and quieter behind where a form will later overlay, right an arched window and curved wood staircase. Detailed material texture but soft depth of field. Inviting amber pools of light and deep warm brown shadow, not orange saturated. No people, no lettering, no watermarks. Landscape full bleed.",
+      "source": "exec-6ffe42b5-e7de-4ae7-ad2b-265931905b84.png"
+    },
+    {
+      "path": "assets/auth-reference/tavern-mobile.webp",
+      "prompt": "Use case: stylized-concept. Production background illustration for MOBILE login, vertical 2:3 portrait. Style matches reference warm softly painterly fantasy tavern art. Create ONLY the tavern interior environment, no UI/card/banners/text/owls. Compose close to the interior: old dark oak beams overhead, warm amber hanging lantern in UPPER LEFT around 20 percent down, decorative dark green ivy framing top right and bottom side corners, narrow softly glowing arched windows in distance, big vertical wood posts at left/right edges, quiet hazy brown center behind a future form overlay, wooden counter at bottom with a few scattered gold coins, plants along lower corners. Intimate vertical scene warmly lit like supplied mobile mockup. Saturated enough to be rich but muted amber and forest-green, no orange cast, gentle depth-of-field. No letters, no people, no white area, no device frame or mockup labels.",
+      "source": "exec-212cd018-c5f4-43e2-a812-c83b487ca1a0.png"
+    },
+    {
+      "path": "assets/auth-reference/guild-banner.webp",
+      "prompt": "Use case: stylized-concept. Isolated production web decorative asset, genuine transparent background. Match the hanging brown banner in the supplied reference image. Create only ONE vertical medieval tavern guild banner: rich warm dark brown leather/cloth, subtle weave folds, gilt thin edge stitching, scalloped point at bottom, an old wooden rod across top with two small hanging iron rings/chains. In top quarter an ornate GOLD compass sunburst emblem. Under it stacked elegant gold serif typography reads exactly \"Coin\" then \"Quest\" then \"Ledger\". Keep these three lines large, clean and readable. Banner about 2:3 proportion, straight-on, no perspective slant. Entire object visible with small margin, no cropped edge. Soft painterly fantasy RPG game illustration, detailed like the screenshot. No scene behind, NO additional text, no white box, no UI.",
+      "source": "exec-276f469d-ed86-4b58-bb5c-f7b1bb51e228.png"
+    },
+    {
+      "path": "assets/auth-reference/owl-note.webp",
+      "prompt": "Use case: stylized-concept. Transparent-background decorative production web asset matching the supplied fantasy tavern login art. A charming small illustrated brown and cream owl with amber eyes, perched at the LEFT bottom corner of a wide aged parchment sign. The parchment is warm cream, browned curled irregular edges, tiny brass corner studs, completely BLANK center and right suitable for HTML text to be added later. One complete isolated object, horizontal 2:1 composition with 5% clear transparent margin, NO writing, no letters, no UI, no background, no ambient rectangle or black vignette. Soft painterly fantasy RPG storybook rendering, outlined feathers and expressive friendly owl. Reference is only style guide; extract this decorative motif from bottom left of desktop view.",
+      "source": "exec-7c4a8d9b-17e4-42b0-81f4-755f8df07ae6.png"
+    }
+  ]
+}

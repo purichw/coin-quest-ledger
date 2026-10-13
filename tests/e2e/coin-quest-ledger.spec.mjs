@@ -6,6 +6,7 @@ import {
   adminTestApp,
   chooseWarriorMale,
   cleanupRealAccount,
+  expandBoardSection,
   gotoFreshTrip,
   requestPermanentDelete,
   serviceAccountFromEnv,
@@ -204,7 +205,7 @@ test('expense splitter supports admin URL setup, character IDs, admin unlock, an
   await expect(page.locator('#party-grid')).toContainText('Shane');
   await expect(page.locator('#party-grid')).toContainText(/#\d{4}/);
 
-  await page.getByLabel('Settings').click();
+  await page.locator('.board-banner-actions [data-action="settings"]').click();
   await expect(page.getByText('ปลดล็อกเพื่อดูและแก้ไขข้อมูลแอดมิน')).toBeVisible();
   await page.locator('#admin-pass').fill('hero-pass');
   await page.getByRole('button', { name: 'ปลดล็อก' }).click();
@@ -214,6 +215,7 @@ test('expense splitter supports admin URL setup, character IDs, admin unlock, an
 test('expense splitter starts new trips with a 4 digit URL and creator admin', async ({ page }) => {
   await gotoFreshTrip(page, 'new-url');
   await addWarrior(page, 'Shane');
+  await expandBoardSection(page, 'log');
 
   await page.getByRole('button', { name: /ออกเดินทางใหม่/ }).click();
   await expect(page.getByText('กำหนด URL เกมเป็นเลข 4 หลัก')).toBeVisible();
@@ -252,6 +254,7 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
   await expect(page.locator('.admin-table')).toBeVisible();
 
   await page.locator('.picker-close').click();
+  await expandBoardSection(page, 'log');
   await page.getByRole('button', { name: /ออกเดินทางใหม่/ }).click();
   await page.locator('#new-trip-code').fill('2470');
   await page.locator('#new-trip-admin-pass').fill('captain-2470');
@@ -291,8 +294,8 @@ test('expense splitter opens board chooser before uncoded boards', async ({ page
   });
   await page.goto('/trip/?test=1');
 
-  await expect(page.locator('.bc-choose')).toBeVisible();
-  await expect(page.locator('.bc-title')).toHaveText('แบ่งค่าใช้จ่าย');
+  await expect(page.locator('.be-tabs')).toBeVisible();
+  await expect(page.locator('.be-hero h1')).toHaveText('แบ่งค่าใช้จ่าย');
   await expect(page.locator('.banner')).toHaveCount(0);
   await expect(page.locator('#quick-toggles')).toBeEmpty();
   await expect(page.locator('.settings-fab')).toHaveClass(/hidden/);
@@ -300,14 +303,15 @@ test('expense splitter opens board chooser before uncoded boards', async ({ page
   const landingOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(landingOverflow).toBe(false);
 
-  await page.locator('.bc-opt').nth(1).click();
-  await expect(page.locator('.bc-form')).toBeVisible();
-  await page.locator('.bc-sample').first().click();
+  await page.locator('[data-board-mode="join"]').click();
+  await expect(page.locator('#be-join-form')).toBeVisible();
+  await page.locator('.be-demo summary').click();
+  await page.locator('[data-entry-sample]').first().click();
   await expect(page.locator('#bc-code')).toHaveValue('4821');
-  await page.locator('.bc-form .btn-primary').click();
+  await page.locator('.be-join-button').click();
 
   await expect(page).toHaveURL(/id=4821/);
-  await expect(page.locator('.banner')).toBeVisible();
+  await expect(page.locator('.board-banner')).toBeVisible();
   await expect(page.locator('#trip-name-display')).toContainText('ทริปเขาใหญ่');
   await expect(page.locator('#party-count')).toHaveText('3');
 });
@@ -324,6 +328,7 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
   await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
   await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
 
+  await page.locator('[data-board-details]').click();
   await expect(page.locator('.hc-skin')).toHaveCount(1);
   await page.locator('.hc-skin').click();
   await expect(page.locator('.skin-pop')).toContainText('ดั้งเดิม');
@@ -384,12 +389,12 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await expect(page.locator('#party-count')).toHaveText('2');
 
   await page.locator('#exp-desc').fill('Dinner');
-  await page.locator('.qf-top .icon-btn').click();
+  await page.locator('.board-description .icon-btn').click();
   await expect(page.locator('.icon-pop.labeled')).toBeVisible();
   await expect(page.locator('.icon-opt .qi')).toHaveCount(18);
   await expect(page.locator('.io-lab', { hasText: 'อาหาร' })).toBeVisible();
   await page.locator('.icon-opt', { hasText: 'กาแฟ' }).click();
-  await expect(page.locator('.qf-top .icon-btn .qi')).toBeVisible();
+  await expect(page.locator('.board-description .icon-btn .qi')).toBeVisible();
   await page.locator('#exp-amount').fill('1000');
   await page.getByRole('button', { name: '✓ ทั้งปาร์ตี้' }).click();
   await page.getByRole('button', { name: 'ระบุเอง' }).click();
@@ -398,7 +403,7 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await page.getByRole('button', { name: '＋ หลายคนจ่าย' }).click();
   await page.locator('.payer-value[data-name="Shane"]').fill('600');
   await page.locator('.payer-value[data-name="Pointy"]').fill('400');
-  await page.getByRole('button', { name: '⚔️ บันทึกเควส' }).click();
+  await page.locator('[data-entry-action="add-expense"]').click();
 
   await expect(page.locator('#party-total')).toHaveText('฿1,000');
   await expect(page.locator('#quest-log')).toContainText('Shane ฿300');
@@ -410,7 +415,8 @@ test('expense splitter supports duplicate avatars, multi-payer exact split, sett
   await expect(page.locator('#party-grid')).toContainText('−฿300');
   await expect(page.locator('#settle-body')).toContainText('฿300');
 
-  await page.getByRole('button', { name: /ส่งบรรณาการ/ }).click();
+  await expandBoardSection(page, 'settle');
+  await page.locator('.tribute .btn-primary').click();
   await expect(page.getByText('ตั้งพร้อมเพย์ของผู้รับก่อนสร้าง QR')).toBeVisible();
   await page.locator('#promptpay-input').fill('0812345678');
   await page.getByRole('button', { name: 'บันทึกพร้อมเพย์' }).click();
@@ -440,7 +446,7 @@ test('expense splitter supports itemized loot split, receipt date, and quest boa
   await page.locator('.loot-amount').nth(1).fill('100');
   await expect(page.locator('#exp-amount')).toHaveValue('400');
   await page.locator('#exp-date').fill('2026-06-14T18:30');
-  await page.getByRole('button', { name: '⚔️ บันทึกเควส' }).click();
+  await page.locator('[data-entry-action="add-expense"]').click();
 
   await expect(page.locator('#quest-log')).toContainText('แยกของ');
   await expect(page.locator('#quest-log')).toContainText('Shane ฿350');
@@ -469,6 +475,7 @@ test('native JSON and exported Excel round trip preserve payers and exact shares
   await expect(page.locator('#expense-count')).toHaveText('1');
   await expect(page.locator('#party-total')).toHaveText('฿100');
   await expect(page.locator('#party-grid')).toContainText('Guest');
+  await expandBoardSection(page, 'log');
   await expect(page.getByRole('button', { name: 'ดูใบเสร็จ', exact: true })).toHaveCount(1);
   await expect(page.locator('#settle-body')).toContainText('฿40');
   const downloadPromise = page.waitForEvent('download');
@@ -487,8 +494,8 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
   await addWarrior(page, 'Shane');
   await addWarrior(page, 'Pointy');
 
-  await page.getByRole('button', { name: 'Settings' }).click();
-  await page.getByRole('button', { name: 'ดันเจียน' }).click();
+  await page.locator('.board-banner-actions [data-action="settings"]').click();
+  await page.getByRole('button', { name: 'ดันเจียน', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-theme', 'dungeon');
   await page.locator('.picker-close').click();
 
@@ -502,6 +509,7 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
   await page.getByRole('button', { name: '📥 นำเข้าข้อความ' }).click();
   await expect(page.locator('#expense-count')).toHaveText('2');
   await expect(page.locator('#party-total')).toHaveText('฿360');
+  await expandBoardSection(page, 'log');
 
   await page.getByRole('button', { name: '📎 แนบใบเสร็จ' }).click();
   await expect(page.getByRole('menuitem', { name: '📷 เปิดกล้อง' })).toBeVisible();
@@ -528,16 +536,17 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
       },
     };
   });
-  expect(cosmeticControls.receipt).toMatchObject({ 'border-top-style': 'dashed', 'padding-top': '9px', 'padding-right': '14px', 'font-size': '13px', 'font-weight': '600' });
-  expect(cosmeticControls.whole).toMatchObject({ 'border-top-style': 'dashed', 'border-radius': '999px', 'padding-top': '6px', 'padding-right': '14px', 'font-size': '13px', 'font-weight': '600' });
-  expect(cosmeticControls.split['font-size']).toBe('11.5px');
-  expect(cosmeticControls.close.width).toBe(22);
-  expect(cosmeticControls.close.height).toBe(22);
+  expect(cosmeticControls.receipt).toMatchObject({ 'border-top-style': 'none', 'padding-top': '0px', 'padding-right': '0px', 'font-size': '12px', 'font-weight': '600' });
+  expect(cosmeticControls.whole).toMatchObject({ 'border-top-style': 'dashed', 'border-radius': '999px', 'padding-top': '5px', 'padding-right': '8px', 'font-size': '11px', 'font-weight': '600' });
+  expect(parseFloat(cosmeticControls.split['font-size'])).toBeGreaterThanOrEqual(9);
+  expect(cosmeticControls.close.width).toBe(30);
+  expect(cosmeticControls.close.height).toBe(30);
   expect(cosmeticControls.close.display).toBe('grid');
   expect(cosmeticControls.close.placeItems).toContain('center');
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
+  await page.locator('[data-board-details]').click();
   const portraitFits = await page.evaluate(() => [...document.querySelectorAll('.portrait-img')].every(img => {
     const r = img.getBoundingClientRect();
     const p = img.parentElement.getBoundingClientRect();
@@ -558,20 +567,26 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
   await expect(page.locator('.dragon-card')).toHaveCount(4);
   await expect(page.locator('.dragon-png').first()).toHaveAttribute('src', /assets\/debt-dragons\/card\.png$/);
+  await page.locator('#debt-manage > summary').click();
   await expect(page.getByRole('button', { name: /ข้ามเดือน/ })).toBeVisible();
 
+  if (!(await page.locator('#debt-slayer').getAttribute('open'))) {
+    if (!(await page.locator('#slayer-name').isVisible())) await page.locator('#debt-slayer > summary').click();
+  }
   await page.getByRole('button', { name: 'สร้าง ID' }).click();
   await expect(page.locator('.char-id-link')).toHaveText(/#\d{4}/);
   await page.locator('#slayer-name').fill('Pointy Slayer');
 
-  await page.locator('.dragon-card').first().getByRole('button', { name: /จู่โจม/ }).click();
+  await page.locator('.dragon-card').first().locator('.dc-summary').click();
+  const payButton = page.locator('.dragon-card').first().getByRole('button', { name: 'บันทึกการจ่าย', exact: true });
+  await payButton.filter({ visible: true }).click();
   await expect(page.locator('.dc-move')).toHaveCount(3);
   await page.locator('.dragon-card').first().locator('.dc-move', { hasText: 'สายฟ้า' }).click();
   const strikeAmount = page.locator('.dragon-card').first().locator('[id^="strike-amt-"]');
   await strikeAmount.fill('1000');
   await expect(strikeAmount).toHaveValue('1,000');
   await page.locator('.dragon-card').first().locator('input[type="date"]').fill('2026-06-14');
-  await page.locator('.dragon-card').first().locator('.btn-danger').click();
+  await page.locator('.dragon-card').first().locator('.dc-strike-form .btn-danger').click();
   await expect(page.locator('.dragon-card').first()).toContainText('฿57,000');
   await expect(page.locator('.dragon-card').first()).toContainText('14 มิ.ย.');
   await expect(page.locator('.record-panel')).toContainText('฿1,000');
@@ -581,9 +596,10 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await page.locator('.dragon-card').first().locator('.dc-le-save').click();
   await expect(page.locator('.dragon-card').first()).toContainText('฿56,800');
 
+  await page.locator('.debt-strategy-button').click();
   await page.getByRole('button', { name: /โจมตอนนี้/ }).click();
   await expect(page.locator('.dragon-card').first().locator('.dc-strike-form')).toBeVisible();
-  await page.locator('.dragon-card').first().locator('.btn-ghost').last().click();
+  await page.locator('.dragon-card').first().locator('.dc-strike-form').getByRole('button', { name: 'ยกเลิก' }).click();
   await page.getByRole('button', { name: /ล้มทีละตัว/ }).click();
   await expect(page.locator('.tactic-opt').nth(1)).toHaveClass(/on/);
   await page.getByRole('button', { name: /ถล่มดอกเบี้ย/ }).click();
@@ -609,7 +625,7 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
 
   const profileHref = await page.locator('.char-id-link').getAttribute('href');
   await page.goto(profileHref);
-  await expect(page.locator('.portrait-info')).toContainText('Pointy Slayer');
+  await expect(page.getByRole('heading', { name: 'Pointy Slayer', exact: true })).toBeVisible();
   await expect(page.locator('.badges')).toContainText('นักล่ามังกร');
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -644,7 +660,7 @@ test('Debt Dragon uses the signed-in account hero instead of legacy slayer ident
   await expect(page.locator('#slayer-name')).toHaveAttribute('readonly', '');
   await expect(page.locator('.slayer-rank')).toContainText('นักเล่นแร่');
   await expect(page.locator('.char-id-link')).toHaveText('#2468');
-  await expect(page.locator('.account-hero-note')).toContainText('ใช้ฮีโร่เดียวกับบัญชีของคุณ');
+  await expect(page.locator('.account-hero-note')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'สร้าง ID' })).toHaveCount(0);
   await expect(page.locator('#slayer-character-id')).toHaveCount(0);
   await expect(page.locator('.slayer-portrait img')).toHaveAttribute('src', /assets\/rpg-portraits\/alchemist-male\.png$/);
@@ -909,7 +925,7 @@ test('character profile aggregates boards, shows portrait, and supports privacy 
   await expect(page.getByRole('heading', { name: 'Shane' })).toBeVisible();
   await expect(page.locator('.char-id')).toHaveText('#1111');
   await expect(page.locator('.portrait-stage img')).toHaveAttribute('src', /archfiend-swimmer-blackred-male\.png/);
-  await expect(page.locator('.grid > .panel').filter({ hasText: 'ประวัติบอร์ด' }).getByRole('link', { name: 'Alpha Board' })).toBeVisible();
+  await expect(page.locator('#history').filter({ hasText: 'ประวัติบอร์ด' }).getByRole('link', { name: 'Alpha Board' })).toBeVisible();
   await expect(page.locator('.badges')).toContainText('แอดมินบอร์ด');
   await expect(page.locator('.summary')).toContainText('฿1,000');
 
@@ -919,8 +935,9 @@ test('character profile aggregates boards, shows portrait, and supports privacy 
   await expect(page).toHaveURL(/private=1/);
   await expect(page.locator('.summary')).toContainText('••••');
 
-  await page.getByRole('button', { name: 'EN' }).click();
-  await expect(page.locator('.brand')).toContainText('Character Profile');
+  if (await page.locator('.cq-lang-compact').isVisible()) await page.locator('.cq-lang-compact').click();
+  else await page.getByRole('button', { name: 'EN', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.locator('.badges')).toContainText('Board Admin');
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
@@ -1158,7 +1175,7 @@ test('price comparison page loads and ranks normalized unit prices', async ({ pa
   await page.addInitScript(() => localStorage.clear());
   await page.goto('/?view=compare&test=1');
 
-  await expect(page.getByRole('button', { name: /หน้าหลัก|Home/ })).toBeVisible();
+  await expect(page.locator('.cq-brand[data-mtab="home"]')).toBeVisible();
   await expect(page.locator('#cmp-grid')).toBeVisible();
   await expect(page.locator('.cmp-icon .qi').first()).toBeVisible();
 
@@ -1201,7 +1218,7 @@ test('home view opens user modules and treasury logs expenses', async ({ page })
   await page.locator('[data-home-card="compare"]').click();
   await expect(page).toHaveURL(/view=compare/);
   await expect(page.locator('#cmp-grid')).toBeVisible();
-  await page.getByRole('button', { name: /หน้าหลัก|Home/ }).click();
+  await page.locator('.cq-brand[data-mtab="home"]').click();
   await expect(page.locator('[data-home-card="split"]')).toBeVisible();
 
   await page.locator('[data-home-card="treasury"]').click();
@@ -1226,7 +1243,7 @@ test('home view opens user modules and treasury logs expenses', async ({ page })
   expect(overflow).toBe(false);
 });
 
-test('onboarding tour navigation uses unified outlined buttons', async ({ page }) => {
+test('onboarding tour navigation distinguishes primary and secondary actions', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -1257,6 +1274,8 @@ test('onboarding tour navigation uses unified outlined buttons', async ({ page }
         borderColor: cs.borderColor,
         minHeight: cs.minHeight,
         color: cs.color,
+        backgroundImage: cs.backgroundImage,
+        backgroundColor: cs.backgroundColor,
         fontWeight: cs.fontWeight
       };
     };
@@ -1268,10 +1287,11 @@ test('onboarding tour navigation uses unified outlined buttons', async ({ page }
     borderStyle: styles.back.borderStyle,
     borderWidth: styles.back.borderWidth,
     minHeight: styles.back.minHeight,
-    color: styles.back.color,
     fontWeight: styles.back.fontWeight
   });
   expect(styles.next.borderColor).not.toBe(styles.back.borderColor);
+  expect(styles.next.color).not.toBe(styles.back.color);
+  expect(styles.next.backgroundImage !== 'none' || styles.next.backgroundColor !== 'rgba(0, 0, 0, 0)').toBe(true);
   await page.locator('[data-done]').click();
   await expect(page.locator('.tour-overlay')).toHaveCount(0);
 });
@@ -1306,7 +1326,7 @@ test('player-facing controls use themed chrome instead of native browser appeara
   const pages = [
     ['home', '/?test=1', () => page.getByRole('heading', { name: 'Coin Quest Ledger' })],
     ['compare', '/?view=compare&test=1', () => page.locator('#cmp-grid')],
-    ['trip', '/trip/?id=control-audit&test=1', () => page.getByRole('heading', { name: 'แบ่งค่าใช้จ่าย' })],
+    ['trip', '/trip/?id=control-audit&test=1', () => page.getByRole('heading', { name: 'Control Audit Board', exact: true })],
     ['debt', '/debt/?test=1', () => page.getByRole('heading', { name: 'มังกรหนี้' })],
     ['treasury', '/treasury/?test=1', () => page.getByRole('heading', { name: /คลังหลวง|Personal Treasury/ })],
     ['character', '/character/?id=7791&test=1', () => page.getByRole('heading', { name: 'Control Audit' })]
@@ -1379,10 +1399,11 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(overflow).toBe(false);
   };
-  const assertPlayerShell = async () => {
+  const assertPlayerShell = async ({ board = false } = {}) => {
     if (isPhone) {
       await expect(page.locator('.tb-burger')).toBeVisible();
-      await expect(page.locator('.mtabbar')).toBeVisible();
+      if (board) await expect(page.locator('.board-sticky')).toBeVisible();
+      else await expect(page.locator('.mtabbar')).toBeVisible();
     } else {
       await expect(page.locator('.tb-burger')).toBeHidden();
       await expect(page.locator('.mtabbar')).toBeHidden();
@@ -1410,8 +1431,8 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
   await assertPlayerShell();
 
   await page.goto('/trip/?id=9901&test=1');
-  await expect(page.getByRole('heading', { name: 'แบ่งค่าใช้จ่าย' })).toBeVisible();
-  await assertPlayerShell();
+  await expect(page.getByRole('heading', { name: 'Mobile Board', exact: true })).toBeVisible();
+  await assertPlayerShell({ board: true });
 
   await page.goto('/debt/?test=1');
   await expect(page.getByRole('heading', { name: 'มังกรหนี้' })).toBeVisible();
@@ -1423,7 +1444,7 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
 
   await page.goto('/character/?id=7777&test=1');
   await expect(page.getByRole('heading', { name: 'Mobile Smoke' })).toBeVisible();
-  await expect(page.locator('.cnav')).toBeVisible();
+  await expect(page.locator('cq-player-header .topbar')).toBeVisible();
   await assertNoOverflow();
 
   await page.goto('/admin/?test=1');

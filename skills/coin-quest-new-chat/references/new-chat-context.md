@@ -25,7 +25,7 @@ screenshot is not proof of current production/device health.
 
 | Task | Read next | Source owners / skills |
 | --- | --- | --- |
-| Web UI, colors or layout | `Memory.md`, `docs/design-restoration-2026-10-12/README.md`; current supplied reference if any | Original inline styles in player route HTML; Admin keeps its separate design CSS; `$ui-ux-expert`, `$snapshot` |
+| Web UI, colors or layout | `PLAYER_DESIGN_SYSTEM.md`, `Memory.md`; latest supplied reference and module sibling | `shared/player-layout.{css,js}`, `shared/navigation.css`, `shared/mobile-shell.js`, route design CSS; Admin/native keep their own shells; `$ui-ux-expert`, `$snapshot` |
 | Native setup or UI | `mobile/AGENTS.md`, `mobile/README.md`, `mobile/IOS_BUILD_NOTES.md`, `mobile/DESIGN_DIRECTION.md`, `NATIVE_WEB_PARITY.md` | `mobile/src/app/`, `src/auth/`, `src/character/`, `src/player/`; `$coin-quest-native-parity`, `$ios-app-development` |
 | Ledger, split, guests, invites | `data-contracts.md`, `INVITES_AND_GUESTS.md`, `leveling-canon.md` when progression is touched | `shared/pointy-logic.js`, `shared/board-invites.js`, `trip/app.js`, `mobile/src/ledger/`; `$coin-quest-ledger-logic` |
 | Debt, Treasury, Compare, sync or backup | `data-contracts.md`, `NATIVE_WEB_PARITY.md`, relevant sections of `docs/backend-audit-2026-10-12.md` | `shared/module-cloud.js`, `shared/account-scope.js`, web module apps, `mobile/src/modules/`, `src/domain/canon.ts` |

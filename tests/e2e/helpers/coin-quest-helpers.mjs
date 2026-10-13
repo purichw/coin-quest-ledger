@@ -30,6 +30,11 @@ export async function startAddHero(page) {
   }
 }
 
+export async function expandBoardSection(page, section) {
+  const toggle = page.locator(`.board-disclosure[data-board-collapse="board-${section}-content"]`);
+  if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+}
+
 export async function chooseWarriorMale(page) {
   await page.getByRole('button', { name: '⚔️ เลือกฮีโร่ของคุณ' }).click();
   await page.locator('.picker-cell[data-class="warrior"][data-gender="male"]').click();

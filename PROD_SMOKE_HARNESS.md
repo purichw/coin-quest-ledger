@@ -1,6 +1,6 @@
 # Production Smoke Harness
 
-Last updated: 2026-10-12
+Last updated: 2026-10-13
 
 ## Purpose
 
@@ -25,15 +25,19 @@ Screenshots are written to `test-results/prod-smoke/<run-id>/`.
 ## What It Does
 
 - Runs HTTP checks for the production app routes and shared asset scripts.
-- Opens Chromium desktop `1366 x 900` and mobile `390 x 844`.
+- Opens Chromium desktop `1366 x 900`, tablet `768 x 1024` and mobile `390 x 844`.
 - Seeds only `localStorage` and `sessionStorage` on `?test=1` routes.
-- Exercises Home, Compare, Party Ledger, Debt Dragon, Treasury, Character
+- Exercises Home, Compare, Split entry, Party Ledger, Debt Dragon, Treasury, Character
   Profile, and the Admin `/admin/?test=1` gate.
 - Includes a Tiderunner classic-skin fixture so production fallback assets are
   actually requested.
 - Fails on app console errors, failed requests, or 4xx/5xx document, script,
   stylesheet, image, font, XHR, or fetch responses.
 - Fails on horizontal document overflow.
+- Decodes rendered images and each module's CSS banner artwork; an HTTP 200
+  alone is not asset acceptance.
+- Opens the actual signed-out Login and Sign Up views in a separate, unseeded
+  browser context at each viewport. No credentials are entered or submitted.
 
 ## Boundaries
 

@@ -1,0 +1,97 @@
+{
+  "route": "http://127.0.0.1:4569/trip/?test=1",
+  "date": "2026-10-13",
+  "gitHead": "df55bc787a5bb0f95d001a4a234a1b3d8c110cdd",
+  "state": "Dirty working tree; isolated TEST account and synthetic boards. No production writes. TH, tavern, new-board tab, empty form.",
+  "browser": "Playwright Chromium; CUA Chrome was also manually exercised",
+  "viewports": [
+    [
+      1440,
+      1000
+    ],
+    [
+      768,
+      1000
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "references": {
+    "desktop": {
+      "path": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-e12d5b72-5986-401a-bc76-987a6e17ce2f.png",
+      "sha256": "87688bfbad9386e431799c9220d236ac28408851e2c00a5cb2cfd17dec50221e",
+      "originalSize": [
+        1448,
+        1086
+      ],
+      "crop": [
+        144,
+        233,
+        1305,
+        989
+      ],
+      "developmentSize": [
+        1440,
+        1022
+      ]
+    },
+    "tablet": {
+      "path": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-d99376ea-5dfd-4451-a184-6029dd22258a.png",
+      "sha256": "028dcb1728e5bd0d1aa47d3320a7ab12ebd794eb424ed31abf8d14a636c13f89",
+      "originalSize": [
+        1448,
+        1086
+      ],
+      "crop": [
+        300,
+        174,
+        1148,
+        937
+      ],
+      "developmentSize": [
+        768,
+        1041
+      ]
+    },
+    "mobile": {
+      "path": "/var/folders/3k/m69pt27s00bd_l2yzfjvmk8w0000gn/T/codex-clipboard-3a53d302-7bd3-41d3-b6d2-1dd6805c5352.png",
+      "sha256": "b09cbf4fcd9de737e8f07ee843c393b4d1ba864853af56bc7a25cb2756b9ce11",
+      "originalSize": [
+        1122,
+        1402
+      ],
+      "crop": [
+        346,
+        206,
+        778,
+        1270
+      ],
+      "developmentSize": [
+        391,
+        1238
+      ]
+    }
+  },
+  "sources": {
+    "trip/app.js": "e156391e89282935f52d335a41925ae34385a97cc71b745ce05b4f94997545de",
+    "trip/index.html": "a5dda62ca4cebda10078d842714dd413c7c3fe87cc376257973db7292c5c5530",
+    "trip/entry.js": "556dfaf24d33086e9a300a0cfbf55f250ab3b52108b7df702a866bd5698025fe",
+    "trip/entry.css": "5cf6414478751d4e51bcd1553f441127f57b0032103953ff015efd3c3eaa5de0",
+    "shared/profile-hub.js": "82866a059504ebe47df1abe3c4c8f599c4774085a54091e1a8f0454e305a9597",
+    "shared/navigation.css": "952978b3758e7521d4dc511299c9769aafd7bfce5973135aa8c41f7a6b47a16d",
+    "shared/mobile-shell.js": "76f79707fb6e3c0bd9a5b836c64391bb155c2a1144c0fb557ed424c58a828253",
+    "assets/split-entry/camp.svg": "24885f94e9c2ddd9649bcd318600c65d36b69ab74a28fb8607ef52f7b8096f73",
+    "assets/split-entry/key.svg": "82cbfcec3295617ea05826f6bb4e5bd3d889d1ba51e9c8e624911a58b99640a0",
+    "assets/split-entry/crown.svg": "21e023af58cc9d3f08fa74aed3b51a2e121c8c9af11b217624cad34b57981865",
+    "assets/split-entry/clock.svg": "a7fd8ab98e50d63581a329f0967c1ecdd3f69d22c2b2ff786187dfa7e602370e",
+    "assets/split-entry/mountains.svg": "4dd1d1c22c878cf8b9b0acfcf1c0b5d22d296ef20d146e51e2cbf6b453f65998"
+  },
+  "notes": [
+    "Reference content-area CSS scale is inferred from annotated screenshots. No image is stretched.",
+    "Device/slide framing cropped; unavoidable annotations remain in source crops.",
+    "Recent count labels are actual expenses, not illustrative pending amounts. Phone shows one row initially.",
+    "Mobile full-page image retains fixed nav at initial viewport bottom; top/bottom contact sheet separately shows actual scroll states."
+  ]
+}

@@ -9,12 +9,14 @@ const outDir = path.join(process.cwd(), 'test-results', 'prod-smoke', runId);
 
 const viewports = [
   { name: 'desktop', viewport: { width: 1366, height: 900 }, isMobile: false, hasTouch: false },
+  { name: 'tablet', viewport: { width: 768, height: 1024 }, isMobile: true, hasTouch: true },
   { name: 'mobile', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
 ];
 
 const routes = [
   { name: 'home', path: '/?test=1', text: /Coin Quest Ledger/ },
   { name: 'compare', path: '/?view=compare&test=1', selector: '#cmp-grid' },
+  { name: 'split-entry', path: '/trip/?test=1', selector: '#be-create-form' },
   { name: 'trip-classic-skin', path: `/trip/?id=${tripId}&test=1`, text: /Smoke Board|แบ่งค่าใช้จ่าย|Log Encounter/ },
   { name: 'debt', path: '/debt/?test=1', text: /มังกรหนี้|Debt Dragon/ },
   { name: 'treasury', path: '/treasury/?test=1', text: /คลังหลวง|Personal Treasury/ },
@@ -30,6 +32,9 @@ const httpPaths = [
   '/admin/',
   '/shared/asset-urls.js',
   '/shared/cloudinary-assets.js',
+  '/shared/player-layout.js',
+  '/shared/player-layout.css',
+  '/shared/navigation.css',
 ];
 
 function fullUrl(routePath) {
@@ -153,6 +158,29 @@ async function assertRoute(page, route) {
   if (route.text) assertOk(route.text.test(text), `${route.name} did not render expected marker`);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
   assertOk(!overflow, `${route.name} has horizontal document overflow`);
+  await assertRenderedAssets(page, route.name);
+}
+
+async function assertRenderedAssets(page, label) {
+  await page.evaluate(() => document.fonts.ready);
+  const broken = await page.evaluate(async () => {
+    const failures = [];
+    const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+    await Promise.all([...document.images].filter(visible).map(async img => {
+      try { await img.decode(); if (!img.naturalWidth) throw new Error('empty'); }
+      catch { failures.push(img.currentSrc || img.src); }
+    }));
+    const backgrounds = new Set();
+    document.querySelectorAll('.home-hero,.be-hero,.board-banner,.debt-hero,.arena-hero,.treasury-hero,.banner').forEach(el => {
+      for (const match of getComputedStyle(el).backgroundImage.matchAll(/url\(["']?([^"')]+)["']?\)/g)) backgrounds.add(match[1]);
+    });
+    await Promise.all([...backgrounds].map(async src => {
+      const img = new Image(); img.src = src;
+      try { await img.decode(); if (!img.naturalWidth) throw new Error('empty'); } catch { failures.push(src); }
+    }));
+    return failures;
+  });
+  assertOk(!broken.length, `${label} has undecodable rendered assets: ${broken.join(', ')}`);
 }
 
 async function browserSmoke() {
@@ -185,6 +213,26 @@ async function browserSmoke() {
             tracked.consoleErrors.forEach(error => allFailures.push(`${device.name}/${route.name}: console ${error}`));
             await page.close().catch(() => {});
           }
+        }
+        // Exercise the actual signed-out gate separately from isolated game fixtures.
+        const authContext = await browser.newContext({ viewport: device.viewport, isMobile: device.isMobile, hasTouch: device.hasTouch });
+        const authPage = await authContext.newPage();
+        const authTracked = trackPage(authPage);
+        try {
+          await authPage.goto(fullUrl('/'), { waitUntil: 'networkidle' });
+          await authPage.locator('[data-first-load]').waitFor({ state: 'detached' });
+          await authPage.locator('[data-login-form]').waitFor({ state: 'visible' });
+          for (const mode of ['in', 'up']) {
+            await authPage.locator(`[data-login-tab="${mode}"]`).click();
+            await assertRenderedAssets(authPage, `auth-${mode}`);
+            assertOk(await authPage.locator('.auth-entry').evaluate(el => el.scrollWidth <= el.clientWidth), `auth-${mode} overflows`);
+            await authPage.screenshot({ path: path.join(outDir, `${device.name}-auth-${mode}.png`) });
+          }
+        } catch (error) {
+          allFailures.push(`${device.name}/auth: ${error.message}`);
+        } finally {
+          authTracked.failures.concat(authTracked.consoleErrors).forEach(error => allFailures.push(`${device.name}/auth: ${error}`));
+          await authContext.close();
         }
       } finally {
         await context.close();
