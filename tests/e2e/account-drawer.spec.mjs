@@ -122,11 +122,30 @@ test('Drawer backup exports safe data and validates, cancels and restores import
   await input.setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{}') });
   await expect(page.locator('[data-backup-msg]')).toContainText('Invalid backup');
   const valid = { __coin_quest_backup: 2, uid: 'drawer-qa', keys: { pointy_theme: 'dungeon' } };
-  page.once('dialog', dialog => dialog.dismiss());
-  await input.setInputFiles({ name: 'restore.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(valid)) });
+  // Control file-read completion so each upload proves its own confirmation
+  // has finished before the next upload can install another dialog handler.
+  await page.evaluate(() => {
+    const read = FileReader.prototype.readAsText;
+    window.pendingRestoreReads = [];
+    FileReader.prototype.readAsText = function(file, ...args) {
+      if (file.name === 'restore.json') window.pendingRestoreReads.push(() => read.call(this, file, ...args));
+      else read.call(this, file, ...args);
+    };
+  });
+  async function restoreWithDecision(decision) {
+    const handled = page.waitForEvent('dialog').then(async dialog => {
+      expect(dialog.type()).toBe('confirm');
+      expect(dialog.message()).toContain('กู้คืนไฟล์นี้');
+      await dialog[decision]();
+    });
+    await input.setInputFiles({ name: 'restore.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(valid)) });
+    await expect.poll(() => page.evaluate(() => window.pendingRestoreReads.length)).toBe(1);
+    await page.evaluate(() => window.pendingRestoreReads.shift()());
+    await handled;
+  }
+  await restoreWithDecision('dismiss');
   expect(await page.evaluate(() => localStorage.getItem('pointy_theme'))).toBe('tavern');
-  page.once('dialog', dialog => dialog.accept());
-  await input.setInputFiles({ name: 'restore.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(valid)) });
+  await restoreWithDecision('accept');
   await expect(page.locator('[data-backup-msg]')).toContainText('กู้ข้อมูลแล้ว กำลังโหลดใหม่');
   await expect(page.locator('.drawer-overlay')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dungeon');

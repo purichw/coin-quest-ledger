@@ -81,6 +81,17 @@ intact for a populated fixture.
   tracked screenshots in the existing redesign QA directories; these generated
   results remain in the working tree, separately from this audit's evidence.
 
+### Release follow-up: backup dialog race
+
+The release workflow for `5ed89fa` exposed a race in the backup-import test:
+`setInputFiles` returns before FileReader finishes, so the second dialog listener
+could be attached before the first confirmation appeared. Both listeners then
+handled the same dialog. Holding FileReader completion reproduced the exact
+`Cannot accept dialog which is already handled` failure locally. The test now
+controls read completion and awaits each confirmation decision before starting
+the next upload. All original restore/cancel/account assertions remain, and all
+21 Account Drawer cases passed after the repair. Runtime code is unchanged.
+
 ## Boundaries and retained compatibility
 
 - No claim of exhaustive absence of bugs. Automated browser flows use fixtures;
