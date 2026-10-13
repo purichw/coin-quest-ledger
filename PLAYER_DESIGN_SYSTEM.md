@@ -55,6 +55,10 @@ Fonts remain Mitr, IBM Plex Sans Thai and Chakra Petch for their existing roles.
 - Home is the tavern introduction. Auth/character creation use a full-screen
   tavern flow; Welcome Tour is an overlay; Loading uses its night scene. They
   inherit brand/type/control conventions, not a game workspace layout.
+- Account hydration reuses the loading night scene and responsive geometry via
+  `profile-login.js` and `first-load.css`, with an indeterminate bar and no
+  percentage. Keep it visible until account resolution, then hand off to Home,
+  character creation or the login error state; never expose a bare loading card.
 - Party entry and board use the village artwork family. Entry centers its
   introduction; the board reserves room for name, actions and a total. Its
   breadcrumb occupies a separate row. Labels and real data remain live HTML.

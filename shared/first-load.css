@@ -275,6 +275,15 @@ html.first-load-open { overflow: hidden; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
+/* Account hydration continues the same scene after page assets are ready. */
+.account-loading { transition: none; }
+.account-loading .first-load-fill {
+  width: 38%;
+  animation: account-loading-travel 1.8s ease-in-out infinite alternate;
+}
+.account-loading .first-load-meta { justify-content: center; text-align: center; margin-bottom: 0; }
+.account-loading .first-load-title:focus { outline: none; }
+@keyframes account-loading-travel { from { transform: translateX(0); } to { transform: translateX(163%); } }
 @keyframes first-load-embers { from { opacity: .4; transform: translateY(0); } to { opacity: .8; transform: translateY(-10px); } }
 @keyframes first-load-flame { from { transform: translateX(-50%) scale(.94, 1) skewX(-3deg); } to { transform: translateX(-50%) scale(1.04, 1.08) skewX(3deg); } }
 @keyframes first-load-glow { 0%,100% { opacity: .6; } 50% { opacity: 1; } }

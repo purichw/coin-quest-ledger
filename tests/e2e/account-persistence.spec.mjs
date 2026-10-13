@@ -50,7 +50,13 @@ function cloudFixture({ existing, delayed, signedOut, ownedBoard, moduleError, a
   const snapshot = path => ({ exists: !!records[path], id: path.split('/').pop(), data: () => structuredClone(records[path]) });
   function collection(path) {
     const query = { get: async () => { if (path === 'trips' && window.qaFailBoardRead) throw new Error('TEST read unavailable'); const docs = Object.keys(records).filter(key => key.startsWith(path + '/') && !key.slice(path.length + 1).includes('/')).map(key => snapshot(key)); return { docs, empty: !docs.length, forEach(fn) { docs.forEach(fn); } }; }, where: () => query, orderBy: () => query, limit: () => query,
-      doc: id => ({ path: path + '/' + id, collection: name => collection(path + '/' + id + '/' + name), get: async () => { if (path === 'users') await ready; return snapshot(path + '/' + id); } }) };
+      doc: id => ({ path: path + '/' + id, collection: name => collection(path + '/' + id + '/' + name), get: async () => {
+        if (path === 'users') {
+          await ready;
+          if (window.qaFailAccountRead) throw Object.assign(new Error('TEST account unavailable'), { code: 'unavailable' });
+        }
+        return snapshot(path + '/' + id);
+      } }) };
     return query;
   }
   const db = { collection, runTransaction: async callback => {
@@ -295,14 +301,69 @@ test('character write failure keeps the gate and draft; retry commits once and r
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1')).character.id)).toBe('8899');
 });
 
-test('slow account hydration never displays stale character creation before the existing hero arrives', async ({ page }) => {
+test('slow account hydration keeps the centered loading scene until the existing hero arrives', async ({ page }, testInfo) => {
+  const viewport = { chromium: { width: 1440, height: 900 }, tablet: { width: 768, height: 1024 }, mobile: { width: 390, height: 844 } }[testInfo.project.name];
+  await page.setViewportSize(viewport);
   await installCloud(page, { existing: true, delayed: true });
   await page.addInitScript(() => localStorage.setItem('pointy_auth_v1', JSON.stringify({ provider: 'firebase', uid: 'qa-persistence', username: 'qa.persistence', email: 'qa.persistence@coinquest.local', userId: '8899', name: 'Old mirror', character: null })));
   await page.goto('/'); await expect(page.locator('.login-gate [role=status]')).toBeVisible();
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  const pending = page.locator('.account-loading');
+  await expect(pending).toBeVisible();
+  await expect(pending.getByRole('heading')).toHaveText('COIN QUEST');
+  await expect(pending.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+  await expect(pending.getByRole('status')).toContainText('กำลังเตรียมการผจญภัย');
+  await page.evaluate(() => document.fonts.ready);
+  await pending.locator('img').evaluate(img => img.decode());
+  const bounds = await pending.boundingBox();
+  expect(bounds).toEqual({ x: 0, y: 0, ...viewport });
+  const content = await pending.locator('.first-load-box').boundingBox();
+  expect(Math.abs(content.x + content.width / 2 - viewport.width / 2)).toBeLessThan(1);
+  expect(Math.abs(content.y + content.height / 2 - viewport.height / 2)).toBeLessThan(viewport.height * .05);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await pending.evaluate(el => el.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Tab');
+  await expect(pending).toBeFocused();
+  await page.screenshot({ path: testInfo.outputPath(`account-loading-${viewport.width}.png`), animations: 'disabled' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await pending.locator('.first-load-fill').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await expect(page.locator('[data-char-form]')).toHaveCount(0);
   await page.evaluate(() => window.qaReleaseAccount());
   await expect(page.locator('.login-gate')).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1')).character.name)).toBe('Existing TEST Hero');
+  expect(await page.evaluate(() => window.qaCharacterWrites)).toBe(0);
+});
+
+test('account loading hands off to character creation after the account is ready', async ({ page }) => {
+  await installCloud(page, { delayed: true });
+  await page.goto('/');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await expect(page.locator('.account-loading')).toBeVisible();
+  await expect(page.locator('[data-char-form]')).toHaveCount(0);
+  await page.evaluate(() => window.qaReleaseAccount());
+  await expect(page.locator('.account-loading')).toHaveCount(0);
+  await expect(page.locator('[data-char-form]')).toBeVisible();
+  await expect(page.locator('#auth-title')).toBeFocused();
+});
+
+test('account loading stays usable in a short viewport and gives way to login on read failure', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 450 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.addInitScript(() => localStorage.setItem('lang', 'en'));
+  await installCloud(page, { existing: true, delayed: true });
+  await page.goto('/');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  const pending = page.locator('.account-loading');
+  await expect(pending.getByRole('status')).toHaveText('Preparing your adventure…');
+  await expect(pending.locator('.first-load-box')).toBeInViewport({ ratio: 1 });
+  await expect(pending.locator('.first-load-quote')).toBeInViewport({ ratio: 1 });
+  expect(await pending.locator('.first-load-fill').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+  await page.evaluate(() => { window.qaFailAccountRead = true; window.qaReleaseAccount(); });
+  await expect(pending).toHaveCount(0);
+  await expect(page.locator('[data-login-form]')).toBeVisible();
+  await expect(page.locator('[data-login-error]')).toBeVisible();
+  await expect(page.locator('#auth-title')).toBeFocused();
+  await expect(page.locator('[data-login-form] .login-btn')).toBeEnabled();
   expect(await page.evaluate(() => window.qaCharacterWrites)).toBe(0);
 });
 

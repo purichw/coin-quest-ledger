@@ -1407,7 +1407,12 @@
     if (!TEST_MODE && !firebaseAuthResolved) {
       if (!loginGate) { loginGate = document.createElement('div'); loginGate.className = 'login-gate'; document.body.appendChild(loginGate); }
       document.body.classList.add('login-locked');
-      loginGate.innerHTML = `<div class="login-card" role="status" aria-live="polite">${h(s().authLoading)}</div>`;
+      loginGate.innerHTML = window.PointyProfileLogin.renderAccountLoading({ langKey: loginLanguage() });
+      const pending = loginGate.querySelector('.account-loading');
+      pending.addEventListener('keydown', event => {
+        if (event.key === 'Tab') { event.preventDefault(); pending.focus({ preventScroll: true }); }
+      });
+      if (!document.documentElement.matches('.first-load-open, .first-load-boot')) pending.focus({ preventScroll: true });
       return;
     }
     const existingAuth = loadAuth();
