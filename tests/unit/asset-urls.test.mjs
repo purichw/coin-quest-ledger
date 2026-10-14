@@ -6,7 +6,7 @@ import test from 'node:test';
 const source = fs.readFileSync(new URL('../../shared/asset-urls.js', import.meta.url), 'utf8');
 function resolver(search = '') {
   const context = { URLSearchParams, window: {
-    location: { search, hostname: 'coin-quest-ledger.vercel.app', protocol: 'https:' },
+    location: { search, hostname: 'coinquestledger.vercel.app', protocol: 'https:' },
     POINTY_CLOUDINARY_ASSETS: { 'assets/debt-dragons/card.png': 'https://cdn.example/card.png' },
   }, document: { readyState: 'loading', addEventListener() {} } };
   vm.runInNewContext(source, context);

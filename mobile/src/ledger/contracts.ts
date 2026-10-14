@@ -20,7 +20,7 @@ export function memberName(board: Board, characterId: string) {
 }
 export function parseBoardReference(input: string) {
   let value = input.trim();
-  if (/^https?:\/\//i.test(value)) { const url = new URL(value); if (!['coin-quest-ledger.vercel.app', 'localhost', '127.0.0.1'].includes(url.hostname) || !/^\/trip\/?$/.test(url.pathname)) throw new Error('ใช้ลิงก์บอร์ด Coin Quest'); value = url.searchParams.get('id') || ''; }
+  if (/^https?:\/\//i.test(value)) { const url = new URL(value); if (!['coinquestledger.vercel.app', 'localhost', '127.0.0.1'].includes(url.hostname) || !/^\/trip\/?$/.test(url.pathname)) throw new Error('ใช้ลิงก์บอร์ด Coin Quest'); value = url.searchParams.get('id') || ''; }
   if (!/^[a-zA-Z0-9_-]{1,80}$/.test(value)) throw new Error('รหัสหรือลิงก์บอร์ดไม่ถูกต้อง'); return value;
 }
 export function removeMember(board: Board, name: string, actorId: string): Board {

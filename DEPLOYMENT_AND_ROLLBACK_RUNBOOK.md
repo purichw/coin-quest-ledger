@@ -11,12 +11,35 @@ or changing CI/CD, Vercel, Firebase rules, or production env assumptions.
 
 - GitHub repo: `git@github.com:purichw/coin-quest-ledger.git`
 - Main branch: `main`
-- Production URL: `https://coin-quest-ledger.vercel.app`
-- Vercel project: `coin-quest-ledger`
+- Production URL: `https://coinquestledger.vercel.app`
+- Vercel project: `coinquestledger`
 - Vercel project id: `prj_ZhaR03b1Ukx5Tzi8FPDH4IFI1fM3`
 - Vercel org/team id: `team_YrvoFhGxq1xp83XzkHci5rNx`
 - Firebase project id: `pointy-personal-toolkit`
 - CI/CD workflow: `.github/workflows/test.yml`
+
+### Canonical domain migration (2026-10-14)
+
+The canonical origin is `https://coinquestledger.vercel.app`. Keep the existing
+Vercel project ID and GitHub connection when renaming the Vercel project; a new
+project would lose the existing production secrets and deployment history.
+The canonical domain must be a verified production domain with no redirect.
+The CI alias step must use the same hostname, so future releases cannot restore
+the retired alias. Remove the retired canonical alias after the new origin's
+Google login and application routes are verified. Do not add an old-domain
+redirect as part of this cutover.
+
+Firebase Auth authorized domains must include the new web hostname. The Firebase
+project ID and Firebase-hosted OAuth helper domain remain unchanged; users and
+Firestore data are not migrated. Browser storage/session state is origin-scoped,
+so users may need to sign in again on the new hostname. Browser-only drafts on
+the retired origin do not automatically transfer. Native source links and its
+recovery endpoint must use the new hostname; existing installed binaries need
+an updated build before their embedded links change.
+
+Domain migration regression guard: `tests/unit/production-domain.test.mjs`.
+Historical screenshots, capture manifests and archived handoffs record the
+origin actually used at capture time and are not active production settings.
 
 Do not commit `.vercel/project.json` values into new places. Store Vercel IDs
 and tokens as GitHub/Vercel secrets.
@@ -69,7 +92,7 @@ Pushes to `main`:
 
 - require both the web/backend and native-contract jobs to pass;
 - if `VERCEL_TOKEN` is set, pull Vercel production env, build, deploy prebuilt
-  production, and alias `coin-quest-ledger.vercel.app`;
+  production, and alias `coinquestledger.vercel.app`;
 - if `VERCEL_TOKEN` is missing, tests still run and deploy is skipped with a
   warning.
 
@@ -114,15 +137,15 @@ npm test
 vercel pull --yes --environment=production
 vercel build --prod
 deployment_url="$(vercel deploy --prebuilt --prod)"
-vercel alias set "$deployment_url" coin-quest-ledger.vercel.app
-curl -fsSL https://coin-quest-ledger.vercel.app/ | rg "Coin Quest|Quest"
+vercel alias set "$deployment_url" coinquestledger.vercel.app
+curl -fsSL https://coinquestledger.vercel.app/ | rg "Coin Quest|Quest"
 ```
 
 For route-specific changes, curl or browser-verify the changed route too:
 
 ```bash
-curl -fsSL https://coin-quest-ledger.vercel.app/trip/ | rg "Party|Quest|Ledger"
-curl -fsSL https://coin-quest-ledger.vercel.app/admin/ | rg "Super Admin|Admin"
+curl -fsSL https://coinquestledger.vercel.app/trip/ | rg "Party|Quest|Ledger"
+curl -fsSL https://coinquestledger.vercel.app/admin/ | rg "Super Admin|Admin"
 ```
 
 After production deploys that touch routes, assets, admin shell, or responsive
@@ -170,7 +193,7 @@ Vercel app rollback:
 2. Alias it back to production:
 
 ```bash
-vercel alias set <known-good-deployment-url> coin-quest-ledger.vercel.app
+vercel alias set <known-good-deployment-url> coinquestledger.vercel.app
 ```
 
 3. Verify production route markers and at least one affected interaction.

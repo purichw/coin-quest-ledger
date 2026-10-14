@@ -21,8 +21,8 @@ Evidence: `docs/player-design-system-2026-10-13/README.md`.
 
 - Workspace: `/Users/point/toolbox`
 - GitHub: `git@github.com:purichw/coin-quest-ledger.git`
-- Live production URL: `https://coin-quest-ledger.vercel.app`
-- Vercel project: `coin-quest-ledger`
+- Live production URL: `https://coinquestledger.vercel.app`
+- Vercel project: `coinquestledger`
 - Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
@@ -211,7 +211,7 @@ Latest profile refactor handoff: `shared/profile-hub.js` is now a smaller orches
 
 Admin Users now merges real Firestore `users/{uid}` accounts with board-derived participants/admin roles. Real accounts without board membership should still appear in `/admin/` Users; board/admin links are additive, not the only source of truth.
 
-Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and `coin-quest-ledger.vercel.app`, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts. As of 2026-08-31, production recovery and Super Admin temp-password reset run through Vercel Firebase Admin SDK routes, raw Recovery IDs are one-time/local reveal values, and new Firestore writes store only owner-scoped recovery hashes on `users/{uid}`.
+Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and the production domain used at that time, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts. As of 2026-08-31, production recovery and Super Admin temp-password reset run through Vercel Firebase Admin SDK routes, raw Recovery IDs are one-time/local reveal values, and new Firestore writes store only owner-scoped recovery hashes on `users/{uid}`.
 
 Security setup note: the repo `firestore.rules` was tightened on 2026-06-20 through `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`, then updated again on 2026-06-22 for native `playerModules/{uid}` owner read/create/update, and updated in repo on 2026-08-31 for signed-in-only `trips`, owner/Super Admin `users`, `userIds` reservations, and recovery-secret write guards. Character writes require owner/Super Admin, username mapping updates cannot be taken over by another user, deleted username/User ID tombstones can only be reclaimed by the newly signed-in user while preserving the same public ID, `playerModules/{uid}` is owner/Super Admin readable/writable, and admin/recovery audit collections require Super Admin.
 

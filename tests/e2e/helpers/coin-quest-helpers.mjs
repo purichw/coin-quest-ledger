@@ -83,7 +83,7 @@ export async function superAdminIdToken() {
 export async function requestPermanentDelete(account, reason) {
   if (!account?.userId && !account?.uid) return null;
   const token = account.adminToken || await superAdminIdToken();
-  const res = await fetch('https://coin-quest-ledger.vercel.app/api/admin-delete-user', {
+  const res = await fetch('https://coinquestledger.vercel.app/api/admin-delete-user', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify({

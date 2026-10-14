@@ -11,7 +11,7 @@ visual changes; historical Claude exports apply only when explicitly requested.
 
 ## Current Baseline
 
-- Production domain: `https://coin-quest-ledger.vercel.app`. The latest verified
+- Production domain: `https://coinquestledger.vercel.app`. The latest verified
   release is recorded in `Memory.md` and `docs/release-2026-10-12.md`; do not
   infer deployment from source or documentation-only changes.
 - Large Claude references stay outside Git. Files listed in historical notes

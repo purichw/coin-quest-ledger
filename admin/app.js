@@ -93,7 +93,7 @@ function adminAuthErrorMessage(error) {
     return 'Google sign-in provider ยังไม่ได้เปิดใน Firebase Auth. เปิด Sign-in method: Google สำหรับ project pointy-personal-toolkit แล้วลองใหม่';
   }
   if (code.includes('unauthorized-domain') || raw.includes('unauthorized-domain')) {
-    return 'Domain นี้ยังไม่อยู่ใน Firebase Auth authorized domains. เพิ่ม coin-quest-ledger.vercel.app แล้วลองใหม่';
+    return 'Domain นี้ยังไม่อยู่ใน Firebase Auth authorized domains. เพิ่ม coinquestledger.vercel.app แล้วลองใหม่';
   }
   if (code.includes('popup-blocked') || raw.includes('popup-blocked')) {
     return 'Browser บล็อก Google sign-in popup. อนุญาต popup สำหรับเว็บนี้แล้วกด Sign in with Google อีกครั้ง';

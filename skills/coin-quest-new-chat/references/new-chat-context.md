@@ -7,7 +7,7 @@ This reference routes to living docs; it is not a live release status report.
 
 - Primary checkout: `/Users/point/toolbox`.
 - GitHub: `purichw/coin-quest-ledger`; verify current remote/upstream before release.
-- Web: <https://coin-quest-ledger.vercel.app> — static HTML/CSS/JS plus Vercel APIs.
+- Web: <https://coinquestledger.vercel.app> — static HTML/CSS/JS plus Vercel APIs.
 - Native: `mobile/`, Expo Router and React Native; versions come from its
   `package.json`, lockfile and `.nvmrc`, not this reference.
 - Shared Firebase project: `pointy-personal-toolkit`. Its legacy internal name

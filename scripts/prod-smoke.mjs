@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const BASE_URL = (process.env.PROD_SMOKE_URL || 'https://coin-quest-ledger.vercel.app').replace(/\/+$/, '');
+const BASE_URL = (process.env.PROD_SMOKE_URL || 'https://coinquestledger.vercel.app').replace(/\/+$/, '');
 const runId = (process.env.PROD_SMOKE_RUN_ID || Date.now().toString(36)).replace(/[^a-z0-9-]/gi, '-').toLowerCase();
 const tripId = `prod-smoke-${runId}`;
 const outDir = path.join(process.cwd(), 'test-results', 'prod-smoke', runId);

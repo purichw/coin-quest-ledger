@@ -410,14 +410,17 @@ async function captureAuth(page, testInfo, name) {
   await fs.mkdir(qa, { recursive: true });
   await fs.copyFile(output, path.join(qa, name));
 }
-for (const width of [1440, 768, 390]) {
-  test(`Tavern auth Login, Sign Up and Recovery composition at ${width}px`, async ({ page }, testInfo) => {
+// Keep each visual state inside the normal test timeout: high-DPI mobile
+// captures at desktop widths can take several seconds per image.
+for (const width of [1440, 768, 390]) for (const mode of ['in', 'up', 'recovery']) {
+  const label = { in: 'Login', up: 'Sign Up', recovery: 'Recovery' }[mode];
+  test(`Tavern auth ${label} composition at ${width}px`, async ({ page }, testInfo) => {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await installCloud(page, { signedOut: true });
     await page.setViewportSize({ width, height: width === 768 ? 1024 : width === 390 ? 844 : 900 });
     await page.goto('/');
     await expect(page.locator('[data-login-form]')).toBeVisible();
-    for (const mode of ['in', 'up']) {
+    if (mode !== 'recovery') {
       await page.locator(`[data-login-tab="${mode}"]`).click();
       await page.locator('.login-gate').evaluate(el => { el.scrollTop = 0; });
       await expect(page.locator(`[data-login-tab="${mode}"]`)).toHaveAttribute('aria-selected', 'true');
@@ -433,16 +436,17 @@ for (const width of [1440, 768, 390]) {
         await expect(page.locator('.login-btn')).toBeInViewport();
         await captureAuth(page, testInfo, `auth-${width}-${mode}-bottom.png`);
       }
+    } else {
+      await page.locator('[data-login-tab="in"]').click();
+      await page.locator('[data-forgot-password]').click();
+      await expect(page.locator('[data-recovery-form] input')).toHaveCount(4);
+      await page.locator('.login-gate').evaluate(el => { el.scrollTop = 0; });
+      await captureAuth(page, testInfo, `auth-${width}-recovery-top.png`);
+      await page.locator('[data-back-login]').scrollIntoViewIfNeeded();
+      await expect(page.locator('.login-btn')).toBeInViewport();
+      expect(await page.locator('.auth-entry').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+      await captureAuth(page, testInfo, `auth-${width}-recovery-bottom.png`);
     }
-    await page.locator('[data-login-tab="in"]').click();
-    await page.locator('[data-forgot-password]').click();
-    await expect(page.locator('[data-recovery-form] input')).toHaveCount(4);
-    await page.locator('.login-gate').evaluate(el => { el.scrollTop = 0; });
-    await captureAuth(page, testInfo, `auth-${width}-recovery-top.png`);
-    await page.locator('[data-back-login]').scrollIntoViewIfNeeded();
-    await expect(page.locator('.login-btn')).toBeInViewport();
-    expect(await page.locator('.auth-entry').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
-    await captureAuth(page, testInfo, `auth-${width}-recovery-bottom.png`);
     await expect(page.locator('.auth-entry')).not.toContainText(/Firebase|regression|production auth/);
     expect(errors).toEqual([]);
   });

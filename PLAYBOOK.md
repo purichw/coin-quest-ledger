@@ -245,4 +245,4 @@ Use these when rebuilding context in a new chat or a new Claude Project:
 
 - Do not open live app pages directly with `file://`. They use absolute `/shared/...` and route script paths, so scripts/assets fail outside a server.
 - Use `npm run serve` and open `http://127.0.0.1:4569/...`, or use the production URL.
-- For Vercel deploys, alias the canonical domain after deploy when needed: `vercel alias set <deployment-url> coin-quest-ledger.vercel.app`.
+- For Vercel deploys, alias the canonical domain after deploy when needed: `vercel alias set <deployment-url> coinquestledger.vercel.app`.

@@ -11,7 +11,7 @@ const expense = (patch = {}) => ({ id: 'e1', desc: 'Dinner', icon: 'coin', amoun
 const pair = () => addGuest(fresh(), 'Guest', 'warrior', 'male');
 
 test('web board links resolve only approved board URLs', () => {
-  assert.equal(parseBoardReference('https://coin-quest-ledger.vercel.app/trip/?id=3512'), '3512');
+  assert.equal(parseBoardReference('https://coinquestledger.vercel.app/trip/?id=3512'), '3512');
   assert.equal(parseBoardReference('3512'), '3512');
   assert.throws(() => parseBoardReference('https://other.example/trip/?id=3512'));
 });

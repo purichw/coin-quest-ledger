@@ -12,6 +12,12 @@ reality. Use it with `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`,
 ## Current Backend Reality
 
 - Firebase project id: `pointy-personal-toolkit`.
+- Web production origin: `https://coinquestledger.vercel.app`.
+- Firebase Auth must authorize `coinquestledger.vercel.app`. Keep the Firebase
+  helper domains and localhost entries; remove the retired web origin after
+  validating Google sign-in on the new origin. The Firebase project, user UIDs,
+  database and OAuth callback at `pointy-personal-toolkit.firebaseapp.com`
+  remain in the same backend project.
 - Firebase plan: Spark at last local check, with `billingEnabled: false`.
 - Web runtime: static pages on Vercel using Firebase compat SDK.
 - Admin privileged backend: Vercel Serverless API using `firebase-admin`.

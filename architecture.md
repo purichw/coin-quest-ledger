@@ -34,7 +34,7 @@ Companion docs:
 
 - Primary source root: `/Users/point/toolbox`; an explicitly selected worktree
   takes precedence. Do not switch checkouts while onboarding.
-- Production: `https://coin-quest-ledger.vercel.app`
+- Production: `https://coinquestledger.vercel.app`
 - Hosting: Vercel static deployment
 - Backend: Firebase Firestore compat SDK, project id `pointy-personal-toolkit`
 - Build step: none

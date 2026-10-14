@@ -17,7 +17,7 @@ npm run smoke:prod
 Optional target override:
 
 ```bash
-PROD_SMOKE_URL=https://coin-quest-ledger.vercel.app npm run smoke:prod
+PROD_SMOKE_URL=https://coinquestledger.vercel.app npm run smoke:prod
 ```
 
 Screenshots are written to `test-results/prod-smoke/<run-id>/`.

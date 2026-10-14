@@ -21,6 +21,11 @@ prototype/handoff history unless a fresh Admin Claude export is supplied.
 
 ## Access Model
 
+Canonical Admin URL: `https://coinquestledger.vercel.app/admin/`. Authorize that
+hostname in Firebase Auth while retaining the existing Firebase project and
+Google OAuth helper callback. Changing the web origin requires a fresh browser
+session; it does not change the Super Admin allowlist or account data.
+
 Production:
 
 1. Initialize Firebase Auth.

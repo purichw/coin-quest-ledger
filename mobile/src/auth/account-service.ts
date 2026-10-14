@@ -134,7 +134,7 @@ export async function regenerateRecovery(account: Account) {
 export async function resetWithRecovery(username: string, recoveryCode: string, password: string, confirmation: string) {
   const invalid = validateRecovery(username, recoveryCode, password, confirmation); if (invalid) throw new Error(invalid);
   const clean = normalizeUsername(username);
-  const response = await fetch('https://coin-quest-ledger.vercel.app/api/recover-account', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: clean, recoveryCode, password }) });
+  const response = await fetch('https://coinquestledger.vercel.app/api/recover-account', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: clean, recoveryCode, password }) });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(response.status === 429 ? 'ลองหลายครั้งเกินไป กรุณารอ 15 นาที' : response.status >= 500 ? 'บริการกู้บัญชียังไม่พร้อม ลองใหม่ภายหลัง' : 'ชื่อผู้ใช้หรือ Recovery ID ไม่ถูกต้อง');
   if (!data.recoveryCode || !data.authEmail) throw new Error('ผลการกู้บัญชีไม่ครบ กรุณาเก็บ Recovery ID เดิมไว้และติดต่อผู้ดูแล');
