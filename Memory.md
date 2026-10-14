@@ -1,6 +1,34 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
+
+## Verified domain cutover — 2026-10-14
+
+Production is `https://coinquestledger.vercel.app`, including `/admin/`.
+Release `ff442e3c906bd4ae1b1f9671ee1d6a3d1d29dd06` passed all three jobs in
+[CI run 38531883556](https://github.com/purichw/coin-quest-ledger/actions/runs/38531883556)
+and was verified on Vercel deployment `dpl_23c9nDQHoVRov3yeob8Ze3pH4nAq`.
+Browser CI passed 553 cases with 11 predefined skips.
+
+The existing Vercel project was renamed to `coinquestledger`; its project ID,
+secrets and GitHub connection are unchanged. All five legacy aliases were
+removed. The retired canonical host returns 404 without a redirect; CI and
+active source use only the new hostname. Firebase Auth authorizes the new web
+hostname and no longer authorizes the retired one. Fresh Google Admin sign-in
+and real Admin reads passed after cutover.
+
+Firebase project `pointy-personal-toolkit`, its hosted OAuth helper, user UIDs,
+Firestore data and Rules remain unchanged. The backend/helper name may still
+appear during Google sign-in; a website-domain change does not rebrand that
+OAuth flow. Browser sessions and local-only drafts are origin-scoped. Native
+source share/recovery URLs changed, with profile and board share previews
+verified on the own iPhone Simulator binary; existing distributed binaries
+still require an app update. No native distribution occurred.
+
+Evidence and limits: [domain migration record](docs/domain-migration-2026-10-14/README.md).
+This is a dated verified checkpoint; compare the current SHA, CI and alias
+before making a later production claim. Unrelated workspace changes were
+excluded from this release.
 
 ## Current shared design direction — 2026-10-13
 
@@ -23,13 +51,14 @@ Evidence: `docs/player-design-system-2026-10-13/README.md`.
 - GitHub: `git@github.com:purichw/coin-quest-ledger.git`
 - Live production URL: `https://coinquestledger.vercel.app`
 - Vercel project: `coinquestledger`
-- Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a legacy backend/internal identifier, not user-facing. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
+- Firebase project ID is still `pointy-personal-toolkit` intentionally. This is a backend identifier whose Firebase-hosted OAuth helper may appear during Google sign-in. Do not rename/migrate it just for aesthetics; migrate only as a planned infrastructure/security phase with backup, data copy, full regression, and rollback.
 - Short URL `https://coin-quest.vercel.app` is unavailable because it is owned by another Vercel project outside this account.
 - Main branch: `main`
 - For the current pushed source snapshot, run `git log -1 --oneline origin/main`.
 - Pre-October release baseline: `b726368`, successful CI/CD run `33385081176`.
-  Read `docs/release-2026-10-12.md` for the new release scope and verify the exact
-  current SHA/run/alias/Rules release before claiming a production snapshot.
+  Read `docs/release-2026-10-12.md` for that historical scope and the domain
+  cutover checkpoint above for the later verified release. Verify the current
+  SHA/run/alias/Rules release before claiming a production snapshot.
 - Latest production should still be verified with `vercel ls` or by curling the live URL after a new deploy.
 
 ## Start Here In A New Chat

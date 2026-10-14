@@ -1,6 +1,6 @@
 # Security And Firebase Rules
 
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 
 ## Purpose
 
@@ -13,11 +13,16 @@ reality. Use it with `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`,
 
 - Firebase project id: `pointy-personal-toolkit`.
 - Web production origin: `https://coinquestledger.vercel.app`.
-- Firebase Auth must authorize `coinquestledger.vercel.app`. Keep the Firebase
-  helper domains and localhost entries; remove the retired web origin after
-  validating Google sign-in on the new origin. The Firebase project, user UIDs,
-  database and OAuth callback at `pointy-personal-toolkit.firebaseapp.com`
-  remain in the same backend project.
+- Firebase Auth authorized domains verified on 2026-10-14:
+  `coinquestledger.vercel.app`, `pointy-personal-toolkit.firebaseapp.com`,
+  `pointy-personal-toolkit.web.app`, `localhost`, and `127.0.0.1`.
+  The retired web hostname was removed; fresh Google Admin sign-in passed.
+  The Firebase project, user UIDs, database and OAuth helper callback at
+  `https://pointy-personal-toolkit.firebaseapp.com/__/auth/handler` are unchanged.
+  Do not set `authDomain` to the Vercel hostname merely to change branding;
+  a custom OAuth helper/callback setup is a separate infrastructure change.
+  Evidence: `docs/domain-migration-2026-10-14/README.md`. This cutover did not
+  deploy or modify Firestore Rules.
 - Firebase plan: Spark at last local check, with `billingEnabled: false`.
 - Web runtime: static pages on Vercel using Firebase compat SDK.
 - Admin privileged backend: Vercel Serverless API using `firebase-admin`.

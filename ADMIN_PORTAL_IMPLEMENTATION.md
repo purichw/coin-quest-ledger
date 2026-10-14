@@ -21,10 +21,13 @@ prototype/handoff history unless a fresh Admin Claude export is supplied.
 
 ## Access Model
 
-Canonical Admin URL: `https://coinquestledger.vercel.app/admin/`. Authorize that
-hostname in Firebase Auth while retaining the existing Firebase project and
-Google OAuth helper callback. Changing the web origin requires a fresh browser
-session; it does not change the Super Admin allowlist or account data.
+Canonical Admin URL: `https://coinquestledger.vercel.app/admin/`. Firebase Auth
+authorizes this hostname; the retired web hostname was removed on 2026-10-14.
+Fresh Google sign-in and real Admin reads passed after the cutover. The Firebase
+project and Google OAuth helper callback remain unchanged, so the helper's
+legacy project name can still appear during sign-in. The new browser origin
+requires its own session and does not change the Super Admin allowlist or data.
+See `docs/domain-migration-2026-10-14/README.md` for the verified release.
 
 Production:
 

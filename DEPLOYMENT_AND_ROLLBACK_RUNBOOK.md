@@ -1,6 +1,6 @@
 # Deployment And Rollback Runbook
 
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 
 ## Purpose
 
@@ -25,13 +25,15 @@ Vercel project ID and GitHub connection when renaming the Vercel project; a new
 project would lose the existing production secrets and deployment history.
 The canonical domain must be a verified production domain with no redirect.
 The CI alias step must use the same hostname, so future releases cannot restore
-the retired alias. Remove the retired canonical alias after the new origin's
-Google login and application routes are verified. Do not add an old-domain
-redirect as part of this cutover.
+the retired alias. The cutover is complete: all five legacy aliases were removed,
+the retired canonical host returns 404 without a redirect, and fresh Google
+Admin login passed on the new origin. Do not recreate retired aliases or add
+an old-domain redirect during normal deploy/rollback operations.
 
-Firebase Auth authorized domains must include the new web hostname. The Firebase
-project ID and Firebase-hosted OAuth helper domain remain unchanged; users and
-Firestore data are not migrated. Browser storage/session state is origin-scoped,
+Firebase Auth authorized domains include the new web hostname and exclude the
+retired web hostname. The Firebase project ID and Firebase-hosted OAuth helper
+domain remain unchanged; users and Firestore data are not migrated.
+Browser storage/session state is origin-scoped,
 so users may need to sign in again on the new hostname. Browser-only drafts on
 the retired origin do not automatically transfer. Native source links and its
 recovery endpoint must use the new hostname; existing installed binaries need
@@ -40,6 +42,8 @@ an updated build before their embedded links change.
 Domain migration regression guard: `tests/unit/production-domain.test.mjs`.
 Historical screenshots, capture manifests and archived handoffs record the
 origin actually used at capture time and are not active production settings.
+See [verified cutover evidence](docs/domain-migration-2026-10-14/README.md) for
+the exact commit, CI run, deployment, alias inventory and native limits.
 
 Do not commit `.vercel/project.json` values into new places. Store Vercel IDs
 and tokens as GitHub/Vercel secrets.
@@ -111,10 +115,14 @@ Cloudinary remains an explicit `?assets=cloud` diagnostic path, not the default.
 
 ### Timing and diagnosis
 
-Comparable October runs took 3m23s, 3m25s and 3m44s total; the latest
-`38217362692` tested both jobs and promoted `34aa1a0` in about 3m44s.
-Use approximately 5m45s as a total-duration diagnostic checkpoint for this mode,
-not a failure timeout. Inspect the active phase and recent log timestamps.
+The expanded October 13–14 suite needs a newer baseline than the early October
+3–4 minute runs. Successful run `38480350398` took about 14m45s; the domain
+cutover run `38531883556` took about 13m10s, with Test 11m50s, Native contracts
+47s in parallel, and Deploy production 1m15s. For this full-suite mode, use
+13–15 minutes as the expected range and 22 minutes as a diagnostic
+checkpoint, not a failure timeout. Recalibrate from recent comparable runs.
+Inspect the active phase and recent log timestamps; GitHub's live job page can
+show progress before CLI log downloads become available.
 Use a full commit SHA when filtering runs; short-SHA filters can miss a run.
 Investigate immediately on a failed assertion, wrong SHA or
 authentication error; inspect after 3 minutes with no run, 5 minutes queued with

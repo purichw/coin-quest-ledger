@@ -1,6 +1,6 @@
 # Testing Matrix
 
-Last updated: 2026-10-13
+Last updated: 2026-10-14
 
 ## Purpose
 
@@ -52,6 +52,7 @@ the relevant iPhone widths from `$mobile-web-qa` / `CLAUDE_TO_A_TEE_QA.md`.
 | Invite/guest/reminders | `npm run test:syntax`, `npm run test:unit`, targeted invite Playwright test |
 | Character/Profile aggregation | `npm run test:unit`, Character Profile e2e |
 | Auth/signup/recovery | targeted profile e2e, `npm run test:backend`, affected native contracts/Simulator |
+| Production domain / auth origin | `tests/unit/production-domain.test.mjs`, affected native URL contracts, Firebase authorized domains and fresh Google Admin login; for release verify exact SHA/alias, new routes and retired-host behavior |
 | Admin Portal | Admin e2e group; usually full `npm test` |
 | Admin cleanup / safe operations | `admin-flow-audit.spec.mjs`: continuous typing, Archive/Reopen persistence, JSON export redaction, modal cancellation/focus, invalid values, quota failure, corrupt drafts and incomplete server reads |
 | Admin delete backend | `tests/unit/admin-delete-user.test.mjs`; real Firebase e2e only with env |
@@ -75,6 +76,13 @@ and `treasury`. Auth/signup/creation and Firebase transport fault injection live
 in `account-persistence`; invalid inputs remain in `frontend-validation`.
 The legacy `coin-quest-ledger` integration file still owns cross-module financial,
 import/export, identity, permissions and responsive regression contracts.
+
+Auth composition captures are separate Login, Sign Up and Recovery cases at
+each width. Keep all screenshots/assertions and the normal 30-second budget;
+high-DPI mobile captures at desktop widths can exhaust a combined-case budget.
+When an isolated test server uses another port, align both the Playwright base
+URL and the origin filter in `first-load.spec.mjs`; do not modify an unrelated
+running server or interpret its port mismatch as an application failure.
 
 When adapting tests to the current UI, open responsive disclosures with their
 real buttons, use `expandBoardSection` for log/settlement where needed, and use

@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 
 ## Purpose
 
@@ -29,6 +29,10 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
   `docs/player-design-system-2026-10-13/`.
 
 - `Memory.md`, `PLAYBOOK.md`: current checkpoint and operating/read order.
+- `docs/domain-migration-2026-10-14/README.md`: verified canonical-domain cutover,
+  exact CI/deployment evidence, Firebase authorized domains and native limits.
+- `tests/unit/production-domain.test.mjs`: guards active code and CI against
+  restoring the retired hostname; current targets live in the deploy runbook.
 - `skills/coin-quest-new-chat/`: versioned new-chat router, context map and UI
   metadata; installed copy is `/Users/point/.codex/skills/coin-quest-new-chat/`.
 - `index.html`: Home, toolbox launcher, and Price Arena.

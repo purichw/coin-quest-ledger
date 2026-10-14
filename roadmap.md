@@ -1,6 +1,6 @@
 # Coin Quest Ledger Roadmap
 
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 
 ## North Star
 
@@ -11,9 +11,10 @@ visual changes; historical Claude exports apply only when explicitly requested.
 
 ## Current Baseline
 
-- Production domain: `https://coinquestledger.vercel.app`. The latest verified
-  release is recorded in `Memory.md` and `docs/release-2026-10-12.md`; do not
-  infer deployment from source or documentation-only changes.
+- Production domain: `https://coinquestledger.vercel.app`. The latest recorded
+  domain cutover is in `Memory.md` and `docs/domain-migration-2026-10-14/README.md`;
+  Vercel aliases and Firebase Auth were updated, and the retired host is disabled.
+  Do not infer deployment from source or documentation-only changes.
 - Large Claude references stay outside Git. Files listed in historical notes
   must be checked for existence and relevance before use; do not assume old
   Downloads exports describe the approved current native app.
@@ -30,9 +31,9 @@ visual changes; historical Claude exports apply only when explicitly requested.
 - The rebuilt Expo 57 / React Native 0.86 app implements all player modules;
   web/native share `playerModules/{uid}`. Native flow acceptance requires the
   own binary on an actual Simulator; browser/JS checks are supplementary.
-- Current design decision: restore the complete player Website/rebuilt Mobile
-  design from immediately before the 12 October redesign, preserving current
-  features/backend and the Admin redesign. See the design-restoration evidence.
+- Current design direction: player website screens follow the October 13
+  mockups and `PLAYER_DESIGN_SYSTEM.md`; native and Admin retain their own
+  approved direction. Read `Memory.md` before using historical restoration notes.
 - CI/CD is active through `.github/workflows/test.yml`: pull requests run the full test suite, and pushes to `main` deploy production through Vercel when GitHub secrets are present.
 - Documentation canon now includes `SITE_MAP_AND_INTERACTIONS.md`, `PROJECT_STRUCTURE_GUIDE.md`, `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `ADMIN_PORTAL_IMPLEMENTATION.md`, `SECURITY_AND_FIREBASE_RULES.md`, `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md`, `NATIVE_WEB_PARITY.md`, `INVITES_AND_GUESTS.md`, and `CLAUDE_TO_A_TEE_QA.md` so future chats can recover route, module, account, admin, security, deploy, native, invite, and exact-design context quickly.
 

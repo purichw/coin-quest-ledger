@@ -8,6 +8,10 @@ This reference routes to living docs; it is not a live release status report.
 - Primary checkout: `/Users/point/toolbox`.
 - GitHub: `purichw/coin-quest-ledger`; verify current remote/upstream before release.
 - Web: <https://coinquestledger.vercel.app> — static HTML/CSS/JS plus Vercel APIs.
+- Vercel project: `coinquestledger`; GitHub repository name remains unchanged.
+  The retired web hostname is disabled without a redirect. Read the current
+  deployment/security docs for alias and Firebase Auth settings; the dated
+  cutover evidence is `docs/domain-migration-2026-10-14/README.md`.
 - Native: `mobile/`, Expo Router and React Native; versions come from its
   `package.json`, lockfile and `.nvmrc`, not this reference.
 - Shared Firebase project: `pointy-personal-toolkit`. Its legacy internal name
@@ -32,6 +36,7 @@ screenshot is not proof of current production/device health.
 | Auth, account or recovery | `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`, `SECURITY_AND_FIREBASE_RULES.md` | `shared/profile-*.js`, `mobile/src/auth/`, `api/account-recovery-core.js`, recovery/reset endpoints; `$firebase-account-management`, `$account-recovery-key` |
 | Admin or lifecycle | `ADMIN_PORTAL_IMPLEMENTATION.md`, `SECURITY_AND_FIREBASE_RULES.md` | `admin/`, `api/admin-delete-user.js`, `api/admin-reset-user.js`; `$coin-quest-admin-ops` |
 | Rules/access or migrations | `SECURITY_AND_FIREBASE_RULES.md`, `data-contracts.md`, deploy runbook | `firestore.rules`, `api/`, `tests/backend/`; `$firebase-security-rules` |
+| Domain, hosting or auth origin | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `SECURITY_AND_FIREBASE_RULES.md`, `NATIVE_WEB_PARITY.md` | CI alias, Firebase authorized domains, native share/parser/recovery URLs, `tests/unit/production-domain.test.mjs`; `$release-gate`, `$firebase-account-management` |
 | Tests/release | `TESTING_MATRIX.md`, `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `PROD_SMOKE_HARNESS.md` | `.github/workflows/test.yml`, `scripts/prod-smoke.mjs`; `$release-gate`, `$github-actions-repair` only when diagnosis is needed |
 | Docs, context or next work | `Memory.md`, `roadmap.md`, relevant domain doc | `$docs-cartographer`, `$skill-creator` for skill edits |
 | Restore/rollback | `docs/rollback-parking-lot.md`, current diff and recovery checkpoint | `$rollback-guardrail`; avoid reverting the combined rebuild/backend commit |
@@ -41,6 +46,11 @@ to load every skill or document for every request.
 
 ## Contracts and evidence boundaries
 
+- The website hostname and Firebase project/Auth helper are separate targets.
+  Keep existing Firebase UIDs/data and helper callback when changing only the
+  web origin. A new origin has separate browser sessions/local-only drafts;
+  changing native source URLs does not update already distributed binaries.
+  Historical capture URLs remain provenance, not deployment instructions.
 - One Firebase account has one active character. Public four-digit identity
   pointers differ from Firebase UID. Recovery preserves UID and linked data;
   missing Auth recreation uses the existing UID. No passwords, recovery codes,
@@ -116,7 +126,8 @@ Replace the checkout path when a different worktree is explicitly selected.
 
 ใช้เอกสารและ source ปัจจุบัน ไม่อาศัยความจำจากแชตเก่า อยู่ในแชตนี้และ checkout นี้
 เว็บกับ Mobile ใช้ Firebase เดิมร่วมกัน ต้องรักษา identity, storage, sync และสูตรคำนวณ
-สี/CI ฝั่งผู้เล่นคืนแบบเดิมแล้ว แต่คง layout และฟีเจอร์ปัจจุบัน; Admin คง redesign
+งานออกแบบอ่านทิศทางล่าสุดจาก Memory.md และ PLAYER_DESIGN_SYSTEM.md; Mobile/Admin มีแนวทางของตนเอง
+ใช้โดเมนและ auth targets จาก deployment/security docs ปัจจุบัน ไม่คืน alias เก่าจากเอกสารย้อนหลัง
 งาน Mobile ต้องตรวจ flow ที่แก้บน Simulator จริงด้วย binary ของแอป
 แยกสถานะ source, CI, production และ native distribution ให้ชัด
 อย่า commit/push/deploy, rollback, migrate หรือแก้ข้อมูล production ถ้ายังไม่ได้สั่ง

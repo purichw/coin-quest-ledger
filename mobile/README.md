@@ -27,6 +27,13 @@ local binaries belong in the ignored `.artifacts/` directory.
 
 ## Product boundary
 
+Canonical web origin: `https://coinquestledger.vercel.app`. Board/profile share
+links, accepted web board URLs and the account-recovery API use this origin.
+Firebase project, identity and data remain unchanged. The 2026-10-14 source
+update passed native checks and actual Simulator share-preview verification;
+it did not distribute a new app binary/OTA. Installed older releases need an app
+update. See [domain migration evidence](../docs/domain-migration-2026-10-14/README.md).
+
 Player-side native app. Existing web account, character, board, invitation,
 settlement, recovery, and module storage contracts remain authoritative.
 There are no production data writes during the setup gate. No feature or native

@@ -1,6 +1,17 @@
 # Native And Web Parity
 
-Last updated: 2026-10-12
+Last updated: 2026-10-14
+
+## Canonical web links — 2026-10-14
+
+Native board/profile shares, pasted-board URL validation and recovery API calls
+use `https://coinquestledger.vercel.app`. Firebase identity/data stays in the
+existing project. Profile and board share previews were exercised on the own
+binary in iPhone 17 Pro / iOS 26.5 Simulator with the updated JavaScript;
+typecheck, lint and 59 native contracts passed. No recovery reset was submitted.
+This verifies the source/Simulator paths, not a native distribution update:
+previously distributed binaries still need an app update. Web deployment does
+not update their embedded URLs. See `docs/domain-migration-2026-10-14/README.md`.
 
 ## Rebuild status
 

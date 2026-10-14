@@ -1,6 +1,7 @@
 # Account Management Implementation
 
-Last verified: 2026-08-31
+Account-flow baseline verified: 2026-08-31
+Domain/auth configuration updated and verified: 2026-10-14
 
 This document describes the current implementation path from account creation to
 password recovery and Super Admin user management. It documents the code that
@@ -30,6 +31,15 @@ exists today; it is not a proposal for the final hardened auth system.
 - `data-contracts.md`: canonical Firestore/localStorage shape.
 
 ## Platform Shape
+
+The website and API origin is `https://coinquestledger.vercel.app`. Firebase
+Auth allows this web hostname and excludes the retired hostname. Existing UIDs,
+account records, recovery contracts and the Firebase-hosted Google OAuth helper
+are unchanged. Users may need to sign in again on the new origin; browser-only
+drafts do not transfer automatically. Native recovery calls the new origin,
+but previously distributed binaries need an app update. The domain cutover
+verified Google Admin login and backend configuration, not a new live password
+reset or account-deletion exercise. See `docs/domain-migration-2026-10-14/README.md`.
 
 The project uses Firebase Auth and Firestore under project
 `pointy-personal-toolkit`. Current billing state is Spark: `billingEnabled:

@@ -62,6 +62,8 @@ not authorization to start another chat or publish changes.
   fresh Simulator run, full suite or production smoke.
 - For release work use `$release-gate` and the deploy runbook. Track push,
   exact-full-SHA CI, Vercel build and canonical alias promotion separately.
+  Take current domain/Auth targets from that runbook and the security doc;
+  historical screenshots and handoffs must not restore retired aliases.
   The GitHub workflow is the production writer; do not create a duplicate
   deployment while it runs. Web/API deploy does not publish native binary/OTA
   or Firestore Rules. For rollback-like work use `$rollback-guardrail`.
