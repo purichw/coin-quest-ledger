@@ -210,18 +210,6 @@ function questIconLabel(value) {
 }
 const fmtInput = value => PointyLogic.formatNumberInput(value);
 const numInput = value => PointyLogic.parseNumberInput(value);
-function ppTLV(tag, value) { const v = String(value); return tag + String(v.length).padStart(2, "0") + v; }
-function ppCRC16(data) {
-  let crc = 0xFFFF;
-  for (let i = 0; i < data.length; i++) {
-    crc ^= data.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
-      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
-      crc &= 0xFFFF;
-    }
-  }
-  return crc.toString(16).toUpperCase().padStart(4, "0");
-}
 function promptPayPayload(target, amount) { return PointyLogic.promptPayPayload(target, amount); }
 
 function fmtPP(v) {
@@ -268,7 +256,6 @@ function isAdminUnlocked() {
   return sessionStorage.getItem(adminSessionKey()) === '1' || hasCreatorAdmin();
 }
 function canChangeTripUrl() { return !S.participants.length && !S.expenses.length && !S.admin?.urlLocked; }
-function sanitizeTripCode(value) { return String(value || '').replace(/\D/g, '').slice(0, 4); }
 function sanitizeTripSlug(value) {
   return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 36);
 }
@@ -1114,33 +1101,6 @@ async function confirmNewTrip() {
   toast(t('new_trip_created', { id: tripId }));
 }
 function openQuestBoard() { syncActiveCampaign(); _overlay = 'board'; SFX.click(); renderOverlay(); }
-function createCampaign() {
-  syncActiveCampaign();
-  const id = campaignId();
-  const next = {
-    id,
-    tripName: `${t('trip_fallback_name')} ${S.campaigns.length + 1}`,
-    participants: S.participants.slice(),
-    expenses: [],
-    budgets: { ...S.budgets },
-    heroClasses: { ...S.heroClasses },
-    heroGenders: { ...S.heroGenders },
-    heroSkins: { ...(S.heroSkins || {}) },
-    characterIds: { ...S.characterIds },
-    promptpay: { ...(S.promptpay || {}) },
-    settleXp: {},
-    createdAt: Date.now(),
-    completedAt: null
-  };
-  S.campaigns.unshift(next);
-  applyCampaign(next);
-  _settledTx = [];
-  _prevOutstanding = null;
-  _resetEntryDraft = true;
-  _overlay = null;
-  SFX.click();
-  save(); renderAll(false); toast(t('start_campaign'));
-}
 function openCampaign(id) {
   syncActiveCampaign();
   const c = S.campaigns.find(x => x.id === id);
@@ -1328,8 +1288,6 @@ function saveBudget(name) {
   catch (error) { toast(error.message); return; }
   save(); renderAll();
 }
-function pickClass(cls) { _addHeroClass = normalizeClass(cls); renderParty(); }
-function pickGender(gender) { _addHeroGender = gender === 'female' ? 'female' : 'male'; renderParty(); }
 function openAddHero() {
   _addHeroMode = accountHero() ? 'id' : 'guest';
   _addHeroName = '';
@@ -1344,8 +1302,24 @@ function openAddHero() {
   renderParty();
   setTimeout(() => document.getElementById(accountHero() ? 'new-hero-id' : 'new-hero-name')?.focus(), 0);
 }
-function openHeroPicker() { _heroPickerOpen = true; renderParty(); }
-function closeHeroPicker() { _heroPickerOpen = false; renderParty(); }
+function openHeroPicker() {
+  _heroPickerOpen = true;
+  renderParty();
+  document.querySelector('.party-hero-picker .picker-cell.on, .party-hero-picker .picker-close')?.focus({ preventScroll: true });
+}
+function closeHeroPicker() {
+  _heroPickerOpen = false;
+  renderParty();
+  document.querySelector('.choose-hero-btn')?.focus({ preventScroll: true });
+}
+function heroPickerKeydown(event) {
+  if (event.key === 'Escape') { event.preventDefault(); closeHeroPicker(); return; }
+  if (event.key !== 'Tab') return;
+  const controls = [...event.currentTarget.querySelectorAll('button:not(:disabled)')];
+  const first = controls[0], last = controls.at(-1);
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+}
 function cancelAddHero() {
   _addHeroMode = accountHero() ? 'id' : 'guest';
   _addHeroName = '';
@@ -1395,7 +1369,11 @@ function setAddHeroMode(mode) {
   _heroConfirmOpen = false;
   renderParty();
 }
-function setPickerGender(gender) { _pickerGender = ['all','female','male'].includes(gender) ? gender : 'all'; renderParty(); }
+function setPickerGender(gender) {
+  _pickerGender = ['all','female','male'].includes(gender) ? gender : 'all';
+  renderParty();
+  document.querySelector('.party-hero-picker .picker-filter .on')?.focus({ preventScroll: true });
+}
 function pickHeroVariant(cls, gender) {
   _addHeroClass = normalizeClass(cls);
   _addHeroGender = gender === 'female' ? 'female' : 'male';
@@ -1404,31 +1382,32 @@ function pickHeroVariant(cls, gender) {
   _heroPickerOpen = false;
   SFX.click();
   renderParty();
+  document.querySelector('.choose-hero-btn')?.focus({ preventScroll: true });
 }
 function heroPickerModal() {
   if (!_heroPickerOpen) return '';
   const variants = CLASS_ORDER.flatMap(cls => ['female', 'male'].map(gender => ({ cls, gender })))
     .filter(v => _pickerGender === 'all' || v.gender === _pickerGender);
   const used = new Set(S.participants.map(name => avatarId(classOf(name), genderOf(name))));
-  return `<div class="picker-overlay" onclick="closeHeroPicker()">
-    <div class="picker" onclick="event.stopPropagation()">
+  return `<div class="picker-overlay party-hero-picker" onclick="closeHeroPicker()">
+    <div class="picker" id="party-hero-picker" role="dialog" aria-modal="true" aria-labelledby="party-hero-picker-title" onkeydown="heroPickerKeydown(event)" onclick="event.stopPropagation()">
       <div class="picker-head">
         <div>
-          <div class="picker-title">⚔️ ${t('choose_hero')}</div>
+          <div class="picker-title" id="party-hero-picker-title">⚔️ ${t('choose_hero')}</div>
           <div class="picker-sub">${t('choose_hero_sub')}</div>
         </div>
-        <button type="button" class="picker-close" onclick="closeHeroPicker()">✕</button>
+        <button type="button" class="picker-close" aria-label="${h(t('btn_cancel'))}" onclick="closeHeroPicker()">✕</button>
       </div>
       <div class="picker-filter">
-        <button type="button" class="${_pickerGender === 'all' ? 'on' : ''}" onclick="setPickerGender('all')">${t('all_heroes')}</button>
-        <button type="button" class="${_pickerGender === 'female' ? 'on' : ''}" onclick="setPickerGender('female')">♀ ${t('gender_female')}</button>
-        <button type="button" class="${_pickerGender === 'male' ? 'on' : ''}" onclick="setPickerGender('male')">♂ ${t('gender_male')}</button>
+        <button type="button" class="${_pickerGender === 'all' ? 'on' : ''}" aria-pressed="${_pickerGender === 'all'}" onclick="setPickerGender('all')">${t('all_heroes')}</button>
+        <button type="button" class="${_pickerGender === 'female' ? 'on' : ''}" aria-pressed="${_pickerGender === 'female'}" onclick="setPickerGender('female')">♀ ${t('gender_female')}</button>
+        <button type="button" class="${_pickerGender === 'male' ? 'on' : ''}" aria-pressed="${_pickerGender === 'male'}" onclick="setPickerGender('male')">♂ ${t('gender_male')}</button>
       </div>
       <div class="picker-grid">${variants.map(v => {
         const cls = CLASSES[v.cls];
         const c = classColor(v.cls);
         const selected = _addHeroClass === v.cls && _addHeroGender === v.gender;
-        return `<button type="button" class="picker-cell ${selected ? 'on' : ''}" data-class="${v.cls}" data-gender="${v.gender}" onclick="pickHeroVariant('${v.cls}','${v.gender}')">
+        return `<button type="button" class="picker-cell ${selected ? 'on' : ''}" aria-pressed="${selected}" data-class="${v.cls}" data-gender="${v.gender}" onclick="pickHeroVariant('${v.cls}','${v.gender}')">
           <div class="pc-art" style="--cc-top:${c.top};--cc-bot:${c.bot};--avatar-bg:${avatarBg(v.cls)}">
             <img src="${avatarSrc(v.cls, v.gender)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <span class="portrait-fallback" style="display:none">${cls.glyph}</span>
@@ -1513,7 +1492,7 @@ function renderParty() {
     const isGuestHero = !!S.guestHeroes?.[hero.name];
     const heroId = isGuestHero ? '' : ensureCharacterId(hero.name);
     return `<div class="hero-card ${status.kind}" style="--cc-top:${c.top};--cc-bot:${c.bot};--cc-ring:${c.ring};--frame:${S.settings.stats && reward.frame === 'bronze' ? '#c08a4a' : S.settings.stats && reward.frame === 'silver' ? '#b6c0cf' : S.settings.stats && (reward.frame === 'gold' || reward.frame === 'legend') ? 'var(--gold)' : 'var(--border)'}">
-      ${isAdminUnlocked() && S.participants.length > 1 ? `<button class="hero-remove" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
+      ${isAdminUnlocked() && S.participants.length > 1 ? `<button type="button" class="hero-remove" aria-label="${h(boardText('removeMember'))}: ${h(hero.name)}" onclick="removeParticipant(${q(hero.name)})">×</button>` : ''}
       <div class="portrait ${S.settings.stats ? frameClass : ''}" style="--avatar-bg:${avatarBg(hero.cls)}">
         ${heroPortraitImg(hero.name, hero.cls, genderOf(hero.name))}
         <span class="class-badge" title="${h(cls[LANG] || cls.th)}">${cls.glyph}</span>
@@ -1526,7 +1505,6 @@ function renderParty() {
         </div>` : ''}
       </div>
       <div class="hero-name">${h(hero.name)}${isGuestHero ? `<span class="char-id">${h(t('guest_badge'))}</span>` : `<a class="char-id" href="${h(characterProfileLink(heroId))}" title="Character Profile">#${h(heroId)}</a>`}</div>
-      <div class="board-member-money"><span>${boardText('paid')}<b>${money(hero.paid)}</b></span><span>${boardText('balance')}<b class="${outstanding > .005 ? 'positive' : outstanding < -.005 ? 'negative' : ''}">${outstanding > .005 ? '+' : outstanding < -.005 ? '−' : ''}${money(Math.abs(outstanding))}</b></span></div>
       <div class="hero-class-row">
         <span class="hero-class">${h(cls[LANG] || cls.th)}</span>
         ${S.settings.stats ? `<span class="rank-pill rank-${reward.frame}">${reward.glyph} ${h(rankTitle)}</span>` : ''}
@@ -1556,47 +1534,22 @@ function renderParty() {
     : `this.formReady=!!(_addHeroName.trim() && _addHeroClass && _addHeroGender);document.getElementById('confirm-hero-btn').disabled=!this.formReady`;
   const add = _addHeroOpen ? `<div class="hero-card add-hero-form">
     ${needsGuestId ? `<div class="seg add-mode-seg"><button type="button" class="${idAddMode ? 'on' : ''}" onclick="setAddHeroMode('id')">${h(t('add_by_character_id'))}</button><button type="button" class="${guestAddMode ? 'on' : ''}" onclick="setAddHeroMode('guest')">${h(t('add_guest'))}</button></div>` : ''}
-    ${idAddMode ? `<input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value;_addHeroResolvedRecord=null;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">
-    <div class="lock-note">${t('guest_character_id_note')}</div>` : `<input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()">`}
+    <div class="add-hero-fields ${idAddMode ? 'invite-fields' : ''}">
+      ${idAddMode ? `<label class="add-hero-field" for="new-hero-id"><span>${h(t('guest_character_id'))}</span><input id="new-hero-id" class="field-input" value="${h(_addHeroCharacterId)}" placeholder="${h(t('guest_character_id'))}" inputmode="numeric" maxlength="4" oninput="_addHeroCharacterId=this.value;_addHeroResolvedRecord=null;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()"></label>` : `<label class="add-hero-field" for="new-hero-name"><span>${h(t('hero_name'))}</span><input id="new-hero-name" class="field-input" value="${h(_addHeroName)}" placeholder="${h(t('hero_name'))}" maxlength="24" oninput="_addHeroName=this.value;${addReadyExpr}" onkeydown="if(event.key==='Enter' && !document.getElementById('confirm-hero-btn').disabled)requestHeroConfirmation()"></label>`}
+      ${idAddMode ? '' : `<div class="add-hero-field"><span>${t('choose_hero')}</span>
+        <button type="button" class="choose-hero-btn" aria-label="⚔️ ${h(t('choose_hero'))}" aria-haspopup="dialog" aria-expanded="${_heroPickerOpen}" onclick="openHeroPicker()">
+          <span class="hero-choice-art" aria-hidden="true" ${_addHeroClass ? `style="--avatar-bg:${avatarBg(_addHeroClass)}"` : ''}>${_addHeroClass && _addHeroGender ? heroPortraitImg('', _addHeroClass, _addHeroGender) : boardIcon('swords')}</span>
+          <span><strong>${_addHeroClass && _addHeroGender ? h(CLASSES[_addHeroClass][LANG] || CLASSES[_addHeroClass].th) : t('tap_choose_hero')}</strong><small>${_addHeroClass && _addHeroGender ? t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male') : t('hero_not_selected')}</small></span><span aria-hidden="true">›</span>
+        </button>
+      </div>`}
+    </div>
+    ${idAddMode ? `<div class="lock-note">${t('guest_character_id_note')}</div>` : `<div class="lock-note">${t('hero_choice_locked')}</div>`}
     ${guestAddMode && needsGuestId ? `<div class="lock-note">${t('add_guest_note')}</div>` : ''}
-    ${idAddMode ? '' : `<div class="hero-builder">
-      ${(() => {
-        if (!_addHeroClass || !_addHeroGender) {
-          return `<div class="avatar-preview empty">
-            <button type="button" class="hc-choose" onclick="openHeroPicker()" aria-label="${h(t('tap_choose_hero'))}">
-              <span class="hc-choose-q">?</span>
-              <span class="hc-choose-lab">${t('tap_choose_hero')}</span>
-            </button>
-            <span class="class-badge">⚔️</span>
-            <span class="status-badge guardian">🛡️</span>
-          </div>`;
-        }
-        const c = classColor(_addHeroClass);
-        const cls = CLASSES[_addHeroClass];
-        return `<div class="avatar-preview" style="--top:${c.top};--bot:${c.bot};--ring:${c.ring};background:${avatarBg(_addHeroClass)}">
-          ${heroPortraitImg('', _addHeroClass, _addHeroGender)}
-          <span class="class-badge">${cls.glyph}</span>
-          <span class="avatar-preview-label">${h(cls[LANG] || cls.th)} · ${t(_addHeroGender === 'female' ? 'gender_female' : 'gender_male')}</span>
-        </div>`;
-      })()}
-      <div class="class-tools">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div class="field-label">${t('choose_hero')}</div>
-          <div class="gender-toggle">
-            <button type="button" class="gender-btn ${_addHeroGender === 'male' ? 'on' : ''}" aria-pressed="${_addHeroGender === 'male'}" onclick="pickGender('male')" title="${h(t('gender_male'))}">♂</button>
-            <button type="button" class="gender-btn ${_addHeroGender === 'female' ? 'on' : ''}" aria-pressed="${_addHeroGender === 'female'}" onclick="pickGender('female')" title="${h(t('gender_female'))}">♀</button>
-          </div>
-        </div>
-        <button type="button" class="choose-hero-btn" onclick="openHeroPicker()">⚔️ ${t('choose_hero')}</button>
-        <div class="field-label">${_addHeroClass && _addHeroGender ? `${CLASSES[_addHeroClass].glyph} ${h(CLASSES[_addHeroClass][LANG] || CLASSES[_addHeroClass].th)} · ${_addHeroGender === 'female' ? '♀' : '♂'}` : h(t('hero_not_selected'))}</div>
-        <div class="lock-note">${t('hero_choice_locked')}</div>
-      </div>
-    </div>`}
     <div class="add-hero-actions">
-      <button type="button" class="btn-ghost" onclick="cancelAddHero()">✕</button>
+      <button type="button" class="btn-ghost" onclick="cancelAddHero()">✕ ${t('btn_cancel')}</button>
       <button type="button" id="confirm-hero-btn" class="btn-primary sm" onclick="requestHeroConfirmation()" ${idAddMode ? (/^\d{4}$/.test(_addHeroCharacterId) ? '' : 'disabled') : (_addHeroName.trim() && _addHeroClass && _addHeroGender ? '' : 'disabled')}>${t(idAddMode ? 'invite_hero' : 'confirm_hero')}</button>
     </div>
-  </div>` : `<button class="add-hero" onclick="openAddHero()"><span style="font-size:28px;line-height:1">＋</span><span>${t('add_hero')}</span></button>`;
+  </div>` : `<button type="button" class="add-hero" onclick="openAddHero()"><span>＋</span><span>${t('add_hero')}</span></button>`;
   grid.innerHTML = cards + add + heroPickerModal() + heroConfirmationModal();
 }
 function editBudget(name) {
@@ -2287,10 +2240,6 @@ async function loadOwnedBoards(force = false) {
     _ownedBoardsLoading = false;
     if (_overlay === 'settings') renderOverlay();
   }
-}
-function openOwnedBoard(id) {
-  if (!id || id === tripId) return;
-  window.location.href = tripLinkFor(id);
 }
 function renderOverlay() {
   const root = document.getElementById('app-overlays');

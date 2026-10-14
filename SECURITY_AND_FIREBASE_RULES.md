@@ -148,8 +148,10 @@ Accepted Vercel env:
 - `FIREBASE_SERVICE_ACCOUNT_JSON`; or
 - `FIREBASE_PROJECT_ID` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY`.
 
-Keep `firebase-admin` pinned to `13.10.0` unless the Vercel runtime issue noted
-in `ADMIN.md` is retested and resolved.
+Keep `firebase-admin` pinned to `13.10.0` until the recorded Vercel runtime issue
+is retested: version `14.0.0` pulled a `jwks-rsa`/`jose` dependency path that failed
+with `ERR_REQUIRE_ESM`. Removing the obsolete prototype handoff does not remove
+this dependency constraint.
 
 ## Rules Deploy Runbook
 

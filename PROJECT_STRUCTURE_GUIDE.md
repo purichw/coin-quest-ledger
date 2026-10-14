@@ -171,7 +171,7 @@ trips and remaining limits are in `docs/mobile-completion-worklist.md`.
 | --- | --- | --- |
 | Start a new chat | `Memory.md`, `PLAYBOOK.md`, `skills/coin-quest-new-chat/SKILL.md` | Read only task-relevant owners from its context reference |
 | Change player brand colors | Inline styles in player route HTML, `mobile/src/auth/ui.tsx` | `mobile/DESIGN_DIRECTION.md`; preserve Admin isolation |
-| Change Party Ledger layout | `trip/index.html` | `CLAUDE_TO_A_TEE_QA.md`, Playwright mobile/tablet |
+| Change Party Ledger layout | `trip/board.css`, `trip/board.js`, `trip/index.html`, member/picker renderers in `trip/app.js` | `PLAYER_DESIGN_SYSTEM.md`, current mockup adaptations in `docs/split-party-layout-2026-10-14/README.md`, targeted responsive tests |
 | Change Party Ledger behavior | `trip/app.js` | `trip/trip-utils.js`, `shared/pointy-logic.js`, e2e tests |
 | Change settlement math | `shared/pointy-logic.js` | `tests/unit/pointy-logic.test.mjs` |
 | Change invite/guest flow | `trip/app.js`, `shared/board-invites.js` | `INVITES_AND_GUESTS.md`, reminders tests |
@@ -182,7 +182,7 @@ trips and remaining limits are in `docs/mobile-completion-worklist.md`.
 | Add a class or skin | `shared/pointy-logic.js`, `assets/rpg-portraits/` | `scripts/check-assets.mjs`, renderers |
 | Change production asset routing | `shared/asset-urls.js`, `.vercelignore`, `shared/cloudinary-assets.js` | `npm run test:assets`, `npm run smoke:prod` |
 | Change Character Profile | `character/app.js`, `character/design.css`, `character/index.html` | `shared/pointy-logic.js` aggregation; `docs/character-profile-redesign-2026-10-13/README.md` |
-| Change Admin Portal | `admin/app.js`, `admin/admin-utils.js`, `admin/index.html`, `admin/admin.css` | `ADMIN_PORTAL_IMPLEMENTATION.md`, `ADMIN.md`, full `npm test` |
+| Change Admin Portal | `admin/app.js`, `admin/admin-utils.js`, `admin/index.html`, `admin/admin.css`, `admin/design.css`, `admin/shell.js` | `ADMIN_PORTAL_IMPLEMENTATION.md`; targeted page/shell checks for presentation, contract/release gates for auth, data or deployment |
 | Change Firebase rules/security | `firestore.rules`, `api/*.js` | `SECURITY_AND_FIREBASE_RULES.md`, rules deploy |
 | Change CI/deploy/rollback | `.github/workflows/test.yml`, Vercel/Firebase config | `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`, `TESTING_MATRIX.md` |
 | Change mobile shell | `shared/mobile-shell.*` | Home, Split, Debt, Prices, Treasury mobile |

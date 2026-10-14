@@ -148,7 +148,7 @@
     .bar-lab.hp { color: var(--hp); }
     .bar-lab.xp { color: var(--xp); }
     .bar { flex: 1; height: 10px; border-radius: 6px; background: var(--hp-bg); overflow: hidden; border: 1px solid rgba(0,0,0,.08); }
-    .bar-fill { height: 100%; border-radius: 6px; transition: width .45s ease; }
+    .bar-fill { display: block; height: 100%; border-radius: 6px; transition: width .45s ease; }
     .xp-bar { background: var(--gold-soft); }
     .xp-bar .bar-fill { background: linear-gradient(var(--xp), color-mix(in oklab, var(--xp), #000 18%)); }
     .bar-val, .budget-edit { font-family: var(--font-stat); font-size: 10px; color: var(--ink-soft); min-width: 50px; text-align: right; }
@@ -182,21 +182,6 @@
     .add-hero-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
     .add-hero-actions .btn-ghost { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; line-height: 1; }
     .add-hero-actions .btn-primary { min-height: 44px; }
-    .hero-builder { display: grid; grid-template-columns: minmax(104px, .8fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
-    .avatar-preview { position: relative; min-height: 168px; border: 2px solid var(--ring); border-radius: 14px; background: radial-gradient(125% 92% at 50% 16%, color-mix(in oklab, var(--top), #12100c 18%), color-mix(in oklab, var(--bot), #111 38%) 78%); overflow: hidden; }
-    .avatar-preview img { position: absolute; left: 0; right: 0; bottom: -1%; margin: 0 auto; width: auto; height: 102%; max-width: none; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 5px 5px rgba(0,0,0,.35)); }
-    .avatar-preview .class-badge { left: 8px; top: 8px; }
-    .avatar-preview .portrait-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 52px; }
-    .avatar-preview-label { position: absolute; z-index: 2; left: 8px; right: 8px; bottom: 7px; padding: 4px 7px; border-radius: 8px; background: rgba(0,0,0,.48); color: #fff; text-align: center; font-size: 11px; font-weight: 700; backdrop-filter: blur(3px); }
-    .avatar-preview.empty { border-color: var(--border); border-style: solid; background: var(--panel-in); color: var(--ink-soft); }
-    .hc-choose { position: absolute; inset: 0; width: 100%; height: 100%; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: repeating-linear-gradient(45deg, var(--panel-2), var(--panel-2) 10px, var(--panel) 10px, var(--panel) 20px); color: var(--ink-soft); transition: .15s; }
-    .hc-choose:hover { color: var(--accent); }
-    .hc-choose-q { font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; width: 60px; height: 60px; border-radius: 14px; border: 3px dashed currentColor; display: flex; align-items: center; justify-content: center; }
-    .hc-choose-lab { font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .class-tools { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-    .gender-toggle { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; width: max-content; }
-    .gender-btn { width: 36px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 16px; font-weight: 800; }
-    .gender-btn.on { background: var(--accent); color: #fff; }
     .choose-hero-btn { width: 100%; border: 1.5px solid var(--border-strong); border-radius: 11px; background: var(--panel); color: var(--ink); padding: 10px 12px; font-weight: 700; }
     .choose-hero-btn:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in oklab, var(--accent), transparent 93%); }
     .lock-note { color: var(--ink-soft); font-size: 10px; line-height: 1.4; }
@@ -355,7 +340,7 @@
     .mini-hero-avatar img { position: absolute; left: 50%; top: 0; height: 270%; width: auto; max-width: none; transform: translateX(-50%); object-fit: contain; object-position: top center; }
     .mini-hero-avatar .fallback-glyph { display: none; align-items: center; justify-content: center; }
     @media (prefers-reduced-motion: no-preference) {
-      .portrait-img, .avatar-preview img, .pc-art img {
+      .portrait-img, .pc-art img {
         transform-origin: 50% 100%;
         animation: idle-sway 2.9s ease-in-out infinite;
         will-change: transform;
@@ -442,8 +427,6 @@
       .party-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
       .add-hero-form { grid-column: 1 / -1; }
       .add-hero-form .add-mode-seg, .add-hero-form .field-input { max-width: none; }
-      .hero-builder { grid-template-columns: 1fr; }
-      .avatar-preview { min-height: 220px; }
       .picker { padding: 14px; }
       .picker-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }
       .tmpl-grid { grid-template-columns: 1fr; }
@@ -582,20 +565,8 @@
     <section class="panel board-members">
       <div class="panel-head">
         <h2 class="panel-title"><span class="board-heading-icon" data-board-icon="split"></span><span data-board-label="members"></span> <span class="count-pill" id="party-count">0</span></h2>
-        <button class="btn-ghost xs" type="button" data-board-details aria-expanded="false" data-board-label="details"></button>
       </div>
       <div class="party-grid" id="party-grid"></div>
-    </section>
-    <section class="panel board-log" id="board-log-panel">
-      <div class="panel-head">
-        <h2 class="panel-title"><button class="board-disclosure" type="button" data-board-collapse="board-log-content" aria-expanded="true"><span class="board-heading-icon" data-board-icon="scroll"></span><span data-board-label="log"></span> <span class="count-pill" id="expense-count">0</span><span class="board-chevron" aria-hidden="true">⌃</span></button></h2>
-      </div>
-      <button type="button" class="board-preview" id="board-log-preview" data-board-collapse="board-log-content" aria-expanded="true"></button>
-      <div id="board-log-content">
-        <div class="board-log-tools"><input type="search" id="board-log-search" data-board-placeholder="search" aria-label="Search expenses"><select id="board-log-filter" aria-label="Filter by payer"></select></div>
-        <div id="quest-log"></div>
-        <div class="board-log-footer"><button class="btn-ghost xs" data-action="export-excel" data-i18n="btn_export">📤 Export Excel</button><button class="btn-ghost xs danger" data-action="clear-expenses" data-i18n="clear_log">ล้างบันทึกนี้</button><button class="btn-ghost xs" data-action="new-trip" data-i18n="new_trip_quest">ออกเดินทางใหม่</button></div>
-      </div>
     </section>
     </div>
     <div class="board-right">
@@ -628,7 +599,18 @@
       </section>
     </div>
     </div>
-    <aside class="board-sticky" aria-label="Board actions"><div><strong data-board-name></strong><span><span data-board-label="total"></span> <b id="board-sticky-total"></b></span></div><button type="button" class="btn-primary" data-board-add><span aria-hidden="true">＋</span><span data-board-label="add"></span></button><button type="button" class="board-to-top" data-board-top aria-label="Back to top">⌃</button></aside>
+    <section class="panel board-log" id="board-log-panel">
+      <div class="panel-head">
+        <h2 class="panel-title"><button class="board-disclosure" type="button" data-board-collapse="board-log-content" aria-expanded="true"><span class="board-heading-icon" data-board-icon="scroll"></span><span data-board-label="log"></span> <span class="count-pill" id="expense-count">0</span><span class="board-chevron" aria-hidden="true">⌃</span></button></h2>
+      </div>
+      <button type="button" class="board-preview" id="board-log-preview" data-board-collapse="board-log-content" aria-expanded="true"></button>
+      <div id="board-log-content">
+        <div class="board-log-tools"><input type="search" id="board-log-search" data-board-placeholder="search" aria-label="Search expenses"><select id="board-log-filter" aria-label="Filter by payer"></select></div>
+        <div id="quest-log"></div>
+        <div class="board-log-footer"><button class="btn-ghost xs" data-action="export-excel" data-i18n="btn_export">📤 Export Excel</button><button class="btn-ghost xs danger" data-action="clear-expenses" data-i18n="clear_log">ล้างบันทึกนี้</button><button class="btn-ghost xs" data-action="new-trip" data-i18n="new_trip_quest">ออกเดินทางใหม่</button></div>
+      </div>
+    </section>
+    <aside class="board-sticky" aria-label="Board actions"><button type="button" class="board-add-shortcut" data-board-add><span aria-hidden="true">＋</span><span data-board-label="add"></span></button></aside>
     <cq-footer></cq-footer>
   </main>
 

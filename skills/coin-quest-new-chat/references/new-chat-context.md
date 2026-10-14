@@ -69,6 +69,14 @@ to load every skill or document for every request.
   Sans Thai (body) and Chakra Petch (stats/brand). Existing reference archives
   govern only tasks that explicitly request them; `archive/CLAUDE_RECOVERY.md`
   stays deprecated unless the owner re-enables it.
+- Admin shares Dashboard parchment, header/sidebar/frame/footer across every
+  destination. Board Info and User Detail are scroll-only; never restore their
+  old Tabs/Layout toggle. `ADMIN_PORTAL_IMPLEMENTATION.md` owns the current
+  responsive/detail contracts; `ADMIN.md` is only an index.
+- Party cards stay expanded with class-specific backgrounds and a button-driven
+  Hero popup. Real members use Character ID invites; Guests stay board-local.
+  Mockup Create Hero/User ID examples do not redefine identity or membership.
+  `PLAYER_DESIGN_SYSTEM.md` owns grid/log placement and the small corner action.
 - Native build ownership and Device Hub/Simulator instructions live in
   `mobile/IOS_BUILD_NOTES.md`. Reuse a healthy installed binary/Metro when
   compatible; rebuild for native dependency/config changes. Use the currently

@@ -2,6 +2,16 @@
 
 Last updated: 2026-10-14
 
+## Latest deployment baseline for the October 14 cleanup
+
+`2924f02dad60a34c3fb964cdc3497c78ad5fc535` passed all release jobs in
+[CI run 38547534989](https://github.com/purichw/coin-quest-ledger/actions/runs/38547534989).
+Its deploy log confirms promotion of `coinquestledger-mvnbu3f2z-purich-w.vercel.app`
+to `coinquestledger.vercel.app` at 10:26 UTC. This is the deployment baseline
+used for the subsequent Admin detail/list and Split party cleanup. Those later
+working-tree changes have not been pushed/deployed in this pass. Recheck remote
+state before the next release; historical cutover evidence below is separate.
+
 ## Verified domain cutover — 2026-10-14
 
 Production is `https://coinquestledger.vercel.app`, including `/admin/`.
@@ -70,7 +80,7 @@ Evidence: `docs/player-design-system-2026-10-13/README.md`.
 4. Preserve newest user requirements over any older Claude prototype/handoff behavior.
 5. Never modify legacy inactive snapshots unless explicitly asked.
 6. For system shape, read `architecture.md`; for route/module interactions, read `SITE_MAP_AND_INTERACTIONS.md`; for file lookup, read `PROJECT_STRUCTURE_GUIDE.md`; for data shape, read `data-contracts.md`; for account creation/recovery/Admin user management, read `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`; for Admin live implementation, read `ADMIN_PORTAL_IMPLEMENTATION.md`; for security/rules, read `SECURITY_AND_FIREBASE_RULES.md`; for deploy/rollback, read `DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`; for testing, read `TESTING_MATRIX.md`; for web/native parity, read `NATIVE_WEB_PARITY.md`; for invites/guests, read `INVITES_AND_GUESTS.md`; for leveling/XP, read `leveling-canon.md`; for Claude references and exact visual work, read `claude-design-index.md` plus `CLAUDE_TO_A_TEE_QA.md`; for next-step planning, read `roadmap.md`.
-7. Current user instruction: ignore `archive/CLAUDE_RECOVERY.md` unless the user explicitly re-enables it. For Party Ledger references, use the split zips in Downloads before loading the full 20MB+ offline HTML.
+7. Ignore `archive/CLAUDE_RECOVERY.md` unless explicitly re-enabled. Use current supplied references and `PLAYER_DESIGN_SYSTEM.md`; old split zips/offline HTML are historical and must not override the current Party layout or invitation/Guest rules.
 
 ## Important Files
 
@@ -98,7 +108,7 @@ Evidence: `docs/player-design-system-2026-10-13/README.md`.
 - `trip/index.html`: live Expense Splitter / Party Ledger app shell, styles, static markup, and script loader.
 - `trip/app.js`: live Expense Splitter / Party Ledger app behavior, state, rendering, Firebase/test persistence, event delegation, import/export, and overlays.
 - `trip/entry.js` and `trip/entry.css`: 2026-10-13 mockup-led Split entry/create/join screen, shared navigation and account-scoped recent boards; QA/design adaptations in `docs/split-entry-redesign-2026-10-13/README.md`.
-- `trip/board.js` and `trip/board.css`: October 13 Party Ledger board presentation at `/trip/?id=…`; village banner, compact member summaries, form/log/settlement columns, phone accordion previews and sticky entry action. State/math/storage stay in `trip/app.js` and `shared/pointy-logic.js`. Phone module navigation remains available in the top overflow menu while the board uses its own bottom action. Evidence and deliberate mockup adaptations: `docs/split-board-redesign-2026-10-13/README.md`.
+- `trip/board.js` and `trip/board.css`: October 14 Party Ledger board presentation at `/trip/?id=…`; shared village banner, always-expanded party cards (3 desktop / 2 tablet / 1 phone), expense form and settlement alongside on desktop, and an expense log immediately below members in the independent left column (no gap imposed by the right column). At ≤1000px the same log follows members, entry and settlement in DOM/visual order. No Member details toggle or horizontal member rail. Preserve each class's canonical `avatarBg` colors in cards and the Hero popup. Hero choice is a button opening the existing 18-class / 2-gender picker; real characters still join by Character ID invite and Guests remain board-local. The expense shortcut is a small secondary button in the bottom-right corner, not a full-width summary panel. State/math/storage stay in `trip/app.js` and `shared/pointy-logic.js`; shared navigation stays with its existing owner. Current evidence and adaptations: `docs/split-party-layout-2026-10-14/README.md` (supersedes the October 13 member layout).
 - `trip/trip-utils.js`: Party Ledger browser-global utility helpers for IDs, theme persistence, escaping, money formatting, and board/admin hashes. Must load before `trip/app.js`.
 - `admin/index.html`, `admin/design.css`: Super Admin Portal shell and current responsive design.
 - `admin/app.js`: Super Admin Portal behavior for Google-auth allowlist, board/admin/user editing, account lifecycle, drafts, publish, restore, and revision logs.
@@ -190,82 +200,43 @@ The original Claude Design project was accidentally deleted and Claude said it c
 
 ## Current App Shape
 
-The app is still no-build static HTML/CSS/JS, but the Expense Splitter is now split between `trip/index.html`, `trip/trip-utils.js`, and `trip/app.js`. Firebase Firestore compat SDK is loaded from CDN in `trip/index.html`; helpers load from `/trip/trip-utils.js`; app behavior loads from `/trip/app.js`. Trip ID comes from `?id=`; if absent, it can redirect to `localStorage.getItem('last_trip_id')`. Auto-save is debounced at 800ms.
+The app is no-build static HTML/CSS/JS. Party entry lives in `trip/entry.*`, board presentation in `trip/board.*`, settings in `trip/settings.*`, and state/rendering in `trip/app.js` with `trip/trip-utils.js`. `?id=` opens a board; without it the route shows the entry/create/join screen. Firebase compat loads from CDN. Local drafts are account-scoped; retain the current persistence implementation and debounce.
 
 `trip/app.js` owns the shell event delegation and the expense-entry dynamic controls. Some dynamic hero/admin/overlay renderers still use inline handlers; do not rewrite all of them casually unless doing a focused refactor with full tests.
 
 2026-07-14 refactor note: `trip/trip-utils.js` and `admin/admin-utils.js` are the first large-file extraction slice. They intentionally hold small browser-global helpers only; stateful rendering, persistence, and event handlers still live in the page app files. The E2E suite now imports common helpers from `tests/e2e/helpers/coin-quest-helpers.mjs`, and `scripts/check-inline-scripts.mjs` checks that helper module syntax as part of `npm run test:syntax`.
 
-Native phone navigation follows the Claude handoff: at `<= 600px`, the shared mobile shell shows a hamburger drawer plus a fixed bottom tab bar (`Home`, `Split`, `Debt`, `Prices`, `Treasury`). It is intentionally CSS-gated so desktop and tablet layouts keep their existing module-specific topbars. Tablet/touch uses the Claude `hover:none` / `pointer:coarse` tier from the 2026-06-20 exports: larger 44px tap targets, single-column Compare cards at `601-820px`, and module-specific touch polish without adopting the phone shell. The Compare view still exposes the visible `Home` back button on mobile because current regression tests and user flow depend on it.
-
-2026-06-21 mobile web parity note: the live shared phone shell was aligned with the newest Claude mobile-web exports for iPhone SE / iPhone / iPhone Pro / Pro Max widths. Phone topbars are one compact row with burger, `Coin Quest`, and reminder bell; player module topbar back pills are hidden on Split/Debt/Treasury while Compare keeps its explicit Home back path; bottom tabs use the Claude labels `หน้าหลัก / แบ่งเงิน / มังกร / ราคา / คลัง`; Home uses the green hero title and chest Split card icon; the first-load eye is intentionally small. The iPhone touch pass also keeps hover-only controls visible on touch, protects Split banner actions from ragged wrapping, and preserves zero horizontal overflow at 375/393/430px.
+Player web navigation follows `PLAYER_DESIGN_SYSTEM.md` and the shared navigation
+owners listed above. The October design supersedes June phone topbars, labels,
+per-page tablet headers and small first-load styling. Page entry stays behind the
+shared eye until required CSS, route content and media are ready; in-page loads
+use local skeletons. Native has a separate shell and must follow its own docs.
 
 2026-06-30 Party Ledger character/invite/settlement note: adding a real "other hero" while signed in is Character-ID-only and must resolve an existing character record. It must not show or validate "Other hero's name", must not generate a new Character ID from arbitrary input, and duplicate visible names are allowed. The action is `Invite`, not `Confirm Character`; the board admin confirms the invite, then the target account receives a Reminders notification and can Accept or Decline within 24 hours. Decline requires confirmation. A direct party invite link can join immediately, but unauthenticated users must be sent to login first. The alternate path is "Add Guest": user enters a display name and chooses class/gender/skin, but no real Character ID or character registry record is created. Guest participants are flagged in `guestHeroes` and omitted from Character XP/registry sync. Settlement must use pairwise per-expense obligations with reciprocal pair netting, not global creditor/debtor rerouting; the known regression case is `PPP -> Pointy ฿1,000`, `PPP -> PP ฿333.33`, and `PP -> Pointy ฿666.67`. Web and native/mobile logic should stay in parity for this calculation. See `INVITES_AND_GUESTS.md`.
 
-2026-06-29 Claude Design micro-cosmetic rule: when the user says "TO A TEE" for Claude Design, do not stop at broad layout similarity. Audit component-level geometry against the offline HTML/CSS: exact-ish padding, font size/weight, radius, border style, hit target, icon centering, and mobile overrides. Recent locked examples: quest-row close button is a 22px circle with centered `x`; `Attach receipt` is the small dashed Claude-style button; `Whole party` is a compact dashed pill, not a large touch-expanded button; split segment sizing must preserve the Claude mobile proportions and avoid page-level horizontal overflow on iPhone SE / iPhone / iPhone Pro Max.
+For explicit reference-fidelity work, use the installed `reference-to-a-tee`
+skill and current browser tools. For mockup adaptation use `mockup-to-product`.
+Check real rendered geometry, interaction and responsive behavior; old fixed
+button dimensions or retired browser tool names are not current requirements.
 
-Keyword memory: whenever the user says "to a tee" about Claude Design, expand it internally to: `CLAUDE TO A TEE AUDIT. Implement from the offline Claude HTML exactly at component level, mobile included, and verify before commit/deploy.`
+## Account, finance and theme contracts
 
-Claude-to-a-tee skill memory: use `browser:control-in-app-browser` to render and inspect the offline Claude HTML as the design source, then use `vercel:agent-browser` to verify the implementation at desktop, tablet, and required mobile viewports, including interactions, screenshots, overflow, and console errors. Source inspection and implementation verification are both required when the browser skills are available.
-
-Reusable skill memory: invoke `$claude-to-a-tee` from any workspace. The Personal Skill lives at `~/.codex/skills/claude-to-a-tee`; pair it with this repository's `CLAUDE_TO_A_TEE_QA.md` for Coin Quest-specific locked regressions.
-
-Project skill memory: use `$coin-quest-ledger-logic` for Party Ledger split,
-invite, guest, Character ID, and settlement work; `$coin-quest-admin-ops` for
-Admin Portal lifecycle/reset/delete/publish work; `$coin-quest-native-parity` for
-Expo native/web parity and iOS/Android gates; and `$firebase-security-rules` for
-Firebase Auth, Firestore Rules, Admin SDK endpoints, Spark/Blaze assumptions, and
-security hardening.
-
-The shared profile/auth loop now supports real username/password account creation through Firebase Auth in production. Local test accounts exist only behind explicit `?test=1` regression mode; production must never fall back to built-in accounts when Firebase is missing or still loading. Users type a username, not a real email; the profile modules map it to an internal `username@coinquest.local` Firebase Auth email, create/load `users/{uid}`, route accounts without a character through one-time Character Creation, write the active character to `characters/{id}`, and mirror the session to `pointy_auth_v1`. Current canon remains one account = one active character. On mobile, profile is reached through the shared hamburger drawer. Signed-in module/profile progress is account-scoped through `shared/account-scope.js`; never treat stale browser-wide `localStorage` module keys as the signed-in account's progress.
-
-Production profile/auth gate must not trust stale `pointy_auth_v1` mirrors before Firebase Auth has resolved the current user. Character Creation is allowed only after a real sign-in/signup account is established, or under explicit `?test=1` regression mode.
-
-Debt Dragon web now uses daily interest accrual for the live local ledger. Each dragon tracks `interestAccruedAt`; opening the lair, advancing month, and striking a dragon accrue interest to the relevant date before applying payments. This means paying a compound-interest debt before the due/end date lowers the balance used for the remaining days' interest. The long-range payoff forecast is still a monthly approximation.
-
-2026-06-22 native player app MVP slice, updated by 2026-08-31 auth hardening: `mobile/` uses the same production Firebase project and public username contract as the web app. Sign In and Sign Up use `username@coinquest.local`; Sign Up writes Recovery ID hash metadata to owner-scoped `users/{uid}` and a low-detail `userIds/{userId}` reservation, while `usernames/{username}` remains a public login pointer and must not receive new recovery hashes. Profile can show the locally mirrored current Recovery ID and regenerate it, overwriting the owner-scoped recovery hash immediately; Character Creation writes `characters/{id}` and mirrors the active character to `users/{uid}`; Split reads real signed-in `trips/{id}` linked by `characterIds` or `admin.characterId`, can create a Firestore board, and can add an equal-split expense. Debt Dragon, Treasury, and Compare read/write native-owned `playerModules/{uid}` Firestore state so they are dynamic and do not use static Claude/sample data. Verification for the original native slice: `mobile/npm run typecheck` passed, `npx expo export --platform ios --output-dir /tmp/coinquest-mobile-export-github` passed, root `npm test` passed on rerun (`65 passed`, `4 skipped`), production deploy/curl passed, and a Release iPhone device build/install succeeded for bundle `com.purichwc.coinquestledger`.
-
-The June native paragraph above is historical evidence for the retired app, not
-the current implementation. The October rebuild uses the same backend but shares
-module storage with web, supports the full ledger modes and has persisted auth.
-Use the current checkpoint, `NATIVE_WEB_PARITY.md` and the Simulator-first
-runbook. Do not reapply retired SDK workarounds or postpone native rendering
-until after feature development. New reference work requires a current supplied
-reference; missing historical exports do not block the approved brand direction.
-
-Profile refactor rule: keep changes reviewable by slice and run targeted tests.
-Commit only when authorized; preserve unrelated auth/recovery/UI work.
-
-Latest profile refactor handoff: `shared/profile-hub.js` is now a smaller orchestrator backed by focused browser-global helpers: `profile-session`, `profile-auth`, `profile-cloud`, `profile-recovery`, `profile-backup`, `profile-login`, `profile-character-create`, `profile-drawer`, `profile-reminders`, and `profile-tour`. Script load order matters: helper modules must load before `shared/profile-hub.js`.
-
-Admin Users now merges real Firestore `users/{uid}` accounts with board-derived participants/admin roles. Real accounts without board membership should still appear in `/admin/` Users; board/admin links are additive, not the only source of truth.
-
-Firebase Auth setup note: on 2026-06-19, Identity Platform/email-password was enabled for `pointy-personal-toolkit`, authorized domains were patched for localhost and the production domain used at that time, and real username signup/login, recovery-code password reset, and Super Admin temp-password reset were verified with live Firebase Auth/Firestore test accounts. As of 2026-08-31, production recovery and Super Admin temp-password reset run through Vercel Firebase Admin SDK routes, raw Recovery IDs are one-time/local reveal values, and new Firestore writes store only owner-scoped recovery hashes on `users/{uid}`.
-
-Security setup note: the repo `firestore.rules` was tightened on 2026-06-20 through `npx firebase-tools deploy --only firestore:rules --project pointy-personal-toolkit`, then updated again on 2026-06-22 for native `playerModules/{uid}` owner read/create/update, and updated in repo on 2026-08-31 for signed-in-only `trips`, owner/Super Admin `users`, `userIds` reservations, and recovery-secret write guards. Character writes require owner/Super Admin, username mapping updates cannot be taken over by another user, deleted username/User ID tombstones can only be reclaimed by the newly signed-in user while preserving the same public ID, `playerModules/{uid}` is owner/Super Admin readable/writable, and admin/recovery audit collections require Super Admin.
-
-Super Admin production access uses Firebase Google Auth and only allows `purich.wc@gmail.com`. The `google.com` Firebase Auth provider was enabled on 2026-06-20 through the Identity Toolkit API with an OAuth client for `https://pointy-personal-toolkit.firebaseapp.com/__/auth/handler`. The old local gate exists only under `/admin/?test=1` for automated regression. Permanent delete is backend-only through `/api/admin-delete-user`; `/api/admin-delete-status` reports whether Vercel has the required Firebase Admin service account env vars. Production Vercel now has encrypted `FIREBASE_SERVICE_ACCOUNT_JSON` for `vercel-admin-delete@pointy-personal-toolkit.iam.gserviceaccount.com`, with `roles/firebaseauth.admin` and `roles/datastore.user`. Delete keeps `usernames/{username}` as a reusable deleted tombstone with the old User ID/Character ID, so a recreated username gets the same public ID. `firebase-admin` is pinned to `13.10.0` because `14.0.0` currently pulls a `jwks-rsa`/`jose` path that crashes on the Vercel Serverless runtime with `ERR_REQUIRE_ESM`.
-
-Theme selection is global across Home, Split, Debt Dragon, and Treasury. The source of truth is `localStorage.pointy_theme`, mirrored into `coin_quest_ui_v1.theme` for shared shell/profile compatibility. Per-board or per-module legacy `settings.theme` values must not override the global theme on route load.
-
-The Expense Splitter tab is now RPG/Party Ledger styled. It supports:
-
-- Hero party cards with full-body class portraits.
-- Explicit hero selection before confirming a new participant. No default hero.
-- A web modal confirmation before locking a hero. Confirmed class/gender cannot be changed through normal UI.
-- Duplicate avatar/class selections are allowed across different participants.
-- 18 classes, in this order:
-  `warrior`, `wizard`, `cleric`, `monk`, `bard`, `dragoon`, `summoner`, `thief`, `ranger`, `alchemist`, `necromancer`, `engineer`, `berserker`, `archfiend`, `corsair`, `reveler`, `seraph`, `tiderunner`.
-- Gender variants: `female`, `male`.
-- Skin system: optional `heroSkins` field. Currently includes `crimson-regent-male` for `archfiend-male`.
-- Character ID system: auto-generated 4-digit IDs, admin-view/edit/delete via Settings.
-- Admin setup: custom game URL + password, unlock stored in session storage.
-- Sound and animation quick toggles at top-right.
-- Quest board/campaign history and cross-game character progress.
-- Split modes: equal, shares, exact, percent, itemized loot.
-- Multi-payer support.
-- Excel import/export/template via ExcelJS CDN.
-- Compact labeled pixel icon picker for expense categories.
+- Production trusts resolved Firebase Auth, never a stale `pointy_auth_v1`
+  mirror or built-in fixture fallback. Username login uses the internal
+  `@coinquest.local` mapping. One account has one active Character; account
+  creation/recovery details live in `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`.
+- Signed-in drafts/progression are account-scoped via `shared/account-scope.js`.
+  Web/native share Firebase identity and finance contracts; see `data-contracts.md`
+  and `NATIVE_WEB_PARITY.md` before changing sync or persistence.
+- Debt Dragon accrues daily interest before payments using `interestAccruedAt`;
+  the long-range payoff forecast is a monthly approximation.
+- Recovery hashes are owner-scoped, raw codes are one-time/local reveals, and
+  permanent deletion stays backend-only. Current Rules, service-account setup,
+  known migration gaps and the `firebase-admin` runtime pin are documented in
+  `SECURITY_AND_FIREBASE_RULES.md`; old verification dates are not live proof.
+- Global theme comes from `localStorage.pointy_theme`, mirrored into
+  `coin_quest_ui_v1.theme`. Legacy per-board/module `settings.theme` must not
+  override it on route load.
 
 ## Admin / Board Ownership
 
@@ -278,7 +249,7 @@ Party Ledger stores admin ownership metadata under `state.admin`:
 
 The trip UI now asks for Board Admin ID and nickname when creating/admin-setting a board, and remembers the creator profile locally for convenience. Same Admin ID can intentionally own multiple boards.
 
-Super Admin Portal lives at `/admin/`. In production it uses Firebase Google Auth and only allows the Gmail `purich.wc@gmail.com`; `?test=1` keeps a local gate only for automated regression. It follows the newer Claude Admin source set for Dashboard, Relationship Map, Boards, Users, Board Admins, Audit Log, Version Control, Support Tools, tabs, modal shells, and responsive table behavior. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/active character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, show revision/audit logs, rotate a real username account to a temporary password while preserving User ID/Character ID, and manage user lifecycle status. User lifecycle now has recoverable Archive/Deactivate/Reactivate from Admin; player login blocks archived/deactivated/delete-requested/deleted accounts. Permanent user deletion is backend-only through `/api/admin-delete-user`, which verifies a Firebase ID token for `purich.wc@gmail.com`, deletes Auth/user/character data, and tombstones the username for same-ID recreation. The 2026-10-14 Admin shell shares one header, navigation, parchment content surface and illustrated footer across all nine destinations and detail views. Below `1024px` navigation opens as a modal drawer; below `1200px` header actions use a disclosure. Relationship Map stacks on narrow screens, phone modals remain bottom sheets, and coarse-pointer controls have 44px targets. See `docs/admin-dashboard-2026-10-14/README.md`.
+Super Admin Portal lives at `/admin/`. In production it uses Firebase Google Auth and only allows the Gmail `purich.wc@gmail.com`; `?test=1` keeps a local gate only for automated regression. The current screen contracts are in `ADMIN_PORTAL_IMPLEMENTATION.md`; `ADMIN.md` is only an index. Board Info and User Detail are continuous scroll pages without Tabs or a Layout switch. Dashboard Cards/Command is intentionally retained. It can list and edit boards, Board Admin IDs/nicknames, board URLs, users/active character IDs, reset board passwords, add/delete boards/users, save drafts to `localStorage`, restore the latest published snapshot, publish changes to Firestore, show revision/audit logs, rotate a real username account to a temporary password while preserving User ID/Character ID, and manage user lifecycle status. User lifecycle now has recoverable Archive/Deactivate/Reactivate from Admin; player login blocks archived/deactivated/delete-requested/deleted accounts. Permanent user deletion is backend-only through `/api/admin-delete-user`, which verifies a Firebase ID token for `purich.wc@gmail.com`, deletes Auth/user/character data, and tombstones the username for same-ID recreation. The 2026-10-14 Admin shell shares one header, navigation, parchment content surface and illustrated footer across all nine destinations and detail views. Below `1024px` navigation opens as a modal drawer; below `1200px` header actions use a disclosure. Relationship Map stacks on narrow screens, phone modals remain bottom sheets, and coarse-pointer controls have 44px targets. See `docs/admin-dashboard-2026-10-14/README.md`.
 
 ## Character Profiles
 

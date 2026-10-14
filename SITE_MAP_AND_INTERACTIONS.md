@@ -120,7 +120,7 @@ Important route behavior:
 
 ```mermaid
 flowchart TD
-  Visit["Open /"] --> FirstLoad["First-load splash unless already seen"]
+  Visit["Open /"] --> FirstLoad["Eye holds until route content, CSS and required media are ready"]
   FirstLoad --> ProfileGate["Profile Hub initializes"]
   ProfileGate --> AuthState{"Trusted Firebase auth or test mode?"}
   AuthState -->|No| Login["Show Sign In / Sign Up gate"]
@@ -218,6 +218,16 @@ Key interactions:
   "Other hero's name" for this path.
 - Real other heroes are invited by existing Character ID.
 - Guests are board-local and never create real Character IDs.
+- Party cards always show class, payment and settlement details; HP/XP follow the
+  existing game-stats setting. Desktop/tablet/phone use 3/2/1 columns without a
+  separate Member details toggle. Each class retains its own portrait background.
+- Add Guest uses a name field and a button opening the existing Hero popup;
+  selecting a class/gender still requires the existing final confirmation.
+- Desktop places the expense log immediately below members in the left column,
+  independent of the taller entry/settlement column. At 1000px and below, the
+  same log follows members → entry → settlement in both visual and DOM order.
+  A small bottom-right shortcut scrolls to and focuses the expense form; it does not
+  duplicate the board total or save a new expense by itself.
 - Settlement must use pairwise per-expense obligations with reciprocal netting.
 
 ### Real Character Invite Journey

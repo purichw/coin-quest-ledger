@@ -1,12 +1,27 @@
 /* Presentation and local controls for the live Party Ledger board. No data store. */
+// Independent desktop columns prevent the expense form from leaving a hole
+// beneath the party. Move the same log node so DOM/focus order matches each layout.
+const boardStackedLayout = matchMedia('(max-width:1000px)');
+function placeBoardLog() {
+  const log = document.getElementById('board-log-panel');
+  const target = document.querySelector(boardStackedLayout.matches ? '.board-columns' : '.board-left');
+  if (log && target && log.parentElement !== target) {
+    const focused = log.contains(document.activeElement) ? document.activeElement : null;
+    target.append(log);
+    focused?.focus({ preventScroll: true });
+  }
+}
+placeBoardLog();
+boardStackedLayout.addEventListener('change', placeBoardLog);
+
 function boardText(key) {
   const labels = {
     share: ['แชร์บอร์ด', 'Share board'], settings: ['ตั้งค่า', 'Settings'], history: ['กระดานเควส', 'Quest board'],
     trip: ['บอร์ดทริป', 'Trip board'], tagline: ['เที่ยว กิน ใช้ชีวิตด้วยกัน แบ่งค่าใช้จ่ายให้ลงตัว', 'Shared adventures. Clear expenses. Better memories.'],
-    total: ['ยอดรวมบอร์ด', 'Board total'], members: ['สมาชิกปาร์ตี้', 'Party members'], details: ['รายละเอียดสมาชิก', 'Member details'],
+    total: ['ยอดรวมบอร์ด', 'Board total'], members: ['สมาชิกปาร์ตี้', 'Party members'],
     log: ['รายการค่าใช้จ่ายล่าสุด', 'Recent expenses'], settlement: ['สรุปการคืนเงิน', 'Settlement'],
     add: ['จดค่าใช้จ่ายใหม่', 'Add expense'], search: ['ค้นหารายการ…', 'Search expenses…'], all: ['ผู้จ่ายทั้งหมด', 'All payers'],
-    paid: ['จ่ายไป', 'Paid'], balance: ['ยอดค้างสุทธิ', 'Net balance'], date: ['วันที่', 'Date'], description: ['ชื่อรายการ', 'Expense'],
+    removeMember: ['นำสมาชิกออก', 'Remove member'], date: ['วันที่', 'Date'], description: ['ชื่อรายการ', 'Expense'],
     amount: ['จำนวนเงิน (฿)', 'Amount (฿)'], payer: ['ผู้จ่าย', 'Paid by'], sharers: ['ผู้ร่วมแชร์', 'Shared with'], method: ['วิธีแบ่ง', 'Split'],
     actions: ['จัดการ', 'Actions'], save: ['บันทึกรายการ', 'Save expense'], reset: ['ล้างข้อมูล', 'Reset form'], quick: ['เพิ่มด่วน', 'Quick add'],
     receipt: ['แนบไฟล์สลิป (ถ้ามี)', 'Attach a receipt (optional)'], imageHelp: ['ไฟล์ภาพขนาดไม่เกิน 10 MB', 'Image files up to 10 MB'],
@@ -34,7 +49,6 @@ function refreshBoardPresentation() {
   const guestCount = S.participants.filter(name => S.guestHeroes?.[name]).length;
   const created = Number(S.admin?.createdAt);
   document.getElementById('board-metadata').innerHTML = `<span>${boardIcon('scroll')} #${h(tripId)}</span>${created > 0 ? `<span>${boardIcon('compass')} ${boardText('created')} ${new Date(created).toLocaleDateString(LANG === 'en' ? 'en-GB' : 'th-TH')}</span>` : ''}<span>${boardIcon('split')} ${S.participants.length - guestCount} ${LANG === 'en' ? 'members' : 'คน'}${guestCount ? ` + ${guestCount} Guest` : ''}</span>`;
-  document.getElementById('board-sticky-total').textContent = money2(S.expenses.reduce((sum, e) => sum + e.amount, 0));
   const filter = document.getElementById('board-log-filter');
   const selected = filter.value;
   filter.innerHTML = `<option value="">${boardText('all')}</option>${S.participants.map(name => `<option value="${h(name)}">${h(name)}</option>`).join('')}`;
@@ -63,13 +77,6 @@ document.addEventListener('click', event => {
     if (!S.participants.length) { openAddHero(); document.querySelector('.board-members').scrollIntoView({ block: 'center' }); return; }
     document.getElementById('entry-section').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
     document.getElementById('exp-desc')?.focus({ preventScroll: true });
-  }
-  if (event.target.closest('[data-board-top]')) window.scrollTo({ top: 0, behavior: 'smooth' });
-  const details = event.target.closest('[data-board-details]');
-  if (details) {
-    const expanded = details.getAttribute('aria-expanded') !== 'true';
-    details.setAttribute('aria-expanded', String(expanded));
-    document.getElementById('party-grid').classList.toggle('show-details', expanded);
   }
   const disclosure = event.target.closest('[data-board-collapse]');
   if (disclosure) {

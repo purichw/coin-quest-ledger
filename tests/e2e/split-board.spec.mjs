@@ -55,8 +55,11 @@ for (const width of [1440,768,390]) test(`Party board composition and saved expe
   await page.locator('[data-board-clear-filter]').click(); await expect(page.locator('.board-table tbody tr')).toHaveCount(5);
   await page.locator('#board-log-filter').selectOption('Krit'); await expect(page.locator('.board-table tbody tr')).toHaveCount(1);
   await page.locator('#board-log-filter').selectOption('');
-  await page.locator('[data-board-details]').click(); await expect(page.locator('.bars').first()).toBeVisible();
-  await page.locator('[data-board-details]').click(); await expect(page.locator('.bars').first()).toBeHidden();
+  await expect(page.locator('[data-board-details]')).toHaveCount(0);
+  for (const card of await page.locator('#party-grid > .hero-card').all()) {
+    await expect(card.locator('.bars')).toBeVisible();
+    await expect(card.locator('.hero-foot')).toBeVisible();
+  }
   await page.locator('[data-board-add]').click(); await expect(page.locator('#exp-desc')).toBeFocused();
   await page.locator('#exp-desc').fill('TEST ค่าอาหารใหม่'); await page.locator('#exp-amount').fill('-1');
   await expect(page.locator('#exp-amount')).toHaveAttribute('aria-invalid','true');
@@ -98,7 +101,7 @@ test('Party board retains draft, receipt and settlements through layout controls
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
 });
 
-test('Animated compact portraits remain centered and empty boards remain actionable', async ({ page }) => {
+test('Animated full portraits remain centered and empty boards remain actionable', async ({ page }) => {
   await fixture(page, false); await page.goto('/trip/?id=4821&test=1'); await ready(page);
   await page.locator('#quick-toggles button').nth(1).click();
   await expect(page.locator('body')).not.toHaveClass(/no-animations/);

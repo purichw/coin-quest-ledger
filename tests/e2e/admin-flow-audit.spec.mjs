@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { adminNav, adminTools } from './helpers/admin-fixture.mjs';
+import { revealBoardSection } from './helpers/board-info-fixture.mjs';
 import { readFile } from 'node:fs/promises';
 
 const board = {
@@ -38,7 +39,7 @@ test('Admin search retains focus and complete typed text across filtered rerende
   expect(await originalInput.evaluate(el => el.isConnected)).toBe(true);
   await expect(search).toHaveValue('TEST Audit');
   await expect(search).toBeFocused();
-  await expect(page.locator('input[value="TEST Audit Board"]')).toBeVisible();
+  await expect(page.locator('.board-row[data-board-id="9001"]')).toBeVisible();
   await search.press('ControlOrMeta+A'); await search.press('Backspace');
   await expect(search).toHaveValue('');
   await adminNav(page, 'Users');
@@ -50,7 +51,6 @@ test('Admin search retains focus and complete typed text across filtered rerende
 test('Admin archives and reopens without deleting members, money, secrets or unknown data', async ({ page }, info) => {
   await openAdmin(page);
   await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
-  await page.getByRole('button', { name: 'Danger zone', exact: true }).click();
   await page.getByRole('button', { name: 'Archive board', exact: true }).click();
   await dialog(page).getByRole('button', { name: 'ยืนยัน', exact: true }).click();
   expect((await stored(page)).archived).toBeUndefined();
@@ -62,7 +62,6 @@ test('Admin archives and reopens without deleting members, money, secrets or unk
   await page.screenshot({ path: info.outputPath('admin-archived.png'), fullPage: true });
   await page.reload();
   await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
-  await page.getByRole('button', { name: 'Danger zone', exact: true }).click();
   await page.getByRole('button', { name: 'Reopen board', exact: true }).click();
   await dialog(page).getByRole('button', { name: 'ยืนยัน', exact: true }).click();
   await publish(page);
@@ -111,6 +110,8 @@ test('Admin dialogs cancel safely with Escape, close and trapped keyboard focus'
 
 test('Admin invalid drafts cannot publish; save failures retain edits and retry works', async ({ page }) => {
   await openAdmin(page);
+  await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
+  await revealBoardSection(page, 'owner');
   const id = page.locator('input[value="9001"]'); await id.fill('../bad');
   await adminTools(page);
   await page.locator('#publish-btn').click(); await expect(dialog(page)).toContainText('4 หลัก');
@@ -131,7 +132,10 @@ test('Admin invalid drafts cannot publish; save failures retain edits and retry 
   await adminTools(page);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await dialog(page).getByRole('button', { name: 'ปิด', exact: true }).click();
-  await page.reload(); await expect(page.locator('input[value="TEST Retry"]')).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
+  await revealBoardSection(page, 'owner');
+  await expect(page.locator('input[value="TEST Retry"]')).toBeVisible();
 });
 
 test('Corrupt local draft is reported and explicit Restore recovers published data', async ({ page }) => {
@@ -142,7 +146,7 @@ test('Corrupt local draft is reported and explicit Restore recovers published da
   await page.getByRole('button', { name: 'Restore', exact: true }).click();
   await dialog(page).getByRole('button', { name: 'ยืนยัน', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.locator('input[value="TEST Audit Board"]')).toBeVisible();
+  await expect(page.locator('.board-row[data-board-id="9001"]')).toBeVisible();
 });
 
 test('Admin no longer offers board-only identity mutation or fabricated financial charts', async ({ page }) => {
@@ -150,7 +154,7 @@ test('Admin no longer offers board-only identity mutation or fabricated financia
   await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
   await expect(page.getByText('฿100.25', { exact: true })).toBeVisible();
   await expect(page.getByText('Unsettled', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: /^Members/ }).click();
+  await revealBoardSection(page, 'members');
   await expect(page.getByText('Edit ID', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Open Party Ledger', exact: true })).toHaveAttribute('href', /id=9001/);
   await adminNav(page, 'Users');

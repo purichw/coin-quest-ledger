@@ -24,7 +24,9 @@ test('all Admin destinations share the same header, parchment, footer and naviga
       const style = getComputedStyle(main);
       return { header: document.querySelector('.topbar').getBoundingClientRect().height, x: frame.x, width: frame.width,
         titleInset: heading.left - frame.left, titleRight: heading.right <= frame.right - 8,
-        paper: style.borderImageSource, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
+        paper: style.borderImageSource, paperColor: style.backgroundColor,
+        cards: [...document.querySelectorAll('.admin-page .card')].map(card => getComputedStyle(card).backgroundColor),
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
     });
     baseline ||= geometry;
     expect(geometry.header).toBe(baseline.header);
@@ -33,6 +35,11 @@ test('all Admin destinations share the same header, parchment, footer and naviga
     expect(geometry.titleInset).toBeGreaterThanOrEqual(12);
     expect(geometry.titleRight).toBe(true);
     expect(geometry.paper).toContain('parchment.webp');
+    expect(geometry.paperColor, name).toBe(baseline.paperColor);
+    // Relationship Map's mobile overview/rules are transparent over shared paper.
+    for (const color of geometry.cards.filter(color => color !== 'rgba(0, 0, 0, 0)')) {
+      expect(color, `${name} card surface`).toBe(baseline.cards[0]);
+    }
     expect(geometry.overflow, name).toBe(false);
   }
   await page.getByRole('link', { name: 'Super Admin Portal — Dashboard' }).click();
@@ -96,7 +103,7 @@ test('Dashboard shows real totals and its actions reach the existing workflows',
   await adminNav(page, 'Dashboard');
   await page.locator('.dashboard-attention').getByRole('button', { name: 'Open', exact: true }).first().click();
   await expect(page.locator('.admin-page')).toContainText('1397');
-  await expect(page.getByRole('button', { name: 'Danger zone', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Archive board', exact: true })).toBeVisible();
   await adminNav(page, 'Dashboard');
   await page.locator('.dashboard-quick').getByRole('button', { name: /View users/ }).click();
   await expect(page.locator('.page-title')).toHaveText('Users');

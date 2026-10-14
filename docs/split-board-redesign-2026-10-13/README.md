@@ -1,6 +1,10 @@
 # Party Ledger board — October 13, 2026
 
-Status: implemented and locally verified; **not pushed or deployed**.
+Historical QA record for the October 13 implementation. The compact/expanded
+member toggle, card layout and wide sticky action described below have been
+superseded by [the October 14 party layout](../split-party-layout-2026-10-14/README.md).
+Use that document and `PLAYER_DESIGN_SYSTEM.md` for current work. This record's
+test/deployment statements describe the capture time, not current release status.
 Scope: website `/trip/?id=…`, desktop 1440px, tablet 768px and phone 390px.
 Native, Admin, Home and the preceding Split entry redesign retain their owners.
 

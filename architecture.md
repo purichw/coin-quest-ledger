@@ -98,14 +98,14 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 
 ### Super Admin Portal
 
-- Files: `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css`
+- Files: `admin/index.html`, `admin/admin-utils.js`, `admin/app.js`, `admin/admin.css`, `admin/design.css`, `admin/shell.js`
 - Route: `/admin/`
 - Admin tool for listing/editing boards, users, active characters, Board Admin metadata, passwords, drafts, publishing, revision logs, support tools, relationship views, and user lifecycle.
-- Live implementation details are maintained in `ADMIN_PORTAL_IMPLEMENTATION.md`; `ADMIN.md` is retained as prototype/handoff history.
+- Live implementation details are maintained in `ADMIN_PORTAL_IMPLEMENTATION.md`; `ADMIN.md` is an entry-point index.
 - Production access uses Firebase Google Auth and only allows `purich.wc@gmail.com`. The old local gate remains only under `?test=1` for automated tests.
 - User lifecycle is two-stage: recoverable `archived` / `deactivated` / `active` status is written to Firestore by the Super Admin UI, and permanent delete is delegated to `/api/admin-delete-user` using Firebase Admin SDK after verifying the Google-auth ID token. Permanent delete removes the Auth user, user doc, and character docs, but keeps a deleted reusable username tombstone so recreating the same username restores the same public User ID/Character ID.
 - `/api/admin-delete-status` is a non-secret readiness endpoint for the Admin UI. It reports whether Vercel has the Firebase Admin service-account env vars needed for privileged delete, so production can disable permanent delete when backend credentials are missing.
-- Responsive model is admin-specific: below `1000px` the sidebar becomes a horizontal scroll nav; below `900px` Relationship Map stacks; below `760px` topbar/actions compress, dense tables scroll, and modals render as bottom sheets; coarse-pointer tablets get 44px touch targets.
+- All Admin routes share Dashboard's parchment, header, sidebar and footer. Below `1024px` navigation becomes a modal drawer; below `1200px` header actions use a disclosure. Relationship Map stacks below `768px`; list views use their documented compact/table/card variants. Board Info and User Detail are scroll-only, with no Layout toggle. Phone dialogs are bottom sheets; coarse-pointer tablets get 44px touch targets. See `ADMIN_PORTAL_IMPLEMENTATION.md` for section-specific disclosure behavior.
 - Real private admin access requires Firebase Auth and deployed Firestore Security Rules.
 
 ### Native Player App
@@ -242,7 +242,7 @@ rollback of this direction. Files live outside Git and may have moved.
 
 - Current verified local Downloads references on 2026-06-21 are `/Users/point/Downloads/CLAUDE.md`, `/Users/point/Downloads/HANDOFF.md`, `/Users/point/Downloads/MOBILE-EXPORTS.md`, `/Users/point/Downloads/Coin Quest Ledger (iOS App).html`, and `/Users/point/Downloads/Coin Quest Ledger (Android App).html`.
 - Older recovery bundles, split zips, standalone Character/Profile HTML, and Admin HTML paths from earlier sessions are historical only unless they still exist on disk. Verify with `ls`/`find` before using them.
-- Admin Portal handoff notes are in `ADMIN.md`.
+- Admin Portal's current visual and functional contracts are in `ADMIN_PORTAL_IMPLEMENTATION.md`; `ADMIN.md` routes to the live owners.
 
 `archive/CLAUDE_RECOVERY.md` is currently ignored/deprecated by user instruction. Do not use it unless the user explicitly re-enables it.
 

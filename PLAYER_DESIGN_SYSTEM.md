@@ -154,6 +154,14 @@ Fonts remain Mitr, IBM Plex Sans Thai and Chakra Petch for their existing roles.
 - Party board and Character keep their contextual sticky actions on phones.
   They replace phone game tabs; the same game destinations remain in the
   header overflow menu. Other games keep the shared phone navigation.
+- Party members use an always-expanded 3/2/1-column grid (desktop/tablet/phone),
+  with each class's canonical portrait background and the existing Hero picker.
+  Desktop's members and expense log share an independent left column, so the
+  entry/settlement column cannot leave a hole between them. Stacked layouts
+  retain members → entry → settlement → log in DOM and visual order. The expense
+  shortcut is a small secondary corner button. Real members still join through
+  Character ID invitations; Guests remain board-local. A mockup's create-Hero
+  fields, compact mobile members or new party limits do not override those rules.
 - Game-specific accents, illustrations, card density, battle animation and
   data layouts remain local. Do not standardize them merely for sameness.
 

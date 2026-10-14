@@ -33,11 +33,10 @@ let boardFilter = 'all';
 let auditFilter = 'all';
 let dashMode = 'a';
 let dirty = false;
-let userDetailTab = 'chars';
-let boardDetailTab = 'overview';
-let boardDetailView = 'tabbed';
+const boardSectionStates = new Map();
 let cloudUsers = [];
 let cloudTombstones = [];
+const collapsedTombstones = new Set();
 let adminUser = null;
 let adminAuthReady = TEST_MODE;
 let adminAuthStarted = false;
@@ -318,10 +317,19 @@ function adminGroups() {
   });
   return [...map.values()].sort((a, b) => String(a.adminId || a.key).localeCompare(String(b.adminId || b.key)));
 }
-function updateAdminGroup(key, patch) {
-  draft.boards.forEach(b => {
-    const k = b.adminOwnerHash || b.adminId || 'unknown';
-    if (k === key) Object.assign(b, patch);
+function updateAdminGroup(boardIds, patch) {
+  // Bind the edit to its original boards: a fallback group key may itself be edited.
+  const boards = draft.boards.filter(b => !b.deleted && boardIds.includes(b.originalId));
+  if (!boards.length) return;
+  boards.forEach(b => Object.assign(b, patch));
+  const first = boards[0];
+  if (detail?.kind === 'admin') detail.id = first.adminOwnerHash || first.adminId || 'unknown';
+  document.querySelectorAll('[data-admin-anchor]').forEach(el => {
+    if (el.dataset.adminAnchor !== first.originalId) return;
+    el.querySelectorAll('[data-admin-value]').forEach(value => {
+      const field = value.dataset.adminValue;
+      value.textContent = first[field] || '—';
+    });
   });
   markDirty();
 }
@@ -362,9 +370,6 @@ function boardTypeIcon(b) {
 }
 function userKey(name, id) { return id || ('U-' + String(hashOf(String(name || 'user'))).slice(-4)); }
 function participantUserId(name, id) { return userKey(name, id); }
-function adminCharacterId(b) {
-  return String(b?.data?.admin?.characterId || b?.characterIds?.[b?.adminName] || '').trim();
-}
 function adminOwnerUserId(b) {
   const adminChar = b.data?.admin?.characterId || b.characterIds?.[b.adminName] || '';
   if (adminChar) {
@@ -621,6 +626,7 @@ function addBoard() {
     draft.boards.push(normalizeBoard(id, { boardType: type, tripName: 'New Board', participants: [], characterIds: {}, admin: { adminId: 'ADM-' + uid().slice(-6), adminName: '' } }));
     draft.boards[draft.boards.length - 1].created = true;
     dirty = true;
+    if (tab === 'boards') query = '';
     render();
   });
 }
@@ -645,10 +651,10 @@ function deleteBoard(id) {
   });
 }
 
-function diffBoards() {
+function diffBoards(boardId = null) {
   const changes = [];
   const pub = new Map(published.boards.map(b => [b.originalId, b]));
-  draft.boards.forEach(b => {
+  draft.boards.filter(b => boardId === null || b.originalId === boardId).forEach(b => {
     if (b.deleted && !b.created) changes.push({ area: 'Boards', action: 'Deleted', detail: `${b.originalId} (${b.tripName})` });
     if (b.created && !b.deleted) changes.push({ area: 'Boards', action: 'Added', detail: `${b.urlId} (${b.tripName})` });
     const old = pub.get(b.originalId);
@@ -757,9 +763,6 @@ function card(title, body, actions = '', extra = '') {
 function flatCard(body, extra = '') {
   return `<section class="card card-pad ${extra}">${body}</section>`;
 }
-function statCard(label, value, detail, ico = '◇', tone = 'flat') {
-  return `<div class="stat stat-card"><div class="s-top"><div class="s-label">${h(label)}</div><div class="s-ico">${ico}</div></div><div class="s-val">${value}</div>${detail ? `<div class="s-delta ${tone}">${detail}</div>` : ''}</div>`;
-}
 function searchBox(placeholder) {
   return `<div class="search"><span class="s-ico">⌕</span><input id="admin-search" aria-label="${h(placeholder)}" placeholder="${h(placeholder)}" value="${h(query)}" oninput="filterAdmin(this)"></div>`;
 }
@@ -781,22 +784,11 @@ function filterAdmin(input) {
 function seg(name, value, items) {
   return `<div class="seg">${items.map(([key, label]) => `<button type="button" class="${value === key ? 'on' : ''}" onclick="${name}='${key}';render()">${h(label)}</button>`).join('')}</div>`;
 }
-function editInput(value, oninput, opts = {}) {
-  const type = opts.type || 'text';
-  const cls = opts.small ? ' edit-control small' : ' edit-control';
-  const placeholder = opts.placeholder ? ` placeholder="${h(opts.placeholder)}"` : '';
-  const max = opts.max ? ` maxlength="${opts.max}"` : '';
-  return `<div class="field inline-field"><input class="${cls}" type="${type}" value="${h(value)}"${placeholder}${max} oninput="${oninput}"></div>`;
-}
 function formField(label, control, hint = '') {
   return `<div class="field"><label>${h(label)}</label>${control}${hint ? `<div class="hint">${h(hint)}</div>` : ''}</div>`;
 }
 function table(headers, rows, cls = '') {
   return `<div class="tbl-wrap"><table class="tbl ${cls}"><thead><tr>${headers.map(x => `<th>${h(x)}</th>`).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${headers.length}" class="muted">No records</td></tr>`}</tbody></table></div>`;
-}
-function quickOpen(items, kind, labelFn) {
-  const buttons = items.slice(0, 4).map(item => `<button class="btn btn-ghost sm" onclick="openDetail('${kind}',${q(item.key || item.originalId || item.userId)})">Detail <span class="muted">${h(labelFn(item))}</span></button>`).join('');
-  return buttons ? `<div class="quick-open wrap-chips">${buttons}</div>` : '';
 }
 function modBadge(type) {
   const t = type || 'split';
@@ -826,22 +818,20 @@ function adminDateLabel(value) {
 function levelBadge(level) {
   return `<span class="lvl-badge">LV ${h(level || 1)}</span>`;
 }
-function tabs(name, value, items) {
-  return `<div class="tabs">${items.map(item => `<button type="button" class="tab ${value === item.key ? 'on' : ''}" onclick="${name}='${item.key}';render()">${h(item.label)}${item.count != null ? `<span class="tcount">${item.count}</span>` : ''}</button>`).join('')}</div>`;
-}
 function boardVersions(b) {
   const revisionRows = (published.revisions || [])
+    .map((rev, i) => ({ ...rev, versionLabel: `v${published.revisions.length - i}` }))
     .filter(rev => (rev.changes || []).some(c => String(c.detail || '').includes(b.originalId) || String(c.detail || '').includes(b.urlId)))
     .slice(0, 3)
-    .map((rev, i) => ({
-      v: `v${Math.max(1, (published.revisions || []).length - i)}`,
-      at: rev.createdAt || Date.now(),
-      by: rev.author || 'Super Admin',
+    .map(rev => ({
+      v: rev.versionLabel,
+      at: rev.createdAt,
+      by: rev.author || '',
       current: false,
       note: `${(rev.changes || []).length} changes`
     }));
   return [
-    { v: 'current', at: b.data?.updatedAt || Date.now(), by: b.adminName || 'Super Admin', current: true, note: 'Current state' },
+    { v: 'current', at: b.data?.updatedAt, by: '', current: true, note: 'Current state' },
     ...revisionRows
   ];
 }
@@ -908,36 +898,32 @@ function renderDashboard() {
 }
 function renderRelationshipMap() {
   const u = visibleUserRecords().find(x => x.adminGroups.length) || visibleUserRecords()[0];
-  if (!u) return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board')} ${card('Relationship Map', '<div class="empty"><div class="e-t">ยังไม่มี user</div></div>')}`;
-  const adminCards = u.adminGroups.map(g => `<div class="rel-node admin" style="border-color:#c9d9f1;background:#f1f6fc">
-    <div class="rn-top">🛡️ Admin IDs</div>
-    <div class="rn-sub">${idChip('admin', g.adminId || '-', g.key)} ${h(g.adminName || '')}</div>
-  </div>`).join('') || `<div class="rel-node admin" style="border-color:#c9d9f1;background:#f1f6fc"><div class="rn-top">🛡️ Admin IDs</div><div class="rn-sub muted">Not an admin</div></div>`;
-  const chars = u.chars.map(c => `<div class="rel-node char">
-    <div class="rn-top">⚔️ ${h(c.name)} ${idChip('char', c.id || '-', c.id)}</div>
-    <div class="rn-sub">${h(c.className)} · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</div>
-    <div class="rn-sub" style="margin-top:5px">plays in: ${c.boards.map(bid => {
-      const b = boardById(bid);
-      return b ? idChip('board', b.urlId, b.originalId) : '';
-    }).join(' ') || '<span class="muted">—</span>'}</div>
-  </div>`).join('');
-  const boards = [...new Set([...u.boards, ...u.adminGroups.flatMap(g => g.boards)])].map(b => `<div class="rel-node board">
-    <div class="rn-top">${boardTypeIcon(b)} ${h(b.tripName)}</div>
-    <div class="rn-sub">${idChip('board', b.urlId, b.originalId)} · owns: ${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</div>
-  </div>`).join('');
-  const map = `<div class="relmap">
-    <div class="rel-col"><div class="rel-col-title">Global User ID</div>
-      <div class="rel-node user"><div class="rn-top">👤 ${h(u.name)} ${idChip('user', u.userId, u.userId)}</div><div class="rn-sub">${u.chars.length} active character · ${u.adminGroups.length} admin roles</div></div>
-      ${adminCards}
-    </div>
-    <div class="rel-col"><div class="rel-col-title">Character</div>${chars || '<div class="rel-node char"><div class="rn-sub muted">No character yet</div></div>'}</div>
-    <div class="rel-col"><div class="rel-col-title">Boards</div>${boards || '<div class="rel-node board"><div class="rn-sub muted">No boards yet</div></div>'}</div>
-  </div>
-  <div class="rel-legend">
-    <span><span class="rar-dot" style="background:#7c5cd0"></span> Global User ID</span>
-    <span><span class="rar-dot" style="background:#d99a1f"></span> one active Character per user in the current auth loop</span>
-    <span><span class="rar-dot" style="background:#9a8c72"></span> Admin IDs can own many Boards</span>
-  </div>`;
+  const icon = window.CoinQuestIcons;
+  const types = [
+    ['user', 'Global User ID', 'profile', 'ผู้ใช้หลักของระบบ'],
+    ['char', 'Character', 'swords', 'ตัวละครที่เล่นอยู่'],
+    ['admin', 'Admin IDs', 'shield', 'สิทธิ์ผู้ดูแล'],
+    ['board', 'Boards', 'scroll', 'บอร์ดที่เกี่ยวข้อง']
+  ];
+  const node = (kind, body, glyphOverride) => {
+    const [, label, glyph] = types.find(type => type[0] === kind);
+    return `<article class="rel-node ${kind}"><h4 class="rel-node-label">${label}</h4><span class="rel-node-icon" aria-hidden="true">${icon(glyphOverride || glyph)}</span><div class="rel-node-body">${body}</div></article>`;
+  };
+  let map = `<div class="empty">${icon('profile')}<div class="e-t">ยังไม่มี user</div><div class="e-d">ความสัมพันธ์จะแสดงเมื่อมีข้อมูลผู้ใช้ในระบบ</div></div>`;
+  if (u) {
+    const user = node('user', `<h5 class="rn-name">${h(u.name)}</h5>${idChip('user', u.userId, u.userId)}<p class="rn-sub rn-counts"><span>${u.chars.length} active character${u.chars.length === 1 ? '' : 's'}</span><span>${u.adminGroups.length} admin role${u.adminGroups.length === 1 ? '' : 's'}</span></p>`);
+    const chars = u.chars.map(c => node('char', `<h5 class="rn-name">${h(c.name)}</h5>${staticIdChip('char', c.id || '—')}
+      <p class="rn-sub">${h(c.className)} · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</p>
+      <div class="rn-links"><span>plays in:</span> ${c.boards.map(bid => {
+        const b = boardById(bid);
+        return b ? idChip('board', b.urlId, b.originalId) : '';
+      }).join(' ') || '<span>—</span>'}</div>`)).join('') || node('char', '<p class="rn-sub">No character yet</p>');
+    const admins = u.adminGroups.map(g => node('admin', `${idChip('admin', g.adminId || '—', g.key)}<p class="rn-sub">${h(g.adminName || 'No admin nickname')}</p>`)).join('') || node('admin', '<p class="rn-sub">Not an admin</p>');
+    const linkedBoards = [...new Map([...u.boards, ...u.adminGroups.flatMap(g => g.boards)].map(b => [b.originalId, b])).values()];
+    const boards = linkedBoards.map(b => node('board', `<h5 class="rn-name">${h(b.tripName)}</h5>${idChip('board', b.urlId, b.originalId)}<div class="rn-links"><span>managed by:</span> ${b.adminId || b.adminOwnerHash ? idChip('admin', b.adminId || '—', b.adminOwnerHash || b.adminId) : '<span>No admin assigned</span>'}</div>`, b.type === 'debt' ? 'debt' : b.type === 'treasury' ? 'treasury' : 'scroll')).join('') || node('board', '<p class="rn-sub">No boards yet</p>');
+    map = `<ol class="relmap" aria-label="Account relationships">${[user, chars, admins, boards].map((nodes, i) => `<li class="rel-col" data-entity="${types[i][0]}">${nodes}</li>`).join('')}</ol>`;
+  }
+  const legend = `<div class="rel-legend" aria-label="Entity types">${types.map(([kind, label, , description]) => `<div class="rel-legend-item ${kind}"><span class="rel-dot" aria-hidden="true"></span><span><strong>${label}</strong> <span>(${description})</span></span></div>`).join('')}</div>`;
   const rules = `<ul class="model-rules">
     <li>One User ID works across Split Expenses, Debt Dragon, Treasury, and Character Profile.</li>
     <li>Current player/auth canon: one User ID has one active Character. Character identity is managed through the account profile, not board-local overrides.</li>
@@ -945,28 +931,143 @@ function renderRelationshipMap() {
     <li>A user can be a board admin through one or more Admin IDs, and one Admin ID can own multiple boards.</li>
     <li>Compare Prices is a tool, not a Board.</li>
   </ul>`;
-  return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board links')}${card('Relationship Map', map)}<div class="mt16">${flatCard(`<p class="section-label">📐 Model rules</p>${rules}`)}</div>`;
+  const help = `<section class="relationship-help">
+    <button class="relationship-help-toggle" type="button" aria-expanded="false" aria-controls="relationship-help-content" onclick="const open=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',String(open));this.parentElement.classList.toggle('is-open',open)">${icon('scroll')}<span>คำอธิบาย &amp; กฎการทำงาน</span><span class="rel-help-chevron" aria-hidden="true">⌄</span></button>
+    <div id="relationship-help-content" class="relationship-help-content">${legend}${card(`${icon('scroll')}กฎการทำงานของโมเดล (Model Rules)`, rules, '', 'relationship-rules')}</div>
+  </section>`;
+  return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board links')}<div class="relationship-content">${card(`${icon('split')}ความสัมพันธ์ของข้อมูลในระบบ`, map, '', 'relationship-overview')}${help}</div>`;
 }
-function boardRows() {
-  return filtered(activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter), ['urlId', 'tripName', 'adminId', 'adminName']).map(b => {
-    const st = boardStats(b);
-    return `<tr>
-      <td>${editInput(b.urlId, `updateBoard(${q(b.originalId)},{urlId:this.value.trim()})`, { small:true })}</td>
-      <td>${modBadge(b.type)}</td>
-      <td>${editInput(b.tripName, `updateBoard(${q(b.originalId)},{tripName:this.value})`)}</td>
-      <td>${editInput(b.adminId, `updateBoard(${q(b.originalId)},{adminId:this.value})`, { small:true })}</td>
-      <td>${editInput(b.adminName, `updateBoard(${q(b.originalId)},{adminName:this.value})`)}</td>
-      <td>${editInput('', `updateBoard(${q(b.originalId)},{newPassword:this.value})`, { type:'password', placeholder:'ตั้งรหัสใหม่' })}</td>
-      <td><span class="pill">${b.participants.length}</span> <span class="muted">${b.type === 'debt' ? `${st.dragons} dragons` : `${st.expenses} quests`}</span></td>
-      <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Detail</button><button class="btn btn-danger sm" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></td>
+function updateBoardListField(id, key, input) {
+  const value = key === 'urlId' ? input.value.trim() : input.value;
+  updateBoard(id, { [key]: value });
+  // Keep the mobile reading view current when an operator resizes after editing.
+  const mirror = input.closest('td')?.querySelector('[data-board-value]');
+  if (mirror) mirror.textContent = value || '—';
+  if (key === 'urlId') {
+    input.closest('tr')?.querySelector('.btn-danger')?.setAttribute('aria-label', `ลบ Board ${value}`);
+    document.querySelectorAll('.boards-shortcuts [data-board-id]').forEach(button => {
+      if (button.dataset.boardId === id) button.querySelector('span').textContent = value;
+    });
+  }
+}
+function openBoardSection(id, section = 'overview') {
+  openDetail('board', id);
+  const target = section !== 'overview' && document.getElementById(`board-${section}`);
+  if (target) {
+    boardSectionStates.set(JSON.stringify([id, section]), true);
+    syncBoardSections();
+    target.scrollIntoView({ block: 'start' });
+    const focusTarget = window.innerWidth < 1200 ? target.querySelector('.board-section-toggle') : target.querySelector('.board-section-heading');
+    if (window.innerWidth >= 1200) focusTarget?.setAttribute('tabindex', '-1');
+    focusTarget?.focus({ preventScroll: true });
+    return;
+  }
+  const heading = document.querySelector('.page-title');
+  heading?.setAttribute('tabindex', '-1');
+  heading?.focus();
+}
+function setBoardFilter(value) {
+  boardFilter = value;
+  render();
+  document.querySelector(`.boards-filter [data-filter="${value}"]`)?.focus({ preventScroll: true });
+}
+function clearBoardFilters() {
+  boardFilter = 'all';
+  query = '';
+  render();
+  document.querySelector('#admin-search')?.focus();
+}
+function boardRows(boards) {
+  const field = (b, key, label, password = false) => `<div class="field inline-field"><input class="edit-control" aria-label="${label}" type="${password ? 'password' : 'text'}" value="${h(b[key] || '')}" ${password ? 'placeholder="ตั้งรหัสใหม่" autocomplete="new-password"' : ''} oninput="updateBoardListField(${q(b.originalId)},'${key}',this)"></div>`;
+  return boards.map(b => {
+    const st = boardStats(b), type = b.type || 'split';
+    const badge = `<span class="badge mod-${h(type)}">${window.CoinQuestIcons(type === 'debt' ? 'debt' : type === 'treasury' ? 'treasury' : 'scroll')} ${h(boardTypeLabel({ type }))}</span>`;
+    return `<tr class="board-row" data-board-id="${h(b.originalId)}" role="row">
+      <td class="board-url" role="cell">${field(b, 'urlId', 'Board URL')}<strong class="board-mobile-value" data-board-value>${h(b.urlId)}</strong></td>
+      <td class="board-type" role="cell">${badge}</td>
+      <td class="board-name" role="cell">${field(b, 'tripName', 'Board name')}<strong class="board-mobile-value" data-board-value>${h(b.tripName)}</strong></td>
+      <td class="board-admin-id" role="cell">${field(b, 'adminId', 'Admin ID')}<span class="board-mobile-value">Admin: <span data-board-value>${h(b.adminId || '—')}</span></span></td>
+      <td class="board-admin-name" role="cell">${field(b, 'adminName', 'Admin nickname')}</td>
+      <td class="board-password" role="cell">${field(b, 'newPassword', 'Reset password', true)}</td>
+      <td class="board-members" role="cell"><span class="board-member-count" aria-label="${b.participants.length} members">${window.CoinQuestIcons('split')}<span>${b.participants.length}</span></span><span class="board-entry-count">${b.type === 'debt' ? `${st.dragons} dragons` : `${st.expenses} quests`}</span></td>
+      <td class="board-actions" role="cell"><div><button class="btn btn-ghost sm" onclick="openBoardSection(${q(b.originalId)})">Detail</button><button class="btn btn-ghost sm" onclick="openBoardSection(${q(b.originalId)},'members')">Members</button><button class="btn btn-danger sm" aria-label="ลบ Board ${h(b.urlId)}" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></div></td>
     </tr>`;
   }).join('');
 }
 function renderBoards() {
   if (detail?.kind === 'board') return renderBoardDetail(detail.id);
-  const toolbar = `<div class="toolbar">${searchBox('ค้นหา board/admin')}${seg('boardFilter', boardFilter, [['all','all'],['split','split'],['debt','debt'],['treasury','treasury']])}<button class="btn btn-primary" onclick="addBoard()">+ เพิ่ม Board</button></div>`;
+  const filters = `<div class="seg boards-filter" role="group" aria-label="Board type">${['all', 'split', 'debt', 'treasury'].map(type => `<button type="button" data-filter="${type}" class="${boardFilter === type ? 'on' : ''}" aria-pressed="${boardFilter === type}" onclick="setBoardFilter('${type}')">${type}</button>`).join('')}</div>`;
+  const toolbar = `<div class="toolbar boards-toolbar">${searchBox('ค้นหา board/admin')}${filters}<button class="btn btn-primary boards-add" onclick="addBoard()">+ เพิ่ม Board</button></div>`;
   const visibleBoards = filtered(activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter), ['urlId', 'tripName', 'adminId', 'adminName']);
-  return `${pageHead('Boards', 'All created Split, Debt, and Treasury boards')}${toolbar}${quickOpen(visibleBoards, 'board', b => b.urlId)}${card('Boards', table(['URL','Type','ชื่อ Board','Admin ID','ชื่อเล่น Admin','Reset Password','Members',''], boardRows()))}`;
+  const shortcuts = visibleBoards.length ? `<div class="quick-open wrap-chips boards-shortcuts" aria-label="Board shortcuts">${visibleBoards.slice(0, 4).map(b => `<button class="btn btn-ghost sm" data-board-id="${h(b.originalId)}" onclick="openBoardSection(${q(b.originalId)})">Detail <span>${h(b.urlId)}</span></button>`).join('')}</div>` : '';
+  const columns = [['url','URL'],['type','Type'],['name','ชื่อ Board'],['admin-id','Admin ID'],['admin-name','ชื่อเล่น Admin'],['password','Reset Password'],['members','Members'],['actions','Actions']];
+  const content = visibleBoards.length ? `<div class="tbl-wrap"><table class="tbl boards-table" role="table" aria-label="Boards"><thead role="rowgroup"><tr role="row">${columns.map(([key, label]) => `<th class="board-${key}" scope="col" role="columnheader">${label}</th>`).join('')}</tr></thead><tbody role="rowgroup">${boardRows(visibleBoards)}</tbody></table></div>` : `<div class="empty boards-empty">${window.CoinQuestIcons('scroll')}<div class="e-t">${activeBoards().length ? 'ไม่พบบอร์ดที่ตรงกัน' : 'ยังไม่มีบอร์ด'}</div><p class="e-d">${activeBoards().length ? 'ลองค้นหาด้วยชื่อบอร์ด รหัสบอร์ด หรือผู้ดูแล' : 'สร้างบอร์ดแรกเพื่อเริ่มจัดการปาร์ตี้ของคุณ'}</p>${activeBoards().length ? '<button class="btn btn-ghost" onclick="clearBoardFilters()">ล้างการค้นหาและตัวกรอง</button>' : ''}</div>`;
+  return `${pageHead('Boards', 'All created Split, Debt, and Treasury boards')}${toolbar}${shortcuts}${card('Boards', content, `<span class="count-note" role="status">${visibleBoards.length} boards</span>`, 'boards-list')}`;
+}
+function boardDateLabel(value) {
+  if (value == null || value === '') return '—';
+  try {
+    const seconds = value?.seconds ?? value?._seconds;
+    const date = typeof value?.toDate === 'function' ? value.toDate()
+      : new Date(typeof seconds === 'number' ? seconds * 1000 : value);
+    return Number.isFinite(date.getTime()) ? date.toLocaleString() : '—';
+  } catch (_) { return '—'; }
+}
+function boardSectionOpen(boardId, section) {
+  if (window.innerWidth >= 1200) return true;
+  const saved = boardSectionStates.get(JSON.stringify([boardId, section]));
+  return saved ?? (section === 'info' || (section === 'members' && window.innerWidth >= 768));
+}
+function syncBoardSections() {
+  const root = document.querySelector('.board-info-page');
+  if (!root) return;
+  root.querySelectorAll('[data-board-section]').forEach(section => {
+    const open = boardSectionOpen(root.dataset.boardId, section.dataset.boardSection);
+    section.querySelector('.board-section-toggle').setAttribute('aria-expanded', String(open));
+    section.querySelector('.board-section-body').hidden = !open;
+  });
+}
+function toggleBoardSection(section) {
+  const root = document.querySelector('.board-info-page');
+  if (!root) return;
+  const id = root.dataset.boardId;
+  boardSectionStates.set(JSON.stringify([id, section]), !boardSectionOpen(id, section));
+  syncBoardSections();
+}
+for (const breakpoint of [768, 1200]) window.matchMedia(`(min-width: ${breakpoint}px)`).addEventListener('change', syncBoardSections);
+function adminTavernIcon(name) {
+  const asset = name === 'lock' ? 'key' : name;
+  return ['shield','swords','scroll','coins','split','key','star','box'].includes(asset)
+    ? `<img class="board-tavern-icon" src="/assets/admin-board-info/${asset}.webp" alt="" aria-hidden="true" width="32" height="32">`
+    : window.CoinQuestIcons(name);
+}
+function boardInfoSection(b, key, title, icon, body) {
+  const open = boardSectionOpen(b.originalId, key);
+  const label = `${adminTavernIcon(icon)}<span>${h(title)}</span>`;
+  return `<section class="card board-info-section" id="board-${key}" data-board-section="${key}"><h2 class="board-section-heading"><span class="board-section-label">${label}</span><button class="board-section-toggle" aria-expanded="${open}" aria-controls="board-${key}-body" onclick="toggleBoardSection(${q(key)})">${label}${window.CoinQuestIcons('chevron','section-chevron')}</button></h2><div class="card-pad board-section-body" id="board-${key}-body" ${open ? '' : 'hidden'}>${body}</div></section>`;
+}
+function boardStatCard(label, value, caption, icon) {
+  return `<div class="board-stat">${adminTavernIcon(icon)}<span>${h(label)}</span><strong>${h(value)}</strong><small>${h(caption)}</small></div>`;
+}
+function boardChangeLog(b) {
+  const changes = diffBoards(b.originalId);
+  if (!changes.length) return '<div class="empty"><div class="e-t">No draft changes for this board</div><p class="e-d">All changes will appear here after you make edits.</p></div>';
+  return `<div class="log-list">${changes.map(c=>`<div class="log-item">${window.CoinQuestIcons('document')}<div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action,'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div><button class="btn btn-ghost sm" onclick="restoreBoard(${q(b.originalId)})">Revert board changes</button>`;
+}
+function updateBoardInfoField(id, key, input) {
+  const value = key === 'urlId' ? input.trim() : input;
+  updateBoard(id, { [key]: value });
+  const b = boardById(id);
+  document.querySelectorAll('[data-board-info-value]').forEach(el => {
+    if (el.dataset.boardInfoValue === key) el.textContent = value || '—';
+  });
+  const link = document.querySelector('[data-board-ledger]');
+  if (link) link.href = `/trip/?id=${encodeURIComponent(b.urlId)}${TEST_MODE ? '&test=1' : ''}`;
+  const owner = document.querySelector('.board-owner-account');
+  const ownerId = adminOwnerUserId(b);
+  if (owner) owner.innerHTML = ownerId ? idChip('user',ownerId,ownerId) : '<span class="badge st-archived">orphaned admin identity</span>';
+  const log = document.getElementById('board-log-body');
+  if (log) log.innerHTML = boardChangeLog(b);
 }
 function renderBoardDetail(id) {
   const b = boardById(id);
@@ -974,156 +1075,237 @@ function renderBoardDetail(id) {
   const st = boardStats(b);
   const ownerUser = adminOwnerUserId(b);
   const versions = boardVersions(b);
-  const adminForm = `${formField('URL', `<input value="${h(b.urlId)}" oninput="updateBoard(${q(b.originalId)},{urlId:this.value.trim()})">`)}${formField('Name', `<input value="${h(b.tripName)}" oninput="updateBoard(${q(b.originalId)},{tripName:this.value})">`)}${formField('Admin ID', `<input value="${h(b.adminId)}" oninput="updateBoard(${q(b.originalId)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(b.adminName)}" oninput="updateBoard(${q(b.originalId)},{adminName:this.value})">`)}${formField('Password reset', `<input type="password" placeholder="ตั้งรหัสใหม่" oninput="updateBoard(${q(b.originalId)},{newPassword:this.value})">`)}`;
-  const overview = `<div class="grid g-2">
-    ${card('📋 Board info', `<div class="kv">
-      <div class="kv-row"><span class="k">Board ID</span><span class="v mono">${h(b.urlId)}</span></div>
+  const icon = adminTavernIcon;
+  const crumbs = `<div class="crumbs"><button onclick="closeDetail('boards')">Boards</button><span class="sep">/</span><span class="cur" data-board-info-value="urlId">${h(b.urlId)}</span></div>`;
+  if (b.deleted && b.created) return `${crumbs}${pageHead(b.tripName, 'New board discarded')}${card('Draft board discarded', '<p>This board was never published. No server data was deleted.</p><button class="btn btn-ghost" onclick="closeDetail(\'boards\')">Back to Boards</button>')}`;
+  if (b.deleted) return `${crumbs}${pageHead(b.tripName, 'Marked for deletion · pending Publish')}${card('Board deletion pending', `<p>บอร์ดนี้จะถูกลบเมื่อ Publish ข้อมูลบนเซิร์ฟเวอร์ยังไม่ถูกลบ</p><button class="btn btn-ghost" onclick="restoreBoard(${q(b.originalId)})">Restore board</button>`)}`;
+  const field = (label, key, options = '') => formField(label, `<input aria-label="${label}" value="${h(b[key] || '')}" ${options} oninput="updateBoardInfoField(${q(b.originalId)},${q(key)},this.value)">`);
+  const adminForm = `<div class="board-owner-form">${field('URL','urlId')}${field('Name','tripName')}${field('Admin ID','adminId')}${field('Nickname','adminName')}${field('Password reset','newPassword','type="password" autocomplete="new-password" placeholder="ตั้งรหัสใหม่"')}</div>`;
+  const overview = `<div class="board-overview">
+    ${boardInfoSection(b, 'info', 'Board Info', 'shield', `<div class="kv">
+      <div class="kv-row"><span class="k">Board ID</span><span class="v mono" data-board-info-value="urlId">${h(b.urlId)}</span></div>
       <div class="kv-row"><span class="k">Type</span><span class="v">${modBadge(b.type)}</span></div>
       <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(statusForBoard(b))}</span></div>
-      <div class="kv-row"><span class="k">Owner admin</span><span class="v">${idChip('admin', b.adminId || '-', b.adminOwnerHash || b.adminId)}</span></div>
-      <div class="kv-row"><span class="k">Owner account</span><span class="v">${ownerUser ? idChip('user', ownerUser, ownerUser) : '<span class="badge st-archived">orphaned admin identity</span>'}</span></div>
-      <div class="kv-row"><span class="k">Last active</span><span class="v">${h(b.data?.updatedAt ? new Date(b.data.updatedAt).toLocaleString() : '—')}</span></div>
+      <div class="kv-row"><span class="k">Owner admin</span><span class="v"><button class="idchip k-admin" onclick="openAdminGroup(${q(b.originalId)})"><span class="ic-ico">Admin</span><span data-board-info-value="adminId">${h(b.adminId || '—')}</span></button></span></div>
+      <div class="kv-row"><span class="k">Owner account</span><span class="v board-owner-account">${ownerUser ? idChip('user', ownerUser, ownerUser) : '<span class="badge st-archived">orphaned admin identity</span>'}</span></div>
+      <div class="kv-row"><span class="k">Last active</span><span class="v">${h(boardDateLabel(b.data?.updatedAt))}</span></div>
     </div>`)}
-    ${card('📈 Stats', `<div class="grid g-2" style="gap:12px">
+    ${card(`${icon('swords')}Stats`, `<div class="board-stats-grid">
       ${b.type === 'debt'
-        ? `${statCard('Dragons', st.dragons, 'tracked debts', '🐉')}${statCard('Balance', fmtMoney(st.balance), 'outstanding', '💳')}${statCard('Overdue', st.overdue, 'needs attention', '🔥', st.overdue ? 'down' : 'flat')}${statCard('Party size', b.participants.length, 'slayers', '👥')}`
+        ? `${boardStatCard('Dragons', st.dragons, 'tracked debts', 'debt')}${boardStatCard('Balance', fmtMoney(st.balance), 'outstanding', 'coins')}${boardStatCard('Overdue', st.overdue, 'needs attention', 'flame')}${boardStatCard('Party size', b.participants.length, 'slayers', 'split')}`
         : b.type === 'treasury'
-        ? `${statCard('Monthly income', fmtMoney(b.data?.treasury?.income || 0), 'treasury', '💰')}${statCard('Spent', fmtMoney(st.spend), 'logged', '🗡️')}${statCard('Party size', b.participants.length, 'owner party', '👥')}${statCard('Quests', st.expenses, 'entries', '📜')}`
-        : `${statCard('Quests', st.expenses, 'ledger rows', '📜')}${statCard('Total spend', fmtMoney(st.spend), 'party spend', '💰')}${statCard('Party size', b.participants.length, 'heroes', '👥')}`}
-    </div>`)}
-    ${card('Owner / Admin', adminForm, '', 'wide')}
+        ? `${boardStatCard('Monthly income', fmtMoney(b.data?.treasury?.income || 0), 'treasury', 'coins')}${boardStatCard('Spent', fmtMoney(st.spend), 'logged', 'swords')}${boardStatCard('Party size', b.participants.length, 'owner party', 'split')}${boardStatCard('Quests', st.expenses, 'entries', 'scroll')}`
+        : `${boardStatCard('Quests', st.expenses, 'ledger rows', 'scroll')}${boardStatCard('Total spend', fmtMoney(st.spend), 'party spend', 'coins')}${boardStatCard('Party size', b.participants.length, 'heroes', 'split')}`}
+    </div>`, '', 'board-stats')}
   </div>`;
   const members = b.participants.map(name => {
     const charId = b.characterIds[name] || '';
     const c = charById(charId) || { className: b.data?.heroClasses?.[name] || 'hero', xp: 0 };
     const uId = userKey(name, charId);
     const role = name === b.adminName || charId === b.data?.admin?.characterId ? 'Owner' : b.type === 'debt' ? 'Slayer' : 'Hero';
-    return `<tr><td><div class="flex gap8" style="align-items:center"><span style="font-size:18px">⚔️</span><span class="cell-strong">${h(name)}</span> ${idChip('char', charId || '-', charId)}</div></td><td>${idChip('user', uId, uId)}</td><td>${h(c.className)}</td><td>${levelBadge(characterLevelFromXp(c.xp).lvl)}</td><td><span class="badge ${role === 'Owner' ? 'role' : 'outline'}">${role === 'Owner' ? '👑 ' : ''}${role}</span></td></tr>`;
+    return `<tr role="row"><td class="member-character" role="cell"><div>${icon('swords')}<span class="cell-strong">${h(name)}</span>${idChip('char', charId || '—', charId)}</div></td><td class="member-user" role="cell">${idChip('user', uId, uId)}</td><td class="member-class" role="cell"><span class="member-mobile-label">Class</span>${h(c.className)}</td><td class="member-level" role="cell">${levelBadge(characterLevelFromXp(c.xp).lvl)}</td><td class="member-role" role="cell"><span class="badge ${role === 'Owner' ? 'role' : 'outline'}">${role === 'Owner' ? '👑 ' : ''}${role}</span></td></tr>`;
   }).join('');
-  const membersPanel = card('👥 Members', `${table(['Character','User ID','Class','Level','Role'], members)}<p class="hint">สมาชิกจริงเข้าร่วมผ่านคำเชิญ Character ID; จัดการสมาชิกและ Guest ภายใน Party Ledger</p><a class="btn btn-ghost" href="/trip/?id=${encodeURIComponent(b.urlId)}${TEST_MODE ? '&test=1' : ''}">Open Party Ledger</a>`);
-  const changeRows = diffBoards().filter(c => c.detail.includes(b.originalId) || c.detail.includes(b.urlId) || c.detail.includes(b.tripName)).map(c => `<div class="log-item"><div class="log-ico edit">✏️</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div><div class="log-actions"><button class="btn tiny btn-ghost" onclick="restoreBoard(${q(b.originalId)})">↩ Revert</button></div></div>`).join('') || '<div class="empty"><div class="e-t">No draft changes for this board</div></div>';
-  const logPanel = card('📜 Change Log', `<div class="log-list">${changeRows}</div>`);
-  const versionRows = versions.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ` <span class="badge st-active">Current</span>` : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(typeof v.at === 'number' ? new Date(v.at).toLocaleString() : v.at)}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div><div class="log-actions"></div></div>`).join('');
-  const versionsPanel = card('🕰️ Versions', `<div class="log-list">${versionRows}</div>`);
-  const dangerPanel = `<div class="grid" style="gap:14px">
-    <div class="phase-note" style="margin:0"><span class="pn-ico">🔒</span><span>In-app board admins can only archive a board. Permanent delete is a Super Admin action here.</span></div>
-
-    <div class="danger-zone between"><div><h4>${b.data.archived ? '📂 Reopen board' : '📦 Archive board'}</h4><div class="cell-sub">${b.data.archived ? 'Return this board to active use with its existing data.' : 'Hide from use while keeping data recoverable.'}</div></div><button class="btn btn-gold" onclick="setBoardArchived(${q(b.originalId)},${!b.data.archived})">${b.data.archived ? 'Reopen board' : 'Archive board'}</button></div>
-    <div class="danger-zone between" style="border-color:var(--danger)"><div><h4>🗑️ Delete board</h4><div class="cell-sub">Delete the board and all data after Publish.</div></div><button class="btn btn-danger" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div>
-  </div>`;
-  const tabbed = `${tabs('boardDetailTab', boardDetailTab, [
-    { key:'overview', label:'Overview' },
-    { key:'members', label:'Members', count:b.participants.length },
-    { key:'log', label:'Change Log', count:diffBoards().length },
-    { key:'versions', label:'Versions', count:versions.length },
-    { key:'danger', label:'Danger zone' }
-  ])}${boardDetailTab === 'overview' ? overview : boardDetailTab === 'members' ? membersPanel : boardDetailTab === 'log' ? logPanel : boardDetailTab === 'versions' ? versionsPanel : dangerPanel}`;
-  const scroll = `<div class="grid" style="gap:18px">${overview}${membersPanel}${logPanel}${versionsPanel}${dangerPanel}</div>`;
-  return `<div class="crumbs"><button onclick="closeDetail('boards')">Boards</button><span class="sep">/</span><span class="cur">${h(b.urlId)}</span></div>${pageHead(b.tripName, `<span>${idChip('board', b.urlId, b.originalId)} ${modBadge(b.type)} ${statusBadgeFor(statusForBoard(b))}</span>`, `<span class="count-note">Layout</span>${seg('boardDetailView', boardDetailView, [['tabbed','Tabs'],['scroll','Scroll']])}<button class="btn btn-gold" onclick="showExportModal(${q(b.originalId)})">📤 Export data</button>`)}${boardDetailView === 'tabbed' ? tabbed : scroll}`;
+  const membersTable = members ? `<div class="tbl-wrap"><table class="tbl board-members-table" role="table" aria-label="Board members"><thead><tr>${['Character','User ID','Class','Level','Role'].map(label=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${members}</tbody></table></div>` : '<div class="empty"><div class="e-t">No members yet</div></div>';
+  const membersPanel = boardInfoSection(b, 'members', 'Members', 'split', `${membersTable}<div class="board-members-footer"><p class="hint">สมาชิกจริงเข้าร่วมผ่านคำเชิญ Character ID; จัดการสมาชิกและ Guest ภายใน Party Ledger</p><a class="btn btn-ghost" data-board-ledger href="/trip/?id=${encodeURIComponent(b.urlId)}${TEST_MODE ? '&test=1' : ''}">Open Party Ledger</a></div>`);
+  const versionRows = versions.map(v => `<div class="log-item">${icon(v.current ? 'star' : 'scroll')}<div class="log-body"><div class="log-text"><b>${h(v.v)}</b>${v.current ? ' <span class="badge st-active">Current</span>' : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(boardDateLabel(v.at))}</span>${v.by ? `<span>by ${h(v.by)}</span>` : ''}</div></div></div>`).join('');
+  const dangerPanel = `<section class="board-danger" aria-label="Board management"><div class="board-lifecycle-action"><span class="board-action-icon">${icon('box')}</span><div><h2>${b.data.archived ? 'Reopen board' : 'Archive board'}</h2><p>${b.data.archived ? 'Return this board to active use with its existing data.' : 'Hide from use while keeping data recoverable.'}</p></div><button class="btn btn-gold" onclick="setBoardArchived(${q(b.originalId)},${!b.data.archived})">${b.data.archived ? 'Reopen board' : 'Archive board'}</button></div><div class="board-lifecycle-action is-danger"><span class="board-action-icon">${icon('trash')}</span><div><h2>Delete board</h2><p>Delete the board and all data after Publish.</p></div><button class="btn btn-danger" onclick="deleteBoard(${q(b.originalId)})">Delete board</button></div><p class="board-danger-note">${icon('lock')}Super Admin only · Changes take effect after Publish</p></section>`;
+  return `${crumbs}<div class="board-info-page" data-board-id="${h(b.originalId)}">${adminDetailHeading(b.tripName, `<span class="idchip k-board"><span class="ic-ico">Board</span><span data-board-info-value="urlId">${h(b.urlId)}</span></span>${modBadge(b.type)}${statusBadgeFor(statusForBoard(b))}`, `<button class="btn btn-gold" onclick="showExportModal(${q(b.originalId)})">${icon('download')}Export data</button>`, 'data-board-info-value="tripName"')}${adminTavernBanner()}<div class="board-info-flow">${overview}${boardInfoSection(b,'owner','Owner / Admin','lock',adminForm)}${membersPanel}${boardInfoSection(b,'log','Change Log','scroll',boardChangeLog(b))}${boardInfoSection(b,'versions','Versions','star',`<div class="log-list">${versionRows}</div>`)}${dangerPanel}</div></div>`;
+}
+function openAdminGroup(boardId) {
+  const g = adminGroups().find(group => group.boards.some(b => b.originalId === boardId));
+  if (g) openDetail('admin', g.key);
+}
+function toggleAdminShortcuts(button) {
+  const expanded = button.getAttribute('aria-expanded') !== 'true';
+  button.setAttribute('aria-expanded', String(expanded));
+  button.setAttribute('aria-label', expanded ? 'Show fewer admin shortcuts' : 'Show all admin shortcuts');
+  button.closest('.board-admin-shortcuts').classList.toggle('is-expanded', expanded);
+}
+function toggleAdminBoards(button) {
+  const expanded = button.getAttribute('aria-expanded') !== 'true';
+  button.setAttribute('aria-expanded', String(expanded));
+  button.textContent = expanded ? 'Less' : `+${button.dataset.count}`;
+  button.closest('.board-admin-board-links').classList.toggle('is-expanded', expanded);
 }
 function renderAdmins() {
   if (detail?.kind === 'admin') return renderAdminDetail(detail.id);
-  const groups = filtered(adminGroups(), ['adminId', 'adminName', 'key']);
-  const rows = groups.map(g => `
-    <tr>
-      <td>${editInput(g.adminId, `updateAdminGroup(${q(g.key)},{adminId:this.value})`, { small:true })}</td>
-      <td>${editInput(g.adminName, `updateAdminGroup(${q(g.key)},{adminName:this.value})`)}</td>
-      <td>${g.ownerUserId ? idChip('user', g.ownerUserId, g.ownerUserId) : '<span class="badge st-archived">orphaned</span>'}</td>
-      <td class="muted mono">${h(g.key)}</td>
-      <td>${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</td>
-      <td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('admin',${q(g.key)})">Detail</button></td>
-    </tr>`).join('');
-  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards')}<div class="toolbar">${searchBox('ค้นหา admin')}</div>${quickOpen(groups, 'admin', g => g.adminId || '-')}${card('Board Admins', table(['ID','ชื่อเล่น','User','Owner Hash','Boards',''], rows))}`;
+  const all = adminGroups();
+  const needle = query.trim().toLowerCase();
+  const groups = all.filter(g => {
+    const owner = g.ownerUserId ? userById(g.ownerUserId) : null;
+    return !needle || [g.adminId, g.adminName, g.key, g.ownerUserId, owner?.name, owner?.username].join(' ').toLowerCase().includes(needle);
+  });
+  const icon = window.CoinQuestIcons;
+  const shortcuts = groups.slice(0, 4).map((g, i) => `<button class="btn btn-ghost sm ${i > 1 ? 'admin-extra-shortcut' : ''}" data-admin-anchor="${h(g.boards[0].originalId)}" onclick="openAdminGroup(${q(g.boards[0].originalId)})">Detail <span data-admin-value="adminId">${h(g.adminId || '—')}</span></button>`).join('');
+  const rows = groups.map((g, index) => {
+    const anchor = g.boards[0].originalId;
+    const targets = h(JSON.stringify(g.boards.map(b => b.originalId)));
+    const boardLinks = g.boards.map((b, i) => `<span class="${i ? 'admin-extra-board' : ''}">${idChip('board', b.urlId, b.originalId)}</span>`).join('');
+    return `<tr class="board-admin-row" data-admin-anchor="${h(anchor)}" role="row">
+      <td class="board-admin-id" role="cell"><span class="admin-compact-value"><span class="admin-mobile-label">ID </span><span data-admin-value="adminId">${h(g.adminId || '—')}</span></span><input class="inline-field" aria-label="Admin ID for ${h(g.adminId || 'unnamed admin')}" value="${h(g.adminId)}" oninput="updateAdminGroup(${targets},{adminId:this.value})"></td>
+      <td class="board-admin-name" role="cell"><span class="admin-compact-value" data-admin-value="adminName">${h(g.adminName || '—')}</span><input class="inline-field" aria-label="Nickname for ${h(g.adminId || 'unnamed admin')}" value="${h(g.adminName)}" placeholder="—" oninput="updateAdminGroup(${targets},{adminName:this.value})"></td>
+      <td class="board-admin-user" role="cell"><span class="admin-mobile-label" aria-hidden="true">${icon('profile')}</span>${g.ownerUserId ? idChip('user', g.ownerUserId, g.ownerUserId) : '<span class="badge st-archived">orphaned</span>'}</td>
+      <td class="board-admin-hash" role="cell"><span class="admin-mobile-label">${icon('shield')}Owner Hash:</span><span class="mono">${h(g.boards[0].adminOwnerHash || '—')}</span></td>
+      <td class="board-admin-boards" role="cell"><span class="admin-mobile-label">${icon('scroll')}Boards:</span><div class="board-admin-board-links"><div class="admin-board-items" id="admin-board-links-${index}">${boardLinks}</div>${g.boards.length > 1 ? `<button class="btn btn-ghost tiny admin-board-toggle" aria-label="More boards for ${h(g.adminId || 'unnamed admin')}" aria-expanded="false" aria-controls="admin-board-links-${index}" data-count="${g.boards.length - 1}" onclick="toggleAdminBoards(this)">+${g.boards.length - 1}</button>` : ''}</div></td>
+      <td class="board-admin-actions" role="cell"><button class="btn btn-ghost sm" onclick="openAdminGroup(${q(anchor)})">Detail</button></td>
+    </tr>`;
+  }).join('');
+  const columns = [['id','ID','ID / ชื่อเล่น'],['name','ชื่อเล่น / ชื่อที่แสดง',''],['user','User','User / Owner Hash'],['hash','Owner Hash',''],['boards','Boards','Boards'],['actions','จัดการ','จัดการ']];
+  const listing = rows ? `<div class="tbl-wrap"><table class="tbl board-admin-table" role="table" aria-label="Board Admins"><thead><tr role="row">${columns.map(([key, label, compact]) => `<th class="board-admin-col-${key}" scope="col" role="columnheader"><span class="admin-wide-heading">${label}</span><span class="admin-compact-heading">${compact}</span></th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty">${icon('shield')}<div class="e-t">${needle ? 'ไม่พบผู้ดูแลที่ตรงกัน' : 'ยังไม่มีผู้ดูแลบอร์ด'}</div><p>${needle ? 'ลองค้นหาด้วย ID ชื่อเล่น หรือ username อื่น' : 'ผู้ดูแลจะแสดงที่นี่เมื่อมีบอร์ดในระบบ'}</p>${needle ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">ล้างการค้นหา</button>' : ''}</div>`;
+  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards')}<div class="toolbar board-admin-toolbar">${searchBox('ค้นหา admin (ID, ชื่อเล่น หรือ username)')}</div><div class="board-admin-shortcuts" aria-label="Admin detail shortcuts">${shortcuts}${groups.length > 2 ? `<button class="btn btn-ghost sm admin-shortcut-toggle" aria-label="Show all admin shortcuts" aria-expanded="false" onclick="toggleAdminShortcuts(this)">${icon('more')}</button>` : ''}</div><section class="card board-admin-list"><div class="card-head"><h3>Board Admins</h3></div><div class="card-pad">${listing}<div class="board-admin-footer"><span role="status">${needle ? `${groups.length} of ${all.length}` : groups.length} admin identities</span><span>Board Admin IDs may own multiple boards</span></div></div></section>`;
 }
 function renderAdminDetail(key) {
   const g = adminGroupByKey(key);
   if (!g) return card('Admin not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const userId = g.ownerUserId || '';
+  const targets = h(JSON.stringify(g.boards.map(b => b.originalId)));
   const ownerChip = userId ? idChip('user', userId, userId) : '<span class="badge st-archived">orphaned admin identity</span>';
-  const identity = `${flatCard(`<div class="profile-card"><div class="profile-ava">🛡️</div><div class="profile-name">${h(g.adminName || g.adminId || 'Admin')}</div><div class="profile-id">${idChip('admin', g.adminId || '-', g.key)}</div><div class="mt12">${ownerChip}</div></div>`)}
-    ${card('Identity', `${formField('Admin ID', `<input value="${h(g.adminId)}" oninput="updateAdminGroup(${q(g.key)},{adminId:this.value})">`)}${formField('Nickname', `<input value="${h(g.adminName)}" oninput="updateAdminGroup(${q(g.key)},{adminName:this.value})">`)}<div class="kv"><div class="kv-row"><span class="k">Owner hash</span><span class="v mono">${h(g.key)}</span></div></div>`)}`;
+  const identity = `${flatCard(`<div class="profile-card" data-admin-anchor="${h(g.boards[0].originalId)}"><div class="profile-ava">🛡️</div><div class="profile-name" data-admin-value="adminName">${h(g.adminName || '—')}</div><div class="profile-id"><span class="idchip k-admin"><span class="ic-ico">Admin</span><span data-admin-value="adminId">${h(g.adminId || '—')}</span></span></div><div class="mt12">${ownerChip}</div></div>`)}
+    ${card('Identity', `${formField('Admin ID', `<input aria-label="Admin ID" value="${h(g.adminId)}" oninput="updateAdminGroup(${targets},{adminId:this.value})">`)}${formField('Nickname', `<input aria-label="Nickname" value="${h(g.adminName)}" oninput="updateAdminGroup(${targets},{adminName:this.value})">`)}<div class="kv"><div class="kv-row"><span class="k">Owner hash</span><span class="v mono">${h(g.boards[0].adminOwnerHash || '—')}</span></div></div>`)}`;
   const owned = g.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Open</button></td></tr>`).join('');
-  return `<div class="crumbs"><button onclick="closeDetail('admins')">Admins</button><span class="sep">/</span><span class="cur">${h(g.adminId || key)}</span></div>${pageHead('Admin Detail', 'Admin identity and board ownership')}<div class="detail-grid"><div>${identity}</div><div>${card('Owned Boards', table(['Board','Name','Type',''], owned))}</div></div>`;
+  return `<div class="crumbs"><button onclick="closeDetail('admins')">Board Admins</button><span class="sep">/</span><span class="cur">${h(g.adminId || key)}</span></div>${pageHead('Admin Detail', 'Admin identity and board ownership')}<div class="detail-grid board-admin-detail"><div>${identity}</div><div>${card('Owned Boards', table(['Board','Name','Type',''], owned))}</div></div>`;
+}
+function focusUserSection(section) {
+  const target = document.getElementById(`user-${section}`);
+  const heading = target?.querySelector('h2') || document.querySelector('.page-title');
+  (target || heading)?.scrollIntoView({ block: 'start' });
+  heading?.setAttribute('tabindex', '-1');
+  heading?.focus({ preventScroll: true });
+}
+function openUserSection(id, section = 'profile') {
+  closePortalModal();
+  openDetail('user', id);
+  focusUserSection(section === 'profile' ? 'heading' : section);
+}
+function characterProfileAction(id) {
+  return id ? `<a class="btn btn-ghost sm" href="${h(characterProfileLink(id))}">Profile</a>` : '<button class="btn btn-ghost sm" disabled title="No Character ID" aria-label="Profile unavailable: no Character ID">Profile</button>';
+}
+function showUserActions(id) {
+  const u = userById(id);
+  if (!u) return;
+  const icon = window.CoinQuestIcons;
+  portalModal(`Actions · ${h(u.name)}`, `<div class="user-actions-menu">
+    <button class="btn btn-ghost" onclick="openUserSection(${q(u.userId)},'boards')">${icon('scroll')}Boards <span>${u.boards.length}</span></button>
+    <button class="btn btn-ghost" onclick="openUserSection(${q(u.userId)},'admin')">${icon('shield')}Admin roles <span>${u.adminGroups.length}</span></button>
+    <button class="btn btn-ghost" onclick="openUserSection(${q(u.userId)},'lifecycle')">${icon('settings')}Account lifecycle</button>
+    <button class="btn btn-ghost" onclick="showExportModal(${q(u.userId)})">${icon('download')}Export data</button>
+  </div>`, '<button class="btn btn-ghost" onclick="closePortalModal()">Close</button>');
+}
+function clearAdminSearch() {
+  query = '';
+  render();
+  document.querySelector('#admin-search')?.focus();
 }
 function renderUsers() {
   if (detail?.kind === 'user') return renderUserDetail(detail.id);
-  const records = visibleUserRecords().filter(u => !query || `${u.name} ${u.username || ''} ${u.userId}`.toLowerCase().includes(query.toLowerCase()));
-  const rows = records.map(u => `
-    <tr>
-      <td>${idChip('user', u.userId, u.userId)}</td>
-      <td><div class="cell-strong">${h(u.name)}</div>${u.username ? `<div class="cell-sub">@${h(u.username)}</div>` : ''}</td>
-      <td><div class="wrap-chips">${u.chars.map(c => idChip('char', c.id || '-', c.id, `<span>${h(c.name)}</span>`)).join(' ') || '<span class="muted cell-sub">—</span>'}</div></td>
-      <td class="mono">${u.boards.length}</td>
-      <td>${levelBadge(userLevel(u))} <span class="cell-sub mono">${userReputation(u).toLocaleString()}</span></td>
-      <td>${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length} Admin roles</span>` : '<span class="muted cell-sub">—</span>'}</td>
-      <td>${statusBadgeFor(u.status)}</td>
-      <td class="td-actions"><a class="btn btn-ghost sm" href="${h(characterProfileLink(u.chars[0]?.id || ''))}">Profile</a><button class="btn btn-ghost sm" onclick="openDetail('user',${q(u.userId)})">Detail</button></td>
-    </tr>`).join('');
-  return `${pageHead('Users', `${records.length} global users · one active character per User ID`)}<div class="toolbar">${searchBox('Search user / character')}</div>${quickOpen(records, 'user', u => u.userId)}${card('Users', table(['User ID','Display name','Character','Boards','Profile reputation','Admin role','Status',''], rows))}`;
+  const all = visibleUserRecords();
+  const needle = query.trim().toLowerCase();
+  const records = all.filter(u => !needle || [u.name, u.username, u.userId, ...u.chars.flatMap(c => [c.id, c.name])].join(' ').toLowerCase().includes(needle));
+  const icon = window.CoinQuestIcons;
+  const rows = records.map(u => {
+    const profileId = u.chars.find(c => c.id)?.id;
+    const chars = u.chars.map(c => staticIdChip('char', c.id || '—', `<span>${h(c.name)}</span>`)).join('');
+    return `<tr class="user-row" data-user-id="${h(u.userId)}" role="row">
+      <td class="user-id" role="cell"><button class="idchip k-user" onclick="openUserSection(${q(u.userId)})"><span class="ic-ico">User</span><span>${h(u.userId)}</span></button></td>
+      <td class="user-name" role="cell"><div class="cell-strong">${h(u.name)}</div>${u.username ? `<div class="cell-sub">@${h(u.username)}</div>` : ''}</td>
+      <td class="user-character" role="cell"><div class="wrap-chips">${chars || '<span class="cell-sub">No character yet</span>'}</div>${u.chars.length && !profileId ? '<div class="cell-sub">No Character ID</div>' : ''}</td>
+      <td class="user-boards" role="cell">${icon('scroll')}<span>${u.boards.length}</span><span class="user-compact-label">${u.boards.length === 1 ? 'board' : 'boards'}</span></td>
+      <td class="user-reputation" role="cell"><div aria-label="Profile reputation: ${userReputation(u)}">${levelBadge(userLevel(u))}<span class="cell-sub mono">${userReputation(u).toLocaleString()}</span></div></td>
+      <td class="user-role ${u.adminGroups.length ? '' : 'is-empty'}" role="cell">${u.adminGroups.length ? `<span class="badge role">${icon('shield')}${u.adminGroups.length} Admin ${u.adminGroups.length === 1 ? 'role' : 'roles'}</span>` : '<span class="cell-sub">—</span>'}</td>
+      <td class="user-status" role="cell">${statusBadgeFor(u.status)}</td>
+      <td class="user-actions" role="cell"><div class="user-primary-actions">${characterProfileAction(profileId)}<button class="btn btn-ghost sm" onclick="openUserSection(${q(u.userId)})">Detail</button></div><button class="user-more" aria-label="More actions for ${h(u.name)}" aria-haspopup="dialog" onclick="showUserActions(${q(u.userId)})">${icon('more')}</button></td>
+    </tr>`;
+  }).join('');
+  const columns = [['id','User ID'],['name','Display name'],['character','Character'],['boards','Boards'],['reputation','Profile reputation'],['role','Admin role'],['status','Status'],['actions','Actions']];
+  const content = records.length ? `<div class="tbl-wrap"><table class="tbl users-table" role="table" aria-label="Users"><thead role="rowgroup"><tr role="row">${columns.map(([key, label]) => `<th class="user-${key}" scope="col" role="columnheader">${label}</th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty users-empty">${icon('profile')}<div class="e-t">${all.length ? 'ไม่พบผู้ใช้ที่ตรงกัน' : 'ยังไม่มีผู้ใช้'}</div><p class="e-d">${all.length ? 'ลองค้นหาด้วยชื่อผู้ใช้ ชื่อตัวละคร หรือ ID' : 'บัญชีที่สมัครและสมาชิกบอร์ดจะแสดงที่นี่'}</p>${all.length ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">ล้างการค้นหา</button>' : ''}</div>`;
+  const shortcuts = records.length ? `<div class="quick-open wrap-chips users-shortcuts" aria-label="User shortcuts">${records.slice(0, 4).map(u => `<button class="btn btn-ghost sm" onclick="openUserSection(${q(u.userId)})">Detail <span>${h(u.userId)}</span></button>`).join('')}</div>` : '';
+  return `${pageHead('Users', `${all.length} global users · one active character per User ID`)}<div class="toolbar users-toolbar">${searchBox('Search user / character')}</div>${shortcuts}${card('Users', content, `<span class="count-note" role="status">${needle ? `${records.length} of ${all.length}` : all.length} users</span>`, 'users-list')}`;
+}
+function tombstoneKey(record) { return record.userId || record.username; }
+function toggleTombstone(button, key) {
+  const collapsed = !collapsedTombstones.has(key);
+  if (collapsed) collapsedTombstones.add(key); else collapsedTombstones.delete(key);
+  button.closest('.tombstone-row').dataset.collapsed = String(collapsed);
+  button.setAttribute('aria-expanded', String(!collapsed));
+  button.setAttribute('aria-label', `${collapsed ? 'Expand' : 'Collapse'} deleted ID ${key}`);
+}
+function showTombstoneDetail(key) {
+  const record = tombstoneRecords().find(u => tombstoneKey(u) === key);
+  if (!record) return;
+  const fields = [
+    ['User ID', record.userId ? staticIdChip('user', record.userId) : '—'],
+    ['Username', record.username ? `@${h(record.username)}` : '—'],
+    ['Character IDs', record.characterIds.map(id => staticIdChip('char', id)).join(' ') || '—'],
+    ['Previous UID', h(record.previousUid || '—')],
+    ['Status', statusBadgeFor('deleted')],
+    ['Deleted at', h(adminDateLabel(record.deletedAt))],
+    ['Source', h(record.source || '—')],
+    ['Reason', h(record.reason || 'Not recorded')]
+  ];
+  portalModal('Deleted ID detail', `<p class="tombstone-detail-note">Historical record · not an active account</p><dl class="tombstone-detail">${fields.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>`, '<button class="btn btn-ghost" onclick="closePortalModal()">Close</button>');
 }
 function renderTombstones() {
-  const records = tombstoneRecords().filter(u => !query || `${u.username || ''} ${u.userId || ''} ${(u.characterIds || []).join(' ')}`.toLowerCase().includes(query.toLowerCase()));
-  const rows = records.map(u => `
-    <tr>
-      <td>${u.userId ? staticIdChip('user', u.userId) : '<span class="muted cell-sub">-</span>'}</td>
-      <td>${u.username ? `<span class="mono">@${h(u.username)}</span>` : '<span class="muted cell-sub">-</span>'}</td>
-      <td><div class="wrap-chips">${(u.characterIds || []).map(id => idChip('char', id, id)).join(' ') || '<span class="muted cell-sub">-</span>'}</div></td>
-      <td class="mono">${h(u.previousUid || '-')}</td>
-      <td>${statusBadgeFor('deleted')}</td>
-      <td class="cell-sub">${h(adminDateLabel(u.deletedAt))}</td>
-      <td class="cell-sub">${h(u.source || '-')}</td>
-    </tr>`).join('');
-  const note = '<div class="phase-note"><span class="pn-ico">🧾</span><span>Deleted IDs are tombstones kept for audit and reuse rules. They are intentionally separate from active Users and Board Admin identities.</span></div>';
-  return `${pageHead('Deleted IDs', `${records.length} reusable tombstones · not active accounts`)}${note}<div class="toolbar">${searchBox('Search deleted ID / username')}</div>${card('Deleted IDs', table(['User ID','Username','Character IDs','Previous UID','Status','Deleted at','Source'], rows))}`;
+  const all = tombstoneRecords();
+  const needle = query.trim().toLowerCase();
+  const records = all.filter(u => !needle || [u.username, u.userId, ...u.characterIds].join(' ').toLowerCase().includes(needle));
+  const icon = window.CoinQuestIcons;
+  const columns = [['id','User ID'],['username','Username'],['characters','Character IDs'],['uid','Previous UID'],['status','Status'],['date','Deleted at'],['source','Source'],['actions','Detail']];
+  const rows = records.map((u, index) => {
+    const key = tombstoneKey(u);
+    const collapsed = collapsedTombstones.has(key);
+    const meta = (name, label, value) => `<td id="tombstone-${index}-${name}" class="ts-${name} tombstone-meta" role="cell"><span class="ts-label">${label}</span><div class="ts-value">${value}</div></td>`;
+    return `<tr class="tombstone-row" data-key="${h(key)}" data-collapsed="${collapsed}" role="row">
+      <td class="ts-id" role="cell">${u.userId ? staticIdChip('user', u.userId) : '<span class="cell-sub">No User ID</span>'}</td>
+      <td class="ts-username" role="cell">${u.username ? `<span class="mono">@${h(u.username)}</span>` : '<span class="cell-sub">No username</span>'}</td>
+      ${meta('characters', 'Character IDs', u.characterIds.map(id => staticIdChip('char', id)).join(' ') || '—')}
+      ${meta('uid', 'Previous UID', `<span class="mono" title="${h(u.previousUid || '')}">${h(u.previousUid || '—')}</span>`)}
+      <td class="ts-status" role="cell">${statusBadgeFor('deleted')}<button class="tombstone-toggle" aria-expanded="${!collapsed}" aria-controls="${['characters','uid','date','source','actions'].map(name => `tombstone-${index}-${name}`).join(' ')}" aria-label="${collapsed ? 'Expand' : 'Collapse'} deleted ID ${h(key)}" onclick="toggleTombstone(this,${q(key)})">${icon('chevron')}</button></td>
+      ${meta('date', 'Deleted at', h(adminDateLabel(u.deletedAt)))}
+      ${meta('source', 'Source', h(u.source || '—'))}
+      <td id="tombstone-${index}-actions" class="ts-actions tombstone-meta" role="cell"><button class="btn btn-ghost sm" onclick="showTombstoneDetail(${q(key)})">Detail</button></td>
+    </tr>`;
+  }).join('');
+  const content = records.length ? `<div class="tbl-wrap"><table class="tbl tombstones-table" role="table" aria-label="Deleted IDs"><thead role="rowgroup"><tr role="row">${columns.map(([key,label]) => `<th class="ts-${key}" scope="col" role="columnheader">${label}</th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty">${icon('document')}<div class="e-t">${all.length ? 'No matching deleted IDs' : 'No deleted IDs yet'}</div><p class="e-d">${all.length ? 'Try a User ID, username or Character ID.' : 'Deleted identity records will appear here for audit.'}</p>${all.length ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">Clear search</button>' : ''}</div>`;
+  const note = `<div class="phase-note tombstones-note">${icon('document')}<span>Deleted IDs เป็นข้อมูลที่เก็บไว้ในรูปแบบ tombstone เพื่อการตรวจสอบ (audit) และใช้ซ้ำตามกฎของระบบ โดยแยกจากผู้ใช้งานที่ยัง active และบัญชีของ Board Admin โดยตั้งใจ</span></div>`;
+  return `${pageHead('Deleted IDs', `${all.length} reusable tombstones · not active accounts`)}${note}<div class="toolbar tombstones-toolbar">${searchBox('Search deleted ID / username')}</div>${card('Deleted IDs', content, `<span class="count-note" role="status">${needle ? `${records.length} of ${all.length}` : all.length} records</span>`, `tombstones-list ${needle ? 'is-filtered' : ''}`)}`;
+}
+function adminDetailHeading(title, badges, actions, titleAttribute = '', centered = false) {
+  return `<header class="admin-detail-heading${centered ? ' admin-detail-heading--centered admin-paper-card' : ''}"><div><h1 class="page-title" ${titleAttribute}>${h(title)}</h1><div class="admin-detail-badges">${badges}</div></div><div class="admin-detail-actions">${actions}</div></header>`;
+}
+function adminTavernBanner(quiet = false) {
+  return quiet ? '<div class="admin-tavern-banner admin-tavern-banner--quiet" aria-hidden="true"></div>' : '<div class="admin-tavern-banner"><p>“Every quest<br>leaves a trace.”</p></div>';
+}
+function userDetailSection(key, title, icon, body, count = null) {
+  return `<section id="user-${key}" class="card admin-paper-card user-detail-section" aria-labelledby="user-${key}-title"><h2 id="user-${key}-title" class="admin-section-heading"><span class="admin-section-label">${adminTavernIcon(icon)}<span>${h(title)}</span>${count !== null ? `<span class="badge outline user-section-count">${count}</span>` : ''}</span></h2><div class="card-pad">${body}</div></section>`;
 }
 function renderUserDetail(id) {
   const u = userById(id);
   if (!u) return card('User not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
+  const icon = adminTavernIcon;
   const reputation = userReputation(u);
+  const empty = (title, description = '') => `<div class="empty"><div class="e-t">${title}</div>${description ? `<p class="e-d">${description}</p>` : ''}</div>`;
+  const summaryCounts = [['swords','Character',u.chars.length],['scroll','Boards',u.boards.length],['shield','Admin roles',u.adminGroups.length]].map(([art,label,count]) => `<div>${icon(art)}<strong>${count}</strong><span>${label}</span></div>`).join('');
+  const profile = userDetailSection('profile','Profile Summary','shield',`<div class="user-summary"><span class="admin-medallion medallion-users" aria-hidden="true"></span><div class="profile-name">${h(u.name)}</div>${u.username ? `<p class="user-summary-meta">@${h(u.username)}</p>` : ''}<p class="user-summary-meta">User ID · <span class="mono">${h(u.userId)}</span></p><div class="admin-detail-badges">${statusBadgeFor(u.status)}${u.adminGroups.length ? `<span class="badge role">${u.adminGroups.length} Admin ${u.adminGroups.length === 1 ? 'role' : 'roles'}</span>` : ''}</div><div class="user-reputation-summary"><span>Profile Reputation</span><strong>LV ${userLevel(u)} <span>${reputation.toLocaleString()}</span></strong><small>Separate from Character XP</small></div><div class="user-summary-counts">${summaryCounts}</div></div>`);
+  const chars = u.chars.map(c => {
+    const level = characterLevelFromXp(c.xp);
+    return `<article class="user-character-entry"><div class="user-entry-top"><div class="user-entry-identity"><span class="user-character-emblem">${icon('swords')}</span><div><h3>${h(c.name)}</h3><div class="user-character-meta">${staticIdChip('char',c.id || '—')}<span>${h(c.className)}</span>${levelBadge(level.lvl)}</div><p class="user-character-xp">Character XP <strong>${Number(c.xp || 0).toLocaleString()} XP</strong>${c.id ? '' : ' · No Character ID'}</p></div></div>${characterProfileAction(c.id)}</div><div class="xpbar" role="progressbar" aria-label="Character level progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.max(0,Math.min(100,level.pct || 0))}"><span style="width:${Math.max(0,Math.min(100,level.pct || 0))}%"></span></div><div class="user-linked-boards"><p class="section-label">Appears in</p><div class="wrap-chips">${c.boards.map(bid => { const b=boardById(bid); return b ? `<button class="idchip k-board" onclick="openBoardSection(${q(b.originalId)})"><span>Board ${h(b.urlId)}</span><span>${h(b.tripName)}</span></button>` : ''; }).join('') || '<span class="cell-sub">No boards</span>'}</div></div></article>`;
+  }).join('') || empty('No character yet','This account has no active character.');
+  const boards = u.boards.map(b => {
+    const character = u.chars.find(c => c.boards.includes(b.originalId));
+    return `<tr role="row" data-board-id="${h(b.originalId)}"><td class="user-board-id" role="cell">${idChip('board',b.urlId,b.originalId)}</td><td class="user-board-name cell-strong" role="cell">${h(b.tripName)}</td><td class="user-board-type" role="cell"><span class="user-detail-cell-label">Type</span>${modBadge(b.type)}</td><td class="user-board-character" role="cell"><span class="user-detail-cell-label">As character</span>${character?.id ? staticIdChip('char',character.id) : '<span class="cell-sub">No Character ID</span>'}</td><td class="user-board-action" role="cell"><button class="btn btn-primary sm" onclick="openBoardSection(${q(b.originalId)})">Open Board →</button></td></tr>`;
+  }).join('');
+  const boardTable = boards ? `<div class="tbl-wrap"><table class="tbl user-detail-boards" role="table" aria-label="User boards"><thead><tr>${['Board ID','Name','Type','As character','Action'].map(label=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${boards}</tbody></table></div>` : empty('No boards','This user has no linked boards.');
+  const admins = u.adminGroups.map(g => `<article class="user-admin-entry"><div class="user-entry-top"><div class="user-entry-identity">${icon('shield')}<div><h3>${h(g.adminName || g.adminId || 'Admin')}</h3><div class="user-admin-meta">${staticIdChip('admin',g.adminId || '—')}<span>Owner hash: <span class="mono">${h(g.boards[0]?.adminOwnerHash || '—')}</span></span></div></div></div><button class="btn btn-primary sm" onclick="openAdminGroup(${q(g.boards[0].originalId)})">Open Admin →</button></div><div class="user-linked-boards"><p class="section-label">Boards owned</p><div class="wrap-chips">${g.boards.map(b=>idChip('board',b.urlId,b.originalId)).join('')}</div></div></article>`).join('') || empty('Not an admin','This user does not administer any board.');
+  const activity = auditEntries().filter(a => a.actor === u.name || u.boards.some(b => a.target === b.urlId || a.target === b.originalId));
+  const activityRows = activity.map(a => {
+    const board = u.boards.find(b => a.target === b.urlId || a.target === b.originalId);
+    return `<div class="log-item">${icon('scroll')}<div class="log-body"><div class="log-text">${h(a.action)}</div><div class="log-meta"><span>${a.id.startsWith('draft-') ? 'Local draft' : h(boardDateLabel(a.ts))}</span><span>${h(a.actor)}</span><span class="mono">${h(a.target)}</span></div></div>${board ? `<button class="btn btn-ghost sm" onclick="openBoardSection(${q(board.originalId)})">Open Board →</button>` : ''}</div>`;
+  }).join('') || empty('No activity yet','No related board changes are recorded.');
   const deleteReady = TEST_MODE || adminBackendStatus.adminDeleteConfigured;
-  const deleteDisabled = deleteReady ? '' : 'disabled';
-  const deleteHint = deleteReady
-    ? 'Requests backend deletion of Auth user, username mapping, character ownership, and legacy board references.'
-    : adminDeleteBackendNote();
-  const profile = flatCard(`<div class="profile-card"><div class="profile-ava">👤</div><div class="profile-name">${h(u.name)}</div>${u.username ? `<div class="profile-id">@${h(u.username)}</div>` : ''}<div class="profile-id">User ID · <span class="mono">${h(u.userId)}</span></div><div class="mt12 flex" style="justify-content:center;gap:8px">${levelBadge(userLevel(u))}${statusBadgeFor(u.status)}</div><hr class="hr"><div class="kv">
-    <div class="kv-row"><span class="k">Profile Reputation</span><span class="v"><b>LV ${userLevel(u)}</b> · ${reputation.toLocaleString()}</span></div>
-    <div class="kv-row"><span class="k">Character</span><span class="v">${u.chars.length}</span></div>
-    <div class="kv-row"><span class="k">Boards</span><span class="v">${u.boards.length}</span></div>
-    <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
-    <div class="kv-row"><span class="k">Is admin</span><span class="v">${u.adminGroups.length ? `<span class="badge role">🛡️ ${u.adminGroups.length}</span>` : 'Not an admin'}</span></div>
-  </div>`);
-
-  const chars = u.chars.map(c => `<div class="card flat card-pad" style="padding:15px 16px">
-    <div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:48px;height:48px;font-size:24px;border-radius:12px;margin:0">⚔️</div><div><div style="font-weight:700;font-size:15px">${h(c.name)} ${idChip('char', c.id || '-', c.id)}</div><div class="cell-sub mt8" style="margin-top:3px">Class: <b>${h(c.className)}</b> · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</div></div></div><a class="btn sm btn-ghost" href="${h(characterProfileLink(c.id))}">Profile</a></div>
-    <div class="xpbar mt12"><span style="width:${Math.min(100, characterLevelFromXp(c.xp).pct || 0)}%"></span></div>
-    <div class="mt12"><div class="section-label" style="margin:0 0 7px">🔗 Appears in</div><div class="wrap-chips">${c.boards.map(bid => { const b = boardById(bid); return b ? `<button type="button" class="idchip k-board" onclick="openDetail('board',${q(b.originalId)})"><span class="ic-ico">${boardTypeIcon(b)}</span>${h(b.tripName)} · ${h(b.urlId)}</button>` : ''; }).join('') || '<span class="muted cell-sub">No boards</span>'}</div></div>
-  </div>`).join('');
-  const boards = u.boards.map(b => `<tr class="clickable" onclick="openDetail('board',${q(b.originalId)})"><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td>${idChip('char', u.chars.find(c => c.boards.includes(b.originalId))?.id || '-', u.chars.find(c => c.boards.includes(b.originalId))?.id || '-')}</td><td class="td-right"><button class="btn sm btn-ghost">Open →</button></td></tr>`).join('');
-  const adminRows = u.adminGroups.map(g => `<div class="card flat card-pad mt12" style="margin-top:0;margin-bottom:12px"><div class="between"><div class="flex gap12" style="align-items:center"><div class="profile-ava" style="width:44px;height:44px;font-size:20px;border-radius:11px;margin:0;background:#e7eef9">🛡️</div><div><div style="font-weight:700;font-size:15px">${h(g.adminName || g.adminId || 'Admin')} ${idChip('admin', g.adminId || '-', g.key)}</div><div class="cell-sub" style="margin-top:3px">Owner hash: <span class="mono">${h(g.key)}</span></div></div></div><button class="btn sm btn-ghost" onclick="openDetail('admin',${q(g.key)})">Open →</button></div><div class="mt12"><div class="section-label" style="margin:0 0 7px">🗂️ Boards owned</div><div class="wrap-chips">${g.boards.map(b => idChip('board', b.urlId, b.originalId)).join(' ')}</div></div></div>`).join('') || '<div class="empty"><div class="e-t">Not an admin</div><div class="e-d">This user does not administer any board.</div></div>';
-  const lifecyclePanel = card('🧯 Account lifecycle', `<div class="card-pad" style="padding:0">
-    <div class="phase-note" style="margin-top:0"><span class="pn-ico">🛡️</span><span>Archive/deactivate keeps account data recoverable. Permanent delete must go through the privileged backend function and never through Firebase client Auth.</span></div>
-    <div class="phase-note" style="margin-top:12px"><span class="pn-ico">${deleteReady ? '✅' : '⚠️'}</span><span>${h(adminDeleteBackendNote())}</span></div>
-    <div class="kv mt12">
-      <div class="kv-row"><span class="k">Current status</span><span class="v">${statusBadgeFor(u.status)}</span></div>
-      <div class="kv-row"><span class="k">Firebase UID</span><span class="v mono">${h(u.uid || 'not linked')}</span></div>
-      <div class="kv-row"><span class="k">Username</span><span class="v">${u.username ? '@' + h(u.username) : '-'}</span></div>
-    </div>
-    <div class="danger-zone between mt16" style="border-color:var(--border-strong);background:var(--panel-in)"><div><h4 style="color:var(--ink)">📦 Archive user</h4><div class="cell-sub">Soft-retain the account and mark it as out of active circulation.</div></div><button class="btn btn-gold" onclick="showUserLifecycleModal(${q(u.userId)},'archived')">Archive</button></div>
-    <div class="danger-zone between mt12"><div><h4>⛔ Deactivate login</h4><div class="cell-sub">Mark the account unusable; player login guard blocks deactivated users.</div></div><button class="btn btn-danger" onclick="showUserLifecycleModal(${q(u.userId)},'deactivated')">Deactivate</button></div>
-    ${normalizeUserStatus(u.status) === 'active' ? '' : `<div class="danger-zone between mt12" style="border-color:var(--green);background:#f0faf3"><div><h4 style="color:var(--green)">✅ Reactivate user</h4><div class="cell-sub">Move the user back to active status.</div></div><button class="btn btn-primary" onclick="showUserLifecycleModal(${q(u.userId)},'active')">Reactivate</button></div>`}
-    <div class="danger-zone between mt12" style="border-color:var(--danger)"><div><h4>🗑️ Permanent delete request</h4><div class="cell-sub">${h(deleteHint)}</div></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})" ${deleteDisabled}>Request delete</button></div>
-  </div>`);
-  const activityRows = auditEntries().filter(a => a.actor === u.name || u.boards.some(b => a.target === b.urlId || a.target === b.originalId)).map(a => `<div class="log-item"><div class="log-ico">📌</div><div class="log-body"><div class="log-text">${h(a.action)}</div><div class="log-meta"><span>${new Date(a.ts).toLocaleString()}</span><span class="dot-sep">·</span><span class="mono">${h(a.target)}</span></div></div></div>`).join('') || '<div class="empty"><div class="e-t">No activity yet</div></div>';
-  const body = userDetailTab === 'chars'
-    ? card('🎭 Character', `<div class="card-pad" style="display:flex;flex-direction:column;gap:12px">${chars}</div>`)
-    : userDetailTab === 'boards'
-    ? card('🗂️ Boards', table(['Board','Name','Type','As character',''], boards))
-    : userDetailTab === 'admin'
-    ? card('🛡️ Admin roles', `<div class="card-pad">${adminRows}</div>`)
-    : userDetailTab === 'lifecycle'
-    ? lifecyclePanel
-    : card('📜 Activity', `<div class="card-pad" style="padding-top:4px;padding-bottom:8px"><div class="log-list">${activityRows}</div></div>`);
-  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div>${pageHead(u.name, 'User profile (one User ID)', `<button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">🔑 Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">📤 Export data</button><button class="btn btn-danger" onclick="userDetailTab='lifecycle';render()">🧯 Lifecycle</button>`)}<div class="detail-grid"><div>${profile}</div><div>${tabs('userDetailTab', userDetailTab, [{key:'chars',label:'Character',count:u.chars.length},{key:'boards',label:'Boards',count:u.boards.length},{key:'admin',label:'Admin roles',count:u.adminGroups.length},{key:'activity',label:'Activity'},{key:'lifecycle',label:'Lifecycle'}])}${body}</div></div>`;
+  const action = (art,title,description,label,handler,kind='gold') => `<div class="user-lifecycle-action ${kind === 'danger' ? 'is-danger' : ''}">${icon(art)}<div><h3>${title}</h3><p>${description}</p></div><button class="btn btn-${kind}" onclick="${handler}">${label}</button></div>`;
+  const lifecycle = `<div class="phase-note user-lifecycle-note">${icon('shield')}<span>Account changes take effect after confirmation; they do not wait for Board Publish. Archive and deactivate keep data recoverable.</span></div><div class="kv user-account-facts"><div class="kv-row"><span class="k">Current status</span><span class="v">${statusBadgeFor(u.status)}</span></div><div class="kv-row"><span class="k">Firebase UID</span><span class="v mono">${h(u.uid || 'not linked')}</span></div><div class="kv-row"><span class="k">Username</span><span class="v">${u.username ? '@'+h(u.username) : '—'}</span></div></div><p class="user-backend-note">${h(adminDeleteBackendNote())}</p><div class="user-lifecycle-actions">${action('box','Archive user','Keep account data and remove the user from active circulation.','Archive',`showUserLifecycleModal(${q(u.userId)},'archived')`)}${action('key','Deactivate login','Block player login while keeping account data recoverable.','Deactivate',`showUserLifecycleModal(${q(u.userId)},'deactivated')`,'danger')}${normalizeUserStatus(u.status) !== 'active' ? action('shield','Reactivate user','Return this account to active status.','Reactivate',`showUserLifecycleModal(${q(u.userId)},'active')`,'primary') : ''}<div class="user-lifecycle-action is-danger">${icon('trash')}<div><h3>Permanent delete request</h3><p>${deleteReady ? 'Remove account data through the verified Admin backend. Requires a reason and exact confirmation.' : h(adminDeleteBackendNote())}</p></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})" ${deleteReady ? '' : 'disabled'}>Request delete</button></div></div>`;
+  const actions = `<button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">${icon('key')}Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">${icon('download')}Export data</button><button class="btn btn-ghost" onclick="focusUserSection('lifecycle')">${icon('shield')}Lifecycle</button>`;
+  return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div><div class="user-info-page">${adminDetailHeading(u.name,`${staticIdChip('user',u.userId)}${u.username ? `<span class="user-heading-username">@${h(u.username)}</span>` : ''}${statusBadgeFor(u.status)}`,actions,'',true)}${adminTavernBanner(true)}<div class="user-info-grid"><aside class="user-profile-aside">${profile}<div class="user-identity-note">${icon('shield')}<p>One account · one active character</p><small>User, Character and Admin IDs keep their separate roles.</small></div></aside><div class="user-info-sections">${userDetailSection('chars','Character','swords',chars,u.chars.length)}${userDetailSection('boards','Boards','scroll',boardTable,u.boards.length)}${userDetailSection('admin','Admin roles','shield',admins,u.adminGroups.length)}${userDetailSection('activity','Activity','scroll',`<div class="log-list">${activityRows}</div>`,activity.length)}${userDetailSection('lifecycle','Account lifecycle','key',lifecycle)}</div></div></div>`;
 }
 function renderAuditLog() {
   const scopeIco = { board:'🗂️', user:'👤', admin:'🛡️', system:'⚙️' };

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { adminNav, adminTools } from './helpers/admin-fixture.mjs';
+import { revealBoardSection } from './helpers/board-info-fixture.mjs';
 import { deleteApp } from 'firebase-admin/app';
 import {
   REAL_FIREBASE_E2E,
@@ -330,7 +331,7 @@ test('expense splitter exposes 18 avatar classes and persists archfiend skins', 
   await page.getByRole('button', { name: 'ยืนยันตัวละคร' }).click();
   await page.getByRole('button', { name: 'ยืนยันถาวร' }).click();
 
-  await page.locator('[data-board-details]').click();
+  await expect(page.locator('[data-board-details]')).toHaveCount(0);
   await expect(page.locator('.hc-skin')).toHaveCount(1);
   await page.locator('.hc-skin').click();
   await expect(page.locator('.skin-pop')).toContainText('ดั้งเดิม');
@@ -548,7 +549,7 @@ test('expense splitter imports text, switches settings, and avoids mobile overfl
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(overflow).toBe(false);
-  await page.locator('[data-board-details]').click();
+  await expect(page.locator('.hero-foot').first()).toBeVisible();
   const portraitFits = await page.evaluate(() => [...document.querySelectorAll('.portrait-img')].every(img => {
     const r = img.getBoundingClientRect();
     const p = img.parentElement.getBoundingClientRect();
@@ -747,8 +748,10 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
   await page.locator('#gate-pass').fill('portal-pass');
   await page.getByRole('button', { name: 'Set & Unlock' }).click();
 
-  await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
-  await page.locator('input[value="Alpha Board"]').fill('Beta Board');
+  await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
+  await revealBoardSection(page, 'owner');
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Alpha Board');
+  await page.getByLabel('Name', { exact: true }).fill('Beta Board');
   await adminTools(page);
   await page.getByRole('button', { name: 'Save' }).click();
   await page.getByRole('button', { name: 'ปิด' }).click();
@@ -757,10 +760,11 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
   await adminTools(page);
   await page.getByRole('button', { name: 'Restore' }).click();
   await page.getByRole('button', { name: 'ยืนยัน' }).click();
-  await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
+  await revealBoardSection(page, 'owner');
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Alpha Board');
 
-  await page.locator('input[value="9001"]').fill('9002');
-  await page.locator('input[value="Alpha Board"]').fill('Gamma Board');
+  await page.getByLabel('URL', { exact: true }).fill('9002');
+  await page.getByLabel('Name', { exact: true }).fill('Gamma Board');
   await adminTools(page);
   await page.getByRole('button', { name: /Publish/ }).click();
   await page.getByRole('button', { name: 'ยืนยัน' }).click();
@@ -803,11 +807,11 @@ test('super admin portal renders relationship views and drill-in details', async
 
   await expect(page.locator('.tb-brand')).toBeVisible();
   await expect(page.locator('.nav-item')).toHaveCount(9);
-  await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
+  await expect(page.locator('.board-row[data-board-id="9001"]')).toBeVisible();
 
   await adminNav(page, 'Relationship Map');
-  await expect(page.locator('.panel')).toContainText('Global User ID');
-  await expect(page.locator('.panel')).toContainText('Admin IDs');
+  await expect(page.locator('.relationship-overview')).toContainText('Global User ID');
+  await expect(page.locator('.relationship-overview')).toContainText('Admin IDs');
 
   await adminNav(page, 'Dashboard');
   await expect(page.locator('.dashboard-stat').first()).toContainText('Boards');
@@ -816,9 +820,9 @@ test('super admin portal renders relationship views and drill-in details', async
 
   await adminNav(page, 'Boards');
   await page.getByRole('button', { name: 'Detail' }).first().click();
-  await expect(page.getByText('Members')).toBeVisible();
-  await expect(page.getByText('Change Log')).toBeVisible();
-  await expect(page.locator('.id-chip.board')).toBeVisible();
+  await expect(page.locator('#board-members .board-section-heading')).toBeVisible();
+  await expect(page.locator('#board-log .board-section-heading')).toBeVisible();
+  await expect(page.locator('.admin-detail-badges .k-board')).toBeVisible();
 
   await adminNav(page, 'Users');
   const adminProfileLink = page.getByRole('link', { name: 'Profile' }).first();
@@ -831,7 +835,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
 
   await page.getByRole('button', { name: 'Detail' }).first().click();
-  await expect(page.getByText('User Profile')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Profile Summary', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Lifecycle/ }).first().click();
   await expect(page.getByText('Account lifecycle')).toBeVisible();
   await page.getByRole('button', { name: 'Deactivate' }).click();
@@ -847,8 +851,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await page.locator('#delete-confirm').fill('DELETE 1111');
   await page.getByRole('button', { name: 'Request permanent delete' }).click();
   await expect(page.getByText('delete requested').first()).toBeVisible();
-  await page.getByRole('button', { name: /Admin roles/ }).click();
-  await expect(page.getByRole('heading', { name: 'Admin roles' })).toBeVisible();
+  await expect(page.locator('#user-admin-title')).toBeVisible();
 
   await adminNav(page, 'Board Admins');
   await page.getByRole('button', { name: 'Detail' }).first().click();
@@ -891,8 +894,10 @@ test('super admin separates active users, orphan admin identities, and deleted I
 
   await adminNav(page, 'Users');
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
-  await expect(page.locator('.tbl-wrap')).not.toContainText('User 4965');
-  await expect(page.locator('.tbl-wrap')).not.toContainText('deleted');
+  await expect(page.locator('.user-row')).toHaveCount(0);
+  await expect(page.locator('.users-list')).not.toContainText('User 4965');
+  await expect(page.locator('.users-list')).not.toContainText('deleted');
+  await expect(page.getByText('ยังไม่มีผู้ใช้', { exact: true })).toBeVisible();
 
   await adminNav(page, 'Board Admins');
   await expect(page.getByRole('heading', { name: 'Board Admins', level: 1 })).toBeVisible();
@@ -1469,7 +1474,7 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
     await adminNav(page, 'Relationship Map');
     await expect(page.locator('.relmap')).toBeVisible();
     const relCols = await page.locator('.relmap').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
-    expect(relCols).toBe(1);
+    expect(relCols).toBe(4);
   }
   await assertNoOverflow();
 
