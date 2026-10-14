@@ -9,7 +9,7 @@ const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>
 
 // A real browser load event is held by a network response. Production code and
 // styles run unchanged: no fake percentage API, forced classes, or Firebase.
-async function fixture(page, { english = true, seen = false, held = true, blockedStorage = false, missingArt = false } = {}) {
+async function fixture(page, { english = true, seen = false, held = true, blockedStorage = false, missingArt = false, externalFonts = true } = {}) {
   await page.addInitScript(({ english, seen, blockedStorage }) => {
     localStorage.setItem('lang', english ? 'en' : 'th');
     if (seen) sessionStorage.setItem('coinQuestFirstLoadSeen', '1');
@@ -21,7 +21,7 @@ async function fixture(page, { english = true, seen = false, held = true, blocke
   await page.route('**/__loading-fixture', async route => {
     await route.fulfill({ contentType: 'text/html', body: `<!doctype html><html lang="${english ? 'en' : 'th'}"><head>
       <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-      <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+      ${externalFonts ? '<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">' : ''}
       <link rel="stylesheet" href="/shared/first-load.css"></head><body>
       <div class="first-load" data-first-load></div>
       <main><h1>Loading fixture</h1><button id="ready-button">Ready to play</button><output></output>
@@ -126,8 +126,9 @@ test('later fast navigation has no minimum wait and later slow navigation stays 
   await expect(page.locator('[data-first-load]')).toHaveCount(0);
 });
 
-test('completion releases focus to a dialog that appeared beneath the loader', async ({ page }) => {
-  const release = await fixture(page);
+for (const externalFonts of [true, false]) test(`completion releases focus to a dialog that appeared beneath the loader (${externalFonts ? 'web fonts' : 'fast styles'})`, async ({ page }) => {
+  const release = await fixture(page, { externalFonts });
+  await expect(page.locator('[data-first-load]')).toBeFocused();
   await page.evaluate(() => {
     const dialog = document.createElement('div');
     dialog.setAttribute('role', 'dialog');

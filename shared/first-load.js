@@ -147,6 +147,11 @@
     overlay.classList.add('is-active');
     root.classList.add('first-load-open');
     overlay.focus({ preventScroll: true });
+    // Parser-time focus can be ignored before the newly visible overlay paints.
+    // Two frames cross that paint boundary; preserve any focus already inside.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!hidden && !overlay.contains(document.activeElement)) overlay.focus({ preventScroll: true });
+    }));
     document.addEventListener('focusin', keepFocus, { signal: listeners.signal });
     overlay.addEventListener('keydown', event => {
       if (event.key !== 'Tab') return;

@@ -56,6 +56,19 @@ are action states, not competing loading placeholders.
 
 ## Verification
 
+### Release focus regression
+
+CI run `38578514891` exposed an intermittent loader focus assertion on tablet.
+A fast-styles fixture (without a remote font stylesheet delaying startup)
+reproduced missing initial overlay focus on desktop, tablet and mobile before
+the repair. Activation now checks focus again after the first paint (two
+animation frames),
+only while the loader remains open and focus is outside it. The existing
+dialog handoff assertion remains, with both web-font and fast-styles fixtures
+also asserting initial focus. This changes no loading/readiness thresholds.
+The repaired focus cases passed 30 repeated runs across all three browser
+projects; the complete first-load/readiness pack then passed all 42 cases.
+
 - Initial targeted Chromium suite: **53 passed**, covering entry loader,
   account persistence/auth/character creation and Reminders.
 - Expanded production-frontend fault injection: **11 passed** on Chromium.
