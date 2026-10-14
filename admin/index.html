@@ -5,19 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Coin Quest Ledger — Admin Portal</title>
   <link rel="icon" href="data:,">
+  <script>(function(){if(new URLSearchParams(location.search).get("test")==="1")return;document.documentElement.classList.add("first-load-boot");document.addEventListener("error",function(e){if(e.target.matches?.('link[rel="stylesheet"],script[src]'))e.target.dataset.firstLoadFailed="true"},true)})();</script>
+  <style data-entry-guard>html.first-load-boot,html.first-load-boot body{background:#10101e!important}html.first-load-boot body>:not([data-first-load]){opacity:0!important;pointer-events:none!important}html.first-load-boot .first-load{position:fixed;inset:0;z-index:2147483647;background:#10101e;visibility:visible;opacity:1}</style>
+  <link rel="stylesheet" href="/shared/first-load.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=Mitr:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/admin.css">
   <link rel="stylesheet" href="/shared/quest-tokens.css">
   <link rel="stylesheet" href="/admin/design.css">
 </head>
 <body>
+  <div class="first-load" data-first-load></div>
+  <script src="/shared/first-load.js"></script>
   <div id="app"></div>
   <div id="modal-root" class="modal-bg"></div>
   <script src="/shared/pointy-logic.js"></script>
   <script src="/shared/account-scope.js"></script>
   <script src="/admin/admin-utils.js"></script>
+  <script src="/shared/quest-icons.js"></script>
+  <script src="/admin/shell.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>

@@ -91,33 +91,36 @@
   }
   async function connect() {
     if (testMode || !config) return;
-    await queue;
-    const next = PointyScope.readAuth();
-    if (!next?.uid || next.uid !== currentUid() || next.signedOut) { connected = false; return; }
-    connected = false;
-    account = next; const version = ++epoch;
-    const beforeRead = contentKey(PointyScope.getJSON(config.key, null, { account }));
+    const releaseEntry = window.CoinQuestLoading?.begin();
     try {
-      const result = await remote(); if (version !== epoch || account?.uid !== currentUid()) return;
-      const local = PointyScope.getJSON(config.key, null, { account });
-      if (contentKey(local) !== beforeRead) {
-        show('มีรายการใหม่ระหว่างโหลดข้อมูล เลือกข้อมูลที่ต้องการใช้ ข้อมูลเดิมยังอยู่', true); return;
-      }
-      const meta = PointyScope.getJSON(metaKey, {}, { account })[config.field];
-      const remembered = typeof meta === 'string' ? meta : meta?.local;
-      const cloudKey = contentKey(result.value); const localKey = contentKey(local);
-      baseline = cloudKey;
-      if (local !== null && localKey !== cloudKey && remembered !== localKey) {
-        connected = false; show('ข้อมูลเครื่องนี้กับบัญชีไม่ตรงกัน เลือกข้อมูลที่ต้องการใช้', true); return;
-      }
-      if (local !== null && result.value === undefined && !remembered) {
-        connected = false; show('มีข้อมูลเดิมในเครื่องนี้ เลือกข้อมูลที่ต้องการเก็บไว้ในบัญชี', true); return;
-      }
-      connected = true;
-      if (result.value !== undefined) { if (local !== null && localKey !== cloudKey) backup(local, result.value); apply(result.value); }
-      else apply(config.empty());
-      remember(); clearNotice();
-    } catch (error) { if (version === epoch) { connected = false; showError(error); } }
+      await queue;
+      const next = PointyScope.readAuth();
+      if (!next?.uid || next.uid !== currentUid() || next.signedOut) { connected = false; return; }
+      connected = false;
+      account = next; const version = ++epoch;
+      const beforeRead = contentKey(PointyScope.getJSON(config.key, null, { account }));
+      try {
+        const result = await remote(); if (version !== epoch || account?.uid !== currentUid()) return;
+        const local = PointyScope.getJSON(config.key, null, { account });
+        if (contentKey(local) !== beforeRead) {
+          show('มีรายการใหม่ระหว่างโหลดข้อมูล เลือกข้อมูลที่ต้องการใช้ ข้อมูลเดิมยังอยู่', true); return;
+        }
+        const meta = PointyScope.getJSON(metaKey, {}, { account })[config.field];
+        const remembered = typeof meta === 'string' ? meta : meta?.local;
+        const cloudKey = contentKey(result.value); const localKey = contentKey(local);
+        baseline = cloudKey;
+        if (local !== null && localKey !== cloudKey && remembered !== localKey) {
+          connected = false; show('ข้อมูลเครื่องนี้กับบัญชีไม่ตรงกัน เลือกข้อมูลที่ต้องการใช้', true); return;
+        }
+        if (local !== null && result.value === undefined && !remembered) {
+          connected = false; show('มีข้อมูลเดิมในเครื่องนี้ เลือกข้อมูลที่ต้องการเก็บไว้ในบัญชี', true); return;
+        }
+        connected = true;
+        if (result.value !== undefined) { if (local !== null && localKey !== cloudKey) backup(local, result.value); apply(result.value); }
+        else apply(config.empty());
+        remember(); clearNotice();
+      } catch (error) { if (version === epoch) { connected = false; showError(error); } }
+    } finally { releaseEntry?.(); }
   }
   window.addEventListener('pointy-auth-changed', event => {
     if (!event.detail?.signedIn) { epoch++; connected = false; account = null; clearNotice(); return; }

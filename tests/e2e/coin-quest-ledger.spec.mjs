@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { adminNav, adminTools } from './helpers/admin-fixture.mjs';
 import { deleteApp } from 'firebase-admin/app';
 import {
   REAL_FIREBASE_E2E,
@@ -748,22 +749,25 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
 
   await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
   await page.locator('input[value="Alpha Board"]').fill('Beta Board');
+  await adminTools(page);
   await page.getByRole('button', { name: 'Save' }).click();
   await page.getByRole('button', { name: 'ปิด' }).click();
   await expect(page.evaluate(() => localStorage.getItem('pointy_super_admin_draft_v2'))).resolves.toContain('Beta Board');
 
+  await adminTools(page);
   await page.getByRole('button', { name: 'Restore' }).click();
   await page.getByRole('button', { name: 'ยืนยัน' }).click();
   await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
 
   await page.locator('input[value="9001"]').fill('9002');
   await page.locator('input[value="Alpha Board"]').fill('Gamma Board');
+  await adminTools(page);
   await page.getByRole('button', { name: /Publish/ }).click();
   await page.getByRole('button', { name: 'ยืนยัน' }).click();
 
   await expect(page.evaluate(() => sessionStorage.getItem('pointy_test_trip_9001'))).resolves.toBeNull();
   await expect(page.evaluate(() => JSON.parse(sessionStorage.getItem('pointy_test_trip_9002')).tripName)).resolves.toBe('Gamma Board');
-  await page.getByRole('button', { name: 'Version Control' }).click();
+  await adminNav(page, 'Version Control');
   await expect(page.locator('.rev summary')).toContainText('changes');
   await page.locator('.rev summary').click();
   await expect(page.locator('.rev-list')).toContainText('URL 9001');
@@ -797,26 +801,26 @@ test('super admin portal renders relationship views and drill-in details', async
   await page.locator('#gate-pass').fill('portal-pass');
   await page.getByRole('button', { name: 'Set & Unlock' }).click();
 
-  await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Relationship Map' })).toBeVisible();
+  await expect(page.locator('.tb-brand')).toBeVisible();
+  await expect(page.locator('.nav-item')).toHaveCount(9);
   await expect(page.locator('input[value="Alpha Board"]')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Relationship Map' }).click();
+  await adminNav(page, 'Relationship Map');
   await expect(page.locator('.panel')).toContainText('Global User ID');
   await expect(page.locator('.panel')).toContainText('Admin IDs');
 
-  await page.getByRole('button', { name: 'Dashboard' }).click();
-  await expect(page.locator('.stat-card').first()).toContainText('Boards');
+  await adminNav(page, 'Dashboard');
+  await expect(page.locator('.dashboard-stat').first()).toContainText('Boards');
   await page.getByRole('button', { name: 'B Command' }).click();
   await expect(page.getByText('Needs Attention')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Boards' }).click();
+  await adminNav(page, 'Boards');
   await page.getByRole('button', { name: 'Detail' }).first().click();
   await expect(page.getByText('Members')).toBeVisible();
   await expect(page.getByText('Change Log')).toBeVisible();
   await expect(page.locator('.id-chip.board')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Users' }).click();
+  await adminNav(page, 'Users');
   const adminProfileLink = page.getByRole('link', { name: 'Profile' }).first();
   await expect(adminProfileLink).toHaveAttribute('href', /\/character\/\?(.+&)?from=admin/);
   await adminProfileLink.click();
@@ -846,14 +850,14 @@ test('super admin portal renders relationship views and drill-in details', async
   await page.getByRole('button', { name: /Admin roles/ }).click();
   await expect(page.getByRole('heading', { name: 'Admin roles' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Board Admins' }).click();
+  await adminNav(page, 'Board Admins');
   await page.getByRole('button', { name: 'Detail' }).first().click();
   await expect(page.getByText('Admin Detail')).toBeVisible();
   await expect(page.getByText('Owned Boards')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Audit Log' }).click();
+  await adminNav(page, 'Audit Log');
   await expect(page.getByText('Published board changes and local draft changes')).toBeVisible();
-  await page.getByRole('button', { name: 'Support Tools' }).click();
+  await adminNav(page, 'Support Tools');
   await expect(page.getByRole('button', { name: 'Export JSON', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'View users', exact: true })).toBeVisible();
 });
@@ -885,17 +889,17 @@ test('super admin separates active users, orphan admin identities, and deleted I
   await page.locator('#gate-pass').fill('portal-pass');
   await page.getByRole('button', { name: /Set & Unlock|Unlock/ }).click();
 
-  await page.getByRole('button', { name: 'Users' }).click();
+  await adminNav(page, 'Users');
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
   await expect(page.locator('.tbl-wrap')).not.toContainText('User 4965');
   await expect(page.locator('.tbl-wrap')).not.toContainText('deleted');
 
-  await page.getByRole('button', { name: 'Board Admins' }).click();
+  await adminNav(page, 'Board Admins');
   await expect(page.getByRole('heading', { name: 'Board Admins', level: 1 })).toBeVisible();
   await expect(page.locator('.tbl-wrap')).toContainText('4965');
   await expect(page.locator('.tbl-wrap')).toContainText('orphaned');
 
-  await page.getByRole('button', { name: 'Deleted IDs' }).click();
+  await adminNav(page, 'Deleted IDs');
   await expect(page.getByRole('heading', { name: 'Deleted IDs', level: 1 })).toBeVisible();
   await expect(page.locator('.tbl-wrap')).toContainText('4965');
   await expect(page.locator('.tbl-wrap')).toContainText('deleted');
@@ -1455,29 +1459,29 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
   await page.goto('/admin/?test=1');
   await page.locator('#gate-pass').fill('portal-pass');
   await page.getByRole('button', { name: 'Set & Unlock' }).click();
-  await expect(page.getByRole('button', { name: 'Dashboard' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
   await expect(page.locator('.sidebar')).toBeVisible();
-  await expect(page.locator('.sidebar')).toHaveCSS('flex-direction', 'row');
+  await expect(page.locator('.sidebar')).toHaveCSS('flex-direction', 'column');
   await expect(page.locator('.nav-item').first()).toBeVisible();
   if (isTablet) {
     const navHeight = await page.locator('.nav-item').first().evaluate(el => el.getBoundingClientRect().height);
     expect(navHeight).toBeGreaterThanOrEqual(44);
-    await page.getByRole('button', { name: 'Relationship Map' }).click();
+    await adminNav(page, 'Relationship Map');
     await expect(page.locator('.relmap')).toBeVisible();
     const relCols = await page.locator('.relmap').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
     expect(relCols).toBe(1);
   }
   await assertNoOverflow();
 
-  await page.getByRole('button', { name: 'Users' }).click();
+  await adminNav(page, 'Users');
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
-  await page.getByRole('button', { name: 'Support Tools' }).click();
+  await adminNav(page, 'Support Tools');
   const exportButton = page.locator('.admin-page').getByRole('button', { name: 'Export JSON', exact: true });
   await exportButton.click();
   await expect(page.locator('.modal-bg.show')).toBeVisible();
   if (isPhone) {
     await expect(page.locator('.floating-modal')).toHaveCSS('bottom', '0px');
-    await expect(page.locator('.floating-modal')).toHaveCSS('border-top-left-radius', '18px');
+    await expect(page.locator('.floating-modal')).toHaveCSS('border-top-left-radius', '12px');
   } else {
     const exportHeight = await exportButton.evaluate(el => el.getBoundingClientRect().height);
     expect(exportHeight).toBeGreaterThanOrEqual(44);

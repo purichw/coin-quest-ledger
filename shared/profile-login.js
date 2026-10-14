@@ -37,22 +37,6 @@
   function crest() {
     return '<div class="login-crest auth-seal" aria-hidden="true"><img src="/assets/auth-guild/treasury-seal.webp" width="112" height="112" alt=""></div>';
   }
-  function renderAccountLoading({ langKey }) {
-    const message = langKey === 'en' ? 'Preparing your adventure…' : 'กำลังเตรียมการผจญภัยของคุณ…';
-    // Reuse the page-entry scene, but account readiness has no measurable percent.
-    return `<section class="first-load is-active account-loading" lang="${langKey}" role="dialog" aria-modal="true" aria-labelledby="account-loading-title" tabindex="-1">
-      <img class="first-load-scene" src="/assets/loading-reference/night-quest.webp" alt="">
-      <div class="first-load-box">
-        <div class="first-load-emblem" aria-hidden="true"><span class="first-load-torch left"></span><span class="first-load-eye"><span class="first-load-pupil"></span></span><span class="first-load-torch right"></span></div>
-        <h1 class="first-load-title" id="account-loading-title" tabindex="-1">COIN QUEST</h1>
-        <div class="first-load-progress" role="progressbar" aria-label="${message}">
-          <div class="first-load-track"><div class="first-load-fill"></div></div>
-        </div>
-        <p class="first-load-meta" role="status">${message}</p>
-      </div>
-      <div class="first-load-quote"><p>Small steps today,<br>greater adventures tomorrow.</p></div>
-    </section>`;
-  }
   let focusObserver;
   function bindControls(root, copy) {
     const entry = root.querySelector('.auth-entry');
@@ -147,7 +131,6 @@
 
   window.PointyProfileLogin = {
     renderFrame,
-    renderAccountLoading,
     bindControls,
     renderRecoveryReset,
     renderLoginGate

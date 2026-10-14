@@ -8,7 +8,7 @@ async function open(page, route = '/') {
   await page.goto(`${route}${route.includes('?') ? '&' : '?'}test=1`);
   await page.locator('[data-profile-hub="reminders"]').click();
   await expect(page.getByRole('dialog', { name: 'Reminders', exact: true })).toBeVisible();
-  await expect(page.locator('.rem-load')).toHaveCount(0);
+  await expect(page.locator('.rem-panel .cq-skeleton')).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
   await page.locator('.rem-panel').evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)));
 }
@@ -125,7 +125,10 @@ test('Load failure is recoverable without resetting filter or scroll, and expire
     window.PointyBoardInvites.loadForAccount = () => new Promise((_, reject) => { window.failLoad = () => reject(new Error('simulated-offline')); });
     window.PointyProfileHub.showReminders();
   });
-  await expect(page.locator('.rem-load')).toBeVisible();
+  await expect(page.locator('.rem-panel .cq-skeleton')).toBeVisible();
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await expect(page.locator('.rem-panel .cq-skeleton')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('.rem-panel .cq-skeleton')).toHaveText('');
   await page.evaluate(() => window.failLoad());
   await expect(page.locator('.rem-error')).toBeVisible();
   await expect(page.getByRole('tab', { name: 'คำเชิญปาร์ตี้ (12)' })).toHaveAttribute('aria-selected', 'true');
@@ -148,7 +151,7 @@ test('An older invitation request cannot replace the next account’s invitation
     };
     window.PointyProfileHub.showReminders();
   });
-  await expect(page.locator('.rem-load')).toBeVisible();
+  await expect(page.locator('.rem-panel .cq-skeleton')).toBeVisible();
   await page.evaluate(() => {
     const account = JSON.parse(localStorage.getItem('pointy_auth_v1'));
     account.uid = 'reminders-other'; account.userId = '5555'; account.character.id = '5555';
@@ -156,7 +159,7 @@ test('An older invitation request cannot replace the next account’s invitation
   });
   await expect(page.locator('.k-invite')).toHaveCount(0);
   await page.evaluate(() => window.resolveOldInvites());
-  await expect(page.locator('.rem-load')).toHaveCount(0);
+  await expect(page.locator('.rem-panel .cq-skeleton')).toHaveCount(0);
   await expect(page.locator('.k-invite')).toHaveCount(0);
   await expect(page.locator('.rem-panel')).not.toContainText('Mochi');
 });

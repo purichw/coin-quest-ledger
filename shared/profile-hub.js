@@ -7,6 +7,7 @@
   const ADMIN_OWNER_TOKEN_KEY = 'pointy_admin_owner_token_v1';
   const PENDING_RECOVERY_KEY = 'pointy_pending_recovery_code_v1';
   const TEST_MODE = window.PointyProfileSession.isTestMode();
+  const releaseAuthEntry = window.CoinQuestLoading?.begin();
   const AUTOMATED = navigator.webdriver === true;
   const TEST_ACCOUNTS = [
     { username: 'pointy', email: 'pointy@coinquest.test', password: 'quest123', userId: '3720', name: 'Pointy', character: { id: '3720', name: 'Pointy', class: 'archfiend', cls: 'archfiend', gender: 'male', skin: 'archfiend-swimmer-blackred' } },
@@ -44,7 +45,7 @@
       loginEmpty: 'กรอก username และรหัสผ่าน',
       loginDemo: 'บัญชีทดสอบ - ใช้เฉพาะ regression mode',
       loginNote: 'Test mode เท่านั้น - ไม่ใช่ระบบ production',
-      authLoading: 'กำลังเปิดบัญชีของคุณ กรุณารอสักครู่',
+      authUnavailable: 'ยังเชื่อมต่อบัญชีไม่ได้ กรุณาลองอีกครั้ง',
       authUserExists: 'username นี้ถูกใช้แล้ว',
       authUserMissing: 'ไม่พบ username นี้',
       authWeakPassword: 'รหัสผ่านอย่างน้อย 6 ตัว',
@@ -197,7 +198,7 @@
       loginEmpty: 'Enter a username and password',
       loginDemo: 'Test accounts - regression mode only',
       loginNote: 'Test mode only - not production auth',
-      authLoading: 'Opening your account. Please wait a moment.',
+      authUnavailable: 'Could not connect to your account. Please try again.',
       authUserExists: 'That username is already taken',
       authUserMissing: 'Username not found',
       authWeakPassword: 'Password must be 6+ characters',
@@ -885,6 +886,7 @@
     }
   }
   function refreshLiveTripEntries({ force = false, rerenderProfile = false } = {}) {
+    const releaseEntry = window.CoinQuestLoading?.begin();
     loadLiveTripEntries({ force }).then(() => {
       context = computeProfile();
       context.streak = profile?.streak || 0;
@@ -892,7 +894,7 @@
       renderTopbar();
       if (rerenderProfile && overlay?.querySelector('.profile-drawer')) showProfile({ refreshLive: false });
       if (overlay?.querySelector('.rem-panel:not(.recovery-panel)')) renderRemindersOverlay();
-    });
+    }).finally(() => releaseEntry?.());
   }
   function tripEntries() {
     const out = [];
@@ -946,11 +948,12 @@
     return request.promise;
   }
   function refreshBoardInvites({ force = false } = {}) {
+    const releaseEntry = window.CoinQuestLoading?.begin();
     loadBoardInvites({ force }).then(() => {
       reminders = computeReminders();
       renderTopbar();
       if (overlay?.querySelector('.rem-panel:not(.recovery-panel)')) renderRemindersOverlay();
-    });
+    }).finally(() => releaseEntry?.());
   }
   function uniqueInviteParticipantName(data, baseName, characterId = '') {
     const sep = '\u2063';
@@ -1487,14 +1490,7 @@
   }
   function showLoginGate() {
     if (!TEST_MODE && !firebaseAuthResolved) {
-      if (!loginGate) { loginGate = document.createElement('div'); loginGate.className = 'login-gate'; document.body.appendChild(loginGate); }
-      document.body.classList.add('login-locked');
-      loginGate.innerHTML = window.PointyProfileLogin.renderAccountLoading({ langKey: loginLanguage() });
-      const pending = loginGate.querySelector('.account-loading');
-      pending.addEventListener('keydown', event => {
-        if (event.key === 'Tab') { event.preventDefault(); pending.focus({ preventScroll: true }); }
-      });
-      if (!document.documentElement.matches('.first-load-open, .first-load-boot')) pending.focus({ preventScroll: true });
+      // Initial account work belongs to the single page-entry gate.
       return;
     }
     const existingAuth = loadAuth();
@@ -1566,7 +1562,7 @@
         if (pw.length < 6) { setError(copy.signupPasswordShort); return; }
         if (pw !== pw2) { setError(copy.signupPasswordMismatch); return; }
         if (!real && !local) {
-          setError(copy.authLoading);
+          setError(copy.authUnavailable);
           return;
         }
         if (real) {
@@ -1618,7 +1614,7 @@
         return;
       }
       if (!real && !local) {
-        setError(copy.authLoading);
+        setError(copy.authUnavailable);
         return;
       }
       if (real) {
@@ -1992,7 +1988,9 @@
       rank: `${reward.title?.[lang()] || reward.title?.en || ''} · ${cls[lang()] || cls.en}`,
       level: context.level, reputation: money(context.reputation || context.renown).replace('฿', ''),
       profileHref, streak: profile.streak || 0, bestStreak: profile.bestStreak || 0,
-      got, trophyCount: trophies.length, trophyHtml: trophyMarkup(), boards, state
+      got, trophyCount: trophies.length, trophyHtml: trophyMarkup(), boards, state,
+      boardsLoading: liveTripLoading || shouldRefreshLive,
+      boardsError: shouldUseLiveTripEntries(loadAuth()) && !liveTripLoaded && !liveTripLoading && !shouldRefreshLive
     }));
     drawerCleanup = window.PointyProfileDrawer.bind(overlay, { state, opener, language: lang() });
     window.PointyProfileDrawer.updateRecovery(overlay, recoveryCode, lang(), s().recoveryMissing, state?.revealed);
@@ -2005,6 +2003,7 @@
     overlay.querySelector('[data-tour]').addEventListener('click', () => { closeOverlay(); showTour(); });
     overlay.querySelector('[data-export]').addEventListener('click', window.PointyProfileBackup.exportData);
     overlay.querySelector('[data-sign-out]')?.addEventListener('click', signOut);
+    overlay.querySelector('[data-retry-boards]')?.addEventListener('click', () => showProfile());
     overlay.querySelector('[data-copy-recovery-side]')?.addEventListener('click', async () => {
       const code = String(loadAuth()?.recoveryCode || '').trim();
       if (!code) return;
@@ -2136,58 +2135,60 @@
     }
     authWatcherStarted = true;
     auth.onAuthStateChanged(async user => {
-      const revision = ++authRevision;
-      if (signingOut || provisioningAccount) return;
-      if (!user) {
-        firebaseAuthResolved = true;
-        const current = window.PointyProfileSession.readAuth();
-        if (current?.provider === 'firebase') {
-          clearAuth();
-          profile = null;
-          baselineDone = false;
-          refresh({ toast: false });
-        }
-        showLoginGate();
-        return;
-      }
       try {
-        const account = await loadCloudAccount(user);
-        if (revision !== authRevision || auth.currentUser?.uid !== user.uid) return;
-        if (!account) return;
-        if (isBlockedAccountStatus(account)) {
-          await auth.signOut().catch(() => {});
-          clearAuth();
-          profile = null;
-          baselineDone = false;
-          refresh({ toast: false });
+        const revision = ++authRevision;
+        if (signingOut || provisioningAccount) return;
+        if (!user) {
+          firebaseAuthResolved = true;
+          const current = window.PointyProfileSession.readAuth();
+          if (current?.provider === 'firebase') {
+            clearAuth();
+            profile = null;
+            baselineDone = false;
+            refresh({ toast: false });
+          }
           showLoginGate();
           return;
         }
-        saveAuth(account);
-        profile = null;
-        baselineDone = false;
-        if (account.character) {
-          removeLoginGate();
-          profile = tickStreak();
-          refresh({ toast: false });
-        } else {
-          showCharacterCreation(account);
-        }
-      } catch (err) {
-        if (revision !== authRevision || auth.currentUser?.uid !== user.uid) return;
-        firebaseAuthResolved = true;
-        console.warn('Firebase account sync failed', err);
-        const current = window.PointyProfileSession.readAuth();
-        if (current?.provider === 'firebase') {
-          clearAuth();
+        try {
+          const account = await loadCloudAccount(user);
+          if (revision !== authRevision || auth.currentUser?.uid !== user.uid) return;
+          if (!account) return;
+          if (isBlockedAccountStatus(account)) {
+            await auth.signOut().catch(() => {});
+            clearAuth();
+            profile = null;
+            baselineDone = false;
+            refresh({ toast: false });
+            showLoginGate();
+            return;
+          }
+          saveAuth(account);
           profile = null;
           baselineDone = false;
-          refresh({ toast: false });
+          if (account.character) {
+            removeLoginGate();
+            profile = tickStreak();
+            refresh({ toast: false });
+          } else {
+            showCharacterCreation(account);
+          }
+        } catch (err) {
+          if (revision !== authRevision || auth.currentUser?.uid !== user.uid) return;
+          firebaseAuthResolved = true;
+          console.warn('Firebase account sync failed', err);
+          const current = window.PointyProfileSession.readAuth();
+          if (current?.provider === 'firebase') {
+            clearAuth();
+            profile = null;
+            baselineDone = false;
+            refresh({ toast: false });
+          }
+          showLoginGate();
+          const error = loginGate?.querySelector('[data-login-error]');
+          if (error) { error.hidden = false; error.textContent = authErrorMessage(err); }
         }
-        showLoginGate();
-        const error = loginGate?.querySelector('[data-login-error]');
-        if (error) { error.hidden = false; error.textContent = authErrorMessage(err); }
-      }
+      } finally { releaseAuthEntry?.(); }
     });
   }
   function init() {

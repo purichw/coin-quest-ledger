@@ -81,8 +81,13 @@ function updateView(push) {
   if (push) history.pushState({ view: activeView }, '', withTestParam(compare ? '/?view=compare' : '/'));
   window.CoinQuestMobileShell?.refresh();
 }
-function showHome() { activeView = 'home'; updateView(true); }
-function openCompare() { activeView = 'compare'; updateView(true); }
+function navigateView(view, push) {
+  const renderView = () => { activeView = view; updateView(push); };
+  if (view === activeView) renderView();
+  else window.CoinQuestLoading.navigate(renderView);
+}
+function showHome() { navigateView('home', true); }
+function openCompare() { navigateView('compare', true); }
 function money(n) { return '฿' + (Number(n) || 0).toLocaleString(LANG === 'th' ? 'th-TH' : 'en-US'); }
 function approxEqual(a, b) { return PointyLogic.approxEqual(a, b); }
 function fmtInput(value) { return PointyLogic.formatNumberInput(value); }
@@ -452,8 +457,7 @@ function toast(msg) {
 }
 
 window.addEventListener('popstate', () => {
-  activeView = new URLSearchParams(location.search || '').get('view') === 'compare' ? 'compare' : 'home';
-  updateView(false);
+  navigateView(new URLSearchParams(location.search || '').get('view') === 'compare' ? 'compare' : 'home', false);
 });
 translatePage();
 updateView(false);

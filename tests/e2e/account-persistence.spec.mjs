@@ -28,7 +28,7 @@ test('shared loading scene releases the real login gate without losing focus', a
   await expect.poll(() => page.locator('.first-load-scene').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
   const output = testInfo.outputPath('loading-home-auth-1440.png');
   await page.screenshot({ path: output, animations: 'disabled' });
-  const qa = path.resolve(process.env.POINTY_QA_DIR || 'docs/loading-redesign-2026-10-13/qa');
+  const qa = path.resolve(process.env.POINTY_QA_DIR || 'docs/loading-readiness-2026-10-14/qa');
   await fs.mkdir(qa, { recursive: true });
   await fs.copyFile(output, path.join(qa, 'loading-home-auth-1440.png'));
   await expect.poll(() => Boolean(held)).toBe(true);
@@ -82,6 +82,139 @@ function cloudFixture({ existing, delayed, signedOut, ownedBoard, moduleError, a
     return ref.get();
   } };
 }
+
+for (const route of ['/', '/?view=compare', '/trip/', '/trip/?id=4466', '/debt/', '/treasury/', '/character/?id=8899']) {
+  test(`page readiness waits for initial account data on ${route}`, async ({ page }) => {
+    await installCloud(page, { existing: true, delayed: true, ownedBoard: true });
+    await page.goto(route, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2300);
+    await expect(page.locator('[data-first-load]')).toBeVisible();
+    expect(await page.locator('body').evaluate(body => [...body.children].filter(el => el.matches('main,header,#app,.auth-entry')).every(el => getComputedStyle(el).opacity === '0'))).toBe(true);
+    await page.evaluate(() => window.qaReleaseAccount());
+    await expect(page.locator('[data-first-load]')).toHaveCount(0);
+    await expect(page.locator('.account-loading')).toHaveCount(0);
+    expect(await page.evaluate(() => document.fonts.status)).toBe('loaded');
+    expect(await page.locator('img').evaluateAll(images => images.filter(img => img.getClientRects().length).every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+    await expect(page.locator('html')).not.toHaveClass(/first-load-(boot|open)/);
+  });
+}
+
+test('Account drawer refresh uses a local skeleton and recovers from failure without the eye', async ({ page }, testInfo) => {
+  await installCloud(page, { existing: true, ownedBoard: true }); await page.goto('/');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await page.evaluate(() => {
+    const original = PointyFirebase.freshGet;
+    PointyFirebase.freshGet = ref => !ref.path ? new Promise((_, reject) => { window.failBoards = () => reject(new Error('TEST offline')); }) : original(ref);
+    window.restoreBoardRead = () => { PointyFirebase.freshGet = original; };
+  });
+  await page.locator('[data-profile-hub="profile"]').click();
+  await expect(page.locator('.pd-boards .cq-skeleton')).toBeVisible();
+  await expect(page.locator('.pd-boards .cq-skeleton')).toHaveAttribute('aria-busy', 'true');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await expect(page.locator('.pd-boards')).not.toContainText(/กำลังโหลด|Loading/);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.cq-skeleton-row > i').first()).toHaveCSS('animation-name', 'none');
+  const qa = path.resolve('docs/loading-readiness-2026-10-14/qa'); await fs.mkdir(qa, { recursive: true });
+  await page.screenshot({ path: path.join(qa, `drawer-skeleton-${testInfo.project.name}.png`), animations: 'disabled' });
+  await page.evaluate(() => window.failBoards());
+  await expect(page.locator('.pd-boards [role="alert"]')).toBeVisible();
+  await expect(page.locator('.pd-noboards')).toHaveCount(0);
+  await page.evaluate(() => window.restoreBoardRead());
+  await page.locator('[data-retry-boards]').click();
+  await expect(page.locator('.pd-boards')).toContainText('TEST UID-owned board');
+  await expect(page.locator('.pd-boards .cq-skeleton')).toHaveCount(0);
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+});
+
+test('Board settings uses a local skeleton then error and retry for its board list', async ({ page }) => {
+  await installCloud(page, { existing: true, ownedBoard: true });
+  await page.addInitScript(() => localStorage.setItem('pointy_admin_owner_token_v1', 'qa-owner'));
+  await page.goto('/trip/?id=4466');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await page.evaluate(() => {
+    S.admin.ownerHash = currentOwnerHash();
+    const original = PointyFirebase.freshGet;
+    PointyFirebase.freshGet = ref => !ref.path ? new Promise((_, reject) => { window.failSettingsBoards = () => reject(new Error('TEST offline')); }) : original(ref);
+    window.restoreSettingsRead = () => { PointyFirebase.freshGet = original; };
+  });
+  await page.locator('.board-banner-actions [data-action="settings"]').click();
+  await page.locator('[data-settings-nav="board"]').click();
+  await expect(page.locator('#bs-owned .cq-skeleton')).toBeVisible();
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await page.evaluate(() => window.failSettingsBoards());
+  await expect(page.locator('#bs-owned [role="alert"]')).toContainText('โหลดบอร์ดไม่สำเร็จ');
+  await page.evaluate(() => window.restoreSettingsRead());
+  await page.locator('#bs-owned').getByRole('button', { name: 'ลองอีกครั้ง', exact: true }).click();
+  await expect(page.locator('#bs-owned .bs-owned-board')).toContainText('TEST UID-owned board');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+});
+
+test('page readiness includes initial game data and notification badges after account hydration', async ({ page }) => {
+  await installCloud(page, { existing: true, delayed: true });
+  await page.goto('/debt/', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    const original = PointyFirebase.freshGet;
+    const dataReady = new Promise(resolve => { window.releaseGameData = resolve; });
+    PointyFirebase.freshGet = async ref => {
+      if (ref.path?.startsWith('playerModules/')) await dataReady;
+      return original(ref);
+    };
+    const loadInvites = PointyBoardInvites.loadForAccount;
+    PointyBoardInvites.loadForAccount = async args => {
+      await new Promise(resolve => { window.releaseBadge = resolve; });
+      return loadInvites(args);
+    };
+    window.qaReleaseAccount();
+  });
+  await page.waitForTimeout(2300);
+  await expect(page.locator('[data-first-load]')).toBeVisible();
+  await page.evaluate(() => window.releaseGameData());
+  await expect.poll(() => page.evaluate(() => typeof window.releaseBadge)).toBe('function');
+  await expect(page.locator('[data-first-load]')).toBeVisible();
+  await page.evaluate(() => window.releaseBadge());
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+});
+
+test('Home and Price Arena navigation including Back waits for the destination artwork', async ({ page }) => {
+  await installCloud(page, { existing: true }); await page.goto('/');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  const held = new Map();
+  const released = new Set();
+  const artwork = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="green"/></svg>';
+  await page.route('**/__nav-*.svg', route => {
+    const name = new URL(route.request().url()).pathname;
+    if (released.has(name)) return route.fulfill({ contentType: 'image/svg+xml', body: artwork });
+    return new Promise(resolve => held.set(name, { route, resolve }));
+  });
+  async function release(name) {
+    await expect.poll(() => held.has(name)).toBe(true);
+    const pending = held.get(name);
+    released.add(name);
+    await pending.route.fulfill({ contentType: 'image/svg+xml', body: artwork });
+    pending.resolve();
+  }
+  await page.locator('#compare-view').evaluate(el => el.style.setProperty('--cq-art-price', 'url(/__nav-arena.svg)'));
+  await page.locator('[data-home-card="compare"]').click();
+  await expect(page).toHaveURL(/view=compare/);
+  await expect(page.locator('[data-first-load]')).toBeVisible();
+  await expect(page.locator('#compare-view')).toHaveCSS('opacity', '0');
+  await release('/__nav-arena.svg');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await expect(page.locator('#compare-view')).toHaveCSS('opacity', '1');
+  await page.locator('#home-view').evaluate(el => {
+    const img = new Image(20, 20); img.loading = 'lazy'; img.src = '/__nav-home.svg'; el.append(img);
+  });
+  await page.goBack();
+  await expect(page.locator('[data-first-load]')).toBeVisible();
+  await expect(page.locator('#home-view')).toHaveCSS('opacity', '0');
+  await release('/__nav-home.svg');
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await expect(page.locator('#home-view')).toBeVisible();
+  await page.goForward();
+  await expect(page).toHaveURL(/view=compare/);
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  await expect(page.locator('#compare-view')).toBeVisible();
+});
 
 for (const route of ['/', '/debt/', '/treasury/']) {
   test(`routine account sync leaves no player banner on ${route}`, async ({ page }, testInfo) => {
@@ -319,13 +452,12 @@ test('slow account hydration keeps the centered loading scene until the existing
   await page.setViewportSize(viewport);
   await installCloud(page, { existing: true, delayed: true });
   await page.addInitScript(() => localStorage.setItem('pointy_auth_v1', JSON.stringify({ provider: 'firebase', uid: 'qa-persistence', username: 'qa.persistence', email: 'qa.persistence@coinquest.local', userId: '8899', name: 'Old mirror', character: null })));
-  await page.goto('/'); await expect(page.locator('.login-gate [role=status]')).toBeVisible();
-  await expect(page.locator('[data-first-load]')).toHaveCount(0);
-  const pending = page.locator('.account-loading');
+  await page.goto('/');
+  const pending = page.locator('[data-first-load]');
   await expect(pending).toBeVisible();
-  await expect(pending.getByRole('heading')).toHaveText('COIN QUEST');
-  await expect(pending.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
-  await expect(pending.getByRole('status')).toContainText('กำลังเตรียมการผจญภัย');
+  await expect(pending.locator('.first-load-title')).toHaveText('COIN QUEST');
+  await expect(pending.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow', '100');
+  await expect(page.locator('.account-loading')).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
   await pending.locator('img').evaluate(img => img.decode());
   const bounds = await pending.boundingBox();
@@ -336,12 +468,13 @@ test('slow account hydration keeps the centered loading scene until the existing
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(await pending.evaluate(el => el.contains(document.activeElement))).toBe(true);
   await page.keyboard.press('Tab');
-  await expect(pending).toBeFocused();
+  expect(await pending.evaluate(el => el.contains(document.activeElement))).toBe(true);
   await page.screenshot({ path: testInfo.outputPath(`account-loading-${viewport.width}.png`), animations: 'disabled' });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await pending.locator('.first-load-fill').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await expect(page.locator('[data-char-form]')).toHaveCount(0);
   await page.evaluate(() => window.qaReleaseAccount());
+  await expect(pending).toHaveCount(0);
   await expect(page.locator('.login-gate')).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pointy_auth_v1')).character.name)).toBe('Existing TEST Hero');
   expect(await page.evaluate(() => window.qaCharacterWrites)).toBe(0);
@@ -350,11 +483,10 @@ test('slow account hydration keeps the centered loading scene until the existing
 test('account loading hands off to character creation after the account is ready', async ({ page }) => {
   await installCloud(page, { delayed: true });
   await page.goto('/');
-  await expect(page.locator('[data-first-load]')).toHaveCount(0);
-  await expect(page.locator('.account-loading')).toBeVisible();
+  await expect(page.locator('[data-first-load]')).toBeVisible();
   await expect(page.locator('[data-char-form]')).toHaveCount(0);
   await page.evaluate(() => window.qaReleaseAccount());
-  await expect(page.locator('.account-loading')).toHaveCount(0);
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
   await expect(page.locator('[data-char-form]')).toBeVisible();
   await expect(page.locator('#auth-title')).toBeFocused();
 });
@@ -365,9 +497,8 @@ test('account loading stays usable in a short viewport and gives way to login on
   await page.addInitScript(() => localStorage.setItem('lang', 'en'));
   await installCloud(page, { existing: true, delayed: true });
   await page.goto('/');
-  await expect(page.locator('[data-first-load]')).toHaveCount(0);
-  const pending = page.locator('.account-loading');
-  await expect(pending.getByRole('status')).toHaveText('Preparing your adventure…');
+  const pending = page.locator('[data-first-load]');
+  await expect(pending).toBeVisible();
   await expect(pending.locator('.first-load-box')).toBeInViewport({ ratio: 1 });
   await expect(pending.locator('.first-load-quote')).toBeInViewport({ ratio: 1 });
   expect(await pending.locator('.first-load-fill').evaluate(el => getComputedStyle(el).animationName)).toBe('none');

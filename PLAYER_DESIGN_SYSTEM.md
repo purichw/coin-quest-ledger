@@ -64,10 +64,21 @@ Fonts remain Mitr, IBM Plex Sans Thai and Chakra Petch for their existing roles.
   Character creation retains its existing variant. Do not add mock Google/Apple
   buttons or a cosmetic remember-me checkbox: social providers are not enabled
   and the current auth contract already remembers sign-in.
-- Account hydration reuses the loading night scene and responsive geometry via
-  `profile-login.js` and `first-load.css`, with an indeterminate bar and no
-  percentage. Keep it visible until account resolution, then hand off to Home,
-  character creation or the login error state; never expose a bare loading card.
+- Every page entry (including Admin and repeat visits) uses the single eye
+  scene in `shared/first-load.js` / `first-load.css`. The early HTML guard hides
+  content until applicable CSS, fonts, rendered images/backgrounds/border artwork and initial
+  account/route data have settled. Data owners register `CoinQuestLoading.begin()`
+  before starting asynchronous work and release it in `finally`. Failed assets
+  keep the scene with a reload action; never bypass into an unfinished page.
+- Home/Price Arena route changes (including browser Back/Forward) explicitly use
+  `CoinQuestLoading.navigate(render)` to prepare their new page before reveal.
+  This is the same gate, without an artificial minimum wait on repeat visits.
+- Once a page is ready, the eye never reappears for drawers, in-page tabs, refreshes
+  or form submissions. Pending lists use the shared `CoinQuestLoading.skeleton()`
+  in their own region, with accessible busy status and reduced-motion support.
+  Keep errors/retry distinct from empty states; preserve form action feedback.
+  Do not add a second account loader or standalone loading-text placeholder.
+  Verification: `docs/loading-readiness-2026-10-14/README.md`.
 - Account drawer uses one parchment presentation in `shared/profile-drawer.js`
   and `profile-hub.css` across player routes (2026-10-14 reference). Keep its
   green/gold account palette independent of the current game's accent. Profile,

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Coin Quest Ledger — คลังหลวง</title>
   <link rel="icon" href="data:,">
-  <script>(function(){try{var p=new URLSearchParams(location.search||"");if(p.get("test")==="1")return;if(sessionStorage.getItem("coinQuestFirstLoadSeen")!=="1")document.documentElement.classList.add("first-load-boot")}catch(_){document.documentElement.classList.add("first-load-boot")}})();</script>
+  <script>(function(){if(new URLSearchParams(location.search).get("test")==="1")return;document.documentElement.classList.add("first-load-boot");document.addEventListener("error",function(e){if(e.target.matches?.('link[rel="stylesheet"],script[src]'))e.target.dataset.firstLoadFailed="true"},true)})();</script>
+  <style data-entry-guard>html.first-load-boot,html.first-load-boot body{background:#10101e!important}html.first-load-boot body>:not([data-first-load]){opacity:0!important;pointer-events:none!important}html.first-load-boot .first-load{position:fixed;inset:0;z-index:2147483647;background:#10101e;visibility:visible;opacity:1}</style>
   <script>(function(){try{var t=localStorage.getItem("pointy_theme")||((JSON.parse(localStorage.getItem("coin_quest_ui_v1")||"{}")||{}).theme);if(t==="dungeon"||t==="tavern")document.documentElement.setAttribute("data-theme",t)}catch(_){}})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,6 +67,7 @@
 </head>
 <body data-page="treasury">
   <div class="first-load" data-first-load></div>
+  <script src="/shared/first-load.js"></script>
 
   <cq-player-header></cq-player-header>
 
@@ -75,7 +77,6 @@
   <script src="/shared/pointy-logic.js"></script>
   <script src="/shared/cloudinary-assets.js"></script>
   <script src="/shared/asset-urls.js"></script>
-  <script src="/shared/first-load.js"></script>
   <script src="/shared/account-scope.js"></script>
   <script src="/lang.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>

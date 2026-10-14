@@ -1,0 +1,586 @@
+{
+  "results": [
+    {
+      "name": "split",
+      "width": 390,
+      "controls": [
+        {
+          "text": "เท่ากัน",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ส่วนแบ่ง",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ระบุเอง",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เปอร์เซ็นต์",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "แยกของ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "split",
+      "width": 768,
+      "controls": [
+        {
+          "text": "เท่ากัน",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ส่วนแบ่ง",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ระบุเอง",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เปอร์เซ็นต์",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "แยกของ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "split",
+      "width": 1440,
+      "controls": [
+        {
+          "text": "เท่ากัน",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ส่วนแบ่ง",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ระบุเอง",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เปอร์เซ็นต์",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "แยกของ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "entry",
+      "width": 390,
+      "controls": [
+        {
+          "text": "สร้างบอร์ดใหม่เริ่มต้นทริปใหม่กับเพื่อน",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เข้าร่วมบอร์ดใช้รหัส 4 หลักเพื่อเข้าร่วม",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "entry",
+      "width": 768,
+      "controls": [
+        {
+          "text": "สร้างบอร์ดใหม่เริ่มต้นทริปใหม่กับเพื่อน",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เข้าร่วมบอร์ดใช้รหัส 4 หลักเพื่อเข้าร่วม",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "entry",
+      "width": 1440,
+      "controls": [
+        {
+          "text": "สร้างบอร์ดใหม่เริ่มต้นทริปใหม่กับเพื่อน",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เข้าร่วมบอร์ดใช้รหัส 4 หลักเพื่อเข้าร่วม",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "debt",
+      "width": 390,
+      "controls": [
+        {
+          "text": "ทั้งหมด (4)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "กำลังสู้ (4)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ใกล้ครบกำหนด (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ชำระครบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เก็บเข้าคลัง (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "debt",
+      "width": 768,
+      "controls": [
+        {
+          "text": "ทั้งหมด (4)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "กำลังสู้ (4)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ใกล้ครบกำหนด (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ชำระครบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เก็บเข้าคลัง (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "debt",
+      "width": 1440,
+      "controls": [
+        {
+          "text": "ทั้งหมด (4)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "กำลังสู้ (4)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ใกล้ครบกำหนด (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ชำระครบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เก็บเข้าคลัง (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "treasury",
+      "width": 390,
+      "controls": [
+        {
+          "text": "ทั้งหมด (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ปกติ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ใกล้เกินงบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เกินงบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "treasury",
+      "width": 768,
+      "controls": [
+        {
+          "text": "ทั้งหมด (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ปกติ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ใกล้เกินงบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เกินงบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "treasury",
+      "width": 1440,
+      "controls": [
+        {
+          "text": "ทั้งหมด (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ปกติ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ใกล้เกินงบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เกินงบ (0)",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "price",
+      "width": 390,
+      "controls": [
+        {
+          "text": "ทั้งหมด2",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "กำลังเทียบ2",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เก็บแล้ว0",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "price",
+      "width": 768,
+      "controls": [
+        {
+          "text": "ทั้งหมด2",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "กำลังเทียบ2",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เก็บแล้ว0",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "price",
+      "width": 1440,
+      "controls": [
+        {
+          "text": "ทั้งหมด2",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "กำลังเทียบ2",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "เก็บแล้ว0",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "profile",
+      "width": 390,
+      "controls": [
+        {
+          "text": "สถิติ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "รางวัล",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "บัญชี",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ประวัติ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "บอร์ด",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "profile",
+      "width": 768,
+      "controls": [
+        {
+          "text": "สถิติ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "รางวัล",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "บัญชี",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "ประวัติ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "บอร์ด",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ],
+      "pageOverflow": false
+    },
+    {
+      "name": "profile",
+      "width": 1440,
+      "controls": [],
+      "pageOverflow": false
+    },
+    {
+      "name": "auth",
+      "width": 390,
+      "controls": [
+        {
+          "text": "เข้าสู่ระบบ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "สมัครใหม่",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "auth",
+      "width": 768,
+      "controls": [
+        {
+          "text": "เข้าสู่ระบบ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "สมัครใหม่",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "name": "auth",
+      "width": 1440,
+      "controls": [
+        {
+          "text": "เข้าสู่ระบบ",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        },
+        {
+          "text": "สมัครใหม่",
+          "align": "center",
+          "justify": "center",
+          "overflow": false
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

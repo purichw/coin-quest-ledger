@@ -178,7 +178,7 @@ let _lootItems = [], _receiptData = null, _receiptView = null, _receiptPickerOpe
 let _overlay = null, _prevOutstanding = null, _newTripCode = '', _newTripAdminPass = '', _newTripAdminId = '', _newTripAdminName = '';
 let _audioCtx = null;
 let _characterRegistry = {};
-let _ownedBoards = [], _ownedBoardsFor = '', _ownedBoardsLoading = false;
+let _ownedBoards = [], _ownedBoardsFor = '', _ownedBoardsLoading = false, _ownedBoardsError = false;
 
 function adminOwnerToken() {
   const existing = localStorage.getItem(ADMIN_OWNER_TOKEN_KEY);
@@ -920,7 +920,7 @@ function applySettings() {
   renderQuickToggles();
 }
 async function load() {
-  setSaveStatus('saving', t('status_loading'));
+  // Initial reads are shielded by page entry; never label a read as a save.
   let migrated = false;
   try {
     const snap = await TripStore.read();
@@ -2237,10 +2237,11 @@ function adminDeleteHero(name) {
   removeParticipant(name);
   renderOverlay();
 }
-async function loadOwnedBoards() {
+async function loadOwnedBoards(force = false) {
   const hash = currentOwnerHash();
-  if (!hash || _ownedBoardsLoading || _ownedBoardsFor === hash) return;
+  if (!hash || _ownedBoardsLoading || (!force && _ownedBoardsFor === hash)) return;
   _ownedBoardsLoading = true;
+  _ownedBoardsError = false;
   _ownedBoardsFor = hash;
   _ownedBoards = [];
   if (_overlay === 'settings') renderOverlay();
@@ -2281,6 +2282,7 @@ async function loadOwnedBoards() {
   } catch (err) {
     console.warn('Owned boards load failed', err);
     _ownedBoards = [];
+    _ownedBoardsError = true;
   } finally {
     _ownedBoardsLoading = false;
     if (_overlay === 'settings') renderOverlay();
@@ -2625,6 +2627,10 @@ async function importExcel(input) {
   }
 }
 
+function loadInitialBoard() {
+  const releaseEntry = window.CoinQuestLoading?.begin();
+  return load().then(ok => { if (ok) { renderAll(false); translatePage(); } }).finally(() => releaseEntry?.());
+}
 bindAppShellEvents();
 translatePage();
 if (_boardLanding) {
@@ -2637,9 +2643,9 @@ if (_boardLanding) {
     history.replaceState(history.state, '', next.pathname + next.search);
   }
 } else {
-  load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
+  loadInitialBoard();
 }
 window.addEventListener('pointy-auth-changed', () => {
   if (_boardLanding) { renderBoardChoose(); return; }
-  load().then(ok => { if (ok) { renderAll(false); translatePage(); } });
+  loadInitialBoard();
 });

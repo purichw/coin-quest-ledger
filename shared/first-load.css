@@ -1,10 +1,20 @@
 /* Shared page-entry loading scene. All decoration stays behind the live progress. */
 html.first-load-open { overflow: hidden; }
+html.first-load-boot body > :not([data-first-load]) { opacity: 0 !important; pointer-events: none !important; }
+.cq-skeleton { width: 100%; display: grid; gap: 12px; padding: 12px 0; }
+.cq-skeleton-row { display: flex; align-items: center; gap: 12px; min-height: 54px; }
+.cq-skeleton-row > i, .cq-skeleton-row b { display: block; border-radius: 8px; background: var(--border, #ddc9a3); opacity: .5; animation: cq-skeleton-pulse 1.4s ease-in-out infinite alternate; }
+.cq-skeleton-row > i { width: 44px; height: 44px; flex: 0 0 44px; }
+.cq-skeleton-row > span { flex: 1; display: grid; gap: 10px; }
+.cq-skeleton-row b { height: 12px; width: 80%; }
+.cq-skeleton-row b + b { width: 55%; height: 9px; }
+@keyframes cq-skeleton-pulse { to { opacity: .22; } }
+@media (prefers-reduced-motion: reduce) { .cq-skeleton-row > i, .cq-skeleton-row b { animation: none; } }
 .first-load {
   --first-load-progress: 0%;
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: 2147483647;
   isolation: isolate;
   overflow: hidden;
   background: radial-gradient(ellipse at 50% 40%, #22203b, #10101e 75%);
@@ -275,15 +285,6 @@ html.first-load-open { overflow: hidden; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
-/* Account hydration continues the same scene after page assets are ready. */
-.account-loading { transition: none; }
-.account-loading .first-load-fill {
-  width: 38%;
-  animation: account-loading-travel 1.8s ease-in-out infinite alternate;
-}
-.account-loading .first-load-meta { justify-content: center; text-align: center; margin-bottom: 0; }
-.account-loading .first-load-title:focus { outline: none; }
-@keyframes account-loading-travel { from { transform: translateX(0); } to { transform: translateX(163%); } }
 @keyframes first-load-embers { from { opacity: .4; transform: translateY(0); } to { opacity: .8; transform: translateY(-10px); } }
 @keyframes first-load-flame { from { transform: translateX(-50%) scale(.94, 1) skewX(-3deg); } to { transform: translateX(-50%) scale(1.04, 1.08) skewX(3deg); } }
 @keyframes first-load-glow { 0%,100% { opacity: .6; } 50% { opacity: 1; } }

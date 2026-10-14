@@ -510,30 +510,32 @@ function renderProfile(profile) {
   window.CoinQuestMobileShell?.refresh();
 }
 async function boot() {
-  document.documentElement.lang = LANG;
-  if (!CHARACTER_ID || CHARACTER_ID.length !== 4) { renderSearch(); return; }
-  document.getElementById('app').innerHTML = `${navMarkup()}<main class="wrap"><section class="search-card" role="status"><h1>${h(t('profile_loading'))}</h1></section></main>`;
+  const releaseEntry = window.CoinQuestLoading?.begin();
   try {
-    if (!TEST_MODE) {
-      initFirebase();
-      const user = await new Promise((resolve, reject) => { const unsubscribe = firebase.auth().onAuthStateChanged(value => { unsubscribe(); resolve(value); }, reject); });
-      if (!user) { renderSearch(LANG === 'en' ? 'Sign in from Home to open profiles.' : 'เข้าสู่ระบบจากหน้าหลักก่อนเปิดโปรไฟล์'); return; }
+    document.documentElement.lang = LANG;
+    if (!CHARACTER_ID || CHARACTER_ID.length !== 4) { renderSearch(); return; }
+    try {
+      if (!TEST_MODE) {
+        initFirebase();
+        const user = await new Promise((resolve, reject) => { const unsubscribe = firebase.auth().onAuthStateChanged(value => { unsubscribe(); resolve(value); }, reject); });
+        if (!user) { renderSearch(LANG === 'en' ? 'Sign in from Home to open profiles.' : 'เข้าสู่ระบบจากหน้าหลักก่อนเปิดโปรไฟล์'); return; }
+      }
+      const [record, boards] = await Promise.all([loadCharacterRecord(CHARACTER_ID), loadBoards()]);
+      const profile = PointyLogic.buildCharacterProfile(CHARACTER_ID, boards, record, { lang: LANG, boardFallback: LANG === 'en' ? 'Untitled board' : 'บอร์ดไม่มีชื่อ' });
+      const uid = TEST_MODE ? accountStore()?.uid : firebase.auth().currentUser?.uid;
+      profile.managedBoardIds = boards.filter(board => uid && board.data?.access?.ownerUids?.includes(uid)).map(board => String(board.id));
+      if (!TEST_MODE && record.ownerUid === firebase.auth().currentUser?.uid) {
+        const uid = record.ownerUid; const [modules, user] = await Promise.all([freshFirestoreGet(firebase.firestore().collection('playerModules').doc(uid)), freshFirestoreGet(firebase.firestore().collection('users').doc(uid))]);
+        const data = modules.data() || {};
+        profile.activity = user.data()?.activity || profileStore();
+        profile.moduleProgress = PointyLogic.playerProgress(boards, { id: CHARACTER_ID, name: record.name }, { debt: PointyLogic.normalizeDebtState({ dragons: [], ...(data.debt || {}) }), treasury: data.treasury || {}, comparisons: data.comparisons || [] }, { streak: profile.activity.streak });
+      }
+      if (!record.name && !profile.boards.length) { renderSearch(t('profile_not_found', { id: CHARACTER_ID })); return; }
+      renderProfile(profile);
+    } catch (err) {
+      console.error(err);
+      renderSearch(t('profile_load_failed'));
     }
-    const [record, boards] = await Promise.all([loadCharacterRecord(CHARACTER_ID), loadBoards()]);
-    const profile = PointyLogic.buildCharacterProfile(CHARACTER_ID, boards, record, { lang: LANG, boardFallback: LANG === 'en' ? 'Untitled board' : 'บอร์ดไม่มีชื่อ' });
-    const uid = TEST_MODE ? accountStore()?.uid : firebase.auth().currentUser?.uid;
-    profile.managedBoardIds = boards.filter(board => uid && board.data?.access?.ownerUids?.includes(uid)).map(board => String(board.id));
-    if (!TEST_MODE && record.ownerUid === firebase.auth().currentUser?.uid) {
-      const uid = record.ownerUid; const [modules, user] = await Promise.all([freshFirestoreGet(firebase.firestore().collection('playerModules').doc(uid)), freshFirestoreGet(firebase.firestore().collection('users').doc(uid))]);
-      const data = modules.data() || {};
-      profile.activity = user.data()?.activity || profileStore();
-      profile.moduleProgress = PointyLogic.playerProgress(boards, { id: CHARACTER_ID, name: record.name }, { debt: PointyLogic.normalizeDebtState({ dragons: [], ...(data.debt || {}) }), treasury: data.treasury || {}, comparisons: data.comparisons || [] }, { streak: profile.activity.streak });
-    }
-    if (!record.name && !profile.boards.length) { renderSearch(t('profile_not_found', { id: CHARACTER_ID })); return; }
-    renderProfile(profile);
-  } catch (err) {
-    console.error(err);
-    renderSearch(t('profile_load_failed'));
-  }
+  } finally { releaseEntry?.(); }
 }
 boot();

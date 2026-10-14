@@ -131,12 +131,13 @@ async function refreshAdminBackendStatus() {
 }
 function adminDeleteBackendNote() {
   if (TEST_MODE) return 'Test mode simulates permanent delete requests locally.';
-  if (!adminBackendStatus.checked) return 'Checking privileged delete backend status...';
+  if (!adminBackendStatus.checked) return 'Privileged delete is unavailable until verification completes.';
   if (adminBackendStatus.adminDeleteConfigured) return 'Privileged delete backend is configured for Firebase Admin SDK.';
   return 'Privileged delete is disabled until Vercel has Firebase Admin service account env vars.';
 }
 function startAdminAuth() {
   if (TEST_MODE || adminAuthStarted) return;
+  const releaseEntry = window.CoinQuestLoading?.begin();
   adminAuthSettling = true;
   initFirebase();
   const auth = adminAuth();
@@ -145,24 +146,27 @@ function startAdminAuth() {
     adminAuthSettling = false;
     adminGateError = 'Firebase Auth is not available on this page.';
     renderGate();
+    releaseEntry?.();
     return;
   }
   adminAuthStarted = true;
   auth.onAuthStateChanged(async user => {
-    adminAuthReady = true;
-    adminAuthSettling = false;
-    if (user && isAllowedAdmin(user)) {
-      adminUser = user;
-      adminGateError = '';
-      await refreshAdminData();
-      return;
-    }
-    adminUser = null;
-    if (user) {
-      adminGateError = `บัญชี ${user.email || 'unknown'} ไม่มีสิทธิ์ Super Admin`;
-      await auth.signOut().catch(() => {});
-    }
-    renderGate();
+    try {
+      adminAuthReady = true;
+      adminAuthSettling = false;
+      if (user && isAllowedAdmin(user)) {
+        adminUser = user;
+        adminGateError = '';
+        await refreshAdminData();
+        return;
+      }
+      adminUser = null;
+      if (user) {
+        adminGateError = `บัญชี ${user.email || 'unknown'} ไม่มีสิทธิ์ Super Admin`;
+        await auth.signOut().catch(() => {});
+      }
+      renderGate();
+    } finally { releaseEntry?.(); }
   });
 }
 async function unlockGate() {
@@ -278,6 +282,7 @@ async function loadPublished({ discardDraft = false } = {}) {
   adminLoadError = '';
 }
 async function refreshAdminData() {
+  document.getElementById('app').innerHTML = `<main class="gate"><section class="gate-card card card-pad" aria-label="Admin Portal">${window.CoinQuestLoading.skeleton()}</section></main>`;
   try { await Promise.all([loadPublished(), refreshAdminBackendStatus()]); }
   catch (_) { adminLoadError = 'โหลดข้อมูล Admin ไม่ครบ กรุณาลองใหม่ก่อนแก้ไขหรือ Publish'; }
   render();
@@ -575,6 +580,7 @@ function staticIdChip(kind, label, extra = '') {
   return `<span class="id-chip idchip ${safeKind} ${protoKind}"><span class="ic-ico">${tag}</span><span>${h(label || '-')}</span>${extra}</span>`;
 }
 function openDetail(kind, id) {
+  window.CoinQuestAdminShell.close();
   detail = { kind, id };
   if (kind === 'board') tab = 'boards';
   if (kind === 'admin') tab = 'admins';
@@ -587,10 +593,13 @@ function closeDetail(nextTab) {
   render();
 }
 function selectTab(next) {
+  window.CoinQuestAdminShell.close();
   tab = next;
   detail = null;
   query = '';
   render();
+  document.querySelector('.page-title')?.setAttribute('tabindex', '-1');
+  document.querySelector('.page-title')?.focus({ preventScroll: true });
 }
 function restoreBoard(id) {
   const old = published.boards.find(b => b.originalId === id);
@@ -870,23 +879,32 @@ function renderDashboard() {
   }, { spend: 0, balance: 0, overdue: 0 });
   const attention = boards.filter(b => !b.adminId || !b.adminName || !b.urlId).slice(0, 5);
   const recent = diffBoards().slice(0, 6);
-  const kpis = `<div class="grid g-4 mt16">
-    ${statCard('Boards', boards.length, `${split} Split · ${debt} Debt · ${treasury} Treasury`, '🗂️', 'flat')}
-    ${statCard('Users / Characters', records.length, `${users().length} board links`, '👤', 'flat')}
-    ${statCard('Debt Watch', totals.overdue, `${fmtMoney(totals.balance)} balance tracked`, '🐉', totals.overdue ? 'down' : 'flat')}
-    ${statCard('Unpublished Changes', diffBoards().length, dirty ? 'local draft active' : 'published snapshot', '🧾', dirty ? 'up' : 'flat')}
+  const icon = window.CoinQuestIcons;
+  const metric = (label, value, caption, art, action) => `<button class="dashboard-stat" onclick="${action}"><span class="admin-medallion medallion-${art}" aria-hidden="true"></span><span class="s-label">${h(label)}</span><strong class="s-val">${value}</strong><span class="s-delta">${h(caption)}</span><span class="stat-arrow" aria-hidden="true">›</span></button>`;
+  const kpis = `<div class="dashboard-kpis">
+    ${metric('Boards', boards.length, `${split} Split · ${debt} Debt · ${treasury} Treasury`, 'boards', "boardFilter='all';selectTab('boards')")}
+    ${metric('Users / Characters', records.length, `${users().length} board links`, 'users', "selectTab('users')")}
+    ${metric('Debt Watch', totals.overdue, `${fmtMoney(totals.balance)} balance tracked`, 'debt', "boardFilter='debt';selectTab('boards')")}
+    ${metric('Unpublished Changes', diffBoards().length, dirty ? 'local draft active' : 'published snapshot', 'drafts', "selectTab('revisions')")}
   </div>`;
-  const quick = `<div class="log-list">
-    <div class="log-item"><div class="log-ico add">＋</div><div class="log-body"><div class="log-text">Create a new board draft</div><div class="log-meta">Not published until Publish</div></div><div class="log-actions"><button class="btn btn-primary sm" onclick="addBoard()">New board</button></div></div>
-    <div class="log-item"><div class="log-ico edit">👤</div><div class="log-body"><div class="log-text">Inspect accounts</div><div class="log-meta">View profiles and account lifecycle</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('users')">Open</button></div></div>
-    <div class="log-item"><div class="log-ico slay">🧾</div><div class="log-body"><div class="log-text">Version control</div><div class="log-meta">${diffBoards().length} local changes</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="selectTab('revisions')">Open</button></div></div>
+  const quick = `<div class="dashboard-quick">
+    <button onclick="addBoard()">${icon('category')}<span>New board</span><small>Create a board draft</small></button>
+    <button onclick="selectTab('users')">${icon('profile')}<span>View users</span><small>Accounts & characters</small></button>
+    <button onclick="selectTab('revisions')">${icon('backup')}<span>Version control</span><small>${diffBoards().length} local changes</small></button>
+    <button onclick="showResetPwModal()">${icon('lock')}<span>Reset password</span><small>Account support</small></button>
   </div>`;
-  const feed = recent.length ? `<div class="log-list">${recent.map(c => `<div class="log-item"><div class="log-ico ${String(c.action).toLowerCase().slice(0,3) === 'add' ? 'add' : 'edit'}">✦</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div>` : '<div class="empty"><div class="e-ico">🧾</div><div class="e-t">No local draft changes yet</div><div class="e-d">Edits appear here before publishing.</div></div>';
-  const needs = attention.length ? `<div class="log-list">${attention.map(b => `<div class="log-item"><div class="log-ico fire">!</div><div class="log-body"><div class="log-text">${idChip('board', b.urlId, b.originalId)}</div><div class="log-meta">${!b.adminId ? 'Missing admin ID' : !b.adminName ? 'Missing admin nickname' : 'Missing URL'}</div></div><div class="log-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Open</button></div></div>`).join('')}</div>` : '<div class="empty"><div class="e-ico">✓</div><div class="e-t">No flagged boards</div><div class="e-d">Required admin metadata is present.</div></div>';
-  const command = dashMode === 'b'
-    ? `<div class="grid dashboard-grid">${card('Needs Attention', needs)}${card('Quick Actions', quick)}${card('Recent Activity', feed, '', 'wide')}</div>${kpis}`
-    : `${kpis}<div class="grid dashboard-grid mt16">${card('Recent Activity', feed, '', 'wide')}${card('Needs Attention', needs)}${card('Quick Actions', quick)}</div>`;
-  return `${pageHead('Dashboard', 'Super Admin command center', seg('dashMode', dashMode, [['a','A Cards'], ['b','B Command']]))}${command}`;
+  const feed = recent.length ? `<div class="log-list">${recent.map(c => {
+    const boardId = c.detail.match(/\b\d{4}\b/)?.[0];
+    return `<div class="log-item"><span class="admin-medallion medallion-boards" aria-hidden="true"></span><div class="log-body"><div class="log-text">${boardId ? `Board ${h(boardId)}` : h(c.area)}</div><div class="log-meta" title="${h(c.detail)}">${h(c.detail)}</div></div><button class="btn btn-ghost tiny" onclick="selectTab('revisions')">Draft <span aria-hidden="true">›</span></button></div>`;
+  }).join('')}</div>` : `<div class="empty">${icon('scroll')}<div class="e-t">No local draft changes yet</div><div class="e-d">Edits appear here before publishing.</div></div>`;
+  const needs = attention.length ? `<div class="log-list">${attention.map(b => `<div class="log-item"><div class="log-ico fire">${icon('warning')}</div><div class="log-body"><div class="log-text">Board ${h(b.urlId || b.originalId)}</div><div class="log-meta">${!b.adminId ? 'Missing admin ID' : !b.adminName ? 'Missing admin nickname' : 'Missing URL'}</div></div><button class="btn btn-ghost tiny" onclick="openDetail('board',${q(b.originalId)})">Open</button></div>`).join('')}</div>` : `<div class="empty">${icon('check-circle')}<div class="e-t">No flagged boards</div><div class="e-d">Required admin metadata is present.</div></div>`;
+  const viewAll = action => `<button class="dashboard-view-all" onclick="${action}">View all <span aria-hidden="true">→</span></button>`;
+  const panels = `<div class="dashboard-panels">
+    ${card(`${icon('scroll')}Recent Activity <span class="heading-note">(Draft Changes)</span>`, feed, viewAll("selectTab('revisions')"), 'dashboard-recent')}
+    ${card(`${icon('bell')}Needs Attention`, needs, viewAll("boardFilter='all';selectTab('boards')"), 'dashboard-attention')}
+    ${card(`${icon('swords')}Quick Actions`, quick, '', 'dashboard-actions')}
+  </div>`;
+  return `${pageHead('Dashboard', 'System overview & quick actions', seg('dashMode', dashMode, [['a','A Cards'], ['b','B Command']]))}<div class="dashboard-content ${dashMode === 'b' ? 'command-mode' : ''}">${dashMode === 'b' ? panels + kpis : kpis + panels}</div>`;
 }
 function renderRelationshipMap() {
   const u = visibleUserRecords().find(x => x.adminGroups.length) || visibleUserRecords()[0];
@@ -1141,52 +1159,31 @@ function renderPageBody() {
   return tab === 'dashboard' ? renderDashboard() : tab === 'map' ? renderRelationshipMap() : tab === 'admins' ? renderAdmins() : tab === 'users' ? renderUsers() : tab === 'tombstones' ? renderTombstones() : tab === 'audit' ? renderAuditLog() : tab === 'revisions' ? renderRevisions() : tab === 'support' ? renderSupportTools() : renderBoards();
 }
 function renderMain() {
-  if (adminLoadError) {
-    document.getElementById('app').innerHTML = `<main class="gate"><section class="gate-card card card-pad"><h1>โหลดข้อมูลไม่สำเร็จ</h1><p role="alert">${h(adminLoadError)}</p><button class="btn btn-primary" onclick="refreshAdminData()">ลองใหม่</button></section></main>`;
-    return;
-  }
-  const body = renderPageBody();
+  const body = adminLoadError
+    ? `${pageHead('โหลดข้อมูลไม่สำเร็จ')}<section class="card card-pad"><p role="alert">${h(adminLoadError)}</p><button class="btn btn-primary" onclick="refreshAdminData()">ลองใหม่</button></section>`
+    : renderPageBody();
   const changes = diffBoards().length;
-  const groups = [
-    ['Overview', [['dashboard', 'Dashboard', '📊'], ['map', 'Relationship Map', '🕸️']]],
-    ['Manage', [['boards', 'Boards', '🗂️'], ['users', 'Users', '👤'], ['admins', 'Board Admins', '🛡️'], ['tombstones', 'Deleted IDs', '🧾']]],
-    ['Ops', [['audit', 'Audit Log', '📜'], ['revisions', 'Version Control', '🧾'], ['support', 'Support Tools', '🧰']]]
-  ];
-  const nav = groups.map(([label, items]) => `
-    <div class="nav-group-label">${label}</div>
-    ${items.map(([key, text, ico]) => `<button class="nav-item ${tab === key ? 'active on' : ''}" onclick="selectTab('${key}')"><span class="ni-ico">${ico}</span><span>${text}</span>${key === 'revisions' && changes ? `<span class="ni-badge">${changes}</span>` : ''}</button>`).join('')}
-  `).join('');
+  const frame = window.CoinQuestAdminShell;
   document.getElementById('app').innerHTML = `<div class="app">
-    <header class="topbar">
-      <div class="tb-brand">
-        <div class="tb-crest">⚔️</div>
-        <div><div class="tb-title">Super Admin Portal</div><div class="tb-sub">Coin Quest Ledger · Board ↔ Admin ↔ User ↔ Character</div></div>
-      </div>
-      <div class="tb-right">
-        <span class="env-pill"><span class="dot"></span>${TEST_MODE ? 'TEST MODE' : 'GOOGLE AUTH'}</span>
-        <span id="draft-badge" class="env-pill">${dirty ? 'Draft changed locally' : 'Published version'}</span>
-        <button class="btn btn-ghost sm" onclick="saveDraft()">Save</button>
-        <button class="btn btn-ghost sm" onclick="restoreDraft()">Restore</button>
-        <button id="publish-btn" class="btn btn-primary sm" onclick="publishDraft()">Publish ${changes ? `(${changes})` : ''}</button>
-        <button class="btn btn-ghost sm" onclick="lockGate()">Sign out</button>
-        <div class="tb-admin"><div class="who"><b>Super Admin</b><span>${h(TEST_MODE ? 'test gate' : (adminUser?.email || SUPER_ADMIN_EMAIL))}</span></div><div class="tb-ava">🛡️</div></div>
-      </div>
-    </header>
+    ${frame.header({ test: TEST_MODE, dirty, changes, email: TEST_MODE ? 'Test Admin' : (adminUser?.email || SUPER_ADMIN_EMAIL), unavailable: !!adminLoadError })}
     <div class="shell">
-      <aside class="sidebar">${nav}<div class="nav-spacer"></div><div class="nav-foot"><b>${activeBoards().length}</b> Boards · <b>${adminGroups().length}</b> Admins<br><b>${visibleUserRecords().length}</b> Global users · <b>${users().length}</b> Character links</div></aside>
+      ${frame.sidebar({ tab, changes, boards: activeBoards().length, admins: adminGroups().length, users: visibleUserRecords().length, links: users().length })}
       <main class="main">
         ${draftWarning ? `<div class="phase-note" role="alert">${h(draftWarning)}</div>` : ''}
-        <div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}. ${adminDeleteBackendNote()}`)}</span></div>
+        <div class="phase-note"><span class="pn-ico">${window.CoinQuestIcons('shield')}</span><span>${h(TEST_MODE ? 'Test mode uses a local gate for automated regression.' : `Super Admin is protected by Google sign-in and allowlisted to ${SUPER_ADMIN_EMAIL}. ${adminDeleteBackendNote()}`)}</span></div>
         <div class="admin-page">${body}</div>
+        ${frame.footer()}
       </main>
     </div>
   </div>`;
+  frame.mount();
 }
 function renderGate() {
+  window.CoinQuestAdminShell.close();
   const error = adminGateError ? `<div class="login-err" style="display:block;margin-top:12px">${h(adminGateError)}</div>` : '';
   if (!TEST_MODE) {
     if (adminAuthSettling || !adminAuthReady) {
-      document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Checking Google session...</div><div class="phase-note"><span class="pn-ico">🛡️</span><span>กำลังตรวจสอบสิทธิ์ Super Admin</span></div></div></div>`;
+      document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-title">Super Admin Portal</div>${window.CoinQuestLoading.skeleton()}</div></div>`;
       return;
     }
     document.getElementById('app').innerHTML = `<div class="gate"><div class="gate-card card card-pad"><div class="gate-crest">⚔️</div><div class="gate-title">Super Admin Portal</div><div class="gate-sub">Google sign-in required</div><div class="phase-note"><span class="pn-ico">🛡️</span><span>เข้าได้เฉพาะ Gmail <b>${h(SUPER_ADMIN_EMAIL)}</b> เท่านั้น</span></div><button class="btn btn-primary" onclick="unlockGate()" ${adminAuthReady ? '' : 'disabled'}>Sign in with Google</button>${error}</div></div>`;

@@ -1,0 +1,306 @@
+{
+  "scope": "Website login, signup and Recovery ID reset; shared character/loading regression",
+  "baseline": "94b96d0fa71c8cc4c864a4d1e1bc4b70608eb08f",
+  "capturedAt": "2026-10-13T18:55:13.530201+00:00",
+  "source": "Working tree at http://127.0.0.1:4569/",
+  "auth": "Production frontend with isolated Firebase transport fixture; no live account/data writes",
+  "sourceSha256": {
+    "shared/profile-login.js": "86adb9ebbd02e93ec33515b5298d9104ee2e339309cfd84c409b1f965fed34b9",
+    "shared/profile-hub.js": "94b203bc942b5ed669254aa349e9ffc1211acd0fed5eb153ef6628e3a2b7294b",
+    "shared/profile-hub.css": "31dffa435b1be081b230deed68b7cea0d82ff8c97c4617d43d371f5af60291ea",
+    "assets/auth-guild/treasury-seal.webp": "0fa7691b63337ace37ccb4ebd98199bfadc15e23b112d5420a16fb5fe81a5773",
+    "assets/auth-guild/tavern.webp": "b42400edae73cc3ff10a7c1da7344059710624c376df30113f7546048ade523a",
+    "assets/auth-guild/parchment.webp": "255c1a5b89aff602f3ae7087f655a09b37ab151359f89e55f5edc9a48582d65f",
+    "assets/auth-guild/doorway.webp": "8a22b17ec34e3cfe0e55b2cdb86e72abb7a3e730b0671b195586d2fe157a7c92"
+  },
+  "checks": {
+    "targetedChromium": {
+      "passed": 15,
+      "failed": 0
+    },
+    "mobileTouchEmulation": {
+      "passed": 2,
+      "failed": 0
+    },
+    "finalResponsiveAndDarkRecapture": {
+      "passed": 5,
+      "failed": 0
+    },
+    "syntax": "49 browser scripts and 27 modules passed",
+    "assets": "96 local assets and 47 CDN entries passed",
+    "diffCheck": "passed"
+  },
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      768,
+      1024
+    ],
+    [
+      390,
+      844
+    ]
+  ],
+  "screenshots": [
+    {
+      "file": "qa/auth-1440-in-bottom.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/auth-1440-in-top.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/auth-1440-recovery-bottom.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/auth-1440-recovery-top.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/auth-1440-up-bottom.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/auth-1440-up-top.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/auth-390-in-bottom.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-in-top.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-recovery-bottom.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-recovery-english-bottom.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-recovery-top.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-signup-english-dark-bottom.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-signup-english-dark-top.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-up-bottom.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-390-up-top.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/auth-768-in-top.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/auth-768-recovery-bottom.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/auth-768-recovery-top.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/auth-768-up-bottom.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/auth-768-up-top.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/before-login-1440.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/before-login-390.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/creation-1440-empty.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/creation-1440-error.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/creation-1440-picker.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/creation-1440-saving.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/creation-1440-selected.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa/creation-390-empty.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/creation-390-en-dark.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/creation-390-picker.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/creation-390-selected.png",
+      "pixels": [
+        390,
+        844
+      ]
+    },
+    {
+      "file": "qa/creation-768-empty.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/creation-768-picker.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/creation-768-selected.png",
+      "pixels": [
+        768,
+        1024
+      ]
+    },
+    {
+      "file": "qa/loading-home-auth-1440.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    }
+  ],
+  "reviewed": "Desktop/mobile before; all three forms at desktop/tablet/mobile including lower actions; English dark; character sibling at desktop/mobile. Fixed mobile footer seam, paper content insets and fallback edges after rendered review.",
+  "adaptations": [
+    "No unavailable Google/Apple providers",
+    "Existing automatic persistence described without a nonfunctional checkbox",
+    "Real signup/reset fields scroll when necessary"
+  ],
+  "notRun": [
+    "Unrelated full-game/backend suites",
+    "Live Firebase mutations",
+    "Production deployment"
+  ],
+  "verdict": "VERIFIED for the scoped local UI and fixture regression"
+}

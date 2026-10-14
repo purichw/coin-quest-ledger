@@ -10,7 +10,10 @@ prototype/handoff history unless a fresh Admin Claude export is supplied.
 ## Source Files
 
 - `admin/index.html`: static Admin shell and Firebase compat script loading.
-- `admin/admin.css`: Admin-specific responsive UI.
+- `admin/admin.css`: Admin feature layouts, tables, details and modal structure.
+- `admin/design.css`: canonical Admin visual tokens, shared frame and responsive
+  presentation. Avoid adding competing page-specific header/sidebar overrides.
+- `admin/shell.js`: shared header, navigation, footer and compact-menu behavior.
 - `admin/app.js`: Admin gate, data load, renderers, modals, draft/publish,
   lifecycle, reset, delete request, and support actions.
 - `api/admin-delete-status.js`: privileged delete readiness endpoint.
@@ -56,7 +59,8 @@ Local Admin draft storage is an explicit unpublished-draft surface. It can keep
 operator edits visible until Save/Restore/Publish, but it is not a live fallback.
 Restore discards the draft and returns to the latest published server state.
 Collection reads are treated as one complete load: a failed users/revisions/
-tombstones read shows a retry screen, never an editable partial dataset. Invalid
+tombstones read shows retry inside the shared frame with Save/Restore/Publish
+disabled, never an editable partial dataset. Invalid
 local draft JSON is retained with a visible warning until explicit Save/Restore.
 
 `userRecords()` merges:
@@ -82,6 +86,36 @@ local draft JSON is retained with a visible warning until explicit Save/Restore.
 | Audit | `renderAuditLog` | published board revisions and local draft differences |
 | Revisions | `renderRevisions` | Admin publish history |
 | Support | `renderSupportTools` | backend password reset, JSON export, links to Users/Boards |
+
+## Shared Admin Composition
+
+The 2026-10-14 Dashboard reference defines one Admin frame for all nine screens
+and board/user/admin detail views, including pages whose content has not been
+redesigned. `renderMain()` owns the frame; `renderPageBody()` provides its contents.
+Default entry remains Boards; `?tab=dashboard` opens Dashboard.
+
+- The same green header, navigation rail, parchment surface, content gutters and
+  landscape footer appear throughout. They use `assets/admin-reference/` artwork.
+- At 1024px and above the 224px rail stays visible. Below 1024px, a hamburger
+  opens an overlay with focus containment, background inertness, Escape, backdrop
+  dismissal and focus return. Selecting a destination closes it.
+- Below 1200px, header actions move into one disclosure. Save, Restore, Publish
+  and Sign out retain their existing behavior and IDs; controls are not duplicated.
+- The parchment uses sliced image borders. Do not stretch the entire transparent
+  artwork as the page background: its transparent edges can intrude into headings.
+  Mobile decorative border width is 12px; larger screens use 22px.
+- Dashboard uses four centered KPI cards, recent draft changes, required-metadata
+  attention rows and supported quick actions. Desktop panels use two columns;
+  tablet/mobile panels stack and KPIs use two columns. Compact recent activity
+  shows three rows with View all opening Version Control.
+- Counts and draft changes come from current records. The reference's sample
+  counts, relative timestamps, version string and unsupported Invite user action
+  are not copied. View users opens the existing account list instead.
+- Subpage tables/details keep their own information layouts. Shared composition
+  does not require every page to become a dashboard grid.
+
+Reference, artwork provenance, snapshots and verification are recorded in
+`docs/admin-dashboard-2026-10-14/README.md`.
 
 ## Draft And Publish
 

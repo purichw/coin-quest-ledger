@@ -1,4 +1,12 @@
-(function () {
+(function setupEntry() {
+  window.CoinQuestLoading = {
+    begin: () => () => {},
+    navigate: render => render(),
+    skeleton(rows = 3) {
+      const label = document.documentElement.lang === 'en' ? 'Loading' : 'กำลังโหลด';
+      return `<div class="cq-skeleton" role="status" aria-label="${label}" aria-busy="true">${Array.from({ length: rows }, () => '<div class="cq-skeleton-row" aria-hidden="true"><i></i><span><b></b><b></b></span></div>').join('')}</div>`;
+    }
+  };
   const overlay = document.querySelector('[data-first-load]');
   if (!overlay) return;
   const root = document.documentElement;
@@ -8,7 +16,7 @@
     return;
   }
 
-  // This is page preparation, not Firebase/account or upload progress.
+  // Page-entry gate. In-page actions/drawers keep their own local loading state.
   const sessionKey = 'coinQuestFirstLoadSeen';
   let firstInSession = true;
   let english = root.lang === 'en';
@@ -21,7 +29,8 @@
     label: 'Preparing your adventure',
     stages: ['Beginning the quest…', 'Lighting the torches…', 'Preparing your adventure…', 'Almost there…', 'Welcome, Adventurer'],
     slow: 'Taking a little longer…',
-    continue: 'Continue to the page',
+    continue: 'Reload page',
+    failed: 'The page could not finish loading. Please try again.',
     tip: 'A little wisdom for the journey',
     prev: 'Previous tip', next: 'Next tip',
     tips: ['Small expenses tell a bigger story. Give each one a place in your ledger.', 'Settle a shared expense while the memory is fresh.', 'Before buying, compare the price for the same quantity.']
@@ -29,7 +38,8 @@
     label: 'เตรียมพร้อมออกผจญภัย',
     stages: ['เริ่มต้นการเดินทาง…', 'จุดคบเพลิง…', 'เตรียมพร้อมออกผจญภัย…', 'ใกล้พร้อมแล้ว…', 'ยินดีต้อนรับ นักผจญภัย'],
     slow: 'ใช้เวลาอีกสักครู่…',
-    continue: 'เข้าสู่หน้าเว็บ',
+    continue: 'โหลดหน้าใหม่',
+    failed: 'โหลดหน้าไม่สำเร็จ กรุณาลองอีกครั้ง',
     tip: 'เกร็ดการเงินวันนี้',
     prev: 'เกร็ดก่อนหน้า', next: 'เกร็ดถัดไป',
     tips: ['บันทึกรายจ่ายเล็ก ๆ ก็ช่วยให้เห็นภาพใหญ่ได้ชัดขึ้น', 'แบ่งค่าใช้จ่ายหลังจบทริป จะได้ไม่ลืมว่าใครจ่ายอะไร', 'เทียบราคาในปริมาณเท่ากัน ก่อนเลือกของที่คุ้มค่า']
@@ -41,7 +51,7 @@
   overlay.setAttribute('aria-label', copy.label);
   overlay.setAttribute('lang', english ? 'en' : 'th');
   overlay.tabIndex = -1;
-  // One shared owner for all five entry points. No duplicated page-specific markup.
+  // One shared owner for player and Admin entry points.
   overlay.innerHTML = [
     '<img class="first-load-scene" src="/assets/loading-reference/night-quest.webp" alt="" fetchpriority="low">',
     '<div class="first-load-box">',
@@ -60,7 +70,6 @@
 
   const started = performance.now();
   const firstMinimumMs = 2000;
-  const laterRevealDelayMs = 500;
   const status = overlay.querySelector('[data-first-load-status]');
   const percent = overlay.querySelector('[data-first-load-percent]');
   const progress = overlay.querySelector('[role="progressbar"]');
@@ -74,10 +83,40 @@
   let value = 0;
   let stage = -1;
   let tip = 0;
-  let revealTimer;
   let slowTimer;
-  let finishTimer;
   let previousFocus;
+  const holds = new Set();
+  let revision = 0;
+  // Owners register their initial data work before yielding. Calls after entry
+  // are no-ops: opening a drawer must never bring back the full-screen loader.
+  Object.assign(window.CoinQuestLoading, {
+    navigate(render) {
+      // Explicit route changes get a new gate; local data work never calls this.
+      if (hidden) {
+        const next = document.createElement('div');
+        next.className = 'first-load';
+        next.dataset.firstLoad = '';
+        document.body.prepend(next);
+        setupEntry();
+      }
+      render();
+    },
+    begin() {
+      if (hidden || completed) return () => {};
+      let release;
+      const pending = new Promise(resolve => { release = resolve; });
+      holds.add(pending); revision++;
+      return () => { if (holds.delete(pending)) { revision++; release(); } };
+    }
+  });
+  root.classList.add('first-load-boot');
+  const mutations = new MutationObserver(records => {
+    if (records.some(record => record.target !== overlay && !overlay.contains(record.target))) revision++;
+  });
+  mutations.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcset', 'href', 'rel', 'class', 'style', 'hidden'] });
+  document.addEventListener('error', event => {
+    if (event.target.matches?.('link[rel="stylesheet"], script[src]')) event.target.dataset.firstLoadFailed = 'true';
+  }, { capture: true, signal: listeners.signal });
 
   function setProgress(next) {
     if (hidden) return;
@@ -125,9 +164,8 @@
   function hide(quietly) {
     if (hidden) return;
     hidden = true;
-    window.clearTimeout(revealTimer);
     window.clearTimeout(slowTimer);
-    window.clearTimeout(finishTimer);
+    mutations.disconnect();
     listeners.abort();
     root.classList.remove('first-load-boot', 'first-load-open');
     const focusWasInside = overlay.contains(document.activeElement);
@@ -148,15 +186,74 @@
     else window.setTimeout(() => overlay.remove(), 350);
   }
 
-  function pageReady() {
-    if (hidden || completed) return;
-    completed = true;
-    window.clearTimeout(slowTimer);
-    setProgress(100);
-    continueButton.hidden = true;
-    const elapsed = performance.now() - started;
-    if (!firstInSession && !active) return hide(true);
-    finishTimer = window.setTimeout(() => hide(false), firstInSession ? Math.max(0, firstMinimumMs - elapsed) : 0);
+  function waitForStylesheet(link) {
+    if (link.dataset.firstLoadFailed) return Promise.reject(new Error('Stylesheet unavailable'));
+    if (link.sheet || link.disabled || (link.media && !matchMedia(link.media).matches)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      link.addEventListener('load', resolve, { once: true, signal: listeners.signal });
+      link.addEventListener('error', () => reject(new Error('Stylesheet unavailable')), { once: true, signal: listeners.signal });
+    });
+  }
+
+  const decodedBackgrounds = new Map();
+  async function prepareContent() {
+    if (document.querySelector('script[data-first-load-failed]')) throw new Error('Page script unavailable');
+    await Promise.all([...document.querySelectorAll('link[rel="stylesheet"]')].map(waitForStylesheet));
+    const images = [...document.images].filter(img => !overlay.contains(img) && img.getClientRects().length && (img.currentSrc || img.src));
+    // Only images rendered on this page, never hidden drawers or the hero catalog.
+    await Promise.all(images.map(async img => {
+      img.loading = 'eager';
+      const source = img.currentSrc || img.src;
+      try { await img.decode(); }
+      catch (error) {
+        // Re-rendering may replace an image while its previous decode is pending.
+        // The mutation pass will wait for the replacement before revealing it.
+        if (img.isConnected && img.getClientRects().length && source === (img.currentSrc || img.src)) throw error;
+      }
+    }));
+    const urls = new Set();
+    for (const element of [document.body, ...document.body.querySelectorAll('*')]) {
+      if (overlay.contains(element) || !element.getClientRects().length) continue;
+      for (const pseudo of [null, '::before', '::after']) {
+        const style = getComputedStyle(element, pseudo);
+        if (pseudo && style.content === 'none') continue;
+        for (const source of [style.backgroundImage, style.borderImageSource]) {
+          for (const match of source.matchAll(/url\(["']?([^"')]+)["']?\)/g)) urls.add(match[1]);
+        }
+      }
+    }
+    await Promise.all([...urls].map(url => {
+      if (!decodedBackgrounds.has(url)) {
+        const img = new Image(); img.src = url;
+        decodedBackgrounds.set(url, img.decode());
+      }
+      return decodedBackgrounds.get(url);
+    }));
+    // font-display: swap permits window.load before the final font metrics.
+    if (document.fonts) await document.fonts.ready;
+  }
+
+  async function pageReady() {
+    try {
+      if (firstInSession) await new Promise(resolve => setTimeout(resolve, Math.max(0, firstMinimumMs - (performance.now() - started))));
+      while (!hidden) {
+        await Promise.all([...holds]);
+        const version = revision;
+        await prepareContent();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        if (holds.size || version !== revision) continue;
+        completed = true;
+        window.clearTimeout(slowTimer);
+        setProgress(100);
+        continueButton.hidden = true;
+        hide(false);
+      }
+    } catch (_) {
+      window.clearTimeout(slowTimer);
+      status.textContent = copy.failed;
+      announcement.textContent = copy.failed;
+      continueButton.hidden = false;
+    }
   }
 
   function trackImages() {
@@ -184,13 +281,12 @@
       overlay.querySelector('[data-first-load-tip]').textContent = copy.tips[tip];
     }, { signal: listeners.signal });
   });
-  continueButton.addEventListener('click', () => hide(false), { signal: listeners.signal });
+  continueButton.addEventListener('click', () => location.reload(), { signal: listeners.signal });
 
   setProgress(0);
-  if (firstInSession) activate();
-  else revealTimer = window.setTimeout(activate, laterRevealDelayMs);
+  activate();
 
-  // A stalled asset cannot trap the player. Dismissal does not claim 100% readiness.
+  // Recovery must never expose an unstyled or partially initialized page.
   slowTimer = window.setTimeout(() => {
     if (hidden || completed) return;
     status.textContent = copy.slow;

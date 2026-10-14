@@ -10,6 +10,7 @@ function settingsText(key) {
     copy: ['คัดลอก', 'Copy'], copied: ['คัดลอกลิงก์แล้ว', 'Link copied'], copyFailed: ['คัดลอกไม่ได้ เลือกลิงก์แล้วคัดลอกด้วยตนเองได้', 'Could not copy. Select the link and copy it manually.'],
     share: ['แชร์ลิงก์', 'Share link'], close: ['ปิดการตั้งค่าบอร์ด', 'Close board settings'], manage: ['จัดการสมาชิก', 'Manage member'],
     profile: ['โปรไฟล์', 'Profile'], boardsHelp: ['บอร์ดอื่น ๆ ที่คุณดูแล', 'Other boards you manage'], create: ['สร้างบอร์ดใหม่', 'Create a board'],
+    boardsFailed: ['โหลดบอร์ดไม่สำเร็จ', 'Could not load your boards.'], retry: ['ลองอีกครั้ง', 'Try again'],
     export: ['ส่งออกรายการ Excel', 'Export expenses to Excel'], import: ['นำเข้ารายการ', 'Import expenses'], toolsHelp: ['ดาวน์โหลดรายการค่าใช้จ่าย หรือเพิ่มรายการจากไฟล์', 'Download expenses or add entries from a file.'],
     guest: ['แขก', 'Guest'], memberCount: ['คน', 'members'], entryCount: ['รายการ', 'expenses'], viewBoard: ['เปิดบอร์ด', 'Open board'],
     lockHelp: ['ปลดล็อกแอดมินเพื่อจัดการสมาชิกและข้อมูลบอร์ด', 'Unlock admin controls to manage members and board information.'],
@@ -58,7 +59,7 @@ function settingsAdminMarkup() {
 function settingsOwnedBoardsMarkup() {
   const items = _ownedBoards.map(board => `<a class="bs-owned-board ${board.id === tripId ? 'is-current' : ''}" href="${h(tripLinkFor(board.id))}" ${board.id === tripId ? 'aria-current="page"' : ''}>
     <span class="bs-board-art">${questIconMarkup('🏕️', 36)}</span><span class="bs-board-info"><strong>${h(board.tripName || t('trip_fallback_name'))}</strong><small>#${h(board.id)} · ${board.participants} ${settingsText('memberCount')} · ${board.expenses} ${settingsText('entryCount')}</small></span><span class="bs-board-open">${board.id === tripId ? t('current_board') : settingsText('viewBoard')}${boardIcon('arrow')}</span></a>`).join('');
-  return `<section class="bs-section" id="bs-owned">${settingsHeading('shield', t('admin_boards'), settingsText('boardsHelp'))}<div class="bs-owned-grid owned-board-list">${_ownedBoardsLoading ? `<p class="bs-muted" role="status">${t('admin_boards_loading')}</p>` : items || `<p class="bs-muted">${t('admin_boards_empty')}</p>`}<button class="bs-create-board" onclick="newTrip()">＋ ${settingsText('create')}</button></div></section>`;
+  return `<section class="bs-section" id="bs-owned">${settingsHeading('shield', t('admin_boards'), settingsText('boardsHelp'))}<div class="bs-owned-grid owned-board-list">${_ownedBoardsLoading ? window.CoinQuestLoading.skeleton(2) : _ownedBoardsError ? `<div><p role="alert">${settingsText('boardsFailed')}</p><button class="bs-button" onclick="loadOwnedBoards(true)">${settingsText('retry')}</button></div>` : items || `<p class="bs-muted">${t('admin_boards_empty')}</p>`}<button class="bs-create-board" onclick="newTrip()">＋ ${settingsText('create')}</button></div></section>`;
 }
 function settingsMarkup() {
   const nav = [['general','settings'],['members','split'],['board','shield'],['game','swords'],['tools','treasury']];

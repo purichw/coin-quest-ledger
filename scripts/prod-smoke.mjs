@@ -22,6 +22,7 @@ const routes = [
   { name: 'treasury', path: '/treasury/?test=1', text: /คลังหลวง|Personal Treasury/ },
   { name: 'character-classic-skin', path: '/character/?id=7777&test=1', text: /Smoke Tiderunner/ },
   { name: 'admin-test-gate', path: '/admin/?test=1', adminGate: true, text: /Dashboard|Super Admin Portal|Users/ },
+  { name: 'admin-dashboard', path: '/admin/?test=1&tab=dashboard', adminGate: true, selector: '.dashboard-kpis' },
 ];
 
 const httpPaths = [
@@ -156,7 +157,8 @@ async function assertRoute(page, route) {
   }
   const text = `${await page.title()}\n${await page.locator('body').innerText({ timeout: 7_000 })}`;
   if (route.text) assertOk(route.text.test(text), `${route.name} did not render expected marker`);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+  await page.locator('[data-first-load]').waitFor({ state: 'detached', timeout: 15_000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
   assertOk(!overflow, `${route.name} has horizontal document overflow`);
   await assertRenderedAssets(page, route.name);
 }
@@ -171,8 +173,14 @@ async function assertRenderedAssets(page, label) {
       catch { failures.push(img.currentSrc || img.src); }
     }));
     const backgrounds = new Set();
-    document.querySelectorAll('.home-hero,.be-hero,.board-banner,.debt-hero,.arena-hero,.treasury-hero,.banner').forEach(el => {
-      for (const match of getComputedStyle(el).backgroundImage.matchAll(/url\(["']?([^"')]+)["']?\)/g)) backgrounds.add(match[1]);
+    [...document.querySelectorAll('body,body *')].filter(visible).forEach(el => {
+      for (const pseudo of [null, '::before', '::after']) {
+        const style = getComputedStyle(el, pseudo);
+        if (pseudo && style.content === 'none') continue;
+        for (const source of [style.backgroundImage, style.borderImageSource]) {
+          for (const match of source.matchAll(/url\(["']?([^"')]+)["']?\)/g)) backgrounds.add(match[1]);
+        }
+      }
     });
     await Promise.all([...backgrounds].map(async src => {
       const img = new Image(); img.src = src;

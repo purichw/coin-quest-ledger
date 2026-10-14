@@ -18,7 +18,7 @@
       revealed: root.querySelector('[data-reveal-recovery]')?.getAttribute('aria-pressed') === 'true'
     };
   }
-  function render({ copy, language, theme, account, avatarHtml, name, rank, level, reputation, profileHref, streak, bestStreak, got, trophyCount, trophyHtml, boards, state }) {
+  function render({ copy, language, theme, account, avatarHtml, name, rank, level, reputation, profileHref, streak, bestStreak, got, trophyCount, trophyHtml, boards, boardsLoading = false, boardsError = false, state }) {
     const w = words[language];
     const desktop = window.innerWidth >= 1024, mobile = window.innerWidth < 768;
     const open = (key, initial) => (state?.sections?.[key] ?? initial) ? ' open' : '';
@@ -50,7 +50,7 @@
           </details>
           <details class="pd-section pd-board-section" data-drawer-section="boards"${open('boards', true)}>
             <summary data-pd-focus="boards">${icon('scroll')}<span>${h(copy.myBoards)}</span><span class="pd-count">${boards.length}</span>${chevron}</summary>
-            <div class="pd-boards">${boards.length ? boardRows : `<p class="pd-noboards">${h(copy.noBoards)}</p>`}</div>
+            <div class="pd-boards">${boardsLoading ? window.CoinQuestLoading.skeleton() : boardsError ? `<p role="alert">${language === 'en' ? 'Could not load your boards.' : 'โหลดบอร์ดไม่สำเร็จ'}</p><button type="button" class="pd-tool" data-retry-boards>${language === 'en' ? 'Try again' : 'ลองอีกครั้ง'}</button>` : boards.length ? boardRows : `<p class="pd-noboards">${h(copy.noBoards)}</p>`}</div>
             ${boards.length > 3 ? `<button type="button" class="pd-all-boards" data-all-boards data-pd-focus="all-boards" aria-expanded="${!!state?.allBoards}">${state?.allBoards ? w.less : w.all} ${icon('arrow')}</button>` : ''}
           </details>
           <details class="pd-section pd-settings" data-drawer-section="settings"${open('settings', !mobile)}>
