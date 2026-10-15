@@ -7,6 +7,10 @@
       if (this.querySelector('.topbar')) return;
       const profile = this.hasAttribute('profile');
       const lang = language();
+      if (this.hasAttribute('public')) {
+        this.innerHTML = `<header class="info-header"><a class="info-brand" href="/about/"><img src="/assets/home-reference/crest.webp" width="46" height="46" alt=""><span>Coin Quest Ledger</span></a><nav aria-label="ข้อมูลเว็บไซต์"><a href="/about/">เกี่ยวกับเว็บ</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/" class="info-enter">เข้าใช้งาน ↗</a></nav></header>`;
+        return;
+      }
       this.innerHTML = `<header class="topbar"><div class="tb-inner">
         <div class="tb-left"><a class="cq-brand" href="/" data-mtab="home"><img src="/assets/home-reference/crest.webp" width="46" height="46" alt=""><span>Coin Quest Ledger</span></a></div>
         <nav class="cq-nav" aria-label="Main navigation"></nav>
@@ -27,7 +31,7 @@
       if (this.dataset.language === lang) return;
       this.dataset.language = lang;
       const quote = lang === 'en' ? 'Every expense is another step in your adventure.' : 'ทุกการใช้จ่าย คืออีกก้าวของการผจญภัย';
-      this.innerHTML = `<footer class="cq-footer"><p>${escape(quote)}</p><strong>Coin Quest Ledger</strong></footer>`;
+      this.innerHTML = `<footer class="cq-footer"><p>${escape(quote)}</p><strong>Coin Quest Ledger</strong><nav class="cq-policy-links" aria-label="${lang === 'en' ? 'About and policies' : 'เกี่ยวกับเว็บและนโยบาย'}"><a href="/about/">${lang === 'en' ? 'About' : 'เกี่ยวกับเว็บ'}</a><a href="/privacy/">${lang === 'en' ? 'Privacy' : 'ความเป็นส่วนตัว'}</a><a href="/terms/">${lang === 'en' ? 'Terms' : 'ข้อกำหนด'}</a></nav></footer>`;
     }
   }
   customElements.define('cq-player-header', PlayerHeader);

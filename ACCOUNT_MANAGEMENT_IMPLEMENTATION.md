@@ -2,6 +2,7 @@
 
 Account-flow baseline verified: 2026-08-31
 Domain/auth configuration updated and verified: 2026-10-14
+OAuth branding follow-up: 2026-10-15 — public policy pages prepared; Google verification/publication pending (see below).
 
 This document describes the current implementation path from account creation to
 password recovery and Super Admin user management. It documents the code that
@@ -40,6 +41,21 @@ drafts do not transfer automatically. Native recovery calls the new origin,
 but previously distributed binaries need an app update. The domain cutover
 verified Google Admin login and backend configuration, not a new live password
 reset or account-deletion exercise. See `docs/domain-migration-2026-10-14/README.md`.
+
+The 15 October OAuth branding follow-up saved the new web origin on the existing
+Google OAuth client and removed retired Vercel domains from its origin list and
+Branding Authorized domains. The app name is already `Coin Quest Ledger`, but
+the brand remains in Testing and has not been verified/published. Public
+`/about/`, `/privacy/` and `/terms/` pages explain the service and current data
+handling without an auth gate. They are linked from the player footer and login
+shell; the auth focus loop includes those links. The owner approved the public
+provider/contact as Coin Quest Ledger / purich.wc@gmail.com and confirmed a
+normal manual Admin Google login completed. Automated popup attempts had ended
+with `auth/popup-closed-by-user`; the manual report is separate evidence, not an
+automated pass. The public Admin gate no longer displays the allowlisted email;
+the actual allowlist and authorization checks remain unchanged. Existing
+Firebase project/client/account identities remain intact. See
+`docs/oauth-branding-2026-10-15/README.md` for configuration and release evidence.
 
 The project uses Firebase Auth and Firestore under project
 `pointy-personal-toolkit`. Current billing state is Spark: `billingEnabled:

@@ -30,7 +30,7 @@
   }
   function shell({ copy, langKey, theme, content, mode }) {
     return renderFrame({ copy, langKey, theme, mode, content: `<div class="auth-main">${content}
-        <footer class="auth-reassurance"><p class="auth-motto">Every Quest Counts</p><p class="auth-promise">${h(copy.authReassurance)}</p><strong>Coin Quest Ledger</strong><small>${h(copy.authModules)}</small></footer>
+        <footer class="auth-reassurance"><p class="auth-motto">Every Quest Counts</p><p class="auth-promise">${h(copy.authReassurance)}</p><strong>Coin Quest Ledger</strong><small>${h(copy.authModules)}</small><nav class="auth-legal-links" aria-label="${langKey === 'en' ? 'About and policies' : 'เกี่ยวกับเว็บและนโยบาย'}"><a href="/about/">${langKey === 'en' ? 'About' : 'เกี่ยวกับเว็บ'}</a><a href="/privacy/">${langKey === 'en' ? 'Privacy' : 'ความเป็นส่วนตัว'}</a><a href="/terms/">${langKey === 'en' ? 'Terms' : 'ข้อกำหนด'}</a></nav></footer>
       </div>
     ` });
   }
@@ -49,7 +49,7 @@
     const keepControlVisible = () => {
       if (!entry.isConnected) { focusObserver?.disconnect(); return; }
       const control = document.activeElement;
-      if (!entry.contains(control) || !control.matches('input, button')) return;
+      if (!entry.contains(control) || !control.matches('input, button, a[href]')) return;
       requestAnimationFrame(() => {
         if (control.isConnected && document.activeElement === control) {
           control.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -62,7 +62,7 @@
     focusObserver.observe(entry.querySelector('.login-card'));
     entry.addEventListener('keydown', event => {
       if (event.key !== 'Tab') return;
-      const controls = [...entry.querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el => el.tabIndex >= 0 && el.getClientRects().length);
+      const controls = [...entry.querySelectorAll('button:not(:disabled), input:not(:disabled), a[href]')].filter(el => el.tabIndex >= 0 && el.getClientRects().length);
       const first = controls[0], last = controls[controls.length - 1];
       if (!first) { event.preventDefault(); return; }
       if (event.shiftKey && (document.activeElement === first || document.activeElement === title)) { event.preventDefault(); last.focus(); }

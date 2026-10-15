@@ -614,9 +614,18 @@ test('Tavern auth keeps drafts through language and theme changes; password reve
   await captureAuth(page, testInfo, 'auth-390-signup-english-dark-bottom.png');
   // Passwords remain only in the form, not in local/session storage for draft persistence.
   expect(await page.evaluate(() => JSON.stringify([Object.values(localStorage), Object.values(sessionStorage)]))).not.toContain('TEST-private');
-  await page.locator('.login-btn').focus(); await page.keyboard.press('Tab'); await expect(page.locator('[data-login-theme]')).toBeFocused();
-  await page.keyboard.press('Shift+Tab'); await expect(page.locator('.login-btn')).toBeFocused();
+  const legalLinks = page.locator('.auth-legal-links');
+  await page.locator('.login-btn').focus(); await page.keyboard.press('Tab');
+  await expect(legalLinks.getByRole('link', { name: 'About', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(legalLinks.getByRole('link', { name: 'Privacy', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(legalLinks.getByRole('link', { name: 'Terms', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(page.locator('[data-login-theme]')).toBeFocused();
+  await page.keyboard.press('Shift+Tab'); await expect(legalLinks.getByRole('link', { name: 'Terms', exact: true })).toBeFocused();
   await page.locator('[data-login-tab="up"]').press('Home'); await expect(page.locator('[data-login-tab="in"]')).toBeFocused();
+  await legalLinks.getByRole('link', { name: 'Privacy', exact: true }).click();
+  await expect(page).toHaveURL(/\/privacy\/$/);
+  await expect(page.getByRole('heading', { name: 'นโยบายความเป็นส่วนตัว', exact: true })).toBeVisible();
+  await expect(page.locator('.login-gate')).toHaveCount(0);
 });
 
 test('Tavern auth loading blocks duplicate requests and restores form after failure', async ({ page }) => {

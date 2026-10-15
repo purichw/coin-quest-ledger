@@ -360,6 +360,9 @@ body[data-theme="dungeon"] .auth-entry .login-field input::placeholder { color: 
 .auth-reassurance .auth-promise { margin: 0 0 10px; font-size: 13px; }
 .auth-reassurance strong { display: block; font-size: 13px; font-weight: 500; }
 .auth-reassurance small { display: block; margin-top: 3px; font-size: 11px; }
+.auth-legal-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 12px; margin-top: 8px; }
+.auth-legal-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 4px 6px; border-radius: 6px; background: #21180ed9; color: #fff2cc; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.auth-legal-links a:focus-visible { outline: 3px solid #f9d28a; outline-offset: 3px; }
 body[data-theme="dungeon"] .auth-guild .login-card { background: transparent; }
 body[data-theme="dungeon"] .auth-guild .login-card::before { filter: brightness(.25) saturate(.65) drop-shadow(0 14px 20px #07090880); }
 @media (min-width: 601px) and (max-width: 1023px) {

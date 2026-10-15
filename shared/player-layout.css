@@ -25,6 +25,9 @@ cq-footer { display:block; }
 .cq-footer p::before,.cq-footer p::after { content:''; flex:0 1 60px; height:1px; background:linear-gradient(90deg,transparent,#ab8750); }
 .cq-footer p::after { transform:rotate(180deg); }
 .cq-footer strong { display:block; font-weight:500; color:var(--cq-footer-brand); }
+.cq-policy-links { display:flex; flex-wrap:wrap; justify-content:center; gap:0 14px; margin-top:6px; }
+.cq-policy-links a { display:inline-flex; align-items:center; min-height:44px; padding:4px; color:inherit; text-underline-offset:3px; }
+.cq-policy-links a:focus-visible { outline:2px solid currentColor; outline-offset:3px; border-radius:4px; }
 .cq-context-back { display:flex; align-items:center; gap:8px; width:min(100%,var(--cq-frame)); margin:auto; padding:12px var(--cq-gutter); }
 .cq-context-back a { color:var(--ink); background:var(--panel,#fffaf0); border:1px solid var(--border,#ddc9a3); border-radius:8px; min-height:44px; padding:10px 14px; text-decoration:none; }
 [data-theme=dungeon] { --cq-footer-ink:#c2b7ae; --cq-footer-brand:#dfc29a; }
