@@ -130,9 +130,9 @@ async function refreshAdminBackendStatus() {
 }
 function adminDeleteBackendNote() {
   if (TEST_MODE) return 'Test mode simulates permanent delete requests locally.';
-  if (!adminBackendStatus.checked) return 'Privileged delete is unavailable until verification completes.';
-  if (adminBackendStatus.adminDeleteConfigured) return 'Privileged delete backend is configured for Firebase Admin SDK.';
-  return 'Privileged delete is disabled until Vercel has Firebase Admin service account env vars.';
+  if (!adminBackendStatus.checked) return 'Permanent account deletion is unavailable until verification completes.';
+  if (adminBackendStatus.adminDeleteConfigured) return 'Permanent account deletion is available.';
+  return 'Permanent account deletion is unavailable. Contact the system administrator to configure this service.';
 }
 function startAdminAuth() {
   if (TEST_MODE || adminAuthStarted) return;
@@ -358,9 +358,9 @@ function characterProfileLink(id, returnTab = 'users') {
 function activeBoards() { return draft.boards.filter(b => !b.deleted); }
 function boardTypeLabel(b) {
   const type = b.type || 'split';
-  if (type === 'debt') return 'Debt';
+  if (type === 'debt') return 'Debt Dragon';
   if (type === 'treasury') return 'Treasury';
-  return 'Split';
+  return 'Split Expenses';
 }
 function boardTypeIcon(b) {
   const type = b.type || 'split';
@@ -875,7 +875,7 @@ function renderDashboard() {
     ${metric('Boards', boards.length, `${split} Split · ${debt} Debt · ${treasury} Treasury`, 'boards', "boardFilter='all';selectTab('boards')")}
     ${metric('Users / Characters', records.length, `${users().length} board links`, 'users', "selectTab('users')")}
     ${metric('Debt Watch', totals.overdue, `${fmtMoney(totals.balance)} balance tracked`, 'debt', "boardFilter='debt';selectTab('boards')")}
-    ${metric('Unpublished Changes', diffBoards().length, dirty ? 'local draft active' : 'published snapshot', 'drafts', "selectTab('revisions')")}
+    ${metric('Unpublished Changes', diffBoards().length, dirty ? 'Unpublished board changes' : 'All changes published', 'drafts', "selectTab('revisions')")}
   </div>`;
   const quick = `<div class="dashboard-quick">
     <button onclick="addBoard()">${icon('category')}<span>New board</span><small>Create a board draft</small></button>
@@ -886,15 +886,15 @@ function renderDashboard() {
   const feed = recent.length ? `<div class="log-list">${recent.map(c => {
     const boardId = c.detail.match(/\b\d{4}\b/)?.[0];
     return `<div class="log-item"><span class="admin-medallion medallion-boards" aria-hidden="true"></span><div class="log-body"><div class="log-text">${boardId ? `Board ${h(boardId)}` : h(c.area)}</div><div class="log-meta" title="${h(c.detail)}">${h(c.detail)}</div></div><button class="btn btn-ghost tiny" onclick="selectTab('revisions')">Draft <span aria-hidden="true">›</span></button></div>`;
-  }).join('')}</div>` : `<div class="empty">${icon('scroll')}<div class="e-t">No local draft changes yet</div><div class="e-d">Edits appear here before publishing.</div></div>`;
-  const needs = attention.length ? `<div class="log-list">${attention.map(b => `<div class="log-item"><div class="log-ico fire">${icon('warning')}</div><div class="log-body"><div class="log-text">Board ${h(b.urlId || b.originalId)}</div><div class="log-meta">${!b.adminId ? 'Missing admin ID' : !b.adminName ? 'Missing admin nickname' : 'Missing URL'}</div></div><button class="btn btn-ghost tiny" onclick="openDetail('board',${q(b.originalId)})">Open</button></div>`).join('')}</div>` : `<div class="empty">${icon('check-circle')}<div class="e-t">No flagged boards</div><div class="e-d">Required admin metadata is present.</div></div>`;
+  }).join('')}</div>` : `<div class="empty">${icon('scroll')}<div class="e-t">No unpublished changes</div><div class="e-d">Edits appear here before publishing.</div></div>`;
+  const needs = attention.length ? `<div class="log-list">${attention.map(b => `<div class="log-item"><div class="log-ico fire">${icon('warning')}</div><div class="log-body"><div class="log-text">Board ${h(b.urlId || b.originalId)}</div><div class="log-meta">${!b.adminId ? 'Missing admin ID' : !b.adminName ? 'Missing admin display name' : 'Missing board ID'}</div></div><button class="btn btn-ghost tiny" onclick="openDetail('board',${q(b.originalId)})">Open</button></div>`).join('')}</div>` : `<div class="empty">${icon('check-circle')}<div class="e-t">No boards need attention</div><div class="e-d">All boards have the required administrator details.</div></div>`;
   const viewAll = action => `<button class="dashboard-view-all" onclick="${action}">View all <span aria-hidden="true">→</span></button>`;
   const panels = `<div class="dashboard-panels">
     ${card(`${icon('scroll')}Recent Activity <span class="heading-note">(Draft Changes)</span>`, feed, viewAll("selectTab('revisions')"), 'dashboard-recent')}
     ${card(`${icon('bell')}Needs Attention`, needs, viewAll("boardFilter='all';selectTab('boards')"), 'dashboard-attention')}
     ${card(`${icon('swords')}Quick Actions`, quick, '', 'dashboard-actions')}
   </div>`;
-  return `${pageHead('Dashboard', 'System overview & quick actions', seg('dashMode', dashMode, [['a','A Cards'], ['b','B Command']]))}<div class="dashboard-content ${dashMode === 'b' ? 'command-mode' : ''}">${dashMode === 'b' ? panels + kpis : kpis + panels}</div>`;
+  return `${pageHead('Dashboard', 'System overview & quick actions', seg('dashMode', dashMode, [['a','Overview'], ['b','Activity']]))}<div class="dashboard-content ${dashMode === 'b' ? 'command-mode' : ''}">${dashMode === 'b' ? panels + kpis : kpis + panels}</div>`;
 }
 function renderRelationshipMap() {
   const u = visibleUserRecords().find(x => x.adminGroups.length) || visibleUserRecords()[0];
@@ -909,7 +909,7 @@ function renderRelationshipMap() {
     const [, label, glyph] = types.find(type => type[0] === kind);
     return `<article class="rel-node ${kind}"><h4 class="rel-node-label">${label}</h4><span class="rel-node-icon" aria-hidden="true">${icon(glyphOverride || glyph)}</span><div class="rel-node-body">${body}</div></article>`;
   };
-  let map = `<div class="empty">${icon('profile')}<div class="e-t">ยังไม่มี user</div><div class="e-d">ความสัมพันธ์จะแสดงเมื่อมีข้อมูลผู้ใช้ในระบบ</div></div>`;
+  let map = `<div class="empty">${icon('profile')}<div class="e-t">ยังไม่มีผู้ใช้งาน</div><div class="e-d">ความสัมพันธ์จะแสดงเมื่อมีข้อมูลผู้ใช้ในระบบ</div></div>`;
   if (u) {
     const user = node('user', `<h5 class="rn-name">${h(u.name)}</h5>${idChip('user', u.userId, u.userId)}<p class="rn-sub rn-counts"><span>${u.chars.length} active character${u.chars.length === 1 ? '' : 's'}</span><span>${u.adminGroups.length} admin role${u.adminGroups.length === 1 ? '' : 's'}</span></p>`);
     const chars = u.chars.map(c => node('char', `<h5 class="rn-name">${h(c.name)}</h5>${staticIdChip('char', c.id || '—')}
@@ -918,7 +918,7 @@ function renderRelationshipMap() {
         const b = boardById(bid);
         return b ? idChip('board', b.urlId, b.originalId) : '';
       }).join(' ') || '<span>—</span>'}</div>`)).join('') || node('char', '<p class="rn-sub">No character yet</p>');
-    const admins = u.adminGroups.map(g => node('admin', `${idChip('admin', g.adminId || '—', g.key)}<p class="rn-sub">${h(g.adminName || 'No admin nickname')}</p>`)).join('') || node('admin', '<p class="rn-sub">Not an admin</p>');
+    const admins = u.adminGroups.map(g => node('admin', `${idChip('admin', g.adminId || '—', g.key)}<p class="rn-sub">${h(g.adminName || 'No admin display name')}</p>`)).join('') || node('admin', '<p class="rn-sub">Not an admin</p>');
     const linkedBoards = [...new Map([...u.boards, ...u.adminGroups.flatMap(g => g.boards)].map(b => [b.originalId, b])).values()];
     const boards = linkedBoards.map(b => node('board', `<h5 class="rn-name">${h(b.tripName)}</h5>${idChip('board', b.urlId, b.originalId)}<div class="rn-links"><span>managed by:</span> ${b.adminId || b.adminOwnerHash ? idChip('admin', b.adminId || '—', b.adminOwnerHash || b.adminId) : '<span>No admin assigned</span>'}</div>`, b.type === 'debt' ? 'debt' : b.type === 'treasury' ? 'treasury' : 'scroll')).join('') || node('board', '<p class="rn-sub">No boards yet</p>');
     map = `<ol class="relmap" aria-label="Account relationships">${[user, chars, admins, boards].map((nodes, i) => `<li class="rel-col" data-entity="${types[i][0]}">${nodes}</li>`).join('')}</ol>`;
@@ -926,14 +926,14 @@ function renderRelationshipMap() {
   const legend = `<div class="rel-legend" aria-label="Entity types">${types.map(([kind, label, , description]) => `<div class="rel-legend-item ${kind}"><span class="rel-dot" aria-hidden="true"></span><span><strong>${label}</strong> <span>(${description})</span></span></div>`).join('')}</div>`;
   const rules = `<ul class="model-rules">
     <li>One User ID works across Split Expenses, Debt Dragon, Treasury, and Character Profile.</li>
-    <li>Current player/auth canon: one User ID has one active Character. Character identity is managed through the account profile, not board-local overrides.</li>
-    <li>Character XP uses PointyLogic.levelFromXp(); Profile Reputation uses PointyLogic.levelFromReputation().</li>
+    <li>Each user account has one active character. Character details are managed in the account profile and shared across boards.</li>
+    <li>Character level is based on Character XP. Profile level is based on Reputation; these progress separately.</li>
     <li>A user can be a board admin through one or more Admin IDs, and one Admin ID can own multiple boards.</li>
     <li>Compare Prices is a tool, not a Board.</li>
   </ul>`;
   const help = `<section class="relationship-help">
-    <button class="relationship-help-toggle" type="button" aria-expanded="false" aria-controls="relationship-help-content" onclick="const open=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',String(open));this.parentElement.classList.toggle('is-open',open)">${icon('scroll')}<span>คำอธิบาย &amp; กฎการทำงาน</span><span class="rel-help-chevron" aria-hidden="true">⌄</span></button>
-    <div id="relationship-help-content" class="relationship-help-content">${legend}${card(`${icon('scroll')}กฎการทำงานของโมเดล (Model Rules)`, rules, '', 'relationship-rules')}</div>
+    <button class="relationship-help-toggle" type="button" aria-expanded="false" aria-controls="relationship-help-content" onclick="const open=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',String(open));this.parentElement.classList.toggle('is-open',open)">${icon('scroll')}<span>คำอธิบายและกฎการทำงาน</span><span class="rel-help-chevron" aria-hidden="true">⌄</span></button>
+    <div id="relationship-help-content" class="relationship-help-content">${legend}${card(`${icon('scroll')}กฎการเชื่อมโยงบัญชี (Account Rules)`, rules, '', 'relationship-rules')}</div>
   </section>`;
   return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board links')}<div class="relationship-content">${card(`${icon('split')}ความสัมพันธ์ของข้อมูลในระบบ`, map, '', 'relationship-overview')}${help}</div>`;
 }
@@ -990,19 +990,19 @@ function boardRows(boards) {
       <td class="board-admin-name" role="cell">${field(b, 'adminName', 'Admin nickname')}</td>
       <td class="board-password" role="cell">${field(b, 'newPassword', 'Reset password', true)}</td>
       <td class="board-members" role="cell"><span class="board-member-count" aria-label="${b.participants.length} members">${window.CoinQuestIcons('split')}<span>${b.participants.length}</span></span><span class="board-entry-count">${b.type === 'debt' ? `${st.dragons} dragons` : `${st.expenses} quests`}</span></td>
-      <td class="board-actions" role="cell"><div><button class="btn btn-ghost sm" onclick="openBoardSection(${q(b.originalId)})">Detail</button><button class="btn btn-ghost sm" onclick="openBoardSection(${q(b.originalId)},'members')">Members</button><button class="btn btn-danger sm" aria-label="ลบ Board ${h(b.urlId)}" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></div></td>
+      <td class="board-actions" role="cell"><div><button class="btn btn-ghost sm" onclick="openBoardSection(${q(b.originalId)})">Details</button><button class="btn btn-ghost sm" onclick="openBoardSection(${q(b.originalId)},'members')">Members</button><button class="btn btn-danger sm" aria-label="ลบ Board ${h(b.urlId)}" onclick="deleteBoard(${q(b.originalId)})">ลบ</button></div></td>
     </tr>`;
   }).join('');
 }
 function renderBoards() {
   if (detail?.kind === 'board') return renderBoardDetail(detail.id);
-  const filters = `<div class="seg boards-filter" role="group" aria-label="Board type">${['all', 'split', 'debt', 'treasury'].map(type => `<button type="button" data-filter="${type}" class="${boardFilter === type ? 'on' : ''}" aria-pressed="${boardFilter === type}" onclick="setBoardFilter('${type}')">${type}</button>`).join('')}</div>`;
-  const toolbar = `<div class="toolbar boards-toolbar">${searchBox('ค้นหา board/admin')}${filters}<button class="btn btn-primary boards-add" onclick="addBoard()">+ เพิ่ม Board</button></div>`;
+  const filters = `<div class="seg boards-filter" role="group" aria-label="Board type">${['all', 'split', 'debt', 'treasury'].map(type => `<button type="button" data-filter="${type}" class="${boardFilter === type ? 'on' : ''}" aria-pressed="${boardFilter === type}" onclick="setBoardFilter('${type}')">${type === 'all' ? 'All Boards' : boardTypeLabel({ type })}</button>`).join('')}</div>`;
+  const toolbar = `<div class="toolbar boards-toolbar">${searchBox('Search boards or administrators')}${filters}<button class="btn btn-primary boards-add" onclick="addBoard()">+ Add Board</button></div>`;
   const visibleBoards = filtered(activeBoards().filter(b => boardFilter === 'all' || (b.type || 'split') === boardFilter), ['urlId', 'tripName', 'adminId', 'adminName']);
-  const shortcuts = visibleBoards.length ? `<div class="quick-open wrap-chips boards-shortcuts" aria-label="Board shortcuts">${visibleBoards.slice(0, 4).map(b => `<button class="btn btn-ghost sm" data-board-id="${h(b.originalId)}" onclick="openBoardSection(${q(b.originalId)})">Detail <span>${h(b.urlId)}</span></button>`).join('')}</div>` : '';
-  const columns = [['url','URL'],['type','Type'],['name','ชื่อ Board'],['admin-id','Admin ID'],['admin-name','ชื่อเล่น Admin'],['password','Reset Password'],['members','Members'],['actions','Actions']];
+  const shortcuts = visibleBoards.length ? `<div class="quick-open wrap-chips boards-shortcuts" aria-label="Board shortcuts">${visibleBoards.slice(0, 4).map(b => `<button class="btn btn-ghost sm" data-board-id="${h(b.originalId)}" onclick="openBoardSection(${q(b.originalId)})">Details <span>${h(b.urlId)}</span></button>`).join('')}</div>` : '';
+  const columns = [['url','Board ID'],['type','Type'],['name','Board name'],['admin-id','Admin ID'],['admin-name','Admin display name'],['password','Reset Password'],['members','Members'],['actions','Actions']];
   const content = visibleBoards.length ? `<div class="tbl-wrap"><table class="tbl boards-table" role="table" aria-label="Boards"><thead role="rowgroup"><tr role="row">${columns.map(([key, label]) => `<th class="board-${key}" scope="col" role="columnheader">${label}</th>`).join('')}</tr></thead><tbody role="rowgroup">${boardRows(visibleBoards)}</tbody></table></div>` : `<div class="empty boards-empty">${window.CoinQuestIcons('scroll')}<div class="e-t">${activeBoards().length ? 'ไม่พบบอร์ดที่ตรงกัน' : 'ยังไม่มีบอร์ด'}</div><p class="e-d">${activeBoards().length ? 'ลองค้นหาด้วยชื่อบอร์ด รหัสบอร์ด หรือผู้ดูแล' : 'สร้างบอร์ดแรกเพื่อเริ่มจัดการปาร์ตี้ของคุณ'}</p>${activeBoards().length ? '<button class="btn btn-ghost" onclick="clearBoardFilters()">ล้างการค้นหาและตัวกรอง</button>' : ''}</div>`;
-  return `${pageHead('Boards', 'All created Split, Debt, and Treasury boards')}${toolbar}${shortcuts}${card('Boards', content, `<span class="count-note" role="status">${visibleBoards.length} boards</span>`, 'boards-list')}`;
+  return `${pageHead('Boards', 'Manage Split Expenses, Debt Dragon and Treasury boards')}${toolbar}${shortcuts}${card('Boards', content, `<span class="count-note" role="status">${visibleBoards.length} boards</span>`, 'boards-list')}`;
 }
 function boardDateLabel(value) {
   if (value == null || value === '') return '—';
@@ -1065,7 +1065,7 @@ function updateBoardInfoField(id, key, input) {
   if (link) link.href = `/trip/?id=${encodeURIComponent(b.urlId)}${TEST_MODE ? '&test=1' : ''}`;
   const owner = document.querySelector('.board-owner-account');
   const ownerId = adminOwnerUserId(b);
-  if (owner) owner.innerHTML = ownerId ? idChip('user',ownerId,ownerId) : '<span class="badge st-archived">orphaned admin identity</span>';
+  if (owner) owner.innerHTML = ownerId ? idChip('user',ownerId,ownerId) : '<span class="badge st-archived">No linked user account</span>';
   const log = document.getElementById('board-log-body');
   if (log) log.innerHTML = boardChangeLog(b);
 }
@@ -1087,7 +1087,7 @@ function renderBoardDetail(id) {
       <div class="kv-row"><span class="k">Type</span><span class="v">${modBadge(b.type)}</span></div>
       <div class="kv-row"><span class="k">Status</span><span class="v">${statusBadgeFor(statusForBoard(b))}</span></div>
       <div class="kv-row"><span class="k">Owner admin</span><span class="v"><button class="idchip k-admin" onclick="openAdminGroup(${q(b.originalId)})"><span class="ic-ico">Admin</span><span data-board-info-value="adminId">${h(b.adminId || '—')}</span></button></span></div>
-      <div class="kv-row"><span class="k">Owner account</span><span class="v board-owner-account">${ownerUser ? idChip('user', ownerUser, ownerUser) : '<span class="badge st-archived">orphaned admin identity</span>'}</span></div>
+      <div class="kv-row"><span class="k">Owner account</span><span class="v board-owner-account">${ownerUser ? idChip('user', ownerUser, ownerUser) : '<span class="badge st-archived">No linked user account</span>'}</span></div>
       <div class="kv-row"><span class="k">Last active</span><span class="v">${h(boardDateLabel(b.data?.updatedAt))}</span></div>
     </div>`)}
     ${card(`${icon('swords')}Stats`, `<div class="board-stats-grid">
@@ -1136,7 +1136,7 @@ function renderAdmins() {
     return !needle || [g.adminId, g.adminName, g.key, g.ownerUserId, owner?.name, owner?.username].join(' ').toLowerCase().includes(needle);
   });
   const icon = window.CoinQuestIcons;
-  const shortcuts = groups.slice(0, 4).map((g, i) => `<button class="btn btn-ghost sm ${i > 1 ? 'admin-extra-shortcut' : ''}" data-admin-anchor="${h(g.boards[0].originalId)}" onclick="openAdminGroup(${q(g.boards[0].originalId)})">Detail <span data-admin-value="adminId">${h(g.adminId || '—')}</span></button>`).join('');
+  const shortcuts = groups.slice(0, 4).map((g, i) => `<button class="btn btn-ghost sm ${i > 1 ? 'admin-extra-shortcut' : ''}" data-admin-anchor="${h(g.boards[0].originalId)}" onclick="openAdminGroup(${q(g.boards[0].originalId)})">Details <span data-admin-value="adminId">${h(g.adminId || '—')}</span></button>`).join('');
   const rows = groups.map((g, index) => {
     const anchor = g.boards[0].originalId;
     const targets = h(JSON.stringify(g.boards.map(b => b.originalId)));
@@ -1144,22 +1144,22 @@ function renderAdmins() {
     return `<tr class="board-admin-row" data-admin-anchor="${h(anchor)}" role="row">
       <td class="board-admin-id" role="cell"><span class="admin-compact-value"><span class="admin-mobile-label">ID </span><span data-admin-value="adminId">${h(g.adminId || '—')}</span></span><input class="inline-field" aria-label="Admin ID for ${h(g.adminId || 'unnamed admin')}" value="${h(g.adminId)}" oninput="updateAdminGroup(${targets},{adminId:this.value})"></td>
       <td class="board-admin-name" role="cell"><span class="admin-compact-value" data-admin-value="adminName">${h(g.adminName || '—')}</span><input class="inline-field" aria-label="Nickname for ${h(g.adminId || 'unnamed admin')}" value="${h(g.adminName)}" placeholder="—" oninput="updateAdminGroup(${targets},{adminName:this.value})"></td>
-      <td class="board-admin-user" role="cell"><span class="admin-mobile-label" aria-hidden="true">${icon('profile')}</span>${g.ownerUserId ? idChip('user', g.ownerUserId, g.ownerUserId) : '<span class="badge st-archived">orphaned</span>'}</td>
+      <td class="board-admin-user" role="cell"><span class="admin-mobile-label" aria-hidden="true">${icon('profile')}</span>${g.ownerUserId ? idChip('user', g.ownerUserId, g.ownerUserId) : '<span class="badge st-archived">No linked user</span>'}</td>
       <td class="board-admin-hash" role="cell"><span class="admin-mobile-label">${icon('shield')}Owner Hash:</span><span class="mono">${h(g.boards[0].adminOwnerHash || '—')}</span></td>
       <td class="board-admin-boards" role="cell"><span class="admin-mobile-label">${icon('scroll')}Boards:</span><div class="board-admin-board-links"><div class="admin-board-items" id="admin-board-links-${index}">${boardLinks}</div>${g.boards.length > 1 ? `<button class="btn btn-ghost tiny admin-board-toggle" aria-label="More boards for ${h(g.adminId || 'unnamed admin')}" aria-expanded="false" aria-controls="admin-board-links-${index}" data-count="${g.boards.length - 1}" onclick="toggleAdminBoards(this)">+${g.boards.length - 1}</button>` : ''}</div></td>
-      <td class="board-admin-actions" role="cell"><button class="btn btn-ghost sm" onclick="openAdminGroup(${q(anchor)})">Detail</button></td>
+      <td class="board-admin-actions" role="cell"><button class="btn btn-ghost sm" onclick="openAdminGroup(${q(anchor)})">Details</button></td>
     </tr>`;
   }).join('');
   const columns = [['id','ID','ID / ชื่อเล่น'],['name','ชื่อเล่น / ชื่อที่แสดง',''],['user','User','User / Owner Hash'],['hash','Owner Hash',''],['boards','Boards','Boards'],['actions','จัดการ','จัดการ']];
-  const listing = rows ? `<div class="tbl-wrap"><table class="tbl board-admin-table" role="table" aria-label="Board Admins"><thead><tr role="row">${columns.map(([key, label, compact]) => `<th class="board-admin-col-${key}" scope="col" role="columnheader"><span class="admin-wide-heading">${label}</span><span class="admin-compact-heading">${compact}</span></th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty">${icon('shield')}<div class="e-t">${needle ? 'ไม่พบผู้ดูแลที่ตรงกัน' : 'ยังไม่มีผู้ดูแลบอร์ด'}</div><p>${needle ? 'ลองค้นหาด้วย ID ชื่อเล่น หรือ username อื่น' : 'ผู้ดูแลจะแสดงที่นี่เมื่อมีบอร์ดในระบบ'}</p>${needle ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">ล้างการค้นหา</button>' : ''}</div>`;
-  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards')}<div class="toolbar board-admin-toolbar">${searchBox('ค้นหา admin (ID, ชื่อเล่น หรือ username)')}</div><div class="board-admin-shortcuts" aria-label="Admin detail shortcuts">${shortcuts}${groups.length > 2 ? `<button class="btn btn-ghost sm admin-shortcut-toggle" aria-label="Show all admin shortcuts" aria-expanded="false" onclick="toggleAdminShortcuts(this)">${icon('more')}</button>` : ''}</div><section class="card board-admin-list"><div class="card-head"><h3>Board Admins</h3></div><div class="card-pad">${listing}<div class="board-admin-footer"><span role="status">${needle ? `${groups.length} of ${all.length}` : groups.length} admin identities</span><span>Board Admin IDs may own multiple boards</span></div></div></section>`;
+  const listing = rows ? `<div class="tbl-wrap"><table class="tbl board-admin-table" role="table" aria-label="Board Admins"><thead><tr role="row">${columns.map(([key, label, compact]) => `<th class="board-admin-col-${key}" scope="col" role="columnheader"><span class="admin-wide-heading">${label}</span><span class="admin-compact-heading">${compact}</span></th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty">${icon('shield')}<div class="e-t">${needle ? 'ไม่พบผู้ดูแลที่ตรงกัน' : 'ยังไม่มีผู้ดูแลบอร์ด'}</div><p>${needle ? 'ลองค้นหาด้วยรหัส ชื่อที่แสดง หรือชื่อผู้ใช้อื่น' : 'ผู้ดูแลจะแสดงที่นี่เมื่อมีบอร์ดในระบบ'}</p>${needle ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">ล้างการค้นหา</button>' : ''}</div>`;
+  return `${pageHead('Board Admins', 'Board Admin IDs may own multiple boards')}<div class="toolbar board-admin-toolbar">${searchBox('Search by admin ID, display name or username')}</div><div class="board-admin-shortcuts" aria-label="Admin detail shortcuts">${shortcuts}${groups.length > 2 ? `<button class="btn btn-ghost sm admin-shortcut-toggle" aria-label="Show all admin shortcuts" aria-expanded="false" onclick="toggleAdminShortcuts(this)">${icon('more')}</button>` : ''}</div><section class="card board-admin-list"><div class="card-head"><h3>Board Admins</h3></div><div class="card-pad">${listing}<div class="board-admin-footer"><span role="status">${needle ? `${groups.length} of ${all.length}` : groups.length} board administrators</span><span>Board Admin IDs may own multiple boards</span></div></div></section>`;
 }
 function renderAdminDetail(key) {
   const g = adminGroupByKey(key);
   if (!g) return card('Admin not found', '<button class="btn btn-ghost" onclick="closeDetail()">Back</button>');
   const userId = g.ownerUserId || '';
   const targets = h(JSON.stringify(g.boards.map(b => b.originalId)));
-  const ownerChip = userId ? idChip('user', userId, userId) : '<span class="badge st-archived">orphaned admin identity</span>';
+  const ownerChip = userId ? idChip('user', userId, userId) : '<span class="badge st-archived">No linked user account</span>';
   const identity = `${flatCard(`<div class="profile-card" data-admin-anchor="${h(g.boards[0].originalId)}"><div class="profile-ava">🛡️</div><div class="profile-name" data-admin-value="adminName">${h(g.adminName || '—')}</div><div class="profile-id"><span class="idchip k-admin"><span class="ic-ico">Admin</span><span data-admin-value="adminId">${h(g.adminId || '—')}</span></span></div><div class="mt12">${ownerChip}</div></div>`)}
     ${card('Identity', `${formField('Admin ID', `<input aria-label="Admin ID" value="${h(g.adminId)}" oninput="updateAdminGroup(${targets},{adminId:this.value})">`)}${formField('Nickname', `<input aria-label="Nickname" value="${h(g.adminName)}" oninput="updateAdminGroup(${targets},{adminName:this.value})">`)}<div class="kv"><div class="kv-row"><span class="k">Owner hash</span><span class="v mono">${h(g.boards[0].adminOwnerHash || '—')}</span></div></div>`)}`;
   const owned = g.boards.map(b => `<tr><td>${idChip('board', b.urlId, b.originalId)}</td><td class="cell-strong">${h(b.tripName)}</td><td>${modBadge(b.type)}</td><td class="td-actions"><button class="btn btn-ghost sm" onclick="openDetail('board',${q(b.originalId)})">Open</button></td></tr>`).join('');
@@ -1213,13 +1213,13 @@ function renderUsers() {
       <td class="user-reputation" role="cell"><div aria-label="Profile reputation: ${userReputation(u)}">${levelBadge(userLevel(u))}<span class="cell-sub mono">${userReputation(u).toLocaleString()}</span></div></td>
       <td class="user-role ${u.adminGroups.length ? '' : 'is-empty'}" role="cell">${u.adminGroups.length ? `<span class="badge role">${icon('shield')}${u.adminGroups.length} Admin ${u.adminGroups.length === 1 ? 'role' : 'roles'}</span>` : '<span class="cell-sub">—</span>'}</td>
       <td class="user-status" role="cell">${statusBadgeFor(u.status)}</td>
-      <td class="user-actions" role="cell"><div class="user-primary-actions">${characterProfileAction(profileId)}<button class="btn btn-ghost sm" onclick="openUserSection(${q(u.userId)})">Detail</button></div><button class="user-more" aria-label="More actions for ${h(u.name)}" aria-haspopup="dialog" onclick="showUserActions(${q(u.userId)})">${icon('more')}</button></td>
+      <td class="user-actions" role="cell"><div class="user-primary-actions">${characterProfileAction(profileId)}<button class="btn btn-ghost sm" onclick="openUserSection(${q(u.userId)})">Details</button></div><button class="user-more" aria-label="More actions for ${h(u.name)}" aria-haspopup="dialog" onclick="showUserActions(${q(u.userId)})">${icon('more')}</button></td>
     </tr>`;
   }).join('');
   const columns = [['id','User ID'],['name','Display name'],['character','Character'],['boards','Boards'],['reputation','Profile reputation'],['role','Admin role'],['status','Status'],['actions','Actions']];
   const content = records.length ? `<div class="tbl-wrap"><table class="tbl users-table" role="table" aria-label="Users"><thead role="rowgroup"><tr role="row">${columns.map(([key, label]) => `<th class="user-${key}" scope="col" role="columnheader">${label}</th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty users-empty">${icon('profile')}<div class="e-t">${all.length ? 'ไม่พบผู้ใช้ที่ตรงกัน' : 'ยังไม่มีผู้ใช้'}</div><p class="e-d">${all.length ? 'ลองค้นหาด้วยชื่อผู้ใช้ ชื่อตัวละคร หรือ ID' : 'บัญชีที่สมัครและสมาชิกบอร์ดจะแสดงที่นี่'}</p>${all.length ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">ล้างการค้นหา</button>' : ''}</div>`;
-  const shortcuts = records.length ? `<div class="quick-open wrap-chips users-shortcuts" aria-label="User shortcuts">${records.slice(0, 4).map(u => `<button class="btn btn-ghost sm" onclick="openUserSection(${q(u.userId)})">Detail <span>${h(u.userId)}</span></button>`).join('')}</div>` : '';
-  return `${pageHead('Users', `${all.length} global users · one active character per User ID`)}<div class="toolbar users-toolbar">${searchBox('Search user / character')}</div>${shortcuts}${card('Users', content, `<span class="count-note" role="status">${needle ? `${records.length} of ${all.length}` : all.length} users</span>`, 'users-list')}`;
+  const shortcuts = records.length ? `<div class="quick-open wrap-chips users-shortcuts" aria-label="User shortcuts">${records.slice(0, 4).map(u => `<button class="btn btn-ghost sm" onclick="openUserSection(${q(u.userId)})">Details <span>${h(u.userId)}</span></button>`).join('')}</div>` : '';
+  return `${pageHead('Users', `${all.length} global users · one active character per User ID`)}<div class="toolbar users-toolbar">${searchBox('Search users or characters')}</div>${shortcuts}${card('Users', content, `<span class="count-note" role="status">${needle ? `${records.length} of ${all.length}` : all.length} users</span>`, 'users-list')}`;
 }
 function tombstoneKey(record) { return record.userId || record.username; }
 function toggleTombstone(button, key) {
@@ -1249,7 +1249,7 @@ function renderTombstones() {
   const needle = query.trim().toLowerCase();
   const records = all.filter(u => !needle || [u.username, u.userId, ...u.characterIds].join(' ').toLowerCase().includes(needle));
   const icon = window.CoinQuestIcons;
-  const columns = [['id','User ID'],['username','Username'],['characters','Character IDs'],['uid','Previous UID'],['status','Status'],['date','Deleted at'],['source','Source'],['actions','Detail']];
+  const columns = [['id','User ID'],['username','Username'],['characters','Character IDs'],['uid','Previous UID'],['status','Status'],['date','Deleted at'],['source','Source'],['actions','Details']];
   const rows = records.map((u, index) => {
     const key = tombstoneKey(u);
     const collapsed = collapsedTombstones.has(key);
@@ -1262,12 +1262,12 @@ function renderTombstones() {
       <td class="ts-status" role="cell">${statusBadgeFor('deleted')}<button class="tombstone-toggle" aria-expanded="${!collapsed}" aria-controls="${['characters','uid','date','source','actions'].map(name => `tombstone-${index}-${name}`).join(' ')}" aria-label="${collapsed ? 'Expand' : 'Collapse'} deleted ID ${h(key)}" onclick="toggleTombstone(this,${q(key)})">${icon('chevron')}</button></td>
       ${meta('date', 'Deleted at', h(adminDateLabel(u.deletedAt)))}
       ${meta('source', 'Source', h(u.source || '—'))}
-      <td id="tombstone-${index}-actions" class="ts-actions tombstone-meta" role="cell"><button class="btn btn-ghost sm" onclick="showTombstoneDetail(${q(key)})">Detail</button></td>
+      <td id="tombstone-${index}-actions" class="ts-actions tombstone-meta" role="cell"><button class="btn btn-ghost sm" onclick="showTombstoneDetail(${q(key)})">Details</button></td>
     </tr>`;
   }).join('');
   const content = records.length ? `<div class="tbl-wrap"><table class="tbl tombstones-table" role="table" aria-label="Deleted IDs"><thead role="rowgroup"><tr role="row">${columns.map(([key,label]) => `<th class="ts-${key}" scope="col" role="columnheader">${label}</th>`).join('')}</tr></thead><tbody role="rowgroup">${rows}</tbody></table></div>` : `<div class="empty">${icon('document')}<div class="e-t">${all.length ? 'No matching deleted IDs' : 'No deleted IDs yet'}</div><p class="e-d">${all.length ? 'Try a User ID, username or Character ID.' : 'Deleted identity records will appear here for audit.'}</p>${all.length ? '<button class="btn btn-ghost" onclick="clearAdminSearch()">Clear search</button>' : ''}</div>`;
-  const note = `<div class="phase-note tombstones-note">${icon('document')}<span>Deleted IDs เป็นข้อมูลที่เก็บไว้ในรูปแบบ tombstone เพื่อการตรวจสอบ (audit) และใช้ซ้ำตามกฎของระบบ โดยแยกจากผู้ใช้งานที่ยัง active และบัญชีของ Board Admin โดยตั้งใจ</span></div>`;
-  return `${pageHead('Deleted IDs', `${all.length} reusable tombstones · not active accounts`)}${note}<div class="toolbar tombstones-toolbar">${searchBox('Search deleted ID / username')}</div>${card('Deleted IDs', content, `<span class="count-note" role="status">${needle ? `${records.length} of ${all.length}` : all.length} records</span>`, `tombstones-list ${needle ? 'is-filtered' : ''}`)}`;
+  const note = `<div class="phase-note tombstones-note">${icon('document')}<span>หน้านี้แสดงประวัติรหัสบัญชีที่ถูกลบเพื่อใช้ตรวจสอบย้อนหลัง รหัสอาจนำกลับมาใช้ได้ตามเงื่อนไขของระบบ รายการเหล่านี้แยกจากบัญชีผู้ใช้และผู้ดูแลบอร์ดที่ยังใช้งานอยู่</span></div>`;
+  return `${pageHead('Deleted IDs', `${all.length} deleted account records · retained for review`)}${note}<div class="toolbar tombstones-toolbar">${searchBox('Search deleted IDs or usernames')}</div>${card('Deleted IDs', content, `<span class="count-note" role="status">${needle ? `${records.length} of ${all.length}` : all.length} records</span>`, `tombstones-list ${needle ? 'is-filtered' : ''}`)}`;
 }
 function adminDetailHeading(title, badges, actions, titleAttribute = '', centered = false) {
   return `<header class="admin-detail-heading${centered ? ' admin-detail-heading--centered admin-paper-card' : ''}"><div><h1 class="page-title" ${titleAttribute}>${h(title)}</h1><div class="admin-detail-badges">${badges}</div></div><div class="admin-detail-actions">${actions}</div></header>`;
@@ -1303,7 +1303,7 @@ function renderUserDetail(id) {
   }).join('') || empty('No activity yet','No related board changes are recorded.');
   const deleteReady = TEST_MODE || adminBackendStatus.adminDeleteConfigured;
   const action = (art,title,description,label,handler,kind='gold') => `<div class="user-lifecycle-action ${kind === 'danger' ? 'is-danger' : ''}">${icon(art)}<div><h3>${title}</h3><p>${description}</p></div><button class="btn btn-${kind}" onclick="${handler}">${label}</button></div>`;
-  const lifecycle = `<div class="phase-note user-lifecycle-note">${icon('shield')}<span>Account changes take effect after confirmation; they do not wait for Board Publish. Archive and deactivate keep data recoverable.</span></div><div class="kv user-account-facts"><div class="kv-row"><span class="k">Current status</span><span class="v">${statusBadgeFor(u.status)}</span></div><div class="kv-row"><span class="k">Firebase UID</span><span class="v mono">${h(u.uid || 'not linked')}</span></div><div class="kv-row"><span class="k">Username</span><span class="v">${u.username ? '@'+h(u.username) : '—'}</span></div></div><p class="user-backend-note">${h(adminDeleteBackendNote())}</p><div class="user-lifecycle-actions">${action('box','Archive user','Keep account data and remove the user from active circulation.','Archive',`showUserLifecycleModal(${q(u.userId)},'archived')`)}${action('key','Deactivate login','Block player login while keeping account data recoverable.','Deactivate',`showUserLifecycleModal(${q(u.userId)},'deactivated')`,'danger')}${normalizeUserStatus(u.status) !== 'active' ? action('shield','Reactivate user','Return this account to active status.','Reactivate',`showUserLifecycleModal(${q(u.userId)},'active')`,'primary') : ''}<div class="user-lifecycle-action is-danger">${icon('trash')}<div><h3>Permanent delete request</h3><p>${deleteReady ? 'Remove account data through the verified Admin backend. Requires a reason and exact confirmation.' : h(adminDeleteBackendNote())}</p></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})" ${deleteReady ? '' : 'disabled'}>Request delete</button></div></div>`;
+  const lifecycle = `<div class="phase-note user-lifecycle-note">${icon('shield')}<span>Account changes take effect after confirmation; they do not wait for Board Publish. Archive and deactivate keep data recoverable.</span></div><div class="kv user-account-facts"><div class="kv-row"><span class="k">Current status</span><span class="v">${statusBadgeFor(u.status)}</span></div><div class="kv-row"><span class="k">Firebase UID</span><span class="v mono">${h(u.uid || 'not linked')}</span></div><div class="kv-row"><span class="k">Username</span><span class="v">${u.username ? '@'+h(u.username) : '—'}</span></div></div><p class="user-backend-note">${h(adminDeleteBackendNote())}</p><div class="user-lifecycle-actions">${action('box','Archive user','Keep account data and remove the user from active circulation.','Archive',`showUserLifecycleModal(${q(u.userId)},'archived')`)}${action('key','Deactivate login','Block player login while keeping account data recoverable.','Deactivate',`showUserLifecycleModal(${q(u.userId)},'deactivated')`,'danger')}${normalizeUserStatus(u.status) !== 'active' ? action('shield','Reactivate user','Return this account to active status.','Reactivate',`showUserLifecycleModal(${q(u.userId)},'active')`,'primary') : ''}<div class="user-lifecycle-action is-danger">${icon('trash')}<div><h3>Permanent delete request</h3><p>${deleteReady ? 'Permanently remove account data. A reason and exact confirmation are required.' : h(adminDeleteBackendNote())}</p></div><button class="btn btn-danger" onclick="showPermanentDeleteModal(${q(u.userId)})" ${deleteReady ? '' : 'disabled'}>Request delete</button></div></div>`;
   const actions = `<button class="btn btn-ghost" onclick="showResetPwModal(${q(u.userId)})">${icon('key')}Reset password</button><button class="btn btn-gold" onclick="showExportModal(${q(u.userId)})">${icon('download')}Export data</button><button class="btn btn-ghost" onclick="focusUserSection('lifecycle')">${icon('shield')}Lifecycle</button>`;
   return `<div class="crumbs"><button onclick="closeDetail('users')">Users</button><span class="sep">/</span><span class="cur">${h(u.name)}</span></div><div class="user-info-page">${adminDetailHeading(u.name,`${staticIdChip('user',u.userId)}${u.username ? `<span class="user-heading-username">@${h(u.username)}</span>` : ''}${statusBadgeFor(u.status)}`,actions,'',true)}${adminTavernBanner(true)}<div class="user-info-grid"><aside class="user-profile-aside">${profile}<div class="user-identity-note">${icon('shield')}<p>One account · one active character</p><small>User, Character and Admin IDs keep their separate roles.</small></div></aside><div class="user-info-sections">${userDetailSection('chars','Character','swords',chars,u.chars.length)}${userDetailSection('boards','Boards','scroll',boardTable,u.boards.length)}${userDetailSection('admin','Admin roles','shield',admins,u.adminGroups.length)}${userDetailSection('activity','Activity','scroll',`<div class="log-list">${activityRows}</div>`,activity.length)}${userDetailSection('lifecycle','Account lifecycle','key',lifecycle)}</div></div></div>`;
 }
@@ -1326,12 +1326,12 @@ function renderRevisions() {
   const body = `<div class="log-list">${versionRows.map(v => `<div class="log-item"><div class="log-ico edit">${v.current ? '⭐' : '🕰️'}</div><div class="log-body"><div class="log-text"><b class="mono">${h(v.v)}</b>${v.current ? ` <span class="badge st-active">${current.length ? 'Draft' : 'Published'}</span>` : ''} · ${h(v.note)}</div><div class="log-meta"><span>${h(v.at ? new Date(v.at).toLocaleString() : '—')}</span><span class="dot-sep">·</span><span>by ${h(v.by)}</span></div></div></div>`).join('')}</div>`;
   const revDetails = revs.map(rev => `<details class="rev"><summary><span>${new Date(rev.createdAt).toLocaleString()} · ${(rev.changes || []).length} changes</span><span>${h(rev.author || '')}</span></summary><div class="rev-list">${(rev.changes || []).map(c => `<div class="log-item"><div class="log-ico edit">✎</div><div class="log-body"><div class="log-text"><b>${h(c.area)}</b> ${statusBadge(c.action, 'active')}</div><div class="log-meta">${h(c.detail)}</div></div></div>`).join('')}</div></details>`).join('');
   const actions = `<button class="btn btn-ghost" onclick="saveDraft()">💾 Save draft</button><button class="btn btn-primary" onclick="publishDraft()">🚀 Publish now${current.length ? ` (${current.length})` : ''}</button>`;
-  return `${pageHead('Versions & Publishing', 'Board draft publishing history; expand a revision below to view its changes', actions)}<div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode writes the draft to session/local storage for regression.' : 'Super Admin is Google-auth protected. Publish writes the current admin draft to storage.')}</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
+  return `${pageHead('Versions & Publishing', 'Board draft publishing history; expand a revision below to view its changes', actions)}<div class="phase-note"><span class="pn-ico">🛡️</span><span>${h(TEST_MODE ? 'Test mode writes the draft to session/local storage for regression.' : 'Only authorized administrators can publish. Publishing applies the current board changes to the live system.')}</span></div>${card('🕰️ System version history', body)}${revDetails ? `<div class="mt16">${card('Published revision details', revDetails)}</div>` : ''}`;
 }
 function renderSupportTools() {
   return `${pageHead('Support Tools', 'Account support and data exports')}
     <div class="grid g-2">
-      ${card('🔑 Reset password', '<p>Reset an existing account through the verified Admin backend.</p><button class="btn btn-ghost" onclick="showResetPwModal()">Reset password</button>')}
+      ${card('🔑 Reset password', '<p>Set a new password for an existing account after verifying the account holder.</p><button class="btn btn-ghost" onclick="showResetPwModal()">Reset password</button>')}
       ${card('📤 Export data', '<p>Download the currently loaded board or user data as JSON, excluding authentication secrets.</p><button class="btn btn-gold" onclick="showExportModal()">Export JSON</button>')}
       ${card('👤 Users', '<p>Inspect account profiles, board links and account lifecycle.</p><button class="btn btn-ghost" onclick="selectTab(\'users\')">View users</button>')}
       ${card('🗂️ Boards', '<p>Review boards and publish verified draft changes.</p><button class="btn btn-ghost" onclick="selectTab(\'boards\')">View boards</button>')}
@@ -1429,7 +1429,7 @@ function exportAdminData() {
 }
 function showResetPwModal(id = '') {
   const temp = tempPassword();
-  portalModal('🔑 Reset password', `<div class="field"><label>Real account username</label><input id="reset-username" class="mono" placeholder="username"><div class="hint">No real email needed. The backend verifies this Super Admin session and resets the account credential.</div></div><div class="field"><label>Temporary password</label><input id="reset-temp-password" class="mono" value="${h(temp)}"><div class="hint">Give this password to the user. A new Recovery ID is generated for one-time handoff.</div></div><div class="field"><label>Optional User ID to preserve</label><select id="reset-user-id"><option value="">From existing account mapping</option>${userOptions(id)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">🔐</span><span>Admin reset runs through a Vercel Firebase Admin SDK route, so the admin browser session is not replaced by the target user.</span></div><div class="login-err" id="reset-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="performAdminPasswordReset()">Confirm reset</button>`);
+  portalModal('🔑 Reset password', `<div class="field"><label>Real account username</label><input id="reset-username" class="mono" placeholder="username"><div class="hint">Enter the account’s username. Administrator access is verified before the password is reset.</div></div><div class="field"><label>Temporary password</label><input id="reset-temp-password" class="mono" value="${h(temp)}"><div class="hint">Give this password to the user. A new recovery key is generated for secure handoff to the account holder.</div></div><div class="field"><label>Optional User ID to preserve</label><select id="reset-user-id"><option value="">From existing account mapping</option>${userOptions(id)}</select></div><div class="phase-note" style="margin:0"><span class="pn-ico">🔐</span><span>This resets the selected account’s password without changing your administrator session.</span></div><div class="login-err" id="reset-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-primary" onclick="performAdminPasswordReset()">Confirm reset</button>`);
 }
 async function performAdminPasswordReset() {
   const username = normalizeUsername(document.getElementById('reset-username')?.value || '');
@@ -1442,12 +1442,12 @@ async function performAdminPasswordReset() {
     err.textContent = text ? `⚠️ ${text}` : '';
   };
   if (!username || password.length < 6) {
-    setError('Enter a username and 6+ character temporary password.');
+    setError('Enter a username and a temporary password containing at least 6 characters.');
     return;
   }
   if (TEST_MODE) {
     const recoveryCode = recoveryCodeValue();
-    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(recoveryCode)}" readonly><div class="hint">Test mode simulates the backend handoff without touching Firebase Auth.</div></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
+    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery key</label><input class="mono" value="${h(recoveryCode)}" readonly><div class="hint">Test mode simulates the backend handoff without touching Firebase Auth.</div></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
     return;
   }
   try {
@@ -1462,7 +1462,7 @@ async function performAdminPasswordReset() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || data.message || `Backend returned ${res.status}`);
-    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(data.username || username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery code</label><input class="mono" value="${h(data.recoveryCode || '')}" readonly><div class="hint">Give this to the user once. It replaces their previous recovery code.</div></div><div class="field"><label>User ID</label><input class="mono" value="${h(data.userId || '')}" readonly></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
+    portalModal('✅ Password reset ready', `<div class="field"><label>Username</label><input class="mono" value="${h(data.username || username)}" readonly></div><div class="field"><label>Temporary password</label><input class="mono" value="${h(password)}" readonly></div><div class="field"><label>New recovery key</label><input class="mono" value="${h(data.recoveryCode || '')}" readonly><div class="hint">Give this to the user once. It replaces their previous recovery code.</div></div><div class="field"><label>User ID</label><input class="mono" value="${h(data.userId || '')}" readonly></div>`, `<button class="btn btn-primary" onclick="closePortalModal()">Done</button>`);
     await loadPublished();
     render();
   } catch (error) {
@@ -1530,7 +1530,7 @@ function showPermanentDeleteModal(userId) {
     return;
   }
   const confirmText = `DELETE ${u.userId}`;
-  portalModal('🗑️ Permanent delete request', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>This action is backend-only. The browser sends your Google-auth ID token; only ${h(SUPER_ADMIN_EMAIL)} is accepted.</span></div><div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}${u.username ? ' · @' + h(u.username) : ''}" readonly></div><div class="field"><label>Reason</label><textarea id="delete-reason" rows="3" placeholder="Required audit reason"></textarea></div><div class="field"><label>Type to confirm</label><input id="delete-confirm" class="mono" placeholder="${h(confirmText)}"><div class="hint">This deletes Auth-linked account data when a UID exists, and also cleans no-auth legacy board/character references that cannot work with the current account flow.</div></div><div class="login-err" id="delete-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="performPermanentDeleteRequest(${q(userId)})">Request permanent delete</button>`);
+  portalModal('🗑️ Permanent delete request', `<div class="phase-note" style="margin-top:0"><span class="pn-ico">⚠️</span><span>Only the authorized Super Admin can permanently delete an account. This takes effect immediately after confirmation and cannot be undone.</span></div><div class="field"><label>User</label><input class="mono" value="${h(u.name)} · ${h(u.userId)}${u.username ? ' · @' + h(u.username) : ''}" readonly></div><div class="field"><label>Reason</label><textarea id="delete-reason" rows="3" placeholder="Required audit reason"></textarea></div><div class="field"><label>Type to confirm</label><input id="delete-confirm" class="mono" placeholder="${h(confirmText)}"><div class="hint">This permanently removes account and character data and clears their links from boards. Legacy records without a sign-in account are also cleaned up.</div></div><div class="login-err" id="delete-error" hidden></div>`, `<button class="btn btn-ghost" onclick="closePortalModal()">Cancel</button><button class="btn btn-danger" onclick="performPermanentDeleteRequest(${q(userId)})">Request permanent delete</button>`);
 }
 async function performPermanentDeleteRequest(userId) {
   const u = userById(userId);

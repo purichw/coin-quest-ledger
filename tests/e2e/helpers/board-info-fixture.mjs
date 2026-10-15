@@ -16,5 +16,5 @@ export async function openBoardInfoFixture(page) {
     }));
   });
   await openAdminFixture(page,{tab:'boards',empty:true,edits:false});
-  await page.getByRole('button',{name:'Detail 1397',exact:true}).click();
+  await page.getByRole('button',{name:'Details 1397',exact:true}).click();
 }

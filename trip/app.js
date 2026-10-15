@@ -1013,7 +1013,7 @@ async function createBoardFromChoose() {
     console.warn('Board creation failed', error);
     window.CoinQuestEntry.error('new', error.message === 'auth-required'
       ? (LANG === 'en' ? 'Please sign in before creating a board.' : 'กรุณาเข้าสู่ระบบก่อนสร้างบอร์ด')
-      : (LANG === 'en' ? 'Could not create your board. Your name is saved here; please try again.' : 'ยังสร้างบอร์ดไม่สำเร็จ ชื่อที่กรอกยังอยู่ ลองอีกครั้งได้เลย'));
+      : (LANG === 'en' ? 'Could not create your board. Your name is saved here; please try again.' : 'สร้างบอร์ดไม่สำเร็จ ชื่อที่กรอกยังอยู่ในแบบฟอร์ม กรุณาลองอีกครั้ง'));
   }
 }
 async function joinBoardFromChoose() {

@@ -5,7 +5,7 @@ import { openUsersFixture } from './helpers/users-fixture.mjs';
 test.beforeEach(async ({ page }, info) => {
   await page.setViewportSize({ width: { chromium: 1440, tablet: 834, mobile: 390 }[info.project.name], height: 900 });
   await openUsersFixture(page);
-  await page.getByRole('button', { name: 'Detail 2150', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 2150', exact: true }).click();
 });
 const modal = page => page.getByRole('dialog');
 const status = page => page.locator('.user-account-facts .kv-row').first().locator('.v');
@@ -80,7 +80,7 @@ test('User lifecycle requires confirmation and persists independently of board d
   expect(await page.evaluate(() => JSON.stringify(draft))).toBe(before);
   await page.reload();
   await openUsersFixture(page);
-  await page.getByRole('button', { name: 'Detail 2150', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 2150', exact: true }).click();
   await expect(status(page)).toHaveText('deactivated');
   await page.getByRole('button', { name: 'Request delete', exact: true }).click();
   await modal(page).getByRole('button', { name: 'Request permanent delete', exact: true }).click();
@@ -123,12 +123,12 @@ test('User detail tolerates empty and legacy identities, long text and related a
   await page.setViewportSize({ width: 320, height: 900 });
   await noOverflow(page);
   await back(page);
-  await page.locator('.user-row[data-user-id="9000"]').getByRole('button', { name: 'Detail', exact: true }).click();
+  await page.locator('.user-row[data-user-id="9000"]').getByRole('button', { name: 'Details', exact: true }).click();
   for (const text of ['No character yet','No boards','Not an admin','No activity yet']) await expect(page.getByText(text, { exact: true })).toBeVisible();
   await expect(page.locator('.user-summary-counts strong')).toHaveText(['0','0','0']);
   await noOverflow(page);
   await back(page);
-  await page.locator('.user-row').filter({ hasText: 'TEST Guest 1' }).getByRole('button', { name: 'Detail', exact: true }).click();
+  await page.locator('.user-row').filter({ hasText: 'TEST Guest 1' }).getByRole('button', { name: 'Details', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Profile unavailable: no Character ID', exact: true })).toBeDisabled();
   await expect(page.locator('#user-chars')).toContainText('No Character ID');
   await noOverflow(page);

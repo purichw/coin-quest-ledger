@@ -43,14 +43,14 @@ test('relationship map separates actual entities and preserves detail navigation
 test('mobile help is keyboard operable and rules remain visible at larger widths', async ({ page }) => {
   await openRelationshipFixture(page);
   await page.setViewportSize({ width: 390, height: 900 });
-  const toggle = page.getByRole('button', { name: 'คำอธิบาย & กฎการทำงาน' });
+  const toggle = page.getByRole('button', { name: 'คำอธิบายและกฎการทำงาน' });
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(page.locator('.model-rules')).toBeHidden();
   await toggle.focus();
   await page.keyboard.press('Enter');
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.rel-legend-item')).toHaveCount(4);
-  await expect(page.locator('.model-rules')).toContainText('Character identity is managed through the account profile');
+  await expect(page.locator('.model-rules')).toContainText('Character details are managed in the account profile');
   await page.keyboard.press('Space');
   await expect(page.locator('.model-rules')).toBeHidden();
   await page.setViewportSize({ width: 768, height: 1024 });
@@ -82,7 +82,7 @@ test('multiple admin roles and long board names remain complete without duplicat
 
 test('empty map and users without related entities do not invent records or actions', async ({ page }) => {
   await openRelationshipFixture(page, { empty: true });
-  await expect(page.getByText('ยังไม่มี user', { exact: true })).toBeVisible();
+  await expect(page.getByText('ยังไม่มีผู้ใช้งาน', { exact: true })).toBeVisible();
   await expect(page.locator('.rel-node')).toHaveCount(0);
   await page.evaluate(() => {
     cloudUsers = [{ userId: '2150', name: 'TEST New account', chars: [], boards: [], adminGroups: [] }];

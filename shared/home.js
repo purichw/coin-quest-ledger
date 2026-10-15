@@ -3,15 +3,15 @@
     th: {
       pick: 'เลือกเควสเพื่อเริ่มการผจญภัย สร้างวินัยการเงินไปด้วยกัน',
       quote: '“ทุกการใช้จ่าย คืออีกก้าวของการผจญภัย”', sign: 'การเงินที่ดี\nก็เป็นการผจญภัยได้',
-      ready: 'พร้อมออกผจญภัยแล้วหรือยัง?', readySub: 'จัดการการเงินในแบบที่เป็นคุณ เลือกกิจกรรมที่ต้องการได้เลย',
+      ready: 'พร้อมออกผจญภัยแล้วหรือยัง?', readySub: 'เลือกกิจกรรมเพื่อวางแผนและจัดการการเงินของคุณ',
       resume: 'กลับไปด่านล่าสุด', resumeSub: 'เล่นต่อจากที่ค้างไว้', start: 'เริ่มผจญภัย', startSub: 'เลือกเควสแรกของคุณ',
-      party: 'สร้างปาร์ตี้ใหม่', partySub: 'ชวนเพื่อนจัดการเงิน', reminders: 'ดูภารกิจค้าง', remindersSub: 'ภารกิจที่รออยู่',
+      party: 'สร้างปาร์ตี้ใหม่', partySub: 'ชวนเพื่อนจัดการเงิน', reminders: 'ดูการแจ้งเตือน', remindersSub: 'ภารกิจที่รออยู่',
       play: 'เข้าเกม', days: 'วันติด', reputation: 'ความน่าเชื่อถือ', quests: 'เควส', parties: 'ปาร์ตี้', dragons: 'มังกร', deals: 'รายการ', wards: 'ด่าน', debt: 'ยอดหนี้', left: 'ยอดคงเหลือ', saved: 'ดีลประหยัดสูงสุด',
       cards: [
-        ['แบ่งค่าใช้จ่าย', 'แบ่งค่าใช้จ่ายกับปาร์ตี้ — ใครจ่ายเท่าไหร่ เคลียร์ให้จบในเควสเดียว', 'เพื่อนดี\nค่าใช้จ่ายก็เบา'],
-        ['มังกรหนี้', 'ปราบมังกรหนี้ทีละตัว — จ่ายคือโจมตี ดอกเบี้ยคือไฟที่มันพ่น', 'จัดการหนี้\nก่อนที่มันจะพ่นไฟ!'],
-        ['เปรียบเทียบราคา', 'ประลองราคาร้านค้าในสนามประลอง ของถูกที่สุดคือผู้ชนะ', 'ราคาดี\nคือชัยชนะอีกแบบ'],
-        ['คลังหลวง', 'ตั้งงบรายเดือน ปกป้องคลังจากเหล่าสัตว์ร้ายที่มาปล้นทองทุกเดือน', 'เก็บวันนี้\nเพื่อเส้นทางที่ไกลกว่า']
+        ['แบ่งค่าใช้จ่าย', 'บันทึกค่าใช้จ่ายร่วมกัน คำนวณส่วนแบ่ง และสรุปยอดคืนเงิน', 'เพื่อนดี\nค่าใช้จ่ายก็เบา'],
+        ['มังกรหนี้', 'ติดตามยอดหนี้ วางแผนชำระ และก้าวสู่เป้าหมายปลอดหนี้', 'จัดการหนี้\nก่อนที่มันจะพ่นไฟ!'],
+        ['เปรียบเทียบราคา', 'เปรียบเทียบราคาต่อหน่วย เพื่อเลือกตัวเลือกที่คุ้มค่า', 'ราคาดี\nคือชัยชนะอีกแบบ'],
+        ['คลังหลวง', 'วางแผนงบประมาณรายเดือน ติดตามรายจ่าย และดูยอดเงินคงเหลือ', 'เก็บวันนี้\nเพื่อเส้นทางที่ไกลกว่า']
       ]
     },
     en: {
@@ -21,9 +21,9 @@
       party: 'New party', partySub: 'Invite your friends', reminders: 'Reminders', remindersSub: 'Quests to complete',
       play: 'Enter game', days: 'day streak', reputation: 'Reputation', quests: 'quests', parties: 'parties', dragons: 'dragons', deals: 'deals', wards: 'wards', debt: 'Debt', left: 'Remaining', saved: 'Best deal saving',
       cards: [
-        ['Split Expenses', 'Split costs with your party — who paid what, settled in one quest.', 'Good friends,\nlighter expenses'],
-        ['Debt Dragon', 'Slay debts one by one. Payments strike; interest burns.', 'Tame your debt\nbefore it breathes fire!'],
-        ['Compare Prices', 'Pit merchants against each other. Find the best deal.', 'A better price,\na little victory'],
+        ['Split Expenses', 'Record shared expenses, calculate each person’s share and settle balances.', 'Good friends,\nlighter expenses'],
+        ['Debt Dragon', 'Track your debts, plan payments and work toward becoming debt-free.', 'Tame your debt\nbefore it breathes fire!'],
+        ['Compare Prices', 'Compare unit prices to find the best value across offers.', 'A better price,\na little victory'],
         ['Personal Treasury', 'Plan your monthly budget and guard your gold from everyday expenses.', 'Save today,\nadventure tomorrow']
       ]
     }

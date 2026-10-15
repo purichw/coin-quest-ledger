@@ -103,7 +103,7 @@ test('Treasury bills validate, record once and persist',async({page})=>{
   expect((await stored(page)).expenses.filter(e=>e.billId===id)).toHaveLength(1);
   await expect(page.locator('[data-action="pay"][data-id="'+id+'"]')).toHaveCount(0);
   await page.reload();await expand(page,'bills');
-  await expect(page.locator('.bill-row').filter({hasText:'TEST ค่าไฟ'})).toContainText('จ่ายแล้ว');
+  await expect(page.locator('.bill-row').filter({hasText:'TEST ค่าไฟ'})).toContainText('ชำระแล้ว');
   await page.locator('[data-action="bill"][data-id="'+id+'"]').click();
   await page.locator('#bill-name').fill('TEST ค่าไฟใหม่');
   await page.locator('.modal .btn-primary').click();

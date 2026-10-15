@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }, info) => {
   await page.setViewportSize({ width: { chromium: 1440, tablet: 768, mobile: 390 }[info.project.name], height: 900 });
 });
 const record = (page, id) => page.locator(`.tombstone-row[data-key="${id}"]`);
-const search = page => page.getByPlaceholder('Search deleted ID / username');
+const search = page => page.getByPlaceholder('Search deleted IDs or usernames');
 const noOverflow = async page => expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 const state = page => page.evaluate(() => JSON.stringify({ draft, cloudTombstones, lifecycle: localUserLifecycle(), dirty }));
 
@@ -13,7 +13,7 @@ test('Deleted IDs preserves historical fields and keeps all identities read-only
   const errors = []; page.on('pageerror', err => errors.push(err.message));
   await openTombstonesFixture(page);
   await expect(page.locator('.tombstone-row')).toHaveCount(6);
-  await expect(page.locator('.page-desc')).toContainText('6 reusable tombstones');
+  await expect(page.locator('.page-desc')).toContainText('6 deleted account records');
   await expect(record(page, '4965').locator('.ts-characters')).toContainText('4965');
   await expect(record(page, '3186').locator('.ts-characters .ts-value')).toHaveText('—');
   await expect(page.locator('.tombstones-table .ts-status .badge')).toHaveText(Array(6).fill('deleted'));
@@ -38,7 +38,7 @@ test('Deleted IDs search retains input focus and distinguishes empty data from n
   await expect(page.locator('.tombstone-row')).toHaveCount(1);
   await expect(search(page)).toBeFocused();
   expect(await original.evaluate(el => el.isConnected)).toBe(true);
-  await expect(page.locator('.page-desc')).toContainText('6 reusable tombstones');
+  await expect(page.locator('.page-desc')).toContainText('6 deleted account records');
   await expect(page.locator('.tombstones-list [role="status"]')).toHaveText('1 of 6 records');
   await search(page).fill('  TEST.RECLAIM.Q13G7O7  ');
   await expect(record(page, '7273')).toBeVisible();
@@ -61,7 +61,7 @@ test('Deleted IDs search retains input focus and distinguishes empty data from n
 test('Deleted ID detail shows full historical values with keyboard dismissal and no writes', async ({ page }) => {
   await openTombstonesFixture(page);
   const before = await state(page);
-  const detail = record(page, '4965').getByRole('button', { name: 'Detail', exact: true });
+  const detail = record(page, '4965').getByRole('button', { name: 'Details', exact: true });
   await detail.focus(); await page.keyboard.press('Enter');
   const modal = page.getByRole('dialog');
   await expect(modal).toContainText('TEST-previous-uid-4965-aB7xP9kL4mN8');
@@ -105,7 +105,7 @@ test('Deleted ID disclosure survives filtering and viewport changes without losi
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   const controls = (await toggle.getAttribute('aria-controls')).split(' ');
   for (const id of controls) await expect(page.locator(`[id="${id}"]`)).toBeVisible();
-  await expect(first.getByRole('button', { name: 'Detail', exact: true })).toBeVisible();
+  await expect(first.getByRole('button', { name: 'Details', exact: true })).toBeVisible();
   expect(await state(page)).toBe(before);
   await noOverflow(page);
 });
@@ -127,16 +127,16 @@ test('Deleted IDs handles incomplete, long and unsafe-looking metadata without a
   await expect(page.locator('.tombstone-row')).toHaveCount(6);
   await expect(record(page, '3186').locator('.ts-characters .idchip')).toHaveCount(3);
   await noOverflow(page);
-  await record(page, '3186').getByRole('button', { name: 'Detail', exact: true }).click();
+  await record(page, '3186').getByRole('button', { name: 'Details', exact: true }).click();
   const modal = page.getByRole('dialog');
   await expect(modal).toContainText('<img src=x onerror=alert(1)>');
   await expect(modal.locator('img')).toHaveCount(0);
   await noOverflow(page);
   await page.keyboard.press('Escape');
-  await record(page, '4965').getByRole('button', { name: 'Detail', exact: true }).click();
+  await record(page, '4965').getByRole('button', { name: 'Details', exact: true }).click();
   await expect(modal).toContainText('Not recorded');
   await page.keyboard.press('Escape');
   const noId = page.locator('.tombstone-row').filter({ hasText: 'No User ID' });
-  await noId.getByRole('button', { name: 'Detail', exact: true }).click();
+  await noId.getByRole('button', { name: 'Details', exact: true }).click();
   await expect(modal).toContainText("test.username-only'quoted");
 });

@@ -157,11 +157,11 @@ test('Drawer recovery copies the full code and handles regeneration failure with
   await seed(page); await open(page); await expand(page, 'recovery');
   await page.locator('[data-copy-recovery-side]').click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('ABCD-EFGH-JKLM');
-  await expect(page.locator('[data-recovery-msg]')).toContainText('คัดลอก Recovery ID แล้ว');
+  await expect(page.locator('[data-recovery-msg]')).toContainText('คัดลอกรหัสกู้คืนแล้ว');
   await expect(page.locator('[data-recovery-code]')).toHaveText('ABCD-••••-••••');
   await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new Error('TEST clipboard denied'); }; });
   await page.locator('[data-copy-recovery-side]').click();
-  await expect(page.locator('[data-recovery-msg]')).toContainText('กดแสดงรหัสแล้วเลือกคัดลอก');
+  await expect(page.locator('[data-recovery-msg]')).toContainText('กรุณาแสดงรหัสและเลือกคัดลอกด้วยตนเอง');
   await page.evaluate(() => { Object.defineProperty(crypto, 'subtle', { value: { digest: async () => { throw new Error('TEST failure'); } }, configurable: true }); });
   await page.locator('[data-regenerate-recovery]').click();
   await expect(page.locator('[data-recovery-msg]')).toContainText(/ไม่สำเร็จ|Could not/);

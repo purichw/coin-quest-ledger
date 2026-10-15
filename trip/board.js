@@ -20,7 +20,7 @@ function boardText(key) {
     trip: ['บอร์ดทริป', 'Trip board'], tagline: ['เที่ยว กิน ใช้ชีวิตด้วยกัน แบ่งค่าใช้จ่ายให้ลงตัว', 'Shared adventures. Clear expenses. Better memories.'],
     total: ['ยอดรวมบอร์ด', 'Board total'], members: ['สมาชิกปาร์ตี้', 'Party members'],
     log: ['รายการค่าใช้จ่ายล่าสุด', 'Recent expenses'], settlement: ['สรุปการคืนเงิน', 'Settlement'],
-    add: ['จดค่าใช้จ่ายใหม่', 'Add expense'], search: ['ค้นหารายการ…', 'Search expenses…'], all: ['ผู้จ่ายทั้งหมด', 'All payers'],
+    add: ['บันทึกค่าใช้จ่ายใหม่', 'Add expense'], search: ['ค้นหารายการ…', 'Search expenses…'], all: ['ผู้จ่ายทั้งหมด', 'All payers'],
     removeMember: ['นำสมาชิกออก', 'Remove member'], date: ['วันที่', 'Date'], description: ['ชื่อรายการ', 'Expense'],
     amount: ['จำนวนเงิน (฿)', 'Amount (฿)'], payer: ['ผู้จ่าย', 'Paid by'], sharers: ['ผู้ร่วมแชร์', 'Shared with'], method: ['วิธีแบ่ง', 'Split'],
     actions: ['จัดการ', 'Actions'], save: ['บันทึกรายการ', 'Save expense'], reset: ['ล้างข้อมูล', 'Reset form'], quick: ['เพิ่มด่วน', 'Quick add'],

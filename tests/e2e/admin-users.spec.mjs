@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }, info) => {
   await page.setViewportSize({ width: { chromium: 1440, tablet: 768, mobile: 390 }[info.project.name], height: 900 });
 });
 const row = (page, id) => page.locator(`.user-row[data-user-id="${id}"]`);
-const search = page => page.getByPlaceholder('Search user / character');
+const search = page => page.getByPlaceholder('Search users or characters');
 const back = page => page.locator('.crumbs').getByRole('button', { name: 'Users', exact: true }).click();
 const noOverflow = async page => expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 
@@ -51,7 +51,7 @@ test('Users search matches account and character fields without replacing the fo
   await expect(row(page, '2028')).toBeVisible();
   await search(page).fill('  TEST HERO 2028  ');
   await expect(row(page, '2028')).toBeVisible();
-  await row(page, '2028').getByRole('button', { name: 'Detail', exact: true }).click();
+  await row(page, '2028').getByRole('button', { name: 'Details', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('TEST Postfix Signup');
   await back(page);
   await expect(search(page)).toHaveValue('  TEST HERO 2028  ');
@@ -72,14 +72,14 @@ test('Users profile links target the real character and retain the Admin return 
   expect(target.searchParams.get('return')).toBe('/admin/?test=1&tab=users');
   const guest = page.locator('.user-row').filter({ hasText: 'TEST Guest 1' });
   await expect(guest.getByRole('link', { name: 'Profile' })).toHaveCount(0);
-  await guest.getByRole('button', { name: 'Detail', exact: true }).click();
+  await guest.getByRole('button', { name: 'Details', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Profile unavailable: no Character ID' })).toBeDisabled();
   await back(page);
-  await page.getByRole('button', { name: 'Detail 2150', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 2150', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('TEST Simulator QA');
   await page.getByRole('button', { name: 'Lifecycle', exact: true }).click();
   await back(page);
-  await row(page, '1112').getByRole('button', { name: 'Detail', exact: true }).click();
+  await row(page, '1112').getByRole('button', { name: 'Details', exact: true }).click();
   await expect(page.locator('#user-chars')).toBeVisible();
   await expect(page.locator('#user-lifecycle')).toBeVisible();
   await expect(page.locator('.user-info-page .tabs')).toHaveCount(0);
@@ -134,7 +134,7 @@ test('Users handles long labels, account lifecycle states and empty data without
   await expect(page.locator('.user-row')).toHaveCount(12);
   for (const [id, status] of [['1112', 'archived'], ['2000', 'deactivated'], ['2028', 'delete requested']]) await expect(row(page, id).locator('.user-status')).toHaveText(status);
   await expect(row(page, '2150')).toHaveCount(0);
-  await expect(row(page, '1112').getByRole('button', { name: 'Detail', exact: true })).toBeVisible();
+  await expect(row(page, '1112').getByRole('button', { name: 'Details', exact: true })).toBeVisible();
   await noOverflow(page);
   await page.evaluate(() => { cloudUsers = []; draft.boards = []; render(); });
   await expect(page.getByText('ยังไม่มีผู้ใช้', { exact: true })).toBeVisible();

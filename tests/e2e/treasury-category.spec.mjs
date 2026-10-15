@@ -57,7 +57,7 @@ for (const width of [1440,768,390]) {
     expect(category).toMatchObject({name:{th:'กินดื่ม',en:'กินดื่ม'},budget:9000,glyph:'🍜',monster:{th:'สไลม์',en:'Slime'}});
     expect(added).toEqual({...before,categories:[...before.categories,category]});
     await open(page,category.id);
-    await expect(page.getByRole('dialog')).toHaveAccessibleName('แก้หมวด');
+    await expect(page.getByRole('dialog')).toHaveAccessibleName('แก้ไขหมวดหมู่');
     await expect(page.locator('#cat-monster-type')).toHaveValue('slime');
     await page.locator('#cat-monster-type').focus();
     const buttons=await page.locator('.cat-actions button').evaluateAll(nodes=>nodes.map(n=>({x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y,h:n.getBoundingClientRect().height})));

@@ -55,7 +55,7 @@ test('Board owner edits keep focus, save/reopen and publish without losing membe
   await adminTools(page); await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'ปิด', exact: true }).click();
   await page.reload();
-  await page.getByRole('button', { name: 'Detail 1398', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 1398', exact: true }).click();
   await revealBoardSection(page, 'owner');
   await expect(name).toHaveValue('TEST Journey edited today');
   await expect(page.getByLabel('Admin ID', { exact: true })).toHaveValue('ADM-1398');
@@ -71,11 +71,11 @@ test('Board owner edits keep focus, save/reopen and publish without losing membe
 test('Board change log is isolated by identity and destructive actions remain confirmed draft changes', async ({ page }) => {
   await openBoardInfoFixture(page);
   await page.locator('.crumbs button').click();
-  await page.getByRole('button', { name: 'Detail 9002', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 9002', exact: true }).click();
   await revealBoardSection(page, 'owner');
   await page.getByLabel('Name', { exact: true }).fill('TEST Other board edited');
   await page.locator('.crumbs button').click();
-  await page.getByRole('button', { name: 'Detail 1397', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 1397', exact: true }).click();
   await revealBoardSection(page, 'log');
   await expect(page.locator('#board-log-body')).toContainText('No draft changes for this board');
   await revealBoardSection(page, 'owner');
@@ -94,9 +94,9 @@ test('Board change log is isolated by identity and destructive actions remain co
   await expect(page.locator('.board-info-page')).toBeVisible();
   expect(await page.evaluate(() => boardById('9002').tripName)).toBe('TEST Other board edited');
   await page.locator('.crumbs button').click();
-  await page.getByRole('button', { name: '+ เพิ่ม Board', exact: true }).click(); await confirm(page);
+  await page.getByRole('button', { name: '+ Add Board', exact: true }).click(); await confirm(page);
   const created = await page.evaluate(() => draft.boards.find(b => b.created).urlId);
-  await page.locator(`.board-row[data-board-id="${created}"]`).getByRole('button', { name: 'Detail', exact: true }).click();
+  await page.locator(`.board-row[data-board-id="${created}"]`).getByRole('button', { name: 'Details', exact: true }).click();
   await page.getByRole('button', { name: 'Delete board', exact: true }).click(); await confirm(page);
   await expect(page.getByText('Draft board discarded', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Restore board', exact: true })).toHaveCount(0);

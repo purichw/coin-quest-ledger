@@ -19,7 +19,7 @@ test('Boards adapts real records and actions to desktop, tablet and mobile compo
   const width = page.viewportSize().width;
   expect(await page.locator('.boards-table th:visible').count()).toBe(width >= 1200 ? 8 : width >= 768 ? 5 : 0);
   expect(await page.locator('.boards-shortcuts button:visible').count()).toBe(width >= 768 ? 4 : 2);
-  for (const label of ['all', 'split', 'debt', 'treasury']) await expect(page.locator('.boards-filter').getByRole('button', { name: label, exact: true })).toBeVisible();
+  for (const label of ['All Boards', 'Split Expenses', 'Debt Dragon', 'Treasury']) await expect(page.locator('.boards-filter').getByRole('button', { name: label, exact: true })).toBeVisible();
   if (width < 768) {
     await expect(row(page, '1397').locator('.board-name .board-mobile-value')).toHaveText('TEST ทริปใหม่');
     const boxes = await Promise.all(['.boards-filter', '.boards-shortcuts', '.boards-add', '.boards-list'].map(selector => page.locator(selector).boundingBox()));
@@ -30,7 +30,7 @@ test('Boards adapts real records and actions to desktop, tablet and mobile compo
   await expect(page.getByRole('link', { name: 'Open Party Ledger' })).toHaveAttribute('href', '/trip/?id=3512&test=1');
   await expect(page.locator('.card')).toContainText(['Members']);
   await page.locator('.crumbs').getByRole('button', { name: 'Boards', exact: true }).click();
-  await row(page, '1794').getByRole('button', { name: 'Detail', exact: true }).click();
+  await row(page, '1794').getByRole('button', { name: 'Details', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('TEST Chiang Mai');
   await revealBoardSection(page, 'owner');
   await expect(page.locator('input[value="ADM-1794"]')).toBeVisible();
@@ -39,7 +39,7 @@ test('Boards adapts real records and actions to desktop, tablet and mobile compo
 
 test('Boards combines search and type filters without losing typing focus or drafts', async ({ page }) => {
   await openBoardsFixture(page);
-  const search = page.getByPlaceholder('ค้นหา board/admin');
+  const search = page.getByPlaceholder('Search boards or administrators');
   const input = await search.elementHandle();
   await search.pressSequentially('ADM-3512');
   await expect(page.locator('.board-row')).toHaveCount(1);
@@ -56,7 +56,7 @@ test('Boards combines search and type filters without losing typing focus or dra
   await expect(page.locator('.board-row')).toHaveCount(6);
   await search.fill('เชียงใหม่');
   await expect(page.locator('.board-row')).toHaveCount(1);
-  await row(page, '2152').getByRole('button', { name: 'Detail', exact: true }).click();
+  await row(page, '2152').getByRole('button', { name: 'Details', exact: true }).click();
   await revealBoardSection(page, 'owner');
   await page.locator('input[value="TEST เชียงใหม่"]').fill('TEST เชียงใหม่ updated');
   await page.locator('.crumbs').getByRole('button', { name: 'Boards', exact: true }).click();
@@ -78,16 +78,16 @@ test('Board edits stay in the draft and mobile reading values follow desktop edi
   await row(page, '1397').getByLabel('Board URL').fill('1398');
   await expect(row(page, '1397').getByRole('button', { name: 'ลบ Board 1398', exact: true })).toBeVisible();
   await row(page, '1397').getByLabel('Reset password').fill('TEST-password-only');
-  await expect(page.getByRole('button', { name: 'Detail 1398', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Details 1398', exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 900 });
   await expect(row(page, '1397').locator('.board-url .board-mobile-value')).toHaveText('1398');
   await expect(row(page, '1397').locator('.board-admin-id .board-mobile-value')).toContainText('ADM-LONG-IDENTIFIER-1397');
   await expect(row(page, '1397').getByRole('button', { name: 'Members', exact: true })).toBeVisible();
   await noOverflow(page);
-  await page.getByPlaceholder('ค้นหา board/admin').fill('1398');
+  await page.getByPlaceholder('Search boards or administrators').fill('1398');
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(row(page, '1397').getByLabel('Reset password')).toHaveValue('TEST-password-only');
-  await row(page, '1397').getByRole('button', { name: 'Detail', exact: true }).click();
+  await row(page, '1397').getByRole('button', { name: 'Details', exact: true }).click();
   await expect(page.getByPlaceholder('ตั้งรหัสใหม่')).toHaveValue('TEST-password-only');
   expect(await page.evaluate(() => sessionStorage.getItem('pointy_test_trip_1397'))).toBe(original);
 });
@@ -95,13 +95,13 @@ test('Board edits stay in the draft and mobile reading values follow desktop edi
 test('Board create and delete confirmations preserve draft-only behavior and reveal the new filtered board', async ({ page }) => {
   await openBoardsFixture(page);
   await page.locator('[data-filter="debt"]').click();
-  await page.getByPlaceholder('ค้นหา board/admin').fill('missing');
-  await page.getByRole('button', { name: '+ เพิ่ม Board', exact: true }).click();
+  await page.getByPlaceholder('Search boards or administrators').fill('missing');
+  await page.getByRole('button', { name: '+ Add Board', exact: true }).click();
   await page.keyboard.press('Escape');
-  await expect(page.getByPlaceholder('ค้นหา board/admin')).toHaveValue('missing');
-  await page.getByRole('button', { name: '+ เพิ่ม Board', exact: true }).click();
+  await expect(page.getByPlaceholder('Search boards or administrators')).toHaveValue('missing');
+  await page.getByRole('button', { name: '+ Add Board', exact: true }).click();
   await confirm(page);
-  await expect(page.getByPlaceholder('ค้นหา board/admin')).toHaveValue('');
+  await expect(page.getByPlaceholder('Search boards or administrators')).toHaveValue('');
   await expect(page.locator('.board-row')).toHaveCount(2);
   const created = await page.evaluate(() => draft.boards.find(b => b.created));
   expect(created.type).toBe('debt');
@@ -119,7 +119,7 @@ test('Boards empty state offers a real first draft instead of sample records', a
   await openBoardsFixture(page, { empty: true });
   await expect(page.getByText('ยังไม่มีบอร์ด', { exact: true })).toBeVisible();
   await expect(page.locator('.board-row')).toHaveCount(0);
-  await page.getByRole('button', { name: '+ เพิ่ม Board', exact: true }).click();
+  await page.getByRole('button', { name: '+ Add Board', exact: true }).click();
   await confirm(page);
   await expect(page.locator('.board-row')).toHaveCount(1);
   await expect(page.locator('.board-member-count')).toHaveAttribute('aria-label', '0 members');

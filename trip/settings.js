@@ -7,7 +7,7 @@ function settingsText(key) {
     general: ['ทั่วไป', 'General'], members: ['สมาชิกปาร์ตี้', 'Members'], board: ['ข้อมูลบอร์ด', 'Board'], game: ['ระบบเกม', 'Game'], tools: ['เครื่องมือข้อมูล', 'Data tools'],
     appearance: ['ธีมและการแสดงผล', 'Theme & appearance'], statsHelp: ['HP / LVL / XP บนการ์ดสมาชิก', 'HP / LVL / XP on member cards'],
     green: ['เขียว', 'Green'], gold: ['ทอง', 'Gold'], red: ['แดง', 'Red'], purple: ['ม่วง', 'Purple'], blue: ['น้ำเงิน', 'Blue'],
-    copy: ['คัดลอก', 'Copy'], copied: ['คัดลอกลิงก์แล้ว', 'Link copied'], copyFailed: ['คัดลอกไม่ได้ เลือกลิงก์แล้วคัดลอกด้วยตนเองได้', 'Could not copy. Select the link and copy it manually.'],
+    copy: ['คัดลอก', 'Copy'], copied: ['คัดลอกลิงก์แล้ว', 'Link copied'], copyFailed: ['คัดลอกไม่สำเร็จ กรุณาเลือกลิงก์และคัดลอกด้วยตนเอง', 'Could not copy. Select the link and copy it manually.'],
     share: ['แชร์ลิงก์', 'Share link'], close: ['ปิดการตั้งค่าบอร์ด', 'Close board settings'], manage: ['จัดการสมาชิก', 'Manage member'],
     profile: ['โปรไฟล์', 'Profile'], boardsHelp: ['บอร์ดอื่น ๆ ที่คุณดูแล', 'Other boards you manage'], create: ['สร้างบอร์ดใหม่', 'Create a board'],
     boardsFailed: ['โหลดบอร์ดไม่สำเร็จ', 'Could not load your boards.'], retry: ['ลองอีกครั้ง', 'Try again'],

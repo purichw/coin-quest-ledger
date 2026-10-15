@@ -343,7 +343,7 @@ function badgeCopy(badge, profile) {
     'party-member': [en ? 'Party Member' : 'สมาชิกปาร์ตี้', en ? 'Joined the first board' : 'เข้าร่วมบอร์ดแรกแล้ว'],
     veteran: [en ? 'Veteran Traveler' : 'นักเดินทางรุ่นเก๋า', `${profile.totals.boards} ${en ? 'boards' : 'บอร์ด'}`],
     treasurer: [en ? 'Treasurer' : 'เหรัญญิก', en ? 'Funded the party' : 'ออกทองช่วยปาร์ตี้'],
-    'debt-slayer': [en ? 'Debt Slayer' : 'ผู้ปราบหนี้', en ? 'Reached a settled board' : 'เคลียร์บอร์ดสำเร็จแล้ว'],
+    'debt-slayer': [en ? 'Debt Slayer' : 'ผู้ปราบหนี้', en ? 'Reached a settled board' : 'ชำระยอดค้างในบอร์ดครบแล้ว'],
     'board-admin': [en ? 'Board Admin' : 'แอดมินบอร์ด', `${profile.adminBoards.length} ${en ? 'boards' : 'บอร์ด'}`],
     'debt-dragon': [en ? 'Dragon Slayer' : 'นักล่ามังกร', badge.detail],
     'high-level': [en ? 'Seasoned Hero' : 'ฮีโร่ชำนาญศึก', `Level ${profile.level.lvl}`]

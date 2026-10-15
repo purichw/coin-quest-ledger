@@ -35,7 +35,7 @@ test('shared loading scene releases the real login gate without losing focus', a
   await held.route.continue(); held.resolve();
   await expect(page.locator('[data-first-load]')).toHaveCount(0);
   await expect(page.locator('#auth-title')).toBeFocused();
-  await page.getByRole('tab', { name: 'สมัครใหม่', exact: true }).click();
+  await page.getByRole('tab', { name: 'สมัครสมาชิก', exact: true }).click();
   await expect(page.locator('[data-login-name]')).toBeVisible();
   await expect(page.locator('html')).not.toHaveClass(/first-load-(boot|open)/);
 });
@@ -734,7 +734,7 @@ for (const width of [1440, 768, 390]) {
     await page.setViewportSize({ width, height: width === 768 ? 1024 : width === 390 ? 844 : 900 });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await createRecoveryPreview(page);
-    await expect(page.getByRole('dialog', { name: 'เก็บ recovery code นี้ไว้' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'บันทึกรหัสกู้คืนของคุณ' })).toBeVisible();
     await expect(page.locator('#recovery-title')).toBeFocused();
     await expect(page.locator('.recovery-feedback')).toBeHidden();
     const bounds = await page.locator('.recovery-panel').evaluate(el => {
@@ -750,7 +750,7 @@ for (const width of [1440, 768, 390]) {
     await captureRecovery(page, `recovery-${width}.png`);
     await page.locator('[data-copy-recovery]').click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('DEMO-TEST-ONLY');
-    await expect(page.getByRole('status').filter({ hasText: 'คัดลอกเรียบร้อยแล้ว!' })).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'คัดลอกรหัสกู้คืนแล้ว' })).toBeVisible();
     await captureRecovery(page, `recovery-${width}-copied.png`);
     await page.locator('.recovery-confirm').focus(); await page.keyboard.press('Tab');
     await expect(page.locator('.recovery-close')).toBeFocused();
@@ -770,7 +770,7 @@ test('Recovery save modal handles clipboard denial, retry and Escape without los
   await createRecoveryPreview(page);
   await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new DOMException('TEST denied', 'NotAllowedError'); }; });
   await page.locator('[data-copy-recovery]').click();
-  await expect(page.locator('.recovery-feedback')).toContainText('คัดลอกไม่ได้');
+  await expect(page.locator('.recovery-feedback')).toContainText('คัดลอกไม่สำเร็จ');
   await expect(page.locator('.recovery-code')).toBeFocused();
   expect(await page.evaluate(() => getSelection().toString())).toBe('DEMO-TEST-ONLY');
   await captureRecovery(page, 'recovery-390-copy-error.png');
@@ -785,7 +785,7 @@ test('Recovery save modal handles clipboard denial, retry and Escape without los
 test('Recovery save modal supports English Dungeon and short narrow viewports', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await createRecoveryPreview(page, { language: 'en', theme: 'dungeon' });
-  await expect(page.getByRole('dialog', { name: 'Save this recovery code' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Save your recovery key' })).toBeVisible();
   await captureRecovery(page, 'recovery-390-en-dungeon.png');
   await page.setViewportSize({ width: 320, height: 480 });
   expect(await page.locator('.recovery-panel').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);

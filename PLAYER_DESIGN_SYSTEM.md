@@ -1,5 +1,8 @@
 # Player design system
 
+Visible labels and feedback follow [UI copy guidelines](UI_COPY_GUIDELINES.md),
+including consistent Thai/English recovery-key terminology and clear financial actions.
+
 Current direction: 2026-10-13. Applies to the player website, including pages
 that have not received an individual redesign. Admin and the native app have
 their own shells; this document does not authorize changing either one.

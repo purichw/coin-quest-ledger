@@ -7,7 +7,7 @@ const qa = path.resolve('docs/reminders-2026-10-14/qa');
 async function open(page, route = '/') {
   await page.goto(`${route}${route.includes('?') ? '&' : '?'}test=1`);
   await page.locator('[data-profile-hub="reminders"]').click();
-  await expect(page.getByRole('dialog', { name: 'Reminders', exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /^(การแจ้งเตือน|Reminders)$/ })).toBeVisible();
   await expect(page.locator('.rem-panel .cq-skeleton')).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
   await page.locator('.rem-panel').evaluate(el => Promise.all(el.getAnimations().map(animation => animation.finished)));
@@ -172,7 +172,7 @@ test('Overdue debt stays first and its details open Debt Dragon', async ({ page 
   })));
   await open(page);
   await expect(page.locator('.rem-item').first()).toContainText('บัตรเครดิตทดสอบ');
-  await expect(page.locator('.rem-item').first()).toContainText('เลยกำหนดแล้ว');
+  await expect(page.locator('.rem-item').first()).toContainText('เกินกำหนดชำระ');
   await page.locator('[data-rem-open="dcredit"]').click(); await expect(page).toHaveURL(/\/debt\/\?test=1/);
 });
 

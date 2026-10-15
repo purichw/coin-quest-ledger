@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }, info) => {
   await page.setViewportSize({ width: { chromium:1440, tablet:768, mobile:390 }[info.project.name], height:900 });
 });
 const row = (page, id) => page.locator(`.board-admin-row[data-admin-anchor="${id}"]`);
-const search = page => page.getByPlaceholder('ค้นหา admin (ID, ชื่อเล่น หรือ username)');
+const search = page => page.getByPlaceholder('Search by admin ID, display name or username');
 const back = page => page.locator('.crumbs').getByRole('button', { name:'Board Admins', exact:true }).click();
 async function contained(page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -20,9 +20,9 @@ test('Board Admins keeps real groups and all actions inside the parchment at eac
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await openBoardAdminsFixture(page);
   await expect(page.locator('.board-admin-row')).toHaveCount(8);
-  await expect(page.locator('.board-admin-footer [role="status"]')).toHaveText('8 admin identities');
+  await expect(page.locator('.board-admin-footer [role="status"]')).toHaveText('8 board administrators');
   await expect(row(page, '3512').getByRole('button', { name:'User 2150', exact:true })).toBeVisible();
-  await expect(row(page, 'deleted-owner-board').locator('.board-admin-user')).toHaveText('orphaned');
+  await expect(row(page, 'deleted-owner-board').locator('.board-admin-user')).toHaveText('No linked user');
   await expect(row(page, 'deleted-owner-board').locator('.board-admin-hash')).toContainText('—');
   expect(await page.locator('.board-admin-table th:visible').count()).toBe(page.viewportSize().width >= 1200 ? 6 : page.viewportSize().width >= 768 ? 4 : 0);
   for (const detail of await page.locator('.board-admin-actions button').all()) {
@@ -59,11 +59,11 @@ test('Board Admins shortcuts, board disclosure, owner and Detail links reach rea
   const baseline = await page.evaluate(()=>JSON.stringify(draft));
   if (page.viewportSize().width < 768) {
     const more = page.getByRole('button', {name:'Show all admin shortcuts',exact:true});
-    await expect(page.getByRole('button', {name:'Detail 6675',exact:true})).toBeHidden();
+    await expect(page.getByRole('button', {name:'Details 6675',exact:true})).toBeHidden();
     await more.focus(); await page.keyboard.press('Enter');
     await expect(page.getByRole('button',{name:'Show fewer admin shortcuts',exact:true})).toHaveAttribute('aria-expanded','true');
   }
-  await page.getByRole('button', {name:'Detail 6675',exact:true}).click();
+  await page.getByRole('button', {name:'Details 6675',exact:true}).click();
   await expect(page.getByRole('heading', {level:1})).toHaveText('Admin Detail');
   await expect(page.getByLabel('Admin ID',{exact:true})).toHaveValue('6675');
   await back(page);
@@ -88,9 +88,9 @@ test('Board Admin ID edits without an owner hash survive every keystroke, Save, 
     const id = row(page,'deleted-owner-board').getByLabel('Admin ID for 4965',{exact:true});
     await id.fill(''); await id.pressSequentially('ADM-REPAIRED');
     await row(page,'deleted-owner-board').getByLabel('Nickname for 4965',{exact:true}).fill('TEST Renamed Admin');
-    await row(page,'deleted-owner-board').getByRole('button',{name:'Detail',exact:true}).click();
+    await row(page,'deleted-owner-board').getByRole('button',{name:'Details',exact:true}).click();
   } else {
-    await row(page,'deleted-owner-board').getByRole('button',{name:'Detail',exact:true}).click();
+    await row(page,'deleted-owner-board').getByRole('button',{name:'Details',exact:true}).click();
     const id = page.getByLabel('Admin ID',{exact:true});
     await id.fill(''); await id.pressSequentially('ADM-REPAIRED');
     await page.getByLabel('Nickname',{exact:true}).fill('TEST Renamed Admin');
@@ -103,7 +103,7 @@ test('Board Admin ID edits without an owner hash survive every keystroke, Save, 
   await page.getByRole('dialog').getByRole('button',{name:'ปิด',exact:true}).click();
   await expect(page.getByRole('heading',{level:1})).toHaveText('Admin Detail');
   await page.reload();
-  await row(page,'deleted-owner-board').getByRole('button',{name:'Detail',exact:true}).click();
+  await row(page,'deleted-owner-board').getByRole('button',{name:'Details',exact:true}).click();
   await expect(page.getByLabel('Admin ID',{exact:true})).toHaveValue('ADM-REPAIRED');
   await expect(page.getByLabel('Nickname',{exact:true})).toHaveValue('TEST Renamed Admin');
   await adminTools(page); await page.locator('#publish-btn').click();
@@ -131,7 +131,7 @@ test('Board Admins handles long content and keeps equal IDs with separate owner 
   });
   await expect(page.locator('.board-admin-row')).toHaveCount(8);
   await contained(page);
-  await row(page,'3512').getByRole('button',{name:'Detail',exact:true}).click();
+  await row(page,'3512').getByRole('button',{name:'Details',exact:true}).click();
   await page.getByLabel('Nickname',{exact:true}).fill('TEST Separate');
   expect(await page.evaluate(()=>boardById('long-board-reference-6675').adminName)).toBe('TEST Codex QA');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);

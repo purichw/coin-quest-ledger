@@ -1,6 +1,6 @@
 (function () {
   const words = {
-    th: { all: 'ทั้งหมด', invite: 'คำเชิญปาร์ตี้', finance: 'การเงิน', mark: 'ทำทั้งหมดว่าอ่านแล้ว', marked: 'ทำเครื่องหมายว่าอ่านแล้ว', close: 'ปิดการแจ้งเตือน', details: 'ดูรายละเอียด', more: 'ดูการแจ้งเตือนทั้งหมด', less: 'กลับไปรายการล่าสุด', failed: 'โหลดคำเชิญไม่สำเร็จ ลองอีกครั้งได้เลย', retry: 'ลองอีกครั้ง', empty: 'ยังไม่มีการแจ้งเตือน', emptyInvite: 'ยังไม่มีคำเชิญปาร์ตี้', emptyFinance: 'ยังไม่มีรายการการเงินที่ต้องจัดการ', unread: 'ยังไม่อ่าน', working: 'กำลังบันทึก…', count: 'จำนวนรายการที่ยังไม่อ่าน', unknown: 'ผู้ชวน', actionFailed: 'ทำรายการไม่สำเร็จ ลองอีกครั้งได้เลย' },
+    th: { all: 'ทั้งหมด', invite: 'คำเชิญปาร์ตี้', finance: 'การเงิน', mark: 'ทำเครื่องหมายว่าอ่านแล้วทั้งหมด', marked: 'ทำเครื่องหมายว่าอ่านแล้ว', close: 'ปิดการแจ้งเตือน', details: 'ดูรายละเอียด', more: 'ดูการแจ้งเตือนทั้งหมด', less: 'กลับไปรายการล่าสุด', failed: 'โหลดคำเชิญไม่สำเร็จ กรุณาลองอีกครั้ง', retry: 'ลองอีกครั้ง', empty: 'ยังไม่มีการแจ้งเตือน', emptyInvite: 'ยังไม่มีคำเชิญปาร์ตี้', emptyFinance: 'ยังไม่มีรายการการเงินที่ต้องจัดการ', unread: 'ยังไม่อ่าน', working: 'กำลังบันทึก…', count: 'จำนวนรายการที่ยังไม่อ่าน', unknown: 'ผู้ส่งคำเชิญ', actionFailed: 'ทำรายการไม่สำเร็จ กรุณาลองอีกครั้ง' },
     en: { all: 'All', invite: 'Party invites', finance: 'Finance', mark: 'Mark all as read', marked: 'Marked all as read', close: 'Close reminders', details: 'View details', more: 'View all reminders', less: 'Back to recent reminders', failed: 'Could not load invitations. Please try again.', retry: 'Try again', empty: 'No reminders yet', emptyInvite: 'No party invitations yet', emptyFinance: 'No financial reminders to take care of', unread: 'Unread', working: 'Saving…', count: 'Unread reminders', unknown: 'Inviter', actionFailed: 'Could not complete this action. Please try again.' }
   };
   const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -25,7 +25,7 @@
     const items = data.reminders.filter(item => state.filter === 'all' || category(item) === state.filter);
     const shown = state.expanded ? items : items.slice(0, 4);
     const count = filter => data.reminders.filter(item => !item.read && (filter === 'all' || category(item) === filter)).length;
-    return `<header class="rem-head"><h2 class="rem-title" id="rem-title">${icon('bell')}Reminders</h2>
+    return `<header class="rem-head"><h2 class="rem-title" id="rem-title">${icon('bell')}${data.language === 'th' ? 'การแจ้งเตือน' : 'Reminders'}</h2>
       <button class="rem-mark" type="button" data-rem-mark data-rem-focus="mark" ${!count('all') ? 'disabled' : ''}>${w.mark}</button>
       <button class="rem-close" type="button" data-close data-rem-focus="close" aria-label="${w.close}">${icon('close')}</button></header>
       <div class="rem-tabs" role="tablist" aria-label="${w.count}">${['all', 'invite', 'finance'].map(filter => `<button role="tab" type="button" id="rem-tab-${filter}" aria-controls="rem-results" aria-selected="${state.filter === filter}" tabindex="${state.filter === filter ? '0' : '-1'}" data-rem-filter="${filter}" data-rem-focus="${filter}">${w[filter]} <span>(${count(filter)})</span></button>`).join('')}</div>

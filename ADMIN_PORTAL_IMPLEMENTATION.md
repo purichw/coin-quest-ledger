@@ -1,5 +1,8 @@
 # Admin Portal Implementation
 
+Visible labels and feedback follow [UI copy guidelines](UI_COPY_GUIDELINES.md).
+Board filters use full product names; internal filter keys remain unchanged.
+
 Last updated: 2026-10-14
 
 ## Purpose

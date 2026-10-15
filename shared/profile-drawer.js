@@ -5,8 +5,8 @@
 
   const icon = name => window.CoinQuestIcons(name);
   const words = {
-    th: { title: 'บัญชีของคุณ', close: 'ปิดบัญชี', theme: 'โหมดสว่าง / มืด', language: 'ภาษา', all: 'ดูทั้งหมด', less: 'แสดงน้อยลง', awards: 'ถ้วยรางวัล', reveal: 'แสดง Recovery ID', conceal: 'ซ่อน Recovery ID', copy: 'คัดลอก', regenerate: 'สร้างใหม่', recovery: 'เก็บรหัสนี้ไว้ให้ปลอดภัย ใช้กู้คืนบัญชีเมื่อคุณลืมรหัสผ่าน', tour: 'ดู Welcome Tour อีกครั้ง', start: 'เริ่มทัวร์', note: 'การผจญภัยทางการเงิน\nเริ่มได้เสมอ\nจากตัวตนของคุณ', members: 'คน', quests: 'รายการ' },
-    en: { title: 'Your account', close: 'Close account', theme: 'Light / dark mode', language: 'Language', all: 'View all', less: 'Show less', awards: 'Trophies', reveal: 'Show Recovery ID', conceal: 'Hide Recovery ID', copy: 'Copy', regenerate: 'Regenerate', recovery: 'Keep this code safe. Use it to recover your account if you forget your password.', tour: 'Replay the Welcome Tour', start: 'Start tour', note: 'Your next money adventure\nstarts with you.', members: 'members', quests: 'quests' }
+    th: { title: 'บัญชีของคุณ', close: 'ปิดแผงบัญชี', theme: 'โหมดสว่าง / มืด', language: 'ภาษา', all: 'ดูทั้งหมด', less: 'แสดงน้อยลง', awards: 'ถ้วยรางวัล', reveal: 'แสดงรหัสกู้คืน', conceal: 'ซ่อนรหัสกู้คืน', copy: 'คัดลอก', regenerate: 'สร้างใหม่', recovery: 'เก็บรหัสนี้ไว้ให้ปลอดภัย ใช้กู้คืนบัญชีเมื่อคุณลืมรหัสผ่าน', tour: 'ดูคำแนะนำการใช้งานอีกครั้ง', start: 'เริ่มคำแนะนำ', note: 'การผจญภัยทางการเงิน\nเริ่มได้เสมอ\nจากตัวตนของคุณ', members: 'คน', quests: 'รายการ' },
+    en: { title: 'Your account', close: 'Close account panel', theme: 'Light / dark mode', language: 'Language', all: 'View all', less: 'Show less', awards: 'Trophies', reveal: 'Show recovery key', conceal: 'Hide recovery key', copy: 'Copy', regenerate: 'Create new key', recovery: 'Keep this code safe. Use it to recover your account if you forget your password.', tour: 'Replay the Welcome Tour', start: 'Start tour', note: 'Your next money adventure\nstarts with you.', members: 'members', quests: 'quests' }
   };
   function capture(root) {
     if (!root?.querySelector('.profile-drawer')) return null;
@@ -87,8 +87,8 @@
     if (!message) return;
     message.hidden = false;
     message.textContent = language === 'en'
-      ? (success ? 'Recovery ID copied.' : 'Could not copy. Reveal the code to select and copy it.')
-      : (success ? 'คัดลอก Recovery ID แล้ว' : 'คัดลอกไม่ได้ กดแสดงรหัสแล้วเลือกคัดลอกได้เลย');
+      ? (success ? 'Recovery key copied.' : 'Could not copy. Reveal the code to select and copy it.')
+      : (success ? 'คัดลอกรหัสกู้คืนแล้ว' : 'คัดลอกไม่สำเร็จ กรุณาแสดงรหัสและเลือกคัดลอกด้วยตนเอง');
   }
   function bind(root, { state, opener, language }) {
     root._drawerOpener = opener;

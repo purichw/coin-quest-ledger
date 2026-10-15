@@ -20,7 +20,7 @@
       <div class="tb-right">
         <div class="tb-actions" id="admin-actions">
           <span class="env-pill">${icon('lock')}${test ? 'Test mode' : 'Google Auth'}</span>
-          <span id="draft-badge" class="env-pill draft-status" role="status">${dirty ? 'Draft changed locally' : 'Published version'}</span>
+          <span id="draft-badge" class="env-pill draft-status" role="status">${dirty ? 'Unpublished changes' : 'Published version'}</span>
           <div class="tb-draft-actions"><button class="btn btn-ghost sm" onclick="saveDraft()" ${unavailable ? 'disabled' : ''}>Save</button>
           <button class="btn btn-ghost sm" onclick="restoreDraft()" ${unavailable ? 'disabled' : ''}>Restore</button>
           <button id="publish-btn" class="btn btn-primary sm" onclick="publishDraft()" ${unavailable ? 'disabled' : ''}>Publish${changes ? ` (${changes})` : ''}</button></div>

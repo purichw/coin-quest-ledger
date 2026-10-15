@@ -93,9 +93,9 @@ test('Admin menu and header actions remain accessible across compact and desktop
 test('Dashboard shows real totals and its actions reach the existing workflows', async ({ page }) => {
   await openAdminFixture(page);
   await expect(page.locator('.dashboard-stat .s-val')).toHaveText(['12', '13', '0', '5']);
-  await page.getByRole('button', { name: 'B Command', exact: true }).click();
+  await page.getByRole('button', { name: 'Activity', exact: true }).click();
   await expect(page.locator('.dashboard-content > :first-child')).toHaveClass('dashboard-panels');
-  await page.getByRole('button', { name: 'A Cards', exact: true }).click();
+  await page.getByRole('button', { name: 'Overview', exact: true }).click();
   await expect(page.locator('.dashboard-content > :first-child')).toHaveClass('dashboard-kpis');
   await page.locator('.dashboard-stat').nth(2).click();
   await expect(page.locator('.page-title')).toHaveText('Boards');
@@ -107,7 +107,7 @@ test('Dashboard shows real totals and its actions reach the existing workflows',
   await adminNav(page, 'Dashboard');
   await page.locator('.dashboard-quick').getByRole('button', { name: /View users/ }).click();
   await expect(page.locator('.page-title')).toHaveText('Users');
-  await page.getByRole('button', { name: /^Detail 1100/ }).click();
+  await page.getByRole('button', { name: /^Details 1100/ }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
   await adminNav(page, 'Dashboard');
   await page.locator('.dashboard-quick').getByRole('button', { name: /Version control/ }).click();
@@ -126,6 +126,6 @@ test('Dashboard shows real totals and its actions reach the existing workflows',
 test('empty Dashboard does not invent activity, counts or alerts', async ({ page }) => {
   await openAdminFixture(page, { empty: true, edits: false });
   await expect(page.locator('.dashboard-stat .s-val')).toHaveText(['0', '0', '0', '0']);
-  await expect(page.getByText('No local draft changes yet')).toBeVisible();
-  await expect(page.getByText('No flagged boards')).toBeVisible();
+  await expect(page.getByText('No unpublished changes')).toBeVisible();
+  await expect(page.getByText('No boards need attention')).toBeVisible();
 });

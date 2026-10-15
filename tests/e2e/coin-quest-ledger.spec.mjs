@@ -83,15 +83,15 @@ test('expense splitter pins the signed-in account hero and invites others by Cha
   await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
   await expect(page.getByPlaceholder('ชื่อฮีโร่คนอื่น')).toHaveCount(0);
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('2468');
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await page.getByRole('button', { name: 'เชิญเข้าปาร์ตี้' }).click();
   await expect(page.locator('#toast')).toContainText('ฮีโร่ของคุณถูกเพิ่มจากโปรไฟล์แล้ว');
 
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('9999');
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await page.getByRole('button', { name: 'เชิญเข้าปาร์ตี้' }).click();
   await expect(page.locator('#toast')).toContainText('ไม่พบ Character ID นี้');
 
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('1357');
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await page.getByRole('button', { name: 'เชิญเข้าปาร์ตี้' }).click();
   await expect(page.getByRole('dialog', { name: /ส่งคำเชิญ/ })).toBeVisible();
   await expect(page.getByRole('dialog', { name: /ส่งคำเชิญ/ })).toContainText('Guest Hero');
   await expect(page.getByRole('dialog', { name: /ส่งคำเชิญ/ })).toContainText('นักแล่นคลื่น');
@@ -101,7 +101,7 @@ test('expense splitter pins the signed-in account hero and invites others by Cha
 
   await page.getByRole('button', { name: '＋ เพิ่มฮีโร่' }).click();
   await page.getByPlaceholder('Character ID ของคนอื่น').fill('1358');
-  await page.getByRole('button', { name: 'Invite' }).click();
+  await page.getByRole('button', { name: 'เชิญเข้าปาร์ตี้' }).click();
   await page.getByRole('button', { name: 'ส่งคำเชิญ' }).click();
   await expect(page.evaluate(() => JSON.parse(localStorage.getItem('pointy_board_invites_v1') || '[]').filter(i => i.status === 'pending').length)).resolves.toBe(2);
 
@@ -180,7 +180,7 @@ test('expense splitter supports admin URL setup, character IDs, admin unlock, an
   await page.locator('#admin-url-id').fill(takenSlug);
   await page.locator('#admin-pass-new').fill('hero-pass');
   await page.getByRole('button', { name: 'สร้างแอดมิน' }).click();
-  await expect(page.getByText(`ID/URL ${takenSlug} ถูกใช้แล้ว`)).toBeVisible();
+  await expect(page.getByText(`รหัสบอร์ด ${takenSlug} ถูกใช้งานแล้ว`)).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/trip/\\?id=${originalId}&test=1$`));
 
   await page.locator('#admin-url-id').fill(slug);
@@ -221,7 +221,7 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
   await expandBoardSection(page, 'log');
 
   await page.getByRole('button', { name: /ออกเดินทางใหม่/ }).click();
-  await expect(page.getByText('กำหนด URL เกมเป็นเลข 4 หลัก')).toBeVisible();
+  await expect(page.getByText('กำหนดรหัสบอร์ด 4 หลัก')).toBeVisible();
   await expect(page.locator('#new-trip-code')).toHaveValue(/\d{4}/);
   await expect(page.locator('#new-trip-admin-pass')).toHaveValue(/\d{6}/);
 
@@ -231,7 +231,7 @@ test('expense splitter starts new trips with a 4 digit URL and creator admin', a
   await page.locator('#new-trip-code').fill('2468');
   await page.locator('#new-trip-admin-pass').fill('captain-2468');
   await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
-  await expect(page.getByText('ID/URL 2468 ถูกใช้แล้ว')).toBeVisible();
+  await expect(page.getByText('รหัสบอร์ด 2468 ถูกใช้งานแล้ว')).toBeVisible();
   await expect(page).not.toHaveURL(/\/trip\/\?id=2468&test=1$/);
 
   await page.locator('#new-trip-code').fill('2469');
@@ -440,18 +440,18 @@ test('expense splitter supports itemized loot split, receipt date, and quest boa
   await addWarrior(page, 'Pointy');
 
   await page.locator('#exp-desc').fill('Market loot');
-  await page.getByRole('button', { name: 'แยกของ' }).click();
+  await page.getByRole('button', { name: 'แยกตามรายการ' }).click();
   await page.locator('.loot-name').first().fill('Sushi');
   await page.locator('.loot-amount').first().fill('300');
   await page.locator('.loot-row').first().getByRole('button', { name: /Shane/ }).click();
-  await page.getByRole('button', { name: /เพิ่มของ/ }).click();
+  await page.getByRole('button', { name: /เพิ่มรายการ/ }).click();
   await page.locator('.loot-name').nth(1).fill('Snacks');
   await page.locator('.loot-amount').nth(1).fill('100');
   await expect(page.locator('#exp-amount')).toHaveValue('400');
   await page.locator('#exp-date').fill('2026-06-14T18:30');
   await page.locator('[data-entry-action="add-expense"]').click();
 
-  await expect(page.locator('#quest-log')).toContainText('แยกของ');
+  await expect(page.locator('#quest-log')).toContainText('แยกตามรายการ');
   await expect(page.locator('#quest-log')).toContainText('Shane ฿350');
   await expect(page.locator('#quest-log')).toContainText('Pointy ฿50');
   await expect(page.locator('#party-total')).toHaveText('฿400');
@@ -460,7 +460,7 @@ test('expense splitter supports itemized loot split, receipt date, and quest boa
   await expect(page.getByText('กระดานเควส').last()).toBeVisible();
   await expect(page.locator('.board-card')).toHaveCount(1);
   await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
-  await expect(page.getByText('กำหนด URL เกมเป็นเลข 4 หลัก')).toBeVisible();
+  await expect(page.getByText('กำหนดรหัสบอร์ด 4 หลัก')).toBeVisible();
   await expect(page.locator('#new-trip-code')).toHaveValue(/\d{4}/);
   await page.locator('#new-trip-code').fill('1357');
   await page.getByRole('button', { name: /เริ่มทริปใหม่/ }).click();
@@ -482,7 +482,7 @@ test('native JSON and exported Excel round trip preserve payers and exact shares
   await expect(page.getByRole('button', { name: 'ดูใบเสร็จ', exact: true })).toHaveCount(1);
   await expect(page.locator('#settle-body')).toContainText('฿40');
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: '📤 Export Excel', exact: true }).click();
+  await page.getByRole('button', { name: '📤 ส่งออก Excel', exact: true }).click();
   const download = await downloadPromise;
   await page.locator('#import-input').setInputFiles(await download.path());
   await expect(page.locator('#expense-count')).toHaveText('2');
@@ -600,7 +600,7 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await expect(page.locator('.dragon-card').first()).toContainText('฿56,800');
 
   await page.locator('.debt-strategy-button').click();
-  await page.getByRole('button', { name: /โจมตอนนี้/ }).click();
+  await page.getByRole('button', { name: /บันทึกการชำระ/ }).click();
   await expect(page.locator('.dragon-card').first().locator('.dc-strike-form')).toBeVisible();
   await page.locator('.dragon-card').first().locator('.dc-strike-form').getByRole('button', { name: 'ยกเลิก' }).click();
   await page.getByRole('button', { name: /ล้มทีละตัว/ }).click();
@@ -748,7 +748,7 @@ test('super admin portal saves drafts, publishes board edits, and records revisi
   await page.locator('#gate-pass').fill('portal-pass');
   await page.getByRole('button', { name: 'Set & Unlock' }).click();
 
-  await page.getByRole('button', { name: 'Detail 9001', exact: true }).click();
+  await page.getByRole('button', { name: 'Details 9001', exact: true }).click();
   await revealBoardSection(page, 'owner');
   await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Alpha Board');
   await page.getByLabel('Name', { exact: true }).fill('Beta Board');
@@ -815,11 +815,11 @@ test('super admin portal renders relationship views and drill-in details', async
 
   await adminNav(page, 'Dashboard');
   await expect(page.locator('.dashboard-stat').first()).toContainText('Boards');
-  await page.getByRole('button', { name: 'B Command' }).click();
+  await page.getByRole('button', { name: 'Activity' }).click();
   await expect(page.getByText('Needs Attention')).toBeVisible();
 
   await adminNav(page, 'Boards');
-  await page.getByRole('button', { name: 'Detail' }).first().click();
+  await page.getByRole('button', { name: 'Details' }).first().click();
   await expect(page.locator('#board-members .board-section-heading')).toBeVisible();
   await expect(page.locator('#board-log .board-section-heading')).toBeVisible();
   await expect(page.locator('.admin-detail-badges .k-board')).toBeVisible();
@@ -834,7 +834,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page).toHaveURL(/\/admin\/\?(.+&)?tab=users/);
   await expect(page.getByRole('heading', { name: 'Users', level: 1 })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Detail' }).first().click();
+  await page.getByRole('button', { name: 'Details' }).first().click();
   await expect(page.getByRole('heading', { name: 'Profile Summary', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Lifecycle/ }).first().click();
   await expect(page.getByText('Account lifecycle')).toBeVisible();
@@ -854,7 +854,7 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.locator('#user-admin-title')).toBeVisible();
 
   await adminNav(page, 'Board Admins');
-  await page.getByRole('button', { name: 'Detail' }).first().click();
+  await page.getByRole('button', { name: 'Details' }).first().click();
   await expect(page.getByText('Admin Detail')).toBeVisible();
   await expect(page.getByText('Owned Boards')).toBeVisible();
 
@@ -902,7 +902,7 @@ test('super admin separates active users, orphan admin identities, and deleted I
   await adminNav(page, 'Board Admins');
   await expect(page.getByRole('heading', { name: 'Board Admins', level: 1 })).toBeVisible();
   await expect(page.locator('.tbl-wrap')).toContainText('4965');
-  await expect(page.locator('.tbl-wrap')).toContainText('orphaned');
+  await expect(page.locator('.tbl-wrap')).toContainText('No linked user');
 
   await adminNav(page, 'Deleted IDs');
   await expect(page.getByRole('heading', { name: 'Deleted IDs', level: 1 })).toBeVisible();
@@ -1067,7 +1067,7 @@ test('profile drawer shows recovery ID and regeneration invalidates the previous
   await page.locator('[data-reveal-recovery]').click();
   await expect(page.locator('[data-recovery-code]')).toContainText(oldCode);
   await page.locator('[data-regenerate-recovery]').click();
-  await expect(page.locator('[data-recovery-msg]')).toContainText(/สร้าง recovery ID ใหม่แล้ว|New recovery ID generated/);
+  await expect(page.locator('[data-recovery-msg]')).toContainText(/สร้างรหัสกู้คืนใหม่แล้ว|New recovery key created/);
 
   const result = await page.evaluate(async previous => {
     const auth = JSON.parse(localStorage.getItem('pointy_auth_v1') || '{}');

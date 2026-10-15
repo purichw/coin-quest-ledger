@@ -122,7 +122,7 @@ test('Board settings copy failure, board links and import transition', async ({ 
   await seed(page); await open(page);
   await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new Error('Clipboard unavailable'); }; });
   await page.locator('[data-settings-copy]').click();
-  await expect(page.locator('#bs-copy-status')).toContainText('คัดลอกไม่ได้');
+  await expect(page.locator('#bs-copy-status')).toContainText('คัดลอกไม่สำเร็จ');
   await expect(page.locator('#bs-board-url')).toBeFocused();
   await page.evaluate(() => { navigator.clipboard.writeText = async text => { window.settingsCopied = text; }; });
   await page.locator('[data-settings-copy]').click();
