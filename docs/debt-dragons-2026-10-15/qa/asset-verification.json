@@ -1,0 +1,58 @@
+[
+  {
+    "id": "autoloan",
+    "sourceBytes": 2008813,
+    "webpBytes": 438502,
+    "sourceSha256": "f7b675d6069b14bf9f914608ed2d7ad2ce436a566046a0ba7ea2809209c3a3c3",
+    "webpSha256": "dcd5f1311a8253c4e01996791bdbfeeb2359b596a84bd9f1b7ce70da4c1bcc22",
+    "alphaIdentical": true
+  },
+  {
+    "id": "card",
+    "sourceBytes": 1980633,
+    "webpBytes": 427188,
+    "sourceSha256": "de2eee5fe4d11643b05de6a1bb0c2ccd6c98c2f707a33c960c82181555067b07",
+    "webpSha256": "6bab896455bcbb6f9ccc9591b4aedc38ff17da037c123019c78579690eb44d8a",
+    "alphaIdentical": true
+  },
+  {
+    "id": "medical",
+    "sourceBytes": 2100526,
+    "webpBytes": 480338,
+    "sourceSha256": "6cc4a6b20b5e122ae5d788421bc1eef6957a2bfb5fd567f2a8e17dac4c120295",
+    "webpSha256": "b3cc7015663db1a8c4a17c6f0b177495a7b54aa899e6ab636513a59be69f0c2b",
+    "alphaIdentical": true
+  },
+  {
+    "id": "mortgage",
+    "sourceBytes": 2117533,
+    "webpBytes": 464638,
+    "sourceSha256": "43e7b230c64e511052635aa887f7b8f16ce44be78ad8969c0e8d3418132a10d0",
+    "webpSha256": "6b949bf7dadd4df61552abf7b66051f7ae52d24aef17beafb243e38ef72ed7a7",
+    "alphaIdentical": true
+  },
+  {
+    "id": "other",
+    "sourceBytes": 2201152,
+    "webpBytes": 501112,
+    "sourceSha256": "960be53ab9a816f2d05abbbf25b27f365b6386ce5918ac45ca162241e80063af",
+    "webpSha256": "7d94daba43b072f78c5f1a3c67e73ad125e99d91af45f15e48d584836d98c8ac",
+    "alphaIdentical": true
+  },
+  {
+    "id": "student",
+    "sourceBytes": 2206549,
+    "webpBytes": 526920,
+    "sourceSha256": "af6e08d392795601aca3b824034983c145bb10681816f280f1e6c5ac4cfd7204",
+    "webpSha256": "3e4227978281bf6bff8837b28e5b62b5424c523836dc11579f054809930ca89d",
+    "alphaIdentical": true
+  },
+  {
+    "id": "tax",
+    "sourceBytes": 2162140,
+    "webpBytes": 496498,
+    "sourceSha256": "a958d4eafc24820dc0d334aede097b1bc125438559df01f53b492b3e0900d58a",
+    "webpSha256": "458db8af05c227c8766f1a6fca6eb1dd37f10c2e45ce7b1a0c0f5c39a3d08db4",
+    "alphaIdentical": true
+  }
+]

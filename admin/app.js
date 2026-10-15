@@ -32,6 +32,7 @@ let detail = null;
 let boardFilter = 'all';
 let auditFilter = 'all';
 let dashMode = 'a';
+let relationshipUserId = '';
 let dirty = false;
 const boardSectionStates = new Map();
 let cloudUsers = [];
@@ -897,45 +898,60 @@ function renderDashboard() {
   return `${pageHead('Dashboard', 'System overview & quick actions', seg('dashMode', dashMode, [['a','Overview'], ['b','Activity']]))}<div class="dashboard-content ${dashMode === 'b' ? 'command-mode' : ''}">${dashMode === 'b' ? panels + kpis : kpis + panels}</div>`;
 }
 function renderRelationshipMap() {
-  const u = visibleUserRecords().find(x => x.adminGroups.length) || visibleUserRecords()[0];
+  const users = visibleUserRecords();
+  const u = users.find(x => x.userId === relationshipUserId) || users.find(x => x.adminGroups.length) || users[0];
+  relationshipUserId = u?.userId || '';
   const icon = window.CoinQuestIcons;
   const types = [
-    ['user', 'Global User ID', 'profile', 'ผู้ใช้หลักของระบบ'],
-    ['char', 'Character', 'swords', 'ตัวละครที่เล่นอยู่'],
-    ['admin', 'Admin IDs', 'shield', 'สิทธิ์ผู้ดูแล'],
-    ['board', 'Boards', 'scroll', 'บอร์ดที่เกี่ยวข้อง']
+    ['user', 'ผู้ใช้ที่กำลังดู', 'profile'],
+    ['char', 'ตัวละครที่ใช้เล่น', 'swords'],
+    ['admin', 'สิทธิ์ดูแลบอร์ด', 'shield'],
+    ['board', 'บอร์ด', 'scroll']
   ];
   const node = (kind, body, glyphOverride) => {
     const [, label, glyph] = types.find(type => type[0] === kind);
-    return `<article class="rel-node ${kind}"><h4 class="rel-node-label">${label}</h4><span class="rel-node-icon" aria-hidden="true">${icon(glyphOverride || glyph)}</span><div class="rel-node-body">${body}</div></article>`;
+    const art = kind === 'user' ? '<span class="admin-medallion medallion-users"></span>' : adminTavernIcon(glyphOverride || glyph);
+    return `<article class="rel-node ${kind}"><h4 class="rel-node-label">${label}</h4><span class="rel-node-icon" aria-hidden="true">${art}</span><div class="rel-node-body">${body}</div></article>`;
   };
-  let map = `<div class="empty">${icon('profile')}<div class="e-t">ยังไม่มีผู้ใช้งาน</div><div class="e-d">ความสัมพันธ์จะแสดงเมื่อมีข้อมูลผู้ใช้ในระบบ</div></div>`;
+  const boardLinks = (boards, relation) => `<div class="rel-edge"><span aria-hidden="true">↓</span>${relation} ${boards.length} บอร์ด</div><ul class="rel-children" aria-label="บอร์ดที่${relation}">${boards.map(b => `<li class="rel-board-leaf board" data-linked-board="${h(b.originalId)}">${adminTavernIcon('scroll')}<div><strong>${h(b.tripName || 'ยังไม่ได้ตั้งชื่อบอร์ด')}</strong>${idChip('board', b.urlId || b.originalId, b.originalId)}</div></li>`).join('')}</ul>`;
+  let map = `<div class="empty">${icon('profile')}<div class="e-t">ยังไม่มีผู้ใช้งาน</div><div class="e-d">เมื่อมีบัญชีผู้ใช้หรือสมาชิกบนบอร์ด คุณจะเลือกดูความสัมพันธ์ได้ที่นี่</div></div>`;
+  let selector = '', boardList = '';
   if (u) {
-    const user = node('user', `<h5 class="rn-name">${h(u.name)}</h5>${idChip('user', u.userId, u.userId)}<p class="rn-sub rn-counts"><span>${u.chars.length} active character${u.chars.length === 1 ? '' : 's'}</span><span>${u.adminGroups.length} admin role${u.adminGroups.length === 1 ? '' : 's'}</span></p>`);
-    const chars = u.chars.map(c => node('char', `<h5 class="rn-name">${h(c.name)}</h5>${staticIdChip('char', c.id || '—')}
-      <p class="rn-sub">${h(c.className)} · ${levelBadge(characterLevelFromXp(c.xp).lvl)} · ${Number(c.xp || 0).toLocaleString()} XP</p>
-      <div class="rn-links"><span>plays in:</span> ${c.boards.map(bid => {
-        const b = boardById(bid);
-        return b ? idChip('board', b.urlId, b.originalId) : '';
-      }).join(' ') || '<span>—</span>'}</div>`)).join('') || node('char', '<p class="rn-sub">No character yet</p>');
-    const admins = u.adminGroups.map(g => node('admin', `${idChip('admin', g.adminId || '—', g.key)}<p class="rn-sub">${h(g.adminName || 'No admin display name')}</p>`)).join('') || node('admin', '<p class="rn-sub">Not an admin</p>');
+    const playingIds = new Set(u.boards.map(b => b.originalId));
+    const managedIds = new Set(u.adminGroups.flatMap(g => g.boards).map(b => b.originalId));
     const linkedBoards = [...new Map([...u.boards, ...u.adminGroups.flatMap(g => g.boards)].map(b => [b.originalId, b])).values()];
-    const boards = linkedBoards.map(b => node('board', `<h5 class="rn-name">${h(b.tripName)}</h5>${idChip('board', b.urlId, b.originalId)}<div class="rn-links"><span>managed by:</span> ${b.adminId || b.adminOwnerHash ? idChip('admin', b.adminId || '—', b.adminOwnerHash || b.adminId) : '<span>No admin assigned</span>'}</div>`, b.type === 'debt' ? 'debt' : b.type === 'treasury' ? 'treasury' : 'scroll')).join('') || node('board', '<p class="rn-sub">No boards yet</p>');
-    map = `<ol class="relmap" aria-label="Account relationships">${[user, chars, admins, boards].map((nodes, i) => `<li class="rel-col" data-entity="${types[i][0]}">${nodes}</li>`).join('')}</ol>`;
+    selector = `<div class="rel-selector"><label for="relationship-user">เลือกผู้ใช้ที่ต้องการดู</label><select id="relationship-user" onchange="selectRelationshipUser(this.value)" aria-describedby="relationship-selection-note">${users.map(item => `<option value="${h(item.userId)}" ${item.userId === u.userId ? 'selected' : ''}>${h(item.name)} · User ${h(item.userId)}</option>`).join('')}</select><p id="relationship-selection-note">แสดงข้อมูลของคนที่เลือกเท่านั้น · กดปุ่มรหัสผู้ใช้ ผู้ดูแล หรือบอร์ด เพื่อเปิดรายละเอียด</p></div>`;
+    const user = node('user', `<div class="rel-person"><h5 class="rn-name">${h(u.name)}</h5>${idChip('user', u.userId, u.userId)}</div><p class="rn-sub">${u.cloud || u.uid ? 'บัญชีนี้ใช้ระบุตัวผู้ใช้และเชื่อมข้อมูลการเล่นในแต่ละเกม' : 'พบชื่อนี้ในข้อมูลบอร์ด แต่ยังไม่พบบัญชีผู้ใช้ที่เชื่อมไว้'}</p><p class="rel-summary">เป็นสมาชิก <strong>${playingIds.size} บอร์ด</strong> · เป็นผู้ดูแล <strong>${managedIds.size} บอร์ด</strong></p>`);
+    const chars = u.chars.map(c => {
+      const boards = c.boards.map(boardById).filter(b => b && !b.deleted);
+      return `<div class="rel-entity-tree" data-character-id="${h(c.id || '')}">${node('char', `<h5 class="rn-name">${h(c.name)}</h5>${c.id ? staticIdChip('char', c.id) : '<span class="rn-sub">ยังไม่มีรหัสตัวละคร · สมาชิกแบบ Guest หรือข้อมูลเดิม</span>'}<p class="rn-sub">${h(PointyLogic.CLASSES[c.className]?.th || c.className)} · เลเวล ${characterLevelFromXp(c.xp).lvl} · ${Number(c.xp || 0).toLocaleString()} XP</p>`)}${boards.length ? boardLinks(boards, 'เข้าร่วม') : '<p class="rel-empty">ยังไม่พบการเข้าร่วมบอร์ด</p>'}</div>`;
+    }).join('') || node('char', '<p class="rn-sub">ยังไม่มีตัวละครที่เชื่อมกับผู้ใช้นี้</p>');
+    const admins = u.adminGroups.map(g => `<div class="rel-entity-tree" data-admin-key="${h(g.key)}">${node('admin', `<h5 class="rn-name">${h(g.adminName || 'ยังไม่ได้ตั้งชื่อผู้ดูแล')}</h5>${idChip('admin', g.adminId || '—', g.key)}`)}${boardLinks(g.boards, 'ดูแล')}</div>`).join('') || node('admin', '<p class="rn-sub">ยังไม่มีสิทธิ์ดูแลบอร์ดที่เชื่อมกับผู้ใช้นี้</p><p class="rn-sub">ยังเป็นสมาชิกและร่วมเล่นบนบอร์ดได้ โดยไม่ต้องเป็นผู้ดูแล</p>');
+    map = `<div class="relmap" aria-label="ความสัมพันธ์ของผู้ใช้ที่เลือก"><div class="rel-col rel-account" data-entity="user">${user}</div><div class="rel-branches">
+      <section class="rel-col rel-branch" data-entity="char" aria-labelledby="rel-player-heading"><div class="rel-branch-heading"><h3 id="rel-player-heading">${icon('swords')}ใช้ตัวละคร · ${u.chars.length} รายการ</h3><p>ตัวแทนผู้เล่น → บอร์ดที่เข้าร่วม</p></div><div class="rel-branch-items">${chars}</div></section>
+      <section class="rel-col rel-branch" data-entity="admin" aria-labelledby="rel-admin-heading"><div class="rel-branch-heading"><h3 id="rel-admin-heading">${icon('shield')}มีสิทธิ์ผู้ดูแล · ${u.adminGroups.length} รหัส</h3><p>Admin ID แต่ละรหัส → บอร์ดที่ดูแลด้วยสิทธิ์นั้น</p></div><div class="rel-branch-items">${admins}</div></section>
+    </div><p class="rel-reading-note">${icon('info')}การเข้าร่วมบอร์ดกับการดูแลบอร์ดเป็นคนละหน้าที่ คนเดียวกันอาจทำทั้งสองหน้าที่ในบอร์ดเดียวกันได้</p></div>`;
+    const boards = linkedBoards.map(b => `<article class="rel-board-row board" data-board-id="${h(b.originalId)}"><div class="rel-board-name">${icon(b.type === 'debt' ? 'debt' : b.type === 'treasury' ? 'treasury' : 'scroll')}<div><h4>${h(b.tripName || 'ยังไม่ได้ตั้งชื่อบอร์ด')}</h4><span>${h(boardTypeLabel(b))}</span></div>${idChip('board', b.urlId || b.originalId, b.originalId)}</div><div class="rel-board-facts"><p><span>ผู้ใช้ที่เลือกเกี่ยวข้องอย่างไร</span><strong>${[playingIds.has(b.originalId) ? 'เป็นสมาชิก' : '', managedIds.has(b.originalId) ? 'เป็นผู้ดูแล' : ''].filter(Boolean).join(' และ ')}</strong></p><div><span>ผู้ดูแลบอร์ดนี้</span><div class="rel-owner">${b.adminId || b.adminOwnerHash ? `${idChip('admin', b.adminId || '—', b.adminOwnerHash || b.adminId)}${b.adminName ? `<span>${h(b.adminName)}</span>` : ''}` : '<span>ยังไม่ระบุผู้ดูแล</span>'}</div></div></div></article>`).join('');
+    boardList = card(`${icon('scroll')}บอร์ดที่เกี่ยวข้องกับผู้ใช้นี้ (${linkedBoards.length})`, `<p class="rel-section-intro">รวมบอร์ดที่เข้าร่วมและบอร์ดที่ดูแล หากทำทั้งสองหน้าที่ จะนับบอร์ดนั้นเพียงครั้งเดียว</p><div class="rel-board-list">${boards || '<p class="rel-empty">ยังไม่มีบอร์ดที่เชื่อมกับผู้ใช้นี้</p>'}</div>`, '', 'relationship-boards');
   }
-  const legend = `<div class="rel-legend" aria-label="Entity types">${types.map(([kind, label, , description]) => `<div class="rel-legend-item ${kind}"><span class="rel-dot" aria-hidden="true"></span><span><strong>${label}</strong> <span>(${description})</span></span></div>`).join('')}</div>`;
-  const rules = `<ul class="model-rules">
-    <li>One User ID works across Split Expenses, Debt Dragon, Treasury, and Character Profile.</li>
-    <li>Each user account has one active character. Character details are managed in the account profile and shared across boards.</li>
-    <li>Character level is based on Character XP. Profile level is based on Reputation; these progress separately.</li>
-    <li>A user can be a board admin through one or more Admin IDs, and one Admin ID can own multiple boards.</li>
-    <li>Compare Prices is a tool, not a Board.</li>
-  </ul>`;
-  const help = `<section class="relationship-help">
-    <button class="relationship-help-toggle" type="button" aria-expanded="false" aria-controls="relationship-help-content" onclick="const open=this.getAttribute('aria-expanded')!=='true';this.setAttribute('aria-expanded',String(open));this.parentElement.classList.toggle('is-open',open)">${icon('scroll')}<span>คำอธิบายและกฎการทำงาน</span><span class="rel-help-chevron" aria-hidden="true">⌄</span></button>
-    <div id="relationship-help-content" class="relationship-help-content">${legend}${card(`${icon('scroll')}กฎการเชื่อมโยงบัญชี (Account Rules)`, rules, '', 'relationship-rules')}</div>
-  </section>`;
-  return `${pageHead('Relationship Map', 'User → Character / Admin ID → Board links')}<div class="relationship-content">${card(`${icon('split')}ความสัมพันธ์ของข้อมูลในระบบ`, map, '', 'relationship-overview')}${help}</div>`;
+  const definitions = [
+    ['user', 'User ID · รหัสผู้ใช้', 'ใช้ระบุว่าเป็นใคร บัญชีเดียวใช้ได้ทั้ง Split Expenses, Debt Dragon, Treasury และหน้าโปรไฟล์'],
+    ['char', 'Character ID · รหัสตัวละคร', 'ใช้ระบุตัวละครของผู้เล่น บัญชีหนึ่งมีตัวละครที่ใช้งานอยู่หนึ่งตัว และใช้ตัวละครเดียวกันเข้าร่วมหลายบอร์ดได้'],
+    ['admin', 'Admin ID · รหัสผู้ดูแลบอร์ด', 'บอกว่าใช้สิทธิ์ชุดไหนดูแลบอร์ด ผู้ใช้หนึ่งคนอาจมีหลาย Admin ID และหนึ่ง Admin ID อาจดูแลหลายบอร์ด'],
+    ['board', 'Board ID · รหัสบอร์ด', 'ใช้ระบุพื้นที่เล่นหรือบันทึกข้อมูล เช่น บอร์ดแบ่งค่าใช้จ่ายของทริปหนึ่ง บอร์ดหนึ่งมีสมาชิกและผู้ดูแลของตัวเอง']
+  ];
+  const help = card(`${icon('info')}อ่านหน้านี้อย่างไร`, `<div class="rel-definitions">${definitions.map(([kind, title, description]) => `<div class="rel-definition ${kind}"><h4><span class="rel-dot" aria-hidden="true"></span>${title}</h4><p>${description}</p></div>`).join('')}</div><div class="rel-faq">
+    <details><summary>ทำไมรหัสผู้ใช้ ตัวละคร และผู้ดูแลเป็นเลขเดียวกัน?</summary><p>รหัสบางรายการอาจมีค่าเหมือนกัน แต่ใช้ระบุคนละอย่าง เช่น User 2150 คือผู้ใช้ ส่วน Char 2150 คือตัวละคร ให้ดูคำหน้ารหัสและความเชื่อมโยงที่แสดงบนหน้านี้ประกอบเสมอ</p></details>
+    <details><summary>ผู้ดูแลบอร์ดกับ Super Admin ต่างกันอย่างไร?</summary><p>ผู้ดูแลบอร์ดจัดการบอร์ดที่ตนมีสิทธิ์ ส่วน Super Admin ดูแลข้อมูลภาพรวมผ่าน Admin Portal การมี Admin ID ไม่ได้ทำให้เป็น Super Admin</p></details>
+    <details><summary>เลเวลตัวละครกับเลเวลโปรไฟล์ต่างกันอย่างไร?</summary><p>เลเวลตัวละครคิดจากค่าประสบการณ์ (XP) ส่วนเลเวลโปรไฟล์คิดจากคะแนนชื่อเสียง (Reputation) เป็นคนละค่า จึงอาจมีเลเวลไม่เท่ากัน</p></details>
+    <details><summary>ทำไมบางคนไม่มีตัวละคร ไม่มีบอร์ด หรือไม่มีผู้ดูแล?</summary><p>หน้านี้แสดงเฉพาะความเชื่อมโยงที่พบในข้อมูลปัจจุบัน บัญชีใหม่อาจยังไม่ได้สร้างตัวละครหรือเข้าร่วมบอร์ด ส่วนสมาชิกแบบ Guest และข้อมูลเก่าบางรายการอาจยังไม่เชื่อมกับบัญชีผู้ใช้</p><p>Price Arena เป็นเครื่องมือเปรียบเทียบราคา จึงไม่แสดงเป็นบอร์ดในแผนผังนี้</p></details>
+  </div>`, '', 'relationship-help');
+  return `${pageHead('Relationship Map', 'แผนผังผู้เล่นและบอร์ด — ใครเล่นด้วยตัวละครไหน และดูแลบอร์ดอะไรบ้าง')}<div class="relationship-content">${card(`${adminTavernIcon('split')}หนึ่งผู้ใช้ สองเส้นทางที่เชื่อมถึงบอร์ด`, `${selector}${map}`, '', 'relationship-overview')}${boardList}${help}</div>`;
+}
+function selectRelationshipUser(id) {
+  relationshipUserId = id;
+  render();
+  document.getElementById('relationship-user')?.focus({ preventScroll: true });
 }
 function updateBoardListField(id, key, input) {
   const value = key === 'urlId' ? input.value.trim() : input.value;

@@ -15,12 +15,12 @@ Admin are unchanged. No commit, push or deployment was performed.
   emblem, restrained flicker/breathing, progress, feather quote and desktop tip
   card. Tablet and phone use deliberate crops and omit the secondary tip card.
 - Website fonts remain Mitr, IBM Plex Sans Thai and Chakra Petch. Status, tip
-  controls and slow-load action follow Thai/English preference; the illustrated
+  text and slow-load action follow Thai/English preference; the illustrated
   brand quotes remain English as in the reference.
 - New scene art was generated from the supplied reference with the built-in
   imagegen tool, then encoded as a 1536 × 1024 WebP (71,478 bytes). It is recreated
   art, not a crop of the screenshot. Torches/eye remain code-native CSS, and the
-  feather and chevrons use inline SVG. No new icon/library dependency.
+  feather uses inline SVG. No new icon/library dependency.
 - Original generated source:
   `/Users/point/.codex/generated_images/01a12b87-cf17-7193-a1a2-63c61768c511/exec-c47caa30-ced2-47c9-a963-ae2c7f0c1290.png`.
   Production asset: `assets/loading-reference/night-quest.webp`; the asset
@@ -49,8 +49,11 @@ auth/account readiness and account ownership behavior are unchanged.
   cleaned up; loading the remaining asset after early dismissal cannot reopen it.
 - Reduced motion disables flicker, breathing, drifting embers and transitions,
   while preserving the actual progress value. Storage denial is tolerated.
-- Desktop tip previous/next controls wrap through three local tips. There are no
-  backend requests, analytics or persistence for these tips.
+- Each desktop page entry displays one randomly selected tip from eight local
+  tips in Thai or English, without previous/next controls. Session storage tracks
+  the previous tip to prevent immediate repeats. If storage is unavailable, tips
+  still randomize but may repeat. Tips remain still while reading, do not extend
+  the loading wait, and make no backend/analytics requests.
 
 ## Verification and evidence
 
@@ -61,7 +64,7 @@ successful executions across these scopes. Targeted reruns followed the focus
 fix and screenshot capture refinement.
 
 Coverage includes three responsive sizes, shared artwork, synchronized fill,
-tip navigation, keyboard containment/release, reduced motion, slow loading,
+random tips, keyboard containment/release, reduced motion, slow loading,
 early exit, missing art/image errors, denied storage, 320px short screens,
 fast and slow later navigation, all five HTML consumers, test bypass, and real
 Login → Sign Up reachability after loading completes.

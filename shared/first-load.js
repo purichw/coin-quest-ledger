@@ -32,8 +32,16 @@
     continue: 'Reload page',
     failed: 'The page could not finish loading. Please try again.',
     tip: 'A little wisdom for the journey',
-    prev: 'Previous tip', next: 'Next tip',
-    tips: ['Small expenses tell a bigger story. Give each one a place in your ledger.', 'Settle a shared expense while the memory is fresh.', 'Before buying, compare the price for the same quantity.']
+    tips: [
+      'Small expenses tell a bigger story. Give each one a place in your ledger.',
+      'Settle a shared expense while the memory is fresh.',
+      'Before buying, compare the price for the same quantity.',
+      'Give each expense a clear name so it is easy to find later.',
+      'Check who shared each expense before splitting the bill.',
+      'Keep a receipt with your expense to make it easier to check later.',
+      'Review recurring expenses each month to spot services you no longer use.',
+      'Group expenses by category to see where your money goes.'
+    ]
   } : {
     label: 'เตรียมพร้อมออกผจญภัย',
     stages: ['เริ่มต้นการเดินทาง…', 'จุดคบเพลิง…', 'เตรียมพร้อมออกผจญภัย…', 'ใกล้พร้อมแล้ว…', 'ยินดีต้อนรับ นักผจญภัย'],
@@ -41,11 +49,29 @@
     continue: 'โหลดหน้าใหม่',
     failed: 'โหลดหน้าไม่สำเร็จ กรุณาลองอีกครั้ง',
     tip: 'เกร็ดการเงินวันนี้',
-    prev: 'เกร็ดก่อนหน้า', next: 'เกร็ดถัดไป',
-    tips: ['บันทึกรายจ่ายเล็ก ๆ ก็ช่วยให้เห็นภาพใหญ่ได้ชัดขึ้น', 'แบ่งค่าใช้จ่ายหลังจบทริป จะได้ไม่ลืมว่าใครจ่ายอะไร', 'เทียบราคาในปริมาณเท่ากัน ก่อนเลือกของที่คุ้มค่า']
+    tips: [
+      'บันทึกรายจ่ายเล็ก ๆ ก็ช่วยให้เห็นภาพใหญ่ได้ชัดขึ้น',
+      'แบ่งค่าใช้จ่ายหลังจบทริป จะได้ไม่ลืมว่าใครจ่ายอะไร',
+      'เทียบราคาในปริมาณเท่ากัน ก่อนเลือกของที่คุ้มค่า',
+      'ตั้งชื่อรายการให้ชัดเจน จะช่วยให้ค้นหาและตรวจสอบย้อนหลังได้ง่าย',
+      'เช็กผู้ร่วมจ่ายของแต่ละรายการให้ครบ ก่อนคำนวณส่วนแบ่ง',
+      'เก็บใบเสร็จไว้คู่กับรายการจ่าย เพื่อให้ตรวจสอบยอดได้สะดวก',
+      'ทบทวนรายจ่ายประจำทุกเดือน เผื่อมีบริการที่ไม่ได้ใช้แล้ว',
+      'แยกรายจ่ายเป็นหมวดหมู่ จะช่วยให้เห็นว่าเงินส่วนใหญ่ใช้ไปกับอะไร'
+    ]
   };
+  // Vary even short visits: waiting longer must never be required to see a new tip.
+  const tipKey = 'coinQuestLoadingTip';
+  let tip = Math.floor(Math.random() * copy.tips.length);
+  try {
+    const saved = sessionStorage.getItem(tipKey);
+    const previous = saved === null ? NaN : Number(saved);
+    if (saved !== '' && Number.isInteger(previous) && previous >= 0 && previous < copy.tips.length) {
+      tip = (previous + 1 + Math.floor(Math.random() * (copy.tips.length - 1))) % copy.tips.length;
+    }
+  } catch (_) {}
+  try { sessionStorage.setItem(tipKey, String(tip)); } catch (_) {}
   const feather = '<svg viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M27 2C10 3 4 13 7 26c8 3 17-6 20-24Z" fill="currentColor" opacity=".75"/><path d="M3 38 23 8M8 29l11-4M12 21l-2-8M16 16l7-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  const chevron = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 5 7 7-7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-label', copy.label);
@@ -65,7 +91,7 @@
     ' <button class="first-load-continue" type="button" hidden>' + copy.continue + '</button>',
     '</div>',
     '<div class="first-load-quote">' + feather + '<p><span class="first-load-quote-desktop">Small steps today,<br>greater adventures tomorrow.</span><span class="first-load-quote-tablet">Same money.<br>A more epic journey.</span><span class="first-load-quote-mobile">Good habits<br>level up your future.</span></p></div>',
-    '<aside class="first-load-tip" aria-label="' + copy.tip + '"><button type="button" data-tip-direction="-1" aria-label="' + copy.prev + '">' + chevron + '</button><div><strong>' + copy.tip + '</strong><p data-first-load-tip aria-live="polite">' + copy.tips[0] + '</p></div><button type="button" data-tip-direction="1" aria-label="' + copy.next + '">' + chevron + '</button></aside>'
+    '<aside class="first-load-tip" aria-label="' + copy.tip + '"><strong>' + copy.tip + '</strong><p data-first-load-tip>' + copy.tips[tip] + '</p></aside>'
   ].join('');
 
   const started = performance.now();
@@ -82,7 +108,6 @@
   let completed = false;
   let value = 0;
   let stage = -1;
-  let tip = 0;
   let slowTimer;
   let previousFocus;
   const holds = new Set();
@@ -280,12 +305,6 @@
     });
   }
 
-  overlay.querySelectorAll('[data-tip-direction]').forEach(button => {
-    button.addEventListener('click', () => {
-      tip = (tip + Number(button.dataset.tipDirection) + copy.tips.length) % copy.tips.length;
-      overlay.querySelector('[data-first-load-tip]').textContent = copy.tips[tip];
-    }, { signal: listeners.signal });
-  });
   continueButton.addEventListener('click', () => location.reload(), { signal: listeners.signal });
 
   setProgress(0);

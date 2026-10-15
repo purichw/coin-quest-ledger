@@ -22,23 +22,16 @@ const classes = [
   'tiderunner',
 ];
 const genders = ['female', 'male'];
+const dragons = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
 const cloudinaryExpected = [
   ...classes.flatMap(cls => genders.map(gender => `assets/rpg-portraits/${cls}-${gender}.png`)),
   'assets/rpg-portraits/crimson-regent-male.png',
   'assets/rpg-portraits/archfiend-swimmer-male.png',
   'assets/rpg-portraits/archfiend-swimmer-blackred-male.png',
-  ...[
-    'card',
-    'autoloan',
-    'student',
-    'mortgage',
-    'medical',
-    'tax',
-    'other',
-  ].map(file => `assets/debt-dragons/${file}.png`),
   'assets/icons/loot-chest.svg',
 ];
 const localFallbackExpected = [
+  ...dragons.flatMap(name => ['png', 'webp'].map(ext => `assets/debt-dragons/${name}.${ext}`)),
   ...['title-scroll', 'shield', 'swords', 'scroll', 'coins', 'split', 'key', 'star', 'box'].map(name => `assets/admin-board-info/${name}.webp`),
   ...['tavern-shell', 'mountain-footer', 'medallions'].map(name => `assets/admin-reference/${name}.webp`),
   ...['castle-banner', 'coins', 'swords', 'chest', 'hourglass', 'home', 'food', 'transport', 'fun', 'shop', 'health', 'forecast', 'history', 'slime'].map(name => `assets/treasury-reference/${name}.webp`),
@@ -58,7 +51,6 @@ const localFallbackExpected = [
   'fallback-assets/tiderunner-classic-female.png',
   'fallback-assets/tiderunner-classic-male.png',
 ];
-const dragons = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
 const manifestPath = path.join(process.cwd(), 'shared', 'cloudinary-assets.js');
 const manifestText = fs.existsSync(manifestPath) ? fs.readFileSync(manifestPath, 'utf8') : '';
 const manifestMatch = manifestText.match(/window\.POINTY_CLOUDINARY_ASSETS\s*=\s*(\{[\s\S]*\});?\s*$/);
@@ -73,11 +65,6 @@ const missing = [
   ...missingLocal.map(file => `${file} (missing local fallback file)`),
   ...missingVercelAllowlist.map(file => `${file} (blocked by .vercelignore)`),
 ];
-
-dragons.forEach(file => {
-  const key = `assets/debt-dragons/${file}.png`;
-  if (!manifest[key]) missing.push(key);
-});
 
 if (missing.length) {
   console.error('Missing required asset(s):');

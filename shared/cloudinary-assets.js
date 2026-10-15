@@ -1,11 +1,4 @@
 window.POINTY_CLOUDINARY_ASSETS = {
-  "assets/debt-dragons/autoloan.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601892/coin-quest-ledger/assets/debt-dragons/autoloan.png",
-  "assets/debt-dragons/card.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601893/coin-quest-ledger/assets/debt-dragons/card.png",
-  "assets/debt-dragons/medical.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601894/coin-quest-ledger/assets/debt-dragons/medical.png",
-  "assets/debt-dragons/mortgage.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601894/coin-quest-ledger/assets/debt-dragons/mortgage.png",
-  "assets/debt-dragons/other.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601896/coin-quest-ledger/assets/debt-dragons/other.png",
-  "assets/debt-dragons/student.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601897/coin-quest-ledger/assets/debt-dragons/student.png",
-  "assets/debt-dragons/tax.png": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601898/coin-quest-ledger/assets/debt-dragons/tax.png",
   "assets/icons/loot-chest.svg": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601899/coin-quest-ledger/assets/icons/loot-chest.svg",
   "assets/rpg-classes/alchemist-female.webp": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601901/coin-quest-ledger/assets/rpg-classes/alchemist-female.webp",
   "assets/rpg-classes/alchemist-male.webp": "https://res.cloudinary.com/software-dev-projects/image/upload/v1781601902/coin-quest-ledger/assets/rpg-classes/alchemist-male.webp",

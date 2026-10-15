@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-15",
+  "route": "http://127.0.0.1:4569/debt/?test=1",
+  "state": "local seeded debt fixture; no production auth; Tavern/Thai and Dungeon/English",
+  "viewports": [
+    1440,
+    768,
+    390,
+    320
+  ],
+  "sources": {
+    "debt/app.js": "d7fae72a8b8517190d061a97bc95004ab9b19bab7bd18d982db28abce044f4b4",
+    "debt/design.css": "8568eb281a9bac585ad87423c464acd150eb162f76a021b6d0b0ff49373cf2db",
+    "shared/cloudinary-assets.js": "5a54efe42728c1afe595d34bd6fd4a82254a624f724c7eeff394138274e7d7c4",
+    "assets/debt-dragons/dragons.json": "a07f4fcdd92b1caa0f9d0f46367f689df9d1e1cd5a41172483869d62969003ec"
+  }
+}

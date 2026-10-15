@@ -303,20 +303,32 @@ Reference, visual comparisons and verification scope:
 
 ### Relationship Map
 
-`renderRelationshipMap()` renders the existing selected record (first visible
-user with an admin role, otherwise first visible user) as four groups: Global
-User ID, Character, Admin IDs and Boards. Each group retains all its actual
-records. Board nodes are deduplicated by original ID, not object identity.
-User/Admin/Board chips keep their existing detail actions; Character IDs remain
-read-only. Board ownership is labeled "managed by" to avoid reversing its meaning.
+`renderRelationshipMap()` lets the operator select a record from
+`visibleUserRecords()`. The initial choice is the first user with an admin role,
+otherwise the first visible user. This view-only choice survives detail navigation
+within the page session; it does not edit the draft or grant permissions.
 
-Desktop and tablet use four columns with gold connectors. Mobile below 768px
-uses vertical cards/downward connectors and a keyboard-operable disclosure for
-the four-color legend and model rules. A single record per group gives equal
-card heights; multiple records grow naturally without stretching a lone user
-card to the entire board list. Empty users/relationships do not invent records.
-The existing account-profile identity rules remain authoritative over mockup
-sample copy. Evidence: `docs/admin-relationship-map-2026-10-14/README.md`.
+The selected user is the root of two independent branches:
+
+- User → character → each board that character joins (`c.boards`).
+- User → each Admin ID → the boards managed by that specific ID (`g.boards`).
+
+Gold connectors and Thai relationship labels show the parent of each node.
+Painted Tavern medallions, swords, shields and scrolls illustrate each role on
+the shared parchment; names lead and IDs remain secondary detail links.
+Multiple Admin IDs keep separate child-board lists; character membership never
+implies administrative permission. Desktop/tablet show the two branches beside
+one another; mobile stacks them with a shared root rail and nested connectors.
+The board summary deduplicates by original ID and explicitly labels membership,
+administration, or both. User/Admin/Board chips retain their existing detail
+actions; Character IDs remain read-only. Records derived only from board members
+are identified as not yet linked to a known account; missing links are not
+invented. Existing identity, auth and data aggregation rules are unchanged.
+
+Plain Thai definitions and keyboard-operable FAQ disclosures explain the four
+ID types, Board Admin versus Super Admin, XP versus Reputation, and missing data.
+The shared Dashboard parchment, header, sidebar and footer remain authoritative.
+Current evidence: `docs/admin-relationship-map-2026-10-15/README.md`.
 
 ## Draft And Publish
 

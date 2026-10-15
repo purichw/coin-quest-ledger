@@ -232,12 +232,10 @@ html.first-load-boot body > :not([data-first-load]) { opacity: 0 !important; poi
   position: absolute;
   right: max(40px, env(safe-area-inset-right));
   bottom: max(36px, env(safe-area-inset-bottom));
-  display: grid;
-  grid-template-columns: 44px 1fr 44px;
-  align-items: center;
+  display: block;
   width: 408px;
   min-height: 112px;
-  padding: 12px 6px;
+  padding: 16px 20px;
   border: 1px solid #a382424f;
   border-radius: 15px;
   background: linear-gradient(120deg, #2f2a28ed, #241f20dc);
@@ -246,21 +244,6 @@ html.first-load-boot body > :not([data-first-load]) { opacity: 0 !important; poi
 .first-load-tip strong { display: block; font-size: 16px; font-weight: 600; color: #f4dfa4; }
 .first-load-tip p { margin: 2px 0 0; font-size: 15px; line-height: 1.5; color: #e0d8cc; }
 .first-load button { font-family: inherit; cursor: pointer; }
-.first-load-tip button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 48px;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  color: #ceb37e;
-  background: transparent;
-  box-shadow: none;
-}
-.first-load-tip button svg { width: 22px; height: 22px; }
-.first-load-tip button[data-tip-direction="-1"] svg { transform: rotate(180deg); }
-.first-load-tip button:hover { background: #f5d89814; color: #ffe6aa; }
 .first-load button:focus-visible { outline: 2px solid #ffdc84; outline-offset: 3px; }
 .first-load-continue {
   position: absolute;

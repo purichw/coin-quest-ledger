@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 
-const evidence = 'docs/debt-dragon-redesign-2026-10-13/qa';
+const evidence = process.env.POINTY_QA_DIR || 'docs/debt-dragon-redesign-2026-10-13/qa';
 async function fixture(page) {
   await page.clock.setFixedTime(new Date('2026-06-14T12:00:00+07:00'));
   await page.addInitScript(() => {
@@ -20,6 +20,28 @@ async function fixture(page) {
 async function noOverflow(page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
 }
+
+for (const width of [1440, 390]) test(`new transparent dragon set covers all seven debt types at ${width}`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 900 });
+  await fixture(page);
+  await page.locator('.add-dragon').click();
+  const types = ['card', 'autoloan', 'student', 'mortgage', 'medical', 'tax', 'other'];
+  await expect(page.locator('.df-type')).toHaveCount(types.length);
+  for (const type of types) {
+    const option = page.locator(`.df-type[data-dragon-type="${type}"]`);
+    const image = option.locator('.dragon-png');
+    await expect(image).toHaveAttribute('src', `/assets/debt-dragons/${type}.webp`);
+    await expect.poll(() => image.evaluate(img => img.complete && img.naturalWidth === 1254 && img.naturalHeight === 1254)).toBe(true);
+    await option.click();
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#new-type')).toHaveValue(type);
+  }
+  await expect(page.locator('.dragon-png[src$=".png"]')).toHaveCount(0);
+  await noOverflow(page);
+  fs.mkdirSync(evidence, { recursive: true });
+  await page.screenshot({ path: `${evidence}/dragon-types-${width}.png`, fullPage: true });
+});
+
 for (const width of [1440, 768, 390]) {
   test(`Debt visual ${width}`, async ({ page }) => {
     const errors = []; page.on('pageerror', error => errors.push(error.message));
@@ -125,6 +147,9 @@ test('Debt filters, completed debt, search, sorting and keyboard disclosure', as
   await expect(page.locator('.dragon-card:visible')).toHaveCount(4);
   await page.locator('#debt-sort').selectOption('balance');
   await expect(page.locator('.dragon-card:visible').first()).toHaveAttribute('data-dragon-id', 'd2');
+  // Battle-effect cleanup refreshes the page after payment. Keep the user's tools open.
+  await page.evaluate(() => renderAll(false));
+  await expect(page.locator('.debt-filter-tools')).toHaveAttribute('open', '');
   await page.locator('#debt-sort').selectOption('apr');
   await expect(page.locator('.dragon-card:visible').first()).toHaveAttribute('data-dragon-id', 'd1');
   await page.locator('.debt-filter-tools > summary').click();

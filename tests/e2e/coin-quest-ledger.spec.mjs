@@ -810,8 +810,8 @@ test('super admin portal renders relationship views and drill-in details', async
   await expect(page.locator('.board-row[data-board-id="9001"]')).toBeVisible();
 
   await adminNav(page, 'Relationship Map');
-  await expect(page.locator('.relationship-overview')).toContainText('Global User ID');
-  await expect(page.locator('.relationship-overview')).toContainText('Admin IDs');
+  await expect(page.locator('.relationship-overview')).toContainText('ผู้ใช้ที่กำลังดู');
+  await expect(page.locator('.relationship-overview')).toContainText('มีสิทธิ์ผู้ดูแล');
 
   await adminNav(page, 'Dashboard');
   await expect(page.locator('.dashboard-stat').first()).toContainText('Boards');
@@ -1473,8 +1473,8 @@ test('all player modules and admin portal keep their mobile and tablet responsiv
     expect(navHeight).toBeGreaterThanOrEqual(44);
     await adminNav(page, 'Relationship Map');
     await expect(page.locator('.relmap')).toBeVisible();
-    const relCols = await page.locator('.relmap').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
-    expect(relCols).toBe(4);
+    const relCols = await page.locator('.rel-branches').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
+    expect(relCols).toBe(2);
   }
   await assertNoOverflow();
 

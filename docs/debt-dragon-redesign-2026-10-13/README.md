@@ -5,7 +5,7 @@ Scope: the Debt Dragon game at `/debt/`, translated from the user's Desktop / Ta
 ## Design and product contracts
 
 - A valley-and-dragon hero, four live summary metrics, green add action, strategy action, and game settings.
-- Compact horizontal dragon rows use the game's existing portrait assets. Progress means **percentage repaid**, matching its label. Real balances, APR, payment schedule, dates and logs remain authoritative; reference sample totals are not hardcoded.
+- Compact horizontal dragon rows use the [seven user-supplied mini-boss portraits updated on 15 October](../debt-dragons-2026-10-15/README.md). Progress means **percentage repaid**, matching its label. Real balances, APR, payment schedule, dates and logs remain authoritative; reference sample totals are not hardcoded.
 - Desktop rows expose payment/details actions. Tablet rows retain the payment action. On phones, tapping a row opens details, payment, edit, artwork replacement and payment history.
 - All payment history is reachable, including paid dragons. Search, status filters and sorting operate on real saved debt data. Existing archived debts can be restored on desktop and mobile.
 - Financial summary and slayer sections collapse on phones. Strategy/simulation and lair management use explicit disclosures. Settings retain theme, accent, sound, animation and battle-effect controls; Escape, focus trapping and return focus work.

@@ -1,0 +1,6 @@
+{
+  "admin/app.js": "e6e039baba5464050381ada327e8abfacc2c0d2d0f7db89ffa1628e6f74158ef",
+  "admin/design.css": "627089562d98c1ead148b0051f5882d2cfe89f244de9adad47ac631f50f34379",
+  "tests/e2e/admin-relationship-map.spec.mjs": "ff951a0b2812a8c9f0d451a80a7ae0f8abadfc14519f124145f6d79d47f1f55d",
+  "tests/e2e/coin-quest-ledger.spec.mjs": "785de0bb144db7d90dcba1fc6ef7c2a2da4fd71bfd78236819afad5ca90b0a6d"
+}

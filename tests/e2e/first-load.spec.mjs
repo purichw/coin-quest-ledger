@@ -64,14 +64,9 @@ for (const width of [1440, 768, 390]) test(`loading scene and progress at ${widt
     return Math.round(el.firstElementChild.getBoundingClientRect().width / track * 100);
   })).toBe(68);
   await capture(page, testInfo, `loading-${width}.png`);
-  if (width >= 1024) {
-    await page.getByRole('button', { name: 'Next tip' }).click();
-    await expect(page.locator('[data-first-load-tip]')).toContainText('shared expense');
-    await page.getByRole('button', { name: 'Previous tip' }).click();
-    await expect(page.locator('[data-first-load-tip]')).toContainText('Small expenses');
-    await overlay.press('Shift+Tab');
-    await expect(page.getByRole('button', { name: 'Next tip' })).toBeFocused();
-  }
+  await expect(page.locator('.first-load-tip button')).toHaveCount(0);
+  await overlay.press('Shift+Tab');
+  await expect(overlay).toBeFocused();
   await overlay.press('Tab');
   expect(await overlay.evaluate(el => el.contains(document.activeElement))).toBe(true);
   // Progress must not reach 100% just because time passed while an image is pending.
@@ -82,6 +77,38 @@ for (const width of [1440, 768, 390]) test(`loading scene and progress at ${widt
   await page.getByRole('button', { name: 'Ready to play' }).click();
   await expect(page.locator('output')).toHaveText('Playable');
   expect(errors).toEqual([]);
+});
+
+test('page entries randomize tips without immediate repeats', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const release = await fixture(page, { externalFonts: false });
+  const tips = [];
+  for (let visit = 0; visit < 9; visit++) {
+    if (visit) await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('[data-first-load-tip]')).toBeVisible();
+    tips.push(await page.locator('[data-first-load-tip]').textContent());
+    await release();
+    await expect(page.locator('[data-first-load]')).toHaveCount(0);
+  }
+  for (let visit = 1; visit < tips.length; visit++) expect(tips[visit]).not.toBe(tips[visit - 1]);
+});
+
+for (const english of [true, false]) test(`one random tip tolerates unavailable storage (${english ? 'English' : 'Thai'})`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Exercise the end of the random range as well as the longer localized copy.
+  await page.addInitScript(() => { Math.random = () => 0.99; });
+  const release = await fixture(page, { english, blockedStorage: true });
+  const tip = page.locator('[data-first-load-tip]');
+  await expect(tip).toHaveCount(1);
+  await expect(tip).toContainText(english ? 'Group expenses by category' : 'แยกรายจ่ายเป็นหมวดหมู่');
+  await expect(page.locator('.first-load-tip button')).toHaveCount(0);
+  expect(await tip.evaluate(el => {
+    const text = el.getBoundingClientRect(), card = el.parentElement.getBoundingClientRect();
+    return text.left >= card.left && text.right <= card.right && text.bottom <= card.bottom;
+  })).toBe(true);
+  await capture(page, testInfo, `loading-tips-${english ? 'en' : 'th'}-1440.png`);
+  await release();
+  await expect(page.locator('[data-first-load]')).toHaveCount(0);
 });
 
 test('slow loading offers reload without exposing incomplete content', async ({ page }, testInfo) => {

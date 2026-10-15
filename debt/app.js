@@ -607,7 +607,7 @@ function toast(msg) {
 
 function renderDragonPortrait(type, opts = {}) {
   const ty = PointyLogic.dragonType(type);
-  const url = S.art?.[type] || assetUrl(`assets/debt-dragons/${type}.png`);
+  const url = S.art?.[type] || assetUrl(`assets/debt-dragons/${type}.webp`);
   const classes = ['dragon-medallion'];
   if (opts.face) classes.push('face');
   if (opts.dead) classes.push('dead');
@@ -917,6 +917,7 @@ function renderRecordPanel() {
 }
 
 function renderAll(shouldSave = true) {
+  const filterToolsOpen = document.querySelector('.debt-filter-tools')?.open;
   // Retain input through language/theme changes, cloud refreshes and battle effects.
   if (ADD_OPEN && document.getElementById('new-name')) ADD_FORM_DRAFT = formPayload('new');
   if (EDIT_OPEN && document.getElementById(`edit-${EDIT_OPEN}-name`)) EDIT_FORM_DRAFT[EDIT_OPEN] = formPayload(`edit-${EDIT_OPEN}`);
@@ -948,6 +949,7 @@ function renderAll(shouldSave = true) {
     ${debtDisclosure('manage', `${debtIcon('settings')} ${debtCopy('จัดการถ้ำมังกร', 'Manage your lair')}`, `<div class="lair-actions">${live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : ''}${S.dragons.length ? `<button class="btn-ghost sm dc-remove" onclick="clearLair()">${tt('dd_clear_lair')}</button>` : ''}</div><p class="settings-sub">${tt('dd_end_month_sub')}</p>`)}
     <cq-footer></cq-footer>
   </div>${flashToken ? '<div class="debt-flash"></div>' : ''}`;
+  if (filterToolsOpen !== undefined) document.querySelector('.debt-filter-tools').open = filterToolsOpen;
   applyDebtFilters();
   renderOverlay();
   attachDragonDropHandlers();

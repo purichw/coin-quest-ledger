@@ -707,81 +707,105 @@ table.tombstones-table td { padding: 10px 6px; font-size: 11px; line-height: 1.6
   .tombstones-table .ts-actions .btn { min-height: 44px; }
 }
 
-/* Relationship Map: entity colors explain data; surrounding paper stays shared. */
-.relationship-content .user { --rel-accent: #7455b5; --rel-border: #cbb9eb; --rel-tint: #f4effb; }
-.relationship-content .char { --rel-accent: #9e6d17; --rel-border: #e6c57d; --rel-tint: #fff6df; }
-.relationship-content .admin { --rel-accent: #386da3; --rel-border: #b5cfe8; --rel-tint: #edf5fc; }
-.relationship-content .board { --rel-accent: #397249; --rel-border: #b5cba0; --rel-tint: #eff6e5; }
-.relationship-overview { border-radius: 9px 9px 0 0; }
-.relationship-overview .card-head { border: 0; padding-bottom: 0; }
-.relationship-overview .card-head h3, .relationship-rules .card-head h3 { font-family: var(--font-body); font-size: 15px; font-weight: 600; line-height: 1.5; }
-.relmap { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 30px; align-items: start; margin: 0; padding: 0; list-style: none; }
-.relmap:not(:has(.rel-node + .rel-node)) { align-items: stretch; }
-.rel-col { min-width: 0; position: relative; display: grid; gap: 12px; }
-.rel-col + .rel-col::before { content: ""; position: absolute; top: 104px; left: -23px; width: 14px; height: 14px; background: var(--gold); clip-path: polygon(0 40%,65% 40%,65% 15%,100% 50%,65% 85%,65% 60%,0 60%); }
-.rel-node { min-width: 0; min-height: 228px; padding: 15px 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid var(--rel-border); border-radius: 7px; background: var(--rel-tint); text-align: center; overflow-wrap: anywhere; }
-.rel-node-label { font: 600 12px/1.4 var(--font-body); color: var(--rel-accent); margin: 0; }
-.rel-node-icon { display: grid; place-items: center; color: var(--rel-accent); filter: drop-shadow(0 2px 1px #6d502122); }
-.rel-node-icon .cq-icon { width: 34px; height: 34px; stroke-width: 1.5; }
-.rel-node.user .rel-node-icon .cq-icon { fill: #95afd1; stroke: #455b8b; }
-.rel-node.char .rel-node-icon .cq-icon { fill: #eed49b; stroke: #78582b; }
-.rel-node.board .rel-node-icon .cq-icon { fill: #e8c28b; stroke: #795631; }
-.rel-node-body { width: 100%; min-width: 0; }
-.rn-name { font: 600 14px/1.5 var(--font-body); margin: 0 0 6px; color: var(--ink); }
-.rn-sub { margin: 7px 0 0; color: #5c5e50; font-size: 12px; line-height: 1.6; }
-.rn-counts span { display: block; }
-.rn-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 5px; margin-top: 7px; font-size: 11px; color: #5c5e50; }
-.rel-node .idchip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; justify-content: center; margin: 0; min-height: 28px; font-size: 11px; }
-.rel-node button.idchip { min-height: 36px; }
-.rel-node .idchip > span { min-width: 0; }
-.rel-node .idchip.k-board { background: #deecd6; border-color: #b5cba0; }
-.relationship-help-toggle { display: none; }
-.rel-legend { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; padding: 14px 18px; margin-top: -1px; border: 1px solid var(--admin-parchment-border); border-radius: 0 0 9px 9px; background: var(--admin-parchment-card); }
-.rel-legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; line-height: 1.6; color: var(--ink-soft); }
-.rel-legend-item strong { color: var(--ink); font-weight: 500; }
+/* Relationship Map: two independent roles, on the shared Admin parchment. */
+.relationship-content .user { --rel-accent: #674399; --rel-border: #cbb9eb; --rel-tint: #f7f2fb; }
+.relationship-content .char { --rel-accent: #80550e; --rel-border: #e6c57d; --rel-tint: #fff8e8; }
+.relationship-content .admin { --rel-accent: #2c6092; --rel-border: #b5cfe8; --rel-tint: #f1f6fb; }
+.relationship-content .board { --rel-accent: #28603b; --rel-border: #b5cba0; --rel-tint: #f2f7eb; }
+.relationship-content { display: grid; gap: 18px; }
+.relationship-content .card { margin: 0; min-width: 0; }
+.relationship-content .card-head h3 { display: flex; align-items: center; gap: 9px; font: 600 17px/1.6 var(--font-body); }
+.relationship-content .card-pad { padding: 18px; }
+.rel-selector { display: grid; gap: 7px; margin-bottom: 20px; }
+.rel-selector label { text-align: center; font-size: 14px; font-weight: 600; }
+.rel-selector select { width: 100%; min-width: 0; min-height: 44px; padding: 9px 32px; border: 1px solid var(--admin-parchment-border); border-radius: 7px; background-color: #fffdf6; color: var(--ink); text-align: center; text-align-last: center; font: 500 15px/1.5 var(--font-body); }
+.rel-selector option { text-align: center; }
+.rel-selector p, .rel-section-intro { margin: 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
+.relmap { display: grid; gap: 0; }
+.rel-account { width: min(100%,620px); justify-self: center; }
+.rel-col { min-width: 0; }
+.rel-node { position: relative; min-width: 0; padding: 18px; display: grid; grid-template-columns: 70px minmax(0,1fr); gap: 5px 14px; align-content: center; border: 1px solid var(--admin-parchment-border); border-image: url('/assets/auth-guild/parchment.webp') 100 80 fill / 10px / 0 stretch; background: var(--admin-parchment); filter: drop-shadow(0 3px 2px #78521e24); overflow-wrap: anywhere; }
+.rel-node-label { grid-column: 2; font: 600 13px/1.5 var(--font-body); color: var(--rel-accent); margin: 0; }
+.rel-node-icon { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; color: var(--rel-accent); }
+.rel-node-icon :is(.cq-icon,.board-tavern-icon,.admin-medallion) { width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 3px 2px #78521e33); }
+.rel-node-body { grid-column: 2; min-width: 0; }
+.rn-name { font: 500 21px/1.5 var(--font-display,var(--font-body)); margin: 0 0 6px; color: var(--ink); }
+.rn-sub { margin: 7px 0 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
+.rel-person { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.rel-person .rn-name { margin: 0; }
+.rel-summary { margin: 8px 0 0; font-size: 14px; line-height: 1.7; }
+.rel-branches { position: relative; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 32px; padding-top: 38px; }
+.rel-branches::before { content: ""; position: absolute; top: 0; left: 50%; height: 19px; border-left: 2px solid var(--gold); }
+.rel-branch { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.rel-branch::before { content: ""; position: absolute; top: -20px; left: 50%; height: 16px; width: 6px; border-left: 2px solid var(--gold); border-bottom: 2px solid var(--gold); border-radius: 0 0 0 5px; }
+.rel-branch:first-child::after { content: ""; position: absolute; top: -20px; left: 50%; width: calc(100% + 32px); border-top: 2px solid var(--gold); border-radius: 12px; }
+.rel-branch-heading h3 { display: flex; gap: 8px; align-items: center; margin: 0; font: 600 16px/1.6 var(--font-body); }
+.rel-branch-heading .cq-icon { color: var(--gold); width: 21px; height: 21px; }
+.rel-branch-heading p { margin: 3px 0 0; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
+.rel-branch-items { display: grid; gap: 24px; margin-left: 10px; padding-left: 16px; border-left: 2px solid var(--gold); }
+.rel-branch-items > * { position: relative; }
+.rel-branch-items > *::before { content: ""; position: absolute; top: 32px; left: -17px; width: 17px; border-top: 2px solid var(--gold); }
+.rel-edge { display: flex; align-items: center; gap: 8px; margin: 0 0 0 25px; padding: 9px 0; font-size: 13px; font-weight: 500; }
+.rel-edge > span { color: var(--gold); font-size: 22px; line-height: 1; }
+.rel-children { list-style: none; display: grid; gap: 12px; margin: 0 0 0 29px; padding: 0 0 0 19px; border-left: 2px solid var(--gold); }
+.rel-board-leaf { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--admin-parchment-border); border-radius: 3px 9px 5px 8px; background: var(--admin-parchment-card); box-shadow: 0 2px 4px #78521e12; }
+.rel-board-leaf::before { content: ""; position: absolute; top: 50%; left: -20px; width: 19px; border-top: 1px solid var(--gold); }
+.rel-board-leaf > .board-tavern-icon { width: 42px; height: 48px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 2px 1px #78521e22); }
+.rel-board-leaf > div { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.rel-entity-tree > .rel-empty { padding: 10px 0 0 25px; }
+.relationship-content .idchip { max-width: 100%; white-space: normal; overflow-wrap: anywhere; justify-content: center; margin: 0; font-size: 12px; }
+.relationship-content button.idchip { min-height: 40px; flex-shrink: 0; }
+.relationship-content .idchip > span { min-width: 0; }
+.rel-reading-note { display: flex; align-items: flex-start; gap: 9px; margin: 18px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
+.rel-reading-note .cq-icon { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; color: var(--gold); }
+.rel-board-list { margin-top: 14px; display: grid; gap: 12px; }
+.rel-board-row { padding: 14px; min-width: 0; border: 1px solid var(--admin-parchment-border); border-radius: 8px; }
+.rel-board-name { display: flex; align-items: center; gap: 10px; }
+.rel-board-name > .cq-icon { color: var(--rel-accent); width: 27px; height: 27px; flex-shrink: 0; }
+.rel-board-name > div { min-width: 0; flex: 1; }
+.rel-board-name h4 { margin: 0; font: 600 15px/1.6 var(--font-body); overflow-wrap: anywhere; }
+.rel-board-name > div > span { color: var(--ink-soft); font-size: 12px; }
+.rel-board-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.7; }
+.rel-board-facts > * { margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.rel-board-facts > * > span { color: var(--ink-soft); }
+.rel-owner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.rel-empty { margin: 0; font-size: 14px; line-height: 1.8; color: var(--ink-soft); }
+.rel-definitions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px 24px; }
+.rel-definition h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 5px; font: 600 14px/1.6 var(--font-body); }
+.rel-definition p { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
 .rel-dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: var(--rel-accent); }
-.relationship-rules { margin-top: 16px; }
-.relationship-rules .card-head { border: 0; padding-bottom: 0; }
-.relationship-rules .card-pad { padding-top: 10px; }
-.model-rules { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.75; color: var(--ink); overflow-wrap: anywhere; }
-.model-rules li + li { margin-top: 4px; }
-@media (hover: none) and (pointer: coarse) {
-  .rel-node button.idchip { min-height: 44px; }
-}
-@media (min-width: 768px) and (max-width: 1199px) {
-  .relmap { gap: 22px; }
-  .rel-col + .rel-col::before { left: -18px; }
-  .rel-node { padding-inline: 8px; }
-  .rel-legend { grid-template-columns: repeat(2,minmax(0,1fr)); }
-}
+.rel-faq { margin-top: 22px; border-top: 1px solid var(--line); }
+.rel-faq details { border-bottom: 1px solid var(--line); }
+.rel-faq details:last-child { border-bottom: 0; }
+.rel-faq summary { padding: 13px 0; min-height: 44px; cursor: pointer; font: 500 14px/1.7 var(--font-body); }
+.rel-faq p { margin: 0 0 12px; font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
 @media (max-width: 767px) {
-  .relationship-overview { background: none; border: 0; box-shadow: none; }
-  .relationship-overview > .card-head { display: none; }
-  .relationship-overview > .card-pad { padding: 0; }
-  .relmap { grid-template-columns: 1fr; gap: 27px; }
-  .rel-col { gap: 10px; }
-  .rel-col + .rel-col::before { top: -21px; left: calc(50% - 7px); transform: rotate(90deg); }
-  .rel-node { display: grid; grid-template-columns: 32px minmax(0,1fr); gap: 4px 12px; align-items: start; min-height: 0; padding: 14px 16px; text-align: left; }
-  .rel-node-label { grid-column: 2; font-size: 12px; }
-  .rel-node-icon { grid-column: 1; grid-row: 1 / span 2; margin-top: 3px; }
-  .rel-node-icon .cq-icon { width: 29px; height: 29px; }
-  .rel-node-body { grid-column: 2; }
-  .rn-name { margin-bottom: 4px; font-size: 14px; }
-  .rn-sub { margin-top: 4px; }
-  .rn-counts span { display: inline; }
-  .rn-counts span + span::before { content: " · "; }
-  .rn-links { justify-content: flex-start; margin-top: 4px; }
-  .rel-node button.idchip { min-height: 44px; }
-  .relationship-help { margin-top: 16px; border: 1px solid var(--admin-parchment-border); border-radius: 7px; background: var(--admin-parchment-card); }
-  .relationship-help-toggle { display: flex; gap: 9px; align-items: center; min-height: 48px; width: 100%; padding: 10px 13px; text-align: left; font-size: 13px; font-weight: 600; }
-  .relationship-help-toggle > .cq-icon { color: var(--gold); }
-  .rel-help-chevron { margin-left: auto; font-size: 20px; }
-  .is-open .rel-help-chevron { transform: rotate(180deg); }
-  .relationship-help:not(.is-open) .relationship-help-content { display: none; }
-  .rel-legend { grid-template-columns: 1fr; border: 0; border-top: 1px solid var(--line); border-radius: 0; margin: 0; padding: 14px; background: none; gap: 9px; }
-  .relationship-rules { margin-top: 0; border: 0; border-top: 1px solid var(--line); box-shadow: none; background: none; }
-  .relationship-rules .card-head h3 { font-size: 13px; }
-  .relationship-rules .card-pad { padding: 10px 14px 14px; }
+  .relationship-content { gap: 14px; }
+  .relationship-content .card-head h3 { font-size: 15px; }
+  .relationship-content .card-pad { padding: 12px; }
+  .rel-selector p { font-size: 12px; }
+  .rel-branches { grid-template-columns: 1fr; gap: 24px; padding: 20px 0 0 12px; margin-left: 10px; border-left: 2px solid var(--gold); }
+  .rel-branches::before, .rel-branch::before, .rel-branch::after { display: none; }
+  .rel-branch-heading { position: relative; }
+  .rel-branch-heading::before { content: ""; position: absolute; top: 13px; left: -13px; width: 10px; border-top: 1px solid var(--gold); }
+  .rel-branch-heading h3 { font-size: 15px; }
+  .rel-branch-items { margin-left: 0; padding-left: 10px; }
+  .rel-branch-items > *::before { left: -11px; width: 10px; }
+  .rel-children { margin-left: 10px; padding-left: 11px; }
+  .rel-board-leaf { padding: 9px; gap: 6px; }
+  .rel-board-leaf::before { left: -12px; width: 11px; }
+  .rel-board-leaf > .board-tavern-icon { width: 30px; height: 36px; }
+  .rel-edge { margin-left: 5px; }
+  .rel-node { padding: 14px; grid-template-columns: 44px minmax(0,1fr); gap: 5px 8px; }
+  .rel-node-icon :is(.cq-icon,.board-tavern-icon,.admin-medallion) { width: 44px; height: 52px; }
+  .rel-node-icon .admin-medallion { height: 44px; }
+  .rn-name { font-size: 18px; }
+  .relationship-content button.idchip { min-height: 44px; }
+  .rel-board-name { flex-wrap: wrap; }
+  .rel-board-name > div { flex-basis: calc(100% - 40px); }
+  .rel-board-name > .idchip { margin-left: 37px; }
+  .rel-board-facts, .rel-definitions { grid-template-columns: 1fr; gap: 16px; }
+  .rel-board-row { padding: 12px; }
 }
 @media (max-width: 1199px) {
   .topbar { gap: 12px; }

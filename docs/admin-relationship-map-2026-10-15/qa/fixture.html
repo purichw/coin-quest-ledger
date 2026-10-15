@@ -1,0 +1,11 @@
+<!doctype html><html lang="th"><meta charset="utf-8"><title>Relationship Map — local QA fixture</title><script>
+if (!['127.0.0.1','localhost'].includes(location.hostname)) throw new Error('Local QA only');
+sessionStorage.setItem('pointy_super_admin_unlocked_v2','1');
+const base = {tripName:'TEST ทริปเชียงใหม่',participants:['มะลิ','ต้น'],characterIds:{'มะลิ':'2150','ต้น':'2151'},heroClasses:{'มะลิ':'ranger','ต้น':'warrior'},characterXp:{'2150':120,'2151':60},expenses:[],updatedAt:1791921600000,admin:{adminId:'ADM-3512',adminName:'มะลิ',characterId:'2150'}};
+sessionStorage.setItem('pointy_test_trip_3512',JSON.stringify(base));
+if(new URLSearchParams(location.search).get('multiple')==='1') {
+  sessionStorage.setItem('pointy_test_trip_3513',JSON.stringify({...base,tripName:'TEST ค่าใช้จ่ายในบ้าน'}));
+  sessionStorage.setItem('pointy_test_trip_3514',JSON.stringify({...base,tripName:'TEST ทริปทะเล',admin:{adminId:'ADM-7777',adminName:'มะลิ',characterId:'2150'}}));
+}
+location.replace('/admin/?test=1&tab=map');
+</script></html>
