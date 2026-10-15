@@ -31,7 +31,7 @@
       if (this.dataset.language === lang) return;
       this.dataset.language = lang;
       const quote = lang === 'en' ? 'Every expense is another step in your adventure.' : 'ทุกการใช้จ่าย คืออีกก้าวของการผจญภัย';
-      this.innerHTML = `<footer class="cq-footer"><p>${escape(quote)}</p><strong>Coin Quest Ledger</strong><nav class="cq-policy-links" aria-label="${lang === 'en' ? 'About and policies' : 'เกี่ยวกับเว็บและนโยบาย'}"><a href="/about/">${lang === 'en' ? 'About' : 'เกี่ยวกับเว็บ'}</a><a href="/privacy/">${lang === 'en' ? 'Privacy' : 'ความเป็นส่วนตัว'}</a><a href="/terms/">${lang === 'en' ? 'Terms' : 'ข้อกำหนด'}</a></nav></footer>`;
+      this.innerHTML = `<footer class="cq-footer"><p>${escape(quote)}</p><strong>Coin Quest Ledger</strong></footer>`;
     }
   }
   customElements.define('cq-player-header', PlayerHeader);

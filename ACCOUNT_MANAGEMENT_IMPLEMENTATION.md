@@ -47,8 +47,9 @@ Google OAuth client and removed retired Vercel domains from its origin list and
 Branding Authorized domains. The app name is already `Coin Quest Ledger`, but
 the brand remains in Testing and has not been verified/published. Public
 `/about/`, `/privacy/` and `/terms/` pages explain the service and current data
-handling without an auth gate. They are linked from the player footer and login
-shell; the auth focus loop includes those links. The owner approved the public
+handling without an auth gate. They are linked from public-page navigation and
+the login shell; the auth focus loop includes those links. The game footer keeps
+its existing compact geometry. The owner approved the public
 provider/contact as Coin Quest Ledger / purich.wc@gmail.com and confirmed a
 normal manual Admin Google login completed. Automated popup attempts had ended
 with `auth/popup-closed-by-user`; the manual report is separate evidence, not an

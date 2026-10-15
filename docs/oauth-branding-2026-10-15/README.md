@@ -29,7 +29,7 @@ was added.
 
 Public source: `about/index.html`, `privacy/index.html`, `terms/index.html`.
 All three pages are Thai with an English version, have reciprocal links, and
-load no authentication gate. Shared footer and login links expose them before
+load no authentication gate. Public navigation and login links expose them before
 sign-in. The login focus loop includes the new links. The Admin gate's public
 allowlisted-email notice was removed at the owner's request; access checks,
 login hint, Firebase identity, accounts and rules remain unchanged.
@@ -39,10 +39,12 @@ by those HTML pages. Their pending-input notes are no longer current.
 
 ## Google verification and publishing
 
-The app is External / Testing. Audience disables Publish app and asks for
-complete Branding configuration. Application home page, privacy policy and
-terms of service URLs are empty. No Verify Branding action is available in
-this state.
+The app is External / Testing. Branding now has the saved application home page
+`https://coinquestledger.vercel.app/about/`, privacy policy `/privacy/` and terms
+of service `/terms/`. The console confirmed **Branding changes saved!**. Audience
+now enables Publish app; its confirmation is prepared but has not been accepted
+while the corresponding deployment is pending. No Verify Branding action is
+available while Testing.
 
 Google requires a public descriptive home page, policy/terms links and domain
 ownership verification as applicable. Saving the app name does not make it
@@ -103,6 +105,8 @@ The targeted Tavern auth draft/language/theme/password/keyboard test passes,
 including Tab navigation through About/Privacy/Terms and opening Privacy without
 the login gate. Its initial failure was a test selector matching both shared
 footer and login links; the corrected selector is scoped to `.auth-legal-links`.
+The shared game footer links were subsequently removed to preserve the existing
+compact layout; policy links remain on login and the three public pages.
 
 Release scope is the three public pages, their shared styling/navigation,
 ownership metadata, Admin notice removal, focused test and this documentation.
@@ -118,6 +122,17 @@ passes on desktop, tablet and mobile with one worker (3 passed, 1.1 minutes).
 An initial parallel local run hit the unchanged 30-second overall test timeout
 later in the flow while host load exceeded 24; the serial diagnostic run kept
 the same timeout and assertions. No CI budgets or gates were weakened.
+
+Commit `0844fc2224c1d8785fed9fc06a70d306d26120f5` was pushed. Its CI run
+`38773215191` failed only the 390px Character composition height check in all
+three browser projects (1493px against the existing <1450px budget; 757 passed,
+11 skipped). The added shared footer policy row caused this increase. The repair
+removes that global row and keeps policy navigation on login/public pages;
+the height assertion remains unchanged. Deploy was skipped by the required gate.
+After the repair, Character composition at 1440/768/390px and the Tavern login
+keyboard/policy journey pass in Chromium, tablet and mobile projects (12 passed,
+1 minute, one worker). The failed check and affected navigation are covered
+before pushing the repair.
 
 ## Remaining sequence
 
