@@ -2,7 +2,7 @@
 
 Account-flow baseline verified: 2026-08-31
 Domain/auth configuration updated and verified: 2026-10-14
-OAuth branding follow-up: 2026-10-15 — public policy pages prepared; Google verification/publication pending (see below).
+OAuth branding follow-up: 2026-10-16 — public policy pages deployed; OAuth app In production; branding awaits Google's domain-ownership propagation (see below).
 
 This document describes the current implementation path from account creation to
 password recovery and Super Admin user management. It documents the code that
@@ -44,8 +44,10 @@ reset or account-deletion exercise. See `docs/domain-migration-2026-10-14/README
 
 The 15 October OAuth branding follow-up saved the new web origin on the existing
 Google OAuth client and removed retired Vercel domains from its origin list and
-Branding Authorized domains. The app name is already `Coin Quest Ledger`, but
-the brand remains in Testing and has not been verified/published. Public
+Branding Authorized domains. The app name is `Coin Quest Ledger` and the OAuth
+app is In production. Search Console ownership verification succeeded, but
+Google's branding check still requires a 24-hour ownership propagation window;
+the public brand name has not yet been verified/published. Public
 `/about/`, `/privacy/` and `/terms/` pages explain the service and current data
 handling without an auth gate. They are linked from public-page navigation and
 the login shell; the auth focus loop includes those links. The game footer keeps

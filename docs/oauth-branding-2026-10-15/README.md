@@ -1,6 +1,7 @@
 # Google OAuth branding — 15 October 2026
 
-Status: **partial; the public brand has not been verified or published.**
+Status (16 October 2026, Bangkok): **website changes deployed; OAuth app In
+production; public branding awaiting Google's domain-ownership propagation.**
 
 ## Saved configuration
 
@@ -39,12 +40,20 @@ by those HTML pages. Their pending-input notes are no longer current.
 
 ## Google verification and publishing
 
-The app is External / Testing. Branding now has the saved application home page
+The app is External / In production. Branding has the saved application home page
 `https://coinquestledger.vercel.app/about/`, privacy policy `/privacy/` and terms
-of service `/terms/`. The console confirmed **Branding changes saved!**. Audience
-now enables Publish app; its confirmation is prepared but has not been accepted
-while the corresponding deployment is pending. No Verify Branding action is
-available while Testing.
+of service `/terms/`. The console confirmed **Branding changes saved!**. After
+the website deployment, Publish app was confirmed and Audience displayed
+**In production**. No scopes, Firebase permissions or Admin allowlist changed.
+
+Verify branding then ran and returned one issue: Google had not yet associated
+the home-page website with the verified owner. Search Console had already
+confirmed **Ownership verified — HTML tag** for the URL-prefix property
+`https://coinquestledger.vercel.app/`. Google's issue explicitly says to wait
+24 hours after ownership verification before retrying. No repeated verification
+request or unsupported appeal was submitted. Retry no earlier than 17 October
+2026 at 01:00 Asia/Bangkok, then publish branding if Google makes that action
+available. This is a pending external step, not a completed brand-name rollout.
 
 Google requires a public descriptive home page, policy/terms links and domain
 ownership verification as applicable. Saving the app name does not make it
@@ -59,10 +68,10 @@ Historical content drafts:
 - [Terms](TERMS-DRAFT.md)
 
 These draft records under `docs/` are excluded from Vercel. Search Console has
-been opened with the existing owner account and a URL-prefix verification
-challenge created for `https://coinquestledger.vercel.app/`. The exact Google
-HTML verification meta tag is in root `index.html`; verification must be run
-after that revision is live. No unrelated property was modified.
+been opened with the existing owner account and the URL-prefix property verified
+for `https://coinquestledger.vercel.app/` using the Google HTML verification meta
+tag in root `index.html`. Keep that tag in place. No unrelated property was
+modified.
 
 ## Fresh login test
 
@@ -134,16 +143,44 @@ keyboard/policy journey pass in Chromium, tablet and mobile projects (12 passed,
 1 minute, one worker). The failed check and affected navigation are covered
 before pushing the repair.
 
+## Deployed release
+
+- Commit: `2b5f8f18ec80fc14e7ab88710b6badc8fa41a60e`.
+- CI/CD: [38775986929](https://github.com/purichw/coin-quest-ledger/actions/runs/38775986929),
+  successful: 67 unit tests, 760 E2E passed / 11 skipped, 21 isolated Firebase
+  integration tests, and Native contracts.
+- Deployment: `https://coinquestledger-qjjxlbvbu-purich-w.vercel.app`.
+- Canonical alias: `https://coinquestledger.vercel.app`, assigned at
+  2026-10-15 17:36:45 UTC.
+- `/`, `/about/`, `/privacy/`, `/terms/`, `/admin/app.js` and
+  `/shared/player-layout.js` returned HTTP 200 with bytes matching the deployed
+  commit. A fresh signed-out production Admin screenshot confirms the public
+  email notice is absent.
+- Evidence: `ci-38775986929-complete.log`, `admin-production-no-email.png`,
+  `admin-test-gate-mobile.png`, and
+  `branding-awaiting-domain-propagation.png` in the ignored evidence directory.
+
+Production smoke passed with `PROD_SMOKE_RUN_ID=2b5f8f1` using the unchanged
+harness and assertions; all 33 route/auth screenshots are in
+`test-results/prod-smoke/2b5f8f1/`. The log is
+`prod-smoke-2b5f8f1-standard-id.log` in the evidence directory.
+
+Two earlier runs with long descriptive run IDs failed only mobile
+`admin-test-gate`. That route unlocks into **Boards**, not just the login gate.
+The harness embeds its run ID in the synthetic board ID; the existing mobile
+Boards grid uses a `max-content` URL column, so a long synthetic ID expands it.
+The signed-out test gate itself measured 390px scroll/client width with fonts
+loaded. The normal-length run ID passes the same overflow assertion. Admin CSS
+and the smoke harness are unchanged from pre-release `3592363`; the actual
+new-board contract accepts four-digit IDs. Retain this long/legacy-ID layout
+limitation as a separate finding; do not describe the two earlier runs as passes
+or infer a font-loading race from them. No assertions or time budgets changed.
+
 ## Remaining sequence
 
-1. Deploy this isolated change through the existing CI/CD workflow.
-2. Check public pages, Admin gate and required production smoke.
-3. Record exact commit/run/deployment evidence below.
-4. Verify the actual domains in Search Console where Google requires it.
-5. Complete Branding URLs, move through the available verification workflow,
-   then publish the approved branding. Review any submission declarations
-   before accepting them.
-6. Verify the real Google sign-in/consent screen and the original Admin account.
+1. After the 24-hour propagation window, request branding re-verification.
+2. Complete any remaining verification and publish the approved branding.
+3. Verify the visible Google sign-in name and original Admin account again.
 
 Official references:
 
