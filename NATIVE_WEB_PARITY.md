@@ -1,6 +1,42 @@
 # Native And Web Parity
 
-Last updated: 2026-10-14
+Last updated: 2026-10-16
+
+## iOS presentation refresh — 2026-10-16
+
+The user's current direction supersedes the 2026-10-12 native layout restoration:
+align with the improved mobile website while adapting it to an iPhone experience.
+The user's same-day refinement requires the same illustrated world, including
+backgrounds, artwork and character motion, while improving native task order and
+interaction. The source uses a doorway/parchment login, system-native tabs under
+`/play`, a combined camp/hero, green/rust/blue/gold Home cards, scene backgrounds,
+existing module artwork and expandable secondary sections. Existing Split boards
+lead before the create/join disclosure. It reuses the licensed fonts and existing
+assets; no new generated artwork or native Admin portal is part of this work.
+
+Featured portraits and debt detail art use bounded native transform animation
+with pause/resume, Reduce Motion, route focus and app-activity handling; the auth
+seal uses one short cycle. Home keeps whole-card tap targets, pull-to-refresh and
+explicit refresh; a final density adjustment makes more space for all four module
+actions above the tab bar. The current 402 × 874 Home composition and pause/resume
+control passed scoped Simulator checks. Runtime Reduce Motion, route blur and
+background/resume remain separate verification boundaries in the
+[QA matrix](mobile/docs/native-refresh-2026-10-16/qa-matrix.md); earlier screenshots
+do not accept later source changes.
+
+[Mobile design direction](mobile/DESIGN_DIRECTION.md) records the current palette,
+owners and intended interaction. The
+[refresh report](mobile/docs/native-refresh-2026-10-16/README.md) is the evidence
+record for current Simulator checks, remaining verification, final signed device
+packaging and exact-commit release records. Historical checks below
+must not be read as acceptance of the refreshed screens. No physical iPhone
+connection is requested for this pass.
+
+The final signed iPhoneOS Release completed at 04:41:06 Bangkok with the four
+native loading-title fixes included. Embedded JavaScript, source manifest,
+signature/profile and QA-off production configuration were verified; the
+report records its exact hashes and separate title-runtime evidence. No
+physical installation is claimed.
 
 ## Canonical web links — 2026-10-14
 
@@ -21,8 +57,8 @@ Ledger, Debt Dragon, Treasury, Price Arena, profile/reminders and backup routes
 are implemented. Actual Simulator and local-web/live-Firebase evidence, plus
 the limits of each check, are in `docs/mobile-completion-worklist.md`.
 
-The storage bridge and backend fixes were released in October; later player
-colors were restored without changing those contracts. See `Memory.md` and
+The storage bridge and backend fixes were released in October; the historical
+2026-10-12 player restoration did not change those contracts. See `Memory.md` and
 `docs/release-2026-10-12.md` for the dated exact-SHA checkpoint.
 Verify new deployment claims against CI, the Vercel alias and Firebase Rules;
 source availability alone is not deployment. Browser tests and JS checks
@@ -40,7 +76,11 @@ and what must be verified before native work continues.
 - Native app: Expo / React Native under `mobile/`.
 - Native is player-side only. Do not add Admin native screens or a WebView
   wrapper unless the user explicitly changes direction.
-- Both use Firebase project `pointy-personal-toolkit`.
+- Production web and native use Firebase project `pointy-personal-toolkit`.
+- Explicit development-only Simulator QA may use isolated local Auth/Firestore
+  emulators under `demo-coin-quest`; it is not evidence of production data
+  mutation or a production backend migration. Release builds must not enable
+  the native QA emulator flag.
 
 ## Shared Backend Contracts
 
@@ -68,17 +108,46 @@ and what must be verified before native work continues.
 - Native uses the Firebase modular SDK and fresh owner/lifecycle reads before writes.
 - Web uses shared browser globals such as `PointyLogic`.
 - Native directly imports the web calculation module through `src/domain/canon.ts`.
-- Native UI restores the rebuilt app's full pre-redesign Thai layout and brand;
-  read `mobile/DESIGN_DIRECTION.md` and `docs/design-restoration-2026-10-12/README.md`. Website language,
-  theme and decorative sound/animation controls remain web presentation settings.
+- Native UI adapts the current mobile web visual family through platform tabs,
+  safe-area/keyboard behavior, scene backdrops, useful art and expandable secondary tools. It
+  intentionally differs in composition; read `mobile/DESIGN_DIRECTION.md`.
+  The 2026-10-12 restoration is historical evidence only. Website language,
+  theme and sound controls remain web presentation settings. Native artwork
+  motion has its own pause/resume and system Reduce Motion behavior; it does not
+  change shared player data or mirror a browser preference store.
+- Current module roots live at `/play/split`, `/play/debt`, `/play/prices` and
+  `/play/treasury`; `/play` is Home. Existing detail/edit paths remain native
+  root-stack routes. Player board-owner management remains available and is
+  distinct from the excluded Admin portal.
 - Native accepts pasted web board links and shares web URLs. Universal Link
   association and push notifications are not configured by this local build.
 - Native backup `coin-quest-player-v1` is an owner-checked finance backup; legacy
-  web local-data backup remains a distinct format. Board Excel/JSON is interoperable.
+  web local-data backup remains a distinct format. Board JSON import/export is
+  interoperable. Native keeps Excel report export through Share; Excel upload
+  and spreadsheet templates are intentionally excluded from the current native
+  player scope.
+- Native Debt query/status/sort follows web All/Active/Due/Paid/Archived behavior,
+  including the inclusive seven-day due window and calendar month-end rules.
+  Prices query/status/sort uses canonical per-unit savings; Treasury category
+  filters preserve the web's 80% near-limit and greater-than-budget thresholds.
+  These filters affect visible rows only, never saved finance or summary totals.
+- Owner/public Character-ID profiles share compact native identity/privacy
+  controls. Public loading reads the character and shared boards only, without
+  loading another owner's private modules or writing their progression.
+  `private=1` masks both owner and public views; owner preference loading starts
+  with monetary values masked.
+- Native account recovery display verifies an available owner-held raw code
+  against the fresh server hash. Device-only Keychain storage is best effort
+  after external-copy acknowledgment; storage failure is reported explicitly.
+  Backend reset authority and Firestore recovery fields stay unchanged.
+- An existing expense with no date remains undated through native editing;
+  an existing timestamp is retained until explicit date selection. Native
+  numeric fields expose Done, and pending-save navigation guards prevent a
+  delayed completion from popping another screen.
 
 ## Native Design Gate
 
-The later all-player-form regression is recorded in
+The historical 2026-10-12 all-player-form regression is recorded in
 `docs/frontend-regression-2026-10-12/README.md`. Web and native share strict
 financial number, split-total, offer and finance-backup validation. Money keeps
 satang precision; measured quantities may be fractional, piece/pack/promotion
@@ -111,7 +180,11 @@ From `mobile/`:
 ```bash
 npm run typecheck
 npm run lint
+node --test tests/*.test.mjs
+npm run test:qa
+npm run test:device
 npm run check:dependencies
+sh -n scripts/build-device.sh scripts/install-device.sh
 sh scripts/build-simulator.sh <available-simulator-UUID>
 ```
 
@@ -119,13 +192,22 @@ Install and launch the resulting native app, then exercise the changed flow
 on the actual Simulator and save current visual evidence. Follow
 `mobile/IOS_BUILD_NOTES.md` for those steps. A JavaScript export alone cannot
 establish native readiness.
+Run source gates on the final frozen tree. For this refresh, finish actual native
+visual/motion checks before reserving the Mac for the full web suite and the
+single final native Release build; concurrent heavy runs have caused local test
+timeouts. Never raise test timeouts or mark an interrupted suite as passing.
 
-Before commit/push/deploy after backend contract changes, also run root:
+Before commit/push/deploy, run root `npm test` as required by
+`TESTING_MATRIX.md`; add the backend suite for shared data/Rules changes:
 
 ```bash
 npm test
 npm run test:backend
 ```
+
+CI requires web/backend and native jobs even for a native-only `main` push.
+That workflow deploys the web app; it does not publish an iPhone package. Device
+Release preparation is documented separately in `mobile/IOS_BUILD_NOTES.md`.
 
 ## Remaining verification and release boundaries
 

@@ -3,6 +3,7 @@
 Account-flow baseline verified: 2026-08-31
 Domain/auth configuration updated and verified: 2026-10-14
 OAuth branding follow-up: 2026-10-16 — public policy pages deployed; OAuth app In production; branding awaits Google's domain-ownership propagation (see below).
+Native owner recovery display: 2026-10-16 source update; final release pending.
 
 This document describes the current implementation path from account creation to
 password recovery and Super Admin user management. It documents the code that
@@ -30,6 +31,11 @@ exists today; it is not a proposal for the final hardened auth system.
 - `firestore.rules`: deployed access rules for users, usernames, characters,
   invites, player modules, and admin revisions.
 - `data-contracts.md`: canonical Firestore/localStorage shape.
+- `mobile/src/auth/account-service.ts`, `AuthProvider.tsx`: native account
+  provisioning, fresh owner validation and recovery acknowledgment.
+- `mobile/src/auth/RecoveryPanel.tsx`, `recovery-display-contract.ts`: native
+  owner key display/copy and current-hash validation; `mobile/src/app/recover.tsx`
+  owns the native password-reset form and one-time new-code display.
 
 ## Platform Shape
 
@@ -248,6 +254,35 @@ the authority for reset validation.
 The profile drawer can display the current recovery code for the signed-in
 owner. This is an intentional small-private-app convenience tradeoff documented
 in `data-contracts.md`; it should be revisited before any broader/public launch.
+
+## Native Recovery ID Display And Acknowledgment
+
+The October 16 native source retains the same backend reset endpoint and hash
+contract. Account's Recovery panel freshly reads the authenticated owner's
+`users/{uid}` record, rejects a switched session, and compares available
+owner-held raw codes with the current server hash before revealing or copying.
+A missing code gets an explanation and the existing regeneration path; the app
+does not reconstruct a code from its hash. Leaving the panel or backgrounding
+the app hides its revealed text.
+
+Expo SecureStore uses `WHEN_UNLOCKED_THIS_DEVICE_ONLY`. Temporary signup and
+reset keys are `coinquest.signup.{uid}` and `coinquest.recovery.{username}`;
+acknowledged codes are saved as `{ username, code }` under
+`coinquest.recovery.saved.{uid}`. These are device-local convenience records,
+excluded from Firestore, public profiles, finance exports and telemetry.
+
+Acknowledgment receives the code currently displayed to the user and validates
+it against a fresh owner hash. This also covers a successful backend reset whose
+temporary Keychain write failed. Once the user confirms an external copy, local
+persistence is best effort; failure produces an explicit notice while allowing
+entry. A session-only owner/hash marker prevents failed temporary-key cleanup
+from trapping the user in the same reveal gate. A changed server hash requires
+new acknowledgment; restart may safely show an uncleared temporary reveal again.
+
+The explicit local QA Firebase mode blocks production recovery submissions.
+Tests of key validation and storage failure do not claim a live password reset.
+Current native evidence and release boundaries are in
+`mobile/docs/native-refresh-2026-10-16/README.md`.
 
 ## Admin Portal Access
 

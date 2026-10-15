@@ -131,3 +131,141 @@ installed own app with the current Metro bundle passed scoped save/read/restore
 flows in all four modules, the member reference guard, profile/reminders and two
 process restarts. See `../docs/post-release-simulator-2026-10-12.md`. This was
 native Simulator evidence; no new binary or OTA was distributed.
+
+## Standalone iPhone Release build — 2026-10-16
+
+The user authorized the team of the existing development certificate for Coin
+Quest. The signing team is read from that certificate's **OU**, not the ID at
+the end of its display name (Apple Development's CN suffix can be a user ID).
+Do not copy a team or device identifier from another project into this app.
+
+The read-only doctor checks the authorized certificate team, current local
+profile, bundle identifier, expiry, registered-device presence and matching
+certificate/private-key identity. It does not enumerate or contact an iPhone:
+
+```sh
+python3 scripts/ios-device-readiness.py --certificate-team
+```
+
+For the user's authorized existing-certificate team, the repeatable device
+build is:
+
+```sh
+sh scripts/build-device.sh --existing-certificate-team --automatic
+```
+
+This runs the source/dependency checks, incremental prebuild, Pods and a local
+`Release` build for `generic/platform=iOS`, with two workers. Explicit
+`--automatic` allows Xcode's existing account to resolve this app's development
+profile. It does not register a connected device, install the app, select an
+account from another project or alter system security. For an already installed
+specific profile, use the manual alternative:
+
+```sh
+sh scripts/build-device.sh <authorized-team-id> <existing-profile-UUID>
+```
+
+Release embeds JavaScript and assets; it does not need Metro to run. The build
+refuses `EXPO_PUBLIC_NATIVE_QA_EMULATORS=1` and pins it to `0` for its process, so
+an emulator QA Metro session cannot be packaged into this Release app. Keep QA
+environment flags scoped to the Metro process used for Simulator checks.
+The build
+wrapper validates the resulting bundle ID, `iPhoneOS` platform, nonempty
+`main.jsbundle` with no emulator QA bootstrap markers, embedded current
+provisioning profile and code signature.
+Artifacts and logs remain ignored under `mobile/.artifacts/`:
+
+- Device binary: `ios-device-build/Build/Products/Release-iphoneos/CoinQuestLedger.app`
+- Build log: `ios-device-build.log`
+- Install log: `ios-device-install.log`
+- Launch log: `ios-device-launch.log`
+
+Simulator builds and unsigned device builds are not installable iPhone
+deliverables. Rebuild Release after final JS/assets change; a previously built
+binary will not pick up a newer Metro bundle.
+
+### When the user is ready to connect by USB-C
+
+No physical iPhone connection or installation is part of the 2026-10-16 refresh.
+Once authorized, connect and unlock the intended iPhone, handle its observed
+Trust This Computer / Developer Mode prompts, then find its current identifier
+locally with `xcrun devicectl list devices`. Do not commit the identifier.
+
+```sh
+sh scripts/install-device.sh <explicit-connected-iPhone-identifier>
+```
+
+The installer validates the signed device binary again, upgrades in place
+without uninstalling or erasing data, and launches the actual bundle ID. It
+never chooses a device implicitly. Installation still requires that the
+intended iPhone is included in the profile, paired, unlocked, trusted and
+compatible with the app's minimum iOS version. If a new phone is not registered,
+resolve that specific Xcode provisioning requirement after connecting it; do
+not report the existing profile as evidence for an unobserved device.
+
+Inspect the real phone after launch, with Metro stopped: sign-in and keyboard,
+bottom tabs, one create/edit/save/read flow, recovery-key access, receipt
+picker/camera, sharing and persistence after relaunch. Check any developer-app
+trust prompt shown by iOS. Release packaging does not establish those physical
+behavior checks.
+
+### Signing diagnosis and current evidence
+
+On 2026-10-16 the machine initially had one valid development identity and no
+local provisioning profiles. After the user selected its existing certificate
+team, Xcode automatic signing successfully resolved a matching development
+profile from the existing account without connecting an iPhone. The doctor now
+finds one usable matching profile covering one registered device. This profile
+expires **2026-10-23 at 01:06 Bangkok time**; rebuild with valid provisioning
+before installing or continuing to use an expired development build. The
+registered device has not been compared with a connected iPhone in this task.
+No private key, profile, team identifier,
+personal device identifier or account details are committed.
+
+The local iPhoneOS Release build passed on 2026-10-16, followed by independent
+artifact checks for embedded JavaScript, absence of emulator QA bootstrap
+markers, correct platform/bundle, current provisioning and strict code-signature
+verification. The minimum deployment target is iOS 16.4. The first cold device
+Release build took roughly 25 minutes with two workers; it continued through
+native compilation, linking, Metro/Hermes bundling and signing. A quiet log
+during linking/bundling did not mean a stalled build: its child compiler/bundler
+process remained active. Reuse its project-owned DerivedData for final source
+updates. Physical installation and behavior remain unverified by request.
+
+The SDK 57 patch Release rebuild completed at 03:23 Bangkok in 9 minutes
+17 seconds (Expo 57.0.30; React Native unchanged at 0.86.3). All native source
+gates passed on that dependency set: typecheck, lint, 81 contract tests, five
+QA-isolation tests, seven device tests, dependency/shell/diff checks. A generated
+Podfile.lock mismatch was resolved with a targeted update of changed local Expo
+Pods, without upgrading the SDK or changing global signing settings.
+
+The final source-frozen Release rebuild completed **2026-10-16 at 04:41 Bangkok**
+in 7 minutes 16 seconds, after assigning Thai default titles to the four player
+tab stacks so a loading header does not display `index`. Only those four runtime
+files changed; no native dependency changed. The normal cached build wrapper
+again passed typecheck, lint and the dependency check. The final 6,153,292-byte
+embedded bundle was generated at 04:40:55 Bangkok; its SHA-256 is
+`306c12dc7fd53980a56298b6d672e10424a85b398f6adad54479c62113ce50fb`.
+Independent checks confirmed strict signature validation, the authorized
+certificate/profile team match, production project/domain markers and absence
+of emulator QA bootstrap markers. The 258-file frozen runtime source manifest,
+`c117b66f44c33509fd04b0ea6a10d4dc8f5a425d20d167f6f27959c63d16681e`,
+was unchanged after building. Exact hashes and sanitized provenance are local
+in `.artifacts/final-device-provenance.json`; see the
+[refresh report](docs/native-refresh-2026-10-16/README.md) for acceptance boundaries.
+The same patched dependency set built successfully for Simulator Debug at 03:33
+Bangkok in 9 minutes 23 seconds, with the existing `.artifacts/ios-build` cache.
+That development client still uses Metro. Its later isolated-emulator UI smoke
+does not substitute for the standalone Release artifact checks or a future
+physical-iPhone test.
+
+If Xcode reports `No Account for Team`, verify the certificate OU team and the
+existing account's credentials in **Xcode Settings → Accounts** before retrying.
+If it reports `No profiles`, inspect the exact bundle/team/profile/device cause.
+Do not repeat unchanged builds, create another certificate, change capabilities
+or bypass signing to turn a failed device build into a claimed ready artifact.
+
+References checked for this workflow: [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/),
+[Expo local Release builds](https://docs.expo.dev/guides/local-app-production/),
+[Apple development profiles](https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile/),
+and [Apple Developer Mode](https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device).

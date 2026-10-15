@@ -2,24 +2,61 @@ import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, type User } from 'firebase/auth';
 import { doc, getDocFromServer, runTransaction, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db, nativeQaEmulators } from './firebase';
 import { isBlocked, isReusable, normalizeUsername, problem, readAccount, recoveryHashInput, validateRecovery, type Account, type SignupFields } from './contracts';
 import { loadCharacter } from '../character/service';
+import { acknowledgeDisplayedRecovery, verifiedRecoveryCandidate } from './recovery-display-contract';
 
 type PendingSignup = { name: string; username: string; code: string; issuedAt: number };
 const pendingKey = (uid: string) => `coinquest.signup.${uid}`;
 const resetKey = (username: string) => `coinquest.recovery.${normalizeUsername(username)}`;
+const savedRecoveryKey = (uid: string) => `coinquest.recovery.saved.${uid}`;
 const storageOptions = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
+// A failed Keychain cleanup can leave an acknowledged temporary key behind.
+// Suppress it in this session only, scoped to its owner and exact current hash.
+// A rotated key still requires acknowledgement; restarting may safely show it again.
+const acknowledgedRecoveryHashes = new Map<string, string>();
 
 export async function readPendingSignup(uid: string): Promise<PendingSignup | null> {
   const value = await SecureStore.getItemAsync(pendingKey(uid), storageOptions);
   return value ? JSON.parse(value) : null;
 }
 
-export async function acknowledgeRecovery(uid: string) {
+export async function acknowledgeRecovery(uid: string, displayedCode: string) {
+  if (auth.currentUser?.uid !== uid) throw problem('auth/user-token-expired');
   const user = await getDocFromServer(doc(db, 'users', uid));
-  if (user.data()?.username) await SecureStore.deleteItemAsync(resetKey(user.data()!.username), storageOptions);
-  await SecureStore.deleteItemAsync(pendingKey(uid), storageOptions);
+  const account = readAccount(uid, user.data() || {});
+  if (auth.currentUser?.uid !== uid) throw problem('auth/user-token-expired');
+  // Preserve the acknowledged owner-held key in this device's Keychain only.
+  // Never add plaintext to Firestore, public profiles, exports, or telemetry.
+  const result = await acknowledgeDisplayedRecovery(account.username, account.recoveryHash, displayedCode,
+    input => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, input),
+    code => SecureStore.setItemAsync(savedRecoveryKey(uid), JSON.stringify({ username: account.username, code }), storageOptions));
+  if (auth.currentUser?.uid !== uid) throw problem('auth/user-token-expired');
+  acknowledgedRecoveryHashes.set(uid, account.recoveryHash!);
+  await Promise.allSettled([SecureStore.deleteItemAsync(resetKey(account.username), storageOptions), SecureStore.deleteItemAsync(pendingKey(uid), storageOptions)]);
+  return result;
+}
+
+async function recoveryFromOwnerData(account: Account, data: Record<string, unknown>) {
+  const stored = await Promise.all([pendingKey(account.uid), resetKey(account.username), savedRecoveryKey(account.uid)].map(key => SecureStore.getItemAsync(key, storageOptions).catch(() => null)));
+  const candidates: unknown[] = stored.map(value => { try { return value ? JSON.parse(value) : null; } catch { return null; } });
+  candidates.push({ username: account.username, code: data.recoveryCode });
+  for (const candidate of candidates) {
+    const code = await verifiedRecoveryCandidate(account.username, account.recoveryHash, candidate, input => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, input));
+    if (code) return code;
+  }
+  return null;
+}
+
+export async function readRecoveryForOwner(account: Account) {
+  if (auth.currentUser?.uid !== account.uid) throw problem('auth/user-token-expired');
+  const snapshot = await getDocFromServer(doc(db, 'users', account.uid));
+  const current = readAccount(account.uid, snapshot.data() || {});
+  if (current.username !== account.username) throw problem('account/profile-invalid');
+  const code = await recoveryFromOwnerData(current, snapshot.data() || {});
+  if (auth.currentUser?.uid !== account.uid) throw problem('auth/user-token-expired');
+  return code;
 }
 
 async function newPendingSignup(user: User, name: string): Promise<PendingSignup> {
@@ -41,13 +78,20 @@ export async function loadAccount(user: User) {
   // A remembered credential is not sufficient: validate the token and current owner profile.
   await user.getIdToken(true);
   const snapshot = await getDocFromServer(doc(db, 'users', user.uid));
-  let pending = await readPendingSignup(user.uid);
+  const acknowledged = !!snapshot.data()?.recoveryHash && acknowledgedRecoveryHashes.get(user.uid) === snapshot.data()?.recoveryHash;
+  // Only a key already validated and acknowledged in this session may bypass
+  // unavailable reveal storage. A new signup must not silently skip its key.
+  let pending = await readPendingSignup(user.uid).catch(error => { if (acknowledged) return null; throw error; });
   if (!snapshot.exists()) return { account: null, pending, recoveryCode: null, character: null };
   const account = readAccount(user.uid, snapshot.data());
-  const reset = await SecureStore.getItemAsync(resetKey(account.username), storageOptions);
-  if (reset) { const candidate = JSON.parse(reset) as PendingSignup; if (await hashRecovery(candidate) === account.recoveryHash) pending = candidate; }
+  const reset = await SecureStore.getItemAsync(resetKey(account.username), storageOptions).catch(error => { if (acknowledged) return null; throw error; });
+  if (reset) {
+    try { const candidate = JSON.parse(reset) as PendingSignup; if (await hashRecovery(candidate) === account.recoveryHash) pending = candidate; }
+    catch { /* A corrupt local reveal must not block a valid server account. */ }
+  }
   const character = await loadCharacter(account);
-  const recoveryCode = pending && await hashRecovery(pending) === account.recoveryHash ? pending.code : null;
+  const recoveryCode = account.recoveryHash && acknowledgedRecoveryHashes.get(user.uid) === account.recoveryHash
+    ? null : pending && await hashRecovery(pending) === account.recoveryHash ? pending.code : null;
   return { account, pending, recoveryCode, character };
 }
 
@@ -132,6 +176,8 @@ export async function regenerateRecovery(account: Account) {
 }
 
 export async function resetWithRecovery(username: string, recoveryCode: string, password: string, confirmation: string) {
+  // Local Firebase QA must never send its recovery credentials to the live API.
+  if (nativeQaEmulators) throw new Error('โหมดทดสอบในเครื่องไม่เชื่อมต่อบริการกู้บัญชีจริง');
   const invalid = validateRecovery(username, recoveryCode, password, confirmation); if (invalid) throw new Error(invalid);
   const clean = normalizeUsername(username);
   const response = await fetch('https://coinquestledger.vercel.app/api/recover-account', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: clean, recoveryCode, password }) });

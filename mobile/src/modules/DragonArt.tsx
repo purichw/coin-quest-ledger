@@ -8,4 +8,6 @@ const art: Record<string, ImageSourcePropType> = {
   tax: require('../../../assets/debt-dragons/tax.png'),
   other: require('../../../assets/debt-dragons/other.png'),
 };
-export function DragonArt({ type, uri }: { type: string; uri?: string }) { return <Image source={uri ? { uri } : art[type] || art.other} accessibilityLabel="มังกรหนี้" resizeMode="contain" style={{ width: '100%', height: 170 }} />; }
+export function DragonArt({ type, uri, compact = false }: { type: string; uri?: string; compact?: boolean }) {
+  return <Image source={uri ? { uri } : art[type] || art.other} accessibilityLabel="มังกรหนี้" resizeMode="contain" style={compact ? { width: 72, height: 84 } : { width: '100%', height: 170 }} />;
+}

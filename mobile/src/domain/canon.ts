@@ -35,6 +35,8 @@ type Canon = {
   normalizedOffer(offer: Offer, comparison: Comparison): { valid: boolean; pu: number; qty: number; baseUnit: string };
   rankOffers(offers: Offer[], comparison: Comparison): (Offer & { pu: number; isBest: boolean; isEqual: boolean; savePct: number; tier: string; norm: { valid: boolean; qty: number; baseUnit: string } })[];
   dateOnlyMs(date: string | number | Date): number;
+  clampedDueDay(year: number, month: number, dueDay: number): number;
+  dueDateForMonth(year: number, month: number, dueDay: number): Date;
   accrueDebtToDate(dragon: Dragon, date: string | number | Date): { debt: Dragon; interest: number; days: number };
   applyDebtPayment(dragon: Dragon, amount: number, date: string | number | Date): { debt: Dragon; applied: number; interest: number; interestPaid: number; principalPaid: number; balanceBefore: number; balanceAfter: number; days: number };
   monthlyInterest(dragon: Dragon): number;

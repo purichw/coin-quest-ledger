@@ -1,3 +1,4 @@
+import { useSaveNavigation } from '../../player/useSaveNavigation';
 import { useModule } from '../../modules/useModule';
 import { useState } from 'react';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -17,8 +18,8 @@ function LoadLog(player: Player & { id: string; logId: string }) {
   return <EditLog {...player} log={log} initial={load.data} />;
 }
 function EditLog({ account, id, log, initial }: Player & { id: string; log: DebtLog; initial: ModuleSnapshot<'debt'> }) {
-  const work = useWork(); const [snapshot] = useState(initial); const [amount, setAmount] = useState(String(log.amount));
+  const work = useWork(); const saveNavigation = useSaveNavigation(work.busy); const [snapshot] = useState(initial); const [amount, setAmount] = useState(String(log.amount));
   const [date, setDate] = useState(log.ts ? `${new Date(log.ts).getFullYear()}-${String(new Date(log.ts).getMonth() + 1).padStart(2, '0')}-${String(new Date(log.ts).getDate()).padStart(2, '0')}` : today());
-  const save = async (remove = false) => { await changeModule('debt', account, snapshot, state => ({ ...state, dragons: state.dragons.map(d => d.id === id ? editDebtLog(d, log.id, number(amount), date, remove) : d) })); router.back(); };
-  return <Page><Stack.Screen options={{ title: 'แก้ประวัติการจ่าย' }} /><Card><Field label="จำนวนที่จ่าย (บาท)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" /><DateField label="วันที่จ่าย" value={date} onChange={setDate} /><Body>เมื่อแก้ประวัติ ระบบจะคำนวณยอดหนี้และดอกเบี้ยใหม่ตามลำดับการจ่าย หากข้อมูลย้อนหลังไม่ครบ ระบบจะแจ้งให้ตรวจสอบก่อนบันทึก</Body><Action title="บันทึกประวัติ" busy={work.busy} onPress={() => void work.run(() => save())} /><Action title="นำประวัติการจ่ายออก" secondary busy={work.busy} onPress={() => confirm('นำประวัติออก?', 'ระบบจะคำนวณยอดหนี้และดอกเบี้ยใหม่โดยไม่รวมการจ่ายนี้ คุณกู้คืนประวัติได้จากถังรายการ', () => void work.run(() => save(true)), 'นำออก')} /></Card><ErrorNote message={work.error} /></Page>;
+  const save = async (remove = false) => { await changeModule('debt', account, snapshot, state => ({ ...state, dragons: state.dragons.map(d => d.id === id ? editDebtLog(d, log.id, number(amount), date, remove) : d) })); saveNavigation.finish(() => router.back()); };
+  return <Page><Stack.Screen options={{ ...saveNavigation.options, title: 'แก้ประวัติการจ่าย' }} /><Card><Field label="จำนวนที่จ่าย (บาท)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" /><DateField label="วันที่จ่าย" value={date} onChange={setDate} /><Body>เมื่อแก้ประวัติ ระบบจะคำนวณยอดหนี้และดอกเบี้ยใหม่ตามลำดับการจ่าย หากข้อมูลย้อนหลังไม่ครบ ระบบจะแจ้งให้ตรวจสอบก่อนบันทึก</Body><Action title="บันทึกประวัติ" busy={work.busy} onPress={() => void work.run(() => save())} /><Action title="นำประวัติการจ่ายออก" secondary busy={work.busy} onPress={() => confirm('นำประวัติออก?', 'ระบบจะคำนวณยอดหนี้และดอกเบี้ยใหม่โดยไม่รวมการจ่ายนี้ คุณกู้คืนประวัติได้จากถังรายการ', () => void work.run(() => save(true)), 'นำออก')} /></Card><ErrorNote message={work.error} /></Page>;
 }

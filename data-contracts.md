@@ -1,6 +1,6 @@
 # Coin Quest Ledger Data Contracts
 
-Last updated: 2026-10-12
+Last updated: 2026-10-16
 
 ## Purpose
 
@@ -28,6 +28,10 @@ and owner-hash links remain supported. Shared-board frontend XP persistence only
 updates an existing character whose `ownerUid` is the currently authenticated
 UID; it never creates a missing character or writes another player's record.
 Date-only expense strings remain date-only on web (no implied UTC time).
+Native editing preserves an existing optional expense date, including an absent
+date or an existing timestamp, until the user explicitly selects another date.
+Only new native expenses default to today; opening/canceling the date picker
+does not add a date to an existing undated record.
 
 For account lifecycle implementation details, see `ACCOUNT_MANAGEMENT_IMPLEMENTATION.md`
 and `ADMIN_PORTAL_IMPLEMENTATION.md`. For access control and rule deploy
@@ -300,6 +304,30 @@ Rules:
 - Player recovery and Super Admin reset run through Vercel Admin SDK endpoints,
   then preserve `userId` and `characterId` by updating `usernames/{username}`,
   `userIds/{userId}`, `users/{uid}`, and `characters/{characterId}`.
+
+Native device-local recovery storage (October 16 source; release tracked
+separately) uses Expo SecureStore with `WHEN_UNLOCKED_THIS_DEVICE_ONLY`:
+
+- `coinquest.signup.{uid}` and `coinquest.recovery.{normalizedUsername}` hold
+  temporary reveal data. `coinquest.recovery.saved.{uid}` holds the acknowledged
+  `{ username, code }` for that device only.
+- Display/copy requires the current authenticated owner and a fresh private
+  user record. A candidate must match its normalized username and current
+  `recoveryHash`; an old code after rotation is rejected.
+- Acknowledgment validates the code actually displayed before trying to save
+  it. Storage failure remains explicit and does not invalidate the user's
+  confirmed external copy. An in-memory map of owner UID to acknowledged hash
+  can suppress an uncleared temporary reveal for the current session only.
+- No new raw recovery value is written to Firestore or included in native
+  public profiles, finance backup/export or telemetry. The native account
+  panel hides revealed text on blur/background. This changes local convenience
+  storage, not backend reset authority or existing UIDs.
+
+Native public-profile loading reads `characters/{id}` and shared `trips`, then
+passes only public character fields to canonical profile aggregation. It does
+not load `users/{uid}` or `playerModules/{uid}` for another owner and performs
+no progression writes. `private=1` and the profile privacy switch mask monetary
+display/share defaults; they do not alter Firestore read permissions.
 
 ### `users/{uid}/boardInvites/{inviteId}`
 

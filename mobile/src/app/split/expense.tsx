@@ -1,3 +1,4 @@
+import { useSaveNavigation } from '../../player/useSaveNavigation';
 import { useCallback, useState } from 'react';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Image, Text, View } from 'react-native';
@@ -20,9 +21,11 @@ function LoadExpense(player: Player & { id: string; expenseId?: string }) {
   return <ExpenseForm {...player} board={load.data} original={expense} />;
 }
 function ExpenseForm({ account, id, board, original }: Player & { id: string; board: Board; original?: Expense }) {
-  const work = useWork(); const [entryId] = useState(() => original?.id || makeId());
+  const work = useWork(); const saveNavigation = useSaveNavigation(work.busy); const [entryId] = useState(() => original?.id || makeId());
   const [desc, setDesc] = useState(original?.desc || ''); const [amount, setAmount] = useState(original ? String(original.amount) : '');
-  const [date, setDate] = useState(original?.date?.slice(0, 10) || today());
+  // Web expenses may have no date. Editing their other fields must not invent
+  // today's date or truncate an existing timestamp without an explicit choice.
+  const [date, setDate] = useState(original ? original.date || '' : today());
   const [mode, setMode] = useState<SplitMode>(original?.split?.mode || 'equal');
   const [payers, setPayers] = useState<Record<string, string>>(Object.fromEntries(Object.entries(original ? canon.payerMap(original) : {}).map(([k, v]) => [k, String(v)])));
   const [payer, setPayer] = useState(original?.paidBy || board.participants[0] || ''); const [multi, setMulti] = useState(!!original?.payers && Object.keys(original.payers).length > 1);
@@ -36,13 +39,13 @@ function ExpenseForm({ account, id, board, original }: Player & { id: string; bo
   const draft: Expense = { ...original, id: entryId, desc: desc.trim(), amount: total, icon: original?.icon || 'coin',
     paidBy: multi ? Object.keys(payers).find(n => number(payers[n]) > 0) || '' : payer,
     payers: multi ? Object.fromEntries(Object.entries(payers).filter(([, v]) => number(v) > 0).map(([k, v]) => [k, number(v)])) : undefined,
-    sharedBy: shared, split: { mode, ...(mode === 'items' ? { items } : { weights: Object.fromEntries(shared.map(n => [n, number(weights[n] || '0')])) }) }, date, receipt };
+    sharedBy: shared, split: { mode, ...(mode === 'items' ? { items } : { weights: Object.fromEntries(shared.map(n => [n, number(weights[n] || '0')])) }) }, ...(date ? { date } : {}), receipt };
   let previewShares: Record<string, number> | null = null;
   try {
     canon.validateLedgerExpense({ ...draft, desc: draft.desc || 'รายการ' }, board.participants);
     previewShares = canon.splitShares(draft, board.participants);
   } catch { /* Incomplete drafts have no valid split preview yet. */ }
-  return <Page><Stack.Screen options={{ title: original ? 'แก้ไขรายการจ่าย' : 'เพิ่มรายการจ่าย', headerBackButtonDisplayMode: 'minimal' }} />
+  return <Page><Stack.Screen options={{ ...saveNavigation.options, title: original ? 'แก้ไขรายการจ่าย' : 'เพิ่มรายการจ่าย', headerBackButtonDisplayMode: 'minimal' }} />
     <Card><Field label="ชื่อรายการ" value={desc} onChangeText={setDesc} placeholder="เช่น มื้อค่ำ" maxLength={120} />{mode !== 'items' && <Field label="จำนวนเงิน (บาท)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" />}<DateField value={date} onChange={setDate} /></Card>
     <Card title="แบ่งกันแบบไหน"><View style={p.choices}>{modes.map(([value, label]) => <Choice key={value} label={label} selected={mode === value} onPress={() => setMode(value)} />)}</View><Body>ผู้ร่วมจ่าย</Body><View style={p.choices}>{board.participants.map(n => <Choice multiple key={n} label={n} selected={shared.includes(n)} onPress={() => toggle(n, shared, setShared)} />)}</View>
       {['shares', 'exact', 'percent'].includes(mode) && shared.map(n => <Field key={n} label={`${n} · ${mode === 'percent' ? '%' : mode === 'shares' ? 'ส่วน' : 'บาท'}`} value={weights[n] || ''} onChangeText={v => setWeights({ ...weights, [n]: v })} keyboardType="decimal-pad" />)}
@@ -54,8 +57,8 @@ function ExpenseForm({ account, id, board, original }: Player & { id: string; bo
     <ErrorNote message={work.error} /><Action title="บันทึกรายการ" busy={work.busy} onPress={() => void work.run(async () => {
       validateExpense(draft, board);
       if (multi && Object.values(payers).some(v => v.trim() && (!Number.isFinite(number(v)) || number(v) < 0))) throw new Error('ยอดผู้จ่ายต้องเป็นตัวเลขไม่ติดลบ');
-      await changeBoard(id, account, current => { validateExpense(draft, current); const prior = current.expenses.find(e => e.id === entryId); if (original && canon.tripContentKey(prior) !== canon.tripContentKey(original)) throw new Error('มีการแก้ไขรายการนี้จากอีกเครื่อง กรุณาเปิดรายการใหม่'); return { ...current, expenses: prior ? current.expenses.map(e => e.id === entryId ? draft : e) : [...current.expenses, draft] }; }); router.back();
+      await changeBoard(id, account, current => { validateExpense(draft, current); const prior = current.expenses.find(e => e.id === entryId); if (original && canon.tripContentKey(prior) !== canon.tripContentKey(original)) throw new Error('มีการแก้ไขรายการนี้จากอีกเครื่อง กรุณาเปิดรายการใหม่'); return { ...current, expenses: prior ? current.expenses.map(e => e.id === entryId ? draft : e) : [...current.expenses, draft] }; }); saveNavigation.finish(() => router.back());
     })} />
-    {original && <Action title="นำรายการออก" secondary busy={work.busy} onPress={() => confirm('นำรายการออก?', 'รายการจะอยู่ในถังรายการของบอร์ดและกู้คืนได้', () => void work.run(async () => { await changeBoard(id, account, current => ({ ...current, expenses: current.expenses.filter(e => e.id !== original.id), expenseTrash: [...(current.expenseTrash || []), ...current.expenses.filter(e => e.id === original.id)] })); router.back(); }), 'นำออก')} />}
+    {original && <Action title="นำรายการออก" secondary busy={work.busy} onPress={() => confirm('นำรายการออก?', 'รายการจะอยู่ในถังรายการของบอร์ดและกู้คืนได้', () => void work.run(async () => { await changeBoard(id, account, current => ({ ...current, expenses: current.expenses.filter(e => e.id !== original.id), expenseTrash: [...(current.expenseTrash || []), ...current.expenses.filter(e => e.id === original.id)] })); saveNavigation.finish(() => router.back()); }), 'นำออก')} />}
   </Page>;
 }

@@ -4,7 +4,8 @@ import { useFonts } from 'expo-font';
 import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider } from '../auth/AuthProvider';
 import { colors } from '../auth/ui';
-import { fontAssets, fonts } from '../theme/typography';
+import { fontAssets } from '../theme/typography';
+import { playerStackOptions } from '../player/navigation';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -12,10 +13,15 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   if (fontError) throw fontError;
   if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}><StatusBar style="dark" /><ActivityIndicator accessibilityLabel="กำลังเปิด Coin Quest" color={colors.green} /></View>;
-  return <AuthProvider><StatusBar style="dark" /><Stack screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTitleStyle: { fontFamily: fonts.display }, headerTintColor: colors.green, headerShadowVisible: false, contentStyle: { backgroundColor: colors.background } }}>
+  return <AuthProvider><StatusBar style="dark" /><Stack screenOptions={playerStackOptions}>
     <Stack.Screen name="index" options={{ headerShown: false }} />
+    <Stack.Screen name="play" options={{ headerShown: false }} />
     <Stack.Screen name="signup" options={{ title: 'สมัครสมาชิก', headerBackButtonDisplayMode: 'minimal' }} />
+    <Stack.Screen name="recover" options={{ title: 'กู้บัญชี', headerBackButtonDisplayMode: 'minimal' }} />
+    <Stack.Screen name="backup" options={{ title: 'สำรองข้อมูล', headerBackButtonDisplayMode: 'minimal' }} />
+    <Stack.Screen name="split/guest" options={{ title: 'ผู้ร่วมทาง', headerBackButtonDisplayMode: 'minimal' }} />
     <Stack.Screen name="account" options={{ title: 'บัญชีของฉัน', headerBackButtonDisplayMode: 'minimal' }} />
+    <Stack.Screen name="welcome" options={{ title: 'เริ่มต้น Coin Quest', presentation: 'modal' }} />
     <Stack.Screen name="character" options={{ title: 'ตัวละครของฉัน', headerBackButtonDisplayMode: 'minimal' }} />
     <Stack.Screen name="character-edit" options={{ title: 'แต่งตัวละคร', headerBackButtonDisplayMode: 'minimal' }} />
     <Stack.Screen name="split/index" options={{ title: 'แบ่งเงิน · Party Ledger', headerBackButtonDisplayMode: 'minimal' }} />

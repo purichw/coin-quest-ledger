@@ -1,6 +1,6 @@
 # Coin Quest Ledger Architecture
 
-Last updated: 2026-10-12
+Last updated: 2026-10-16
 
 ## Purpose
 
@@ -114,12 +114,35 @@ Do not preview app pages with `file://`. Pages use absolute paths such as `/shar
 player UI with the existing Coin Quest brand and website fonts. The previous
 82-file app was retired with user approval; see `docs/rollback-parking-lot.md`.
 
+**2026-10-16 presentation refresh, release pending:** the current source uses
+system-native tabs under `/play`, with module roots in nested stacks and existing
+detail/edit paths on the root stack. Existing illustrated scenes, local fonts
+and focused character animation follow the latest mobile-web visual direction;
+layout, keyboard entry and disclosures are adapted for native use. The shared
+financial/data services below remain authoritative. See
+`mobile/docs/native-refresh-2026-10-16/README.md` for current evidence and gates.
+
 - `mobile/src/auth/`: Firebase username/password sessions, provisioning, recovery.
 - `mobile/src/character/` and `src/player/`: character, Home, profile, progression and reminders.
+- Other-character `/character?id=…` uses a read-only character/shared-board
+  loader with an allowlisted public view model. It does not call the owner
+  progression writer or read another account's private finance modules.
+- Owner recovery display freshly checks `users/{uid}.recoveryHash` against an
+  available owner-held key. The acknowledged raw key is kept best effort in
+  this device's Keychain; no plaintext recovery field is added to Firestore.
+- `SceneBackdrop`, `LivingArt`, `DateField` and `useSaveNavigation` own native
+  presentation/lifecycle behavior without changing finance payloads. Undated
+  existing expenses remain undated unless the user explicitly selects a date.
 - `mobile/src/ledger/`: transactional Party Ledger, invitations, campaigns and file workflows.
 - `mobile/src/modules/`: Debt Dragon, Treasury, Price Arena and backup/restore.
 - `mobile/src/domain/canon.ts` imports `shared/pointy-logic.js` directly; no native-only financial or XP formula fork.
 - Both clients share account/character/trip records and owner-scoped `playerModules/{uid}`. The new web bridge preserves legacy browser drafts with an explicit conflict choice and backups.
+- Development-only local QA uses a separately named Firebase app and
+  `demo-coin-quest` Auth/Firestore emulators. Its recovery API call is disabled;
+  Release rejects the QA flag and the signed-build wrapper forces production
+  configuration. This does not change production Firebase identity or Rules.
+- Native Files import is JSON-only. JSON backup and Excel report Share exports
+  remain; Excel upload/template download and the Admin portal are excluded.
 - Actual own-binary iPhone 17 Pro / iOS 26.5 Simulator flows and local-web/live-Firebase round trips are recorded in `docs/mobile-completion-worklist.md`. Source checks and browser tests supplement this native evidence.
 - No Admin native screens. Native distribution is separate from the web/API release; no Android, physical-device or Store release claim.
 

@@ -23,7 +23,7 @@ type AuthContextValue = {
   signUp: (fields: SignupFields) => Promise<string>;
   finishSignup: (name: string) => Promise<string>;
   logOut: () => Promise<string>;
-  saveRecovery: () => Promise<string>;
+  saveRecovery: (displayedCode: string) => Promise<{ error: string; stored: boolean }>;
   regenerateRecovery: () => Promise<string>;
   characterDraft: CharacterDraft;
   updateCharacterDraft: (patch: Partial<CharacterDraft>) => void;
@@ -132,10 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return completeSignup(auth.currentUser, name);
     }),
     logOut: () => run(() => signOut(auth)),
-    saveRecovery: () => run(() => {
-      if (!auth.currentUser) throw new Error('No active user');
-      return acknowledgeRecovery(auth.currentUser.uid);
-    }),
+    saveRecovery: async displayedCode => {
+      if (operation.current) return { error: 'กำลังบันทึก กรุณารอสักครู่', stored: false };
+      let stored = false;
+      const error = await run(async () => {
+        if (!auth.currentUser) throw new Error('No active user');
+        const result = await acknowledgeRecovery(auth.currentUser.uid, displayedCode);
+        stored = result.stored;
+      });
+      return { error, stored };
+    },
     regenerateRecovery: () => run(() => {
       if (session.status !== 'ready') throw new Error('No active account');
       return regenerateRecovery(session.account);

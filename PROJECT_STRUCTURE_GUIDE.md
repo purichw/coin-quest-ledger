@@ -1,6 +1,6 @@
 # Project Structure Guide
 
-Last updated: 2026-10-14
+Last updated: 2026-10-16
 
 ## Purpose
 
@@ -125,24 +125,47 @@ Use `REFACTOR_READINESS_AUDIT.md` before any broad extraction or module split.
 
 - `mobile/index.ts`: Expo Router entry point.
 - `mobile/src/app/_layout.tsx`: font loading, auth provider and native stack navigation.
+- `mobile/src/app/play/_layout.tsx`: five system-native tabs; `/play` is Home,
+  with Split, Debt, Prices and Treasury nested stacks. Detail/edit routes retain
+  their root-stack paths so Back returns to the selected destination.
 - `mobile/src/app/index.tsx`, `signup.tsx`: login/account and signup routes.
 - `mobile/src/auth/`: Firebase session, transactional account provisioning and auth UI.
+- `mobile/src/auth/RecoveryPanel.tsx`, `recovery-display-contract.ts` and
+  `account-service.ts`: owner-only key display, fresh-hash verification and
+  best-effort acknowledged-key storage in this device's Keychain.
 - `mobile/src/character/`, `src/player/`: character catalog, Home/profile, shared native controls and reminders.
+- `mobile/src/character/profile-identity.tsx`: shared compact owner/public identity
+  and privacy controls. `public-profile-service.ts` reads another character and
+  shared boards without loading private modules or writing their progression.
+- `mobile/src/player/ui.tsx`: scene backdrops/headers, cards and disclosures;
+  `LivingArt.tsx`: focus/activity/Reduce Motion-aware artwork animation;
+  `useSaveNavigation.ts`: pending-save Back/swipe and completion-navigation guard.
+- `mobile/src/player/DateField.tsx`: native date selection, including an empty
+  state for undated web expenses. `src/auth/ui.tsx` owns numeric keyboard Done.
 - `mobile/src/ledger/`: board transactions, invites, split validation, campaign snapshots, receipts and imports/exports.
 - `mobile/src/modules/`: owner-scoped Debt/Treasury/Compare transactions, validations and backup/restore.
+- `mobile/src/modules/ListTools.tsx`, `list-filters.ts`: compact search and
+  disclosed filter/sort controls using the canonical web status boundaries.
 - `mobile/src/domain/canon.ts`: direct import of the website's shared calculations.
 - `mobile/src/app/split/`, `debt/`, `treasury/`, `prices/`: native player routes.
 - `shared/module-cloud.js`: website account-scoped storage bridge to `playerModules/{uid}`.
 - `mobile/src/theme/typography.ts`, `mobile/assets/fonts/`: website font roles and licensed assets.
 - `mobile/src/app/check.tsx` and `mobile/App.tsx`: temporary native interaction check.
 - `mobile/scripts/build-simulator.sh`: repeatable source gates and local Simulator build.
+- `mobile/scripts/build-device.sh`, `install-device.sh`,
+  `ios-device-readiness.py`: standalone signed iPhone Release and later
+  explicit-device USB-C installation; generated binaries stay in `.artifacts/`.
+- `mobile/scripts/native-qa-emulator.mjs`: explicitly enabled local
+  `demo-coin-quest` fixtures and response-only web adapter for native/web QA.
+- `mobile/src/app/welcome.tsx`: native four-page tour replay from Account.
 - `mobile/IOS_BUILD_NOTES.md`: current Simulator-first build/install runbook.
 - `mobile/README.md`: rebuild scope and actual verification status.
 - `docs/rollback-parking-lot.md`: recovery of the retired 82-file app.
 
 The old native screen/data/theme files were intentionally removed on
-2026-10-11. Current module acceptance, real Simulator checks, web/Firebase round
-trips and remaining limits are in `docs/mobile-completion-worklist.md`.
+2026-10-11. The October 16 refresh and current acceptance are tracked in
+`mobile/docs/native-refresh-2026-10-16/README.md`; earlier module acceptance and
+live-Firebase round trips remain in `docs/mobile-completion-worklist.md`.
 
 ## Assets
 

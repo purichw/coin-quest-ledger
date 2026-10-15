@@ -3,6 +3,53 @@
 Fresh native rebuild started 2026-10-11. This directory replaces the retired
 SDK 56 app; see `../docs/rollback-parking-lot.md` for its verified recovery copy.
 
+## Current work — iOS refresh, 2026-10-16
+
+The current user decision is to bring the iOS player experience into the latest
+mobile website's visual family, with native layout and interaction adaptations.
+It supersedes the 2026-10-12 full-layout restoration. The user's later same-day
+correction preserves the same illustrated world, including backgrounds and
+living character art. The source includes doorway/parchment login, five
+system-native tabs, a combined camp/hero with real XP, green/rust/blue/gold Home
+cards, full scene backgrounds, compact debt lists and expandable secondary
+content. Split puts existing boards before the create/join disclosure. Profile
+edit/share/privacy remain visible and its long history/achievement sections
+expand on demand. Existing artwork and Mitr/IBM Plex Sans Thai/Chakra Petch fonts
+are reused; no new generated assets or Admin portal are included.
+
+Home prioritizes four whole-card module targets and keeps native pull-to-refresh,
+Account/Reminders, explicit retry and profile access. Featured Home/Profile
+portraits and debt detail art use gentle native transforms with a pause/resume
+control; Reduce Motion, route blur and app backgrounding stop the loops. The
+auth seal plays one short cycle. Motion never changes layout or financial state.
+Home uses the portrait doorway behind its tavern camp. Owner/public profiles
+share a compact identity panel and native privacy switch; public Character-ID
+views load only the public character and shared boards, without private-module
+reads or progression writes. Owner amounts remain masked while privacy loads.
+
+Debt and Prices now have native search plus collapsible status/sort tools;
+Treasury category search/status uses the website's budget thresholds. Archive
+restoration stays available. Board JSON import/export remains interoperable;
+Excel report export remains available through Share, while Excel upload and
+spreadsheet templates are outside the current native scope. The dated October
+12 feature inventory below describes that older implementation.
+
+Account can reveal/copy an available owner-held Recovery ID after checking the
+fresh server hash. Acknowledged codes are stored best effort in this device's
+Keychain; an explicit notice covers storage failure after the user has saved an
+external copy. Native expense editing preserves a missing date or existing
+timestamp until selection. Numeric keyboard Done and pending-save Back/swipe
+guards keep form completion tied to its original focused screen.
+
+See [design direction and palette](DESIGN_DIRECTION.md) and the
+[current refresh report](docs/native-refresh-2026-10-16/README.md) for scoped
+Simulator acceptance, completed local web/backend checks, exact native artifact
+provenance and the remote CI/CD record. The dated evidence below describes earlier builds and does
+not establish acceptance of this refresh. The requested device deliverable is
+a signed standalone Release ready for a later authorized USB-C installation;
+no physical iPhone connection is part of this pass. Follow
+[device build/install instructions](IOS_BUILD_NOTES.md).
+
 ## Required workflow
 
 Development is Simulator-first. Before feature work, build and install the
@@ -39,7 +86,7 @@ settlement, recovery, and module storage contracts remain authoritative.
 There are no production data writes during the setup gate. No feature or native
 platform should be described as verified until actually exercised.
 
-## Current verification
+## Historical verification — 2026-10-12
 
 The setup gate passed on 2026-10-12 (Asia/Bangkok), using the app's own Debug
 binary on iPhone 17 Pro / iOS 26.5 in Device Hub. Native build, installation,
@@ -54,7 +101,7 @@ See [verification evidence](../docs/mobile-simulator-qa-2026-10-11.md),
 [build/run instructions](IOS_BUILD_NOTES.md), and the user-approved
 [design direction](DESIGN_DIRECTION.md).
 
-The current entry screens implement account login/signup with the existing
+The entry screens at that checkpoint implemented account login/signup with the existing
 Firebase project. Native build, signup, fresh password login after sign-out,
 signed-in persistence after process restart, sign-out persistence, invalid-login
 feedback, keyboard and Back behavior have been exercised. The requested account
@@ -89,14 +136,16 @@ See [acceptance and remaining limits](../docs/mobile-completion-worklist.md).
 Recovery reset/regeneration is implemented, but live credential-changing
 submission requires a human handoff; validation/cancel were exercised only.
 Two-account live invite delivery, Android, physical-device signing and Store
-distribution remain unverified. Later native-to-production-web Treasury checks
+distribution were unverified at that checkpoint; consult the 2026-10-16 report
+and `IOS_BUILD_NOTES.md` for current packaging status. Physical installation and
+Store distribution remain separate from packaging. Later native-to-production-web Treasury checks
 passed; see `../docs/post-release-simulator-2026-10-12.md`.
 
-The latest approved pass restores the complete rebuilt native design from
-immediately before the 12 October redesign, including layout and buttons.
-Current features/backend remain intact. See `DESIGN_DIRECTION.md` and
-`../docs/design-restoration-2026-10-12/README.md`. Use `$coin-quest-new-chat` and
-`../Memory.md` for future onboarding, not historical app/release assumptions.
+The 12 October restoration recovered the complete rebuilt native layout and
+buttons of that period while retaining backend fixes. It is preserved in
+`../docs/design-restoration-2026-10-12/README.md`; the current 16 October direction
+is in `DESIGN_DIRECTION.md`. Use `$coin-quest-new-chat` and `../Memory.md` for
+onboarding together with the newest dated report, not historical release assumptions.
 
 Focused checks: `npm run test:auth`, `test:character`, `test:ledger`,
 `test:modules`, `typecheck`, `lint`, and `check:dependencies`. Run the real native
@@ -113,3 +162,36 @@ after relaunch. A blank split form no longer previews NaN. Typecheck/lint passed
 again after that fix. See `../docs/frontend-regression-2026-10-12/README.md` for
 evidence and remaining limits. These changes are included in the release source;
 the web deployment does not distribute a native binary or OTA update.
+
+## Current native navigation and verification boundaries
+
+- `/play`: Home; `/play/split`, `/play/debt`, `/play/prices` and
+  `/play/treasury`: system-native tab destinations. Detail and edit screens retain
+  their existing root-stack paths and return to the selected destination.
+- Shared `SceneBackdrop`, `SceneHeader` and `Disclosure` live in
+  `src/player/ui.tsx`; `LivingArt` owns motion lifecycle in
+  `src/player/LivingArt.tsx`; `useSaveNavigation` guards delayed save completion.
+  `src/character/profile-identity.tsx` owns compact identity/privacy controls;
+  `public-profile-service.ts` owns read-only other-character loading.
+  Auth fields, actions and the parchment-surface
+  palette live in `src/auth/ui.tsx`. Existing financial
+  canon, owner checks, board management and recovery contracts remain authoritative.
+- An explicitly enabled development-only Firebase emulator mode isolates local
+  Simulator QA under `demo-coin-quest` from production identity/data. Do not use
+  `EXPO_PUBLIC_NATIVE_QA_EMULATORS=1` for a Release build; the final installed app
+  must use the canonical production configuration.
+- Before push, follow `../TESTING_MATRIX.md` and
+  `../DEPLOYMENT_AND_ROLLBACK_RUNBOOK.md`: root `npm test` and
+  `npm run test:backend`, native typecheck/lint and all contract tests, plus
+  relevant actual Simulator evidence. CI repeats the required gates. A green
+  CI job does not prove native visual suitability or
+  distribute the iOS binary.
+
+After the final source freeze, the native command gate is `npm run typecheck`,
+`npm run lint`, `node --test tests/*.test.mjs`, `npm run test:qa`,
+`npm run test:device`, `npm run check:dependencies`, and shell syntax checks for
+the device build/install scripts. Record results against the exact source in
+the dated refresh report; this command list alone is not acceptance. Simulator interaction,
+motion/Reduce Motion, final signed Release packaging and physical USB-C install
+remain separate evidence boundaries. Do not overlap a heavy web suite and native
+build on this Mac; preserve required checks rather than increasing timeouts.

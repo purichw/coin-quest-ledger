@@ -1,3 +1,4 @@
+import { useSaveNavigation } from '../../player/useSaveNavigation';
 import { useState } from 'react';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
@@ -15,7 +16,7 @@ export default function EditRoute() { const params = useLocalSearchParams<Params
 function LoadEditor(props: Player & Params) { const load = useModule('treasury', props.account); if (!load.data) return load.error ? <LoadError error={load.error} retry={load.reload} /> : <Loading />; return <Editor key={load.data.baseline} {...props} initial={load.data} />; }
 function Editor({ account, kind, id, billId, initial }: Player & Params & { initial: ModuleSnapshot<'treasury'> }) {
   const state = initial.data; const isCategory = kind === 'category'; const isBill = kind === 'bill'; const expense = state.expenses.find(e => e.id === id); const category = state.categories.find(c => c.id === id); const bill = state.bills.find(b => b.id === (billId || id));
-  const work = useWork(); const [entryId] = useState(id || makeId()); const [name, setName] = useState(isCategory ? label(category?.name || '') : isBill || billId ? label(bill?.name || '') : expense?.note || '');
+  const work = useWork(); const saveNavigation = useSaveNavigation(work.busy); const [entryId] = useState(id || makeId()); const [name, setName] = useState(isCategory ? label(category?.name || '') : isBill || billId ? label(bill?.name || '') : expense?.note || '');
   const [amount, setAmount] = useState(String((isCategory ? category?.budget : isBill || billId ? bill?.amount : expense?.amount) ?? '')); const [catId, setCatId] = useState((isBill || billId ? bill?.catId : expense?.catId) || state.categories[0]?.id || '');
   const [glyph, setGlyph] = useState((isCategory ? category?.glyph : bill?.glyph) || '📦'); const [monster, setMonster] = useState(label((category?.monster || '') as Label));
   const [due, setDue] = useState(String(bill?.dueDay || 1)); const [date, setDate] = useState(expense?.date || today());
@@ -30,13 +31,13 @@ function Editor({ account, kind, id, billId, initial }: Player & Params & { init
       if (isBill) { if (!s.categories.some(c => c.id === catId)) throw new Error('เลือกหมวดรายจ่าย'); const data = { ...bill, id: entryId, name: { th: name.trim(), en: name.trim() }, amount: value, glyph, catId, dueDay: number(due) }; return { ...s, bills: id ? s.bills.map(b => b.id === id ? data : b) : [...s.bills, data] }; }
       const linked = billId ? bill : s.bills.find(b => b.id === expense?.billId); const [year, month, day] = date.split('-').map(Number);
       return saveTreasuryExpense(s, { ...expense, id: entryId, note: name.trim(), amount: value, catId, date, ...(linked ? { billId: linked.id, onTime: day <= Math.min(linked.dueDay, new Date(year, month, 0).getDate()) } : {}) });
-    }); router.back();
+    }); saveNavigation.finish(() => router.back());
   }
-  return <Page><Stack.Screen options={{ title }} /><Card title={title}><Field label={isCategory || isBill ? 'ชื่อ' : 'รายละเอียดรายจ่าย'} value={name} onChangeText={setName} maxLength={isCategory || isBill ? 80 : 120} /><Field label={isCategory ? 'งบต่อเดือน (บาท)' : 'จำนวนเงิน (บาท)'} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
+  return <Page><Stack.Screen options={{ ...saveNavigation.options, title }} /><Card title={title}><Field label={isCategory || isBill ? 'ชื่อ' : 'รายละเอียดรายจ่าย'} value={name} onChangeText={setName} maxLength={isCategory || isBill ? 80 : 120} /><Field label={isCategory ? 'งบต่อเดือน (บาท)' : 'จำนวนเงิน (บาท)'} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" />
     {isCategory || isBill ? <View style={p.choices}>{['🏠', '🍜', '🛵', '🎮', '🛍️', '💊', '✈️', '🎓', '🎁', '💡', '📦', '📜', '⚡', '📶'].map(g => <Choice key={g} label={g} selected={glyph === g} onPress={() => setGlyph(g)} />)}</View> : <DateField label="วันที่จ่าย" value={date} onChange={setDate} />}
     {isCategory ? <Field label="ชื่อสัตว์ร้ายประจำหมวด" value={monster} onChangeText={setMonster} maxLength={80} /> : <View style={p.choices}>{state.categories.map(c => <Choice key={c.id} label={label(c.name)} selected={catId === c.id} onPress={() => setCatId(c.id)} />)}</View>}
     {isBill && <Field label="วันครบกำหนด 1–31" value={due} onChangeText={setDue} keyboardType="number-pad" maxLength={2} />}
     {billId && <Body>บันทึกบิลที่จ่ายแล้ว ยอดจะรวมในรายจ่ายเดือนนี้</Body>}<Action title={billId ? 'บันทึกจ่ายบิล' : `บันทึก${title}`} busy={work.busy} onPress={() => void work.run(save)} />
-    {id && <Action title={`เก็บ${title}นี้`} secondary busy={work.busy} onPress={() => confirm('เก็บรายการนี้?', 'ข้อมูลจะอยู่ในรายการที่เก็บไว้ กู้คืนได้จากคลังหลวง', () => void work.run(async () => { await changeModule('treasury', account, initial, s => isCategory ? archiveTreasuryCategory(s, id) : isBill ? { ...s, bills: s.bills.map(b => b.id === id ? { ...b, archived: true } : b) } : removeTreasuryExpense(s, id)); router.back(); }))} />}
+    {id && <Action title={`เก็บ${title}นี้`} secondary busy={work.busy} onPress={() => confirm('เก็บรายการนี้?', 'ข้อมูลจะอยู่ในรายการที่เก็บไว้ กู้คืนได้จากคลังหลวง', () => void work.run(async () => { await changeModule('treasury', account, initial, s => isCategory ? archiveTreasuryCategory(s, id) : isBill ? { ...s, bills: s.bills.map(b => b.id === id ? { ...b, archived: true } : b) } : removeTreasuryExpense(s, id)); saveNavigation.finish(() => router.back()); }))} />}
   </Card><ErrorNote message={work.error} /></Page>;
 }

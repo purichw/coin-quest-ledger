@@ -1,8 +1,51 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-10-14
+Last updated: 2026-10-16
 
-## Latest deployment baseline for the October 14 cleanup
+## Native refresh local acceptance evidence — 2026-10-16
+
+This refresh was built from repository baseline
+`44ad28e44832c9a7e1cdf229d92701c466a50ded` (`Record deployed OAuth pages and
+pending Google brand verification`). Local source/Simulator and standalone
+signing evidence is recorded in the refresh report below. On October 16, the
+required root suite passed: syntax/assets, 67 unit tests and 760 browser tests
+with 11 predefined skips; the separate emulator backend suite passed 21 tests.
+The browser run used one worker and unchanged web/backend source in an isolated
+project worktree. No physical iPhone has been connected. For push, CI and web
+promotion, use the intended commit's
+[CI/CD workflow run](https://github.com/purichw/coin-quest-ledger/actions/workflows/test.yml);
+local checks and the historical deployment sections do not prove promotion.
+
+The latest user direction supersedes the October 12 native layout restoration:
+keep the website's illustrated Coin Quest world, backgrounds, category colors
+and character motion, with native tabs and forms suited to a phone. All player
+areas are in scope; Admin and Excel upload/template download are excluded.
+JSON import/export and Excel report sharing remain. Existing Firebase identity,
+financial canon and `https://coinquestledger.vercel.app` are unchanged.
+
+Source now includes `/play` native tabs, compact login and profile identity,
+read-only other-character profiles, module search/filter tools, keyboard Done,
+pending-save navigation protection and optional expense-date preservation.
+Owner Recovery ID display uses a fresh server hash and device-local Keychain
+storage; failed local persistence does not block an acknowledged recovery key.
+The isolated `demo-coin-quest` Simulator/web checks do not establish production
+mutation or physical-device behavior.
+
+The final signed iPhoneOS Release completed at 04:41:06 Bangkok, including the
+four native loading-title fixes. Embedded JavaScript, strict signature,
+authorized team/profile and production configuration passed verification. Exact
+artifact/source hashes and the separate bounded title-runtime result belong in
+the report; neither packaging nor Simulator evidence proves a physical install.
+
+Use [the current refresh report](mobile/docs/native-refresh-2026-10-16/README.md)
+and its QA matrix for exact observed flows and remaining checks;
+[native design direction](mobile/DESIGN_DIRECTION.md) for the current visuals;
+and [iOS build notes](mobile/IOS_BUILD_NOTES.md) for the artifact's exact source,
+standalone signing and later explicit-device USB-C installation. The report
+distinguishes each build from later source changes. Preserve the unrelated
+pre-existing QA screenshots and exports when staging this release.
+
+## Historical deployment baseline for the October 14 cleanup
 
 `2924f02dad60a34c3fb964cdc3497c78ad5fc535` passed all release jobs in
 [CI run 38547534989](https://github.com/purichw/coin-quest-ledger/actions/runs/38547534989).
