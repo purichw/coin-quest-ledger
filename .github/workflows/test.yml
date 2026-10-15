@@ -61,7 +61,14 @@ jobs:
         with:
           node-version-file: mobile/.nvmrc
           cache: npm
-          cache-dependency-path: mobile/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+
+      # Native QA scripts share the repository's Firebase emulator/Admin tools.
+      - name: Install repository QA dependencies
+        working-directory: .
+        run: npm ci
 
       - name: Install dependencies
         run: npm ci
@@ -71,6 +78,9 @@ jobs:
           npm run typecheck
           npm run lint
           node --test tests/*.test.mjs
+          npm run test:qa
+          npm run test:device
+          sh -n scripts/build-device.sh scripts/install-device.sh
 
   deploy-production:
     name: Deploy production
