@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
 
+// These fixtures use Thai calendar dates (+07:00), including midnight accrual
+// boundaries. Keep the browser calendar explicit on UTC CI hosts; the western
+// timezone regression below deliberately overrides it.
+test.use({ timezoneId: 'Asia/Bangkok' });
+
 const evidence='mobile/.artifacts/all-games-audit-2026-10-17';
 const registryKey='pointy_character_registry_v1';
 const debtKey='pointy_test_debt_v1';

@@ -60,8 +60,8 @@ native contracts/Simulator and final release results are recorded as gates finis
   and reverse-refund writes, plus reducing-interest storage round trips.
 - Native: typecheck, lint, 85 contracts, five QA-isolation and seven device checks
   passed. The Simulator saved a reducing debt payment (1,000 → 900) and preserved
-  a 340 Split repayment after changing the expense from680 to400, showing the
-  correct reverse refund140. Read-back assertions confirmed persisted values.
+  a 340 Split repayment after changing the expense from 680 to 400, showing the
+  correct reverse refund of 140. Read-back assertions confirmed persisted values.
 - The Mac locked before native final refund confirmation and process restart.
   These two native UI steps are not claimed as passed; see the
   [precise Simulator evidence](../../mobile/docs/financial-canon-2026-10-17.md).
@@ -69,13 +69,35 @@ native contracts/Simulator and final release results are recorded as gates finis
   action. It now asserts “update interest through today” and absence of the old
   control. The complete affected Debt journey passed all three viewports after
   that test-only correction (`debt-regression.log`).
-- The local full run completed in17.6minutes: 824 passed, 11 predefined skips,
+- The local full run completed in 17.6 minutes: 824 passed, 11 predefined skips,
   and two failures for that stale Debt label (desktop/tablet). Both are covered
   by the subsequent three-viewport passing rerun; no runtime change followed.
   CI runs the entire suite again on the final commit before production promotion.
 
 The exact release commit's [CI/CD run](https://github.com/purichw/coin-quest-ledger/actions/workflows/test.yml)
 must pass Test, Native contracts and Deploy production before claiming promotion.
+
+### First CI attempt and targeted repair
+
+[Run 38979397616](https://github.com/purichw/coin-quest-ledger/actions/runs/38979397616)
+tested `60ba6b1d86d1790c965fe5da40e7bd65fbd0c24a`: native passed; browser tests
+reported 822 passes, 11 predefined skips and four failures, so backend and
+production deployment were correctly skipped.
+
+Three failures shared one fixture issue: Thai midnight timestamps were evaluated
+in the runner's UTC browser calendar, producing 11 calendar days rather than the
+intended 10. The failure was reproduced locally under `TZ=UTC`; the audit fixture
+now explicitly uses `Asia/Bangkok`, while the western-UTC reminder regression
+retains its own `America/Los_Angeles` override. All 33 audit/reducing-interest
+browser cases then passed under a UTC host, without changing any financial
+assertion or runtime formula.
+
+The fourth failure measured the drawer during its entrance animation. The
+controlled initial frame's right edge was 1446 on a 1440 viewport; its finished
+edge was 1422 with no internal overflow. The test's open helper now waits for
+the transform to finish before the existing strict containment assertion.
+No animation, viewport tolerance or production layout was changed. All nine
+drawer composition cases then passed across desktop, tablet and mobile projects.
 
 Before this release, remote main was
 `5c30e4b9c84f7f7f28a390541fde07e00c257357`, and the canonical alias pointed to

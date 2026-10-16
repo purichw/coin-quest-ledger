@@ -31,6 +31,9 @@ async function open(page, route = '/') {
   await expect(page.locator('.pd-hero-name')).toContainText('Mali');
   await page.evaluate(() => document.fonts.ready);
   await page.locator('.pd-hero-ava img').evaluate(img => img.decode());
+  // Visibility can precede the slide-in's final position by 240ms. Measure
+  // containment only after the drawer reaches its resting transform.
+  await expect(page.locator('.profile-drawer')).toHaveCSS('transform', 'none');
 }
 async function expand(page, key) {
   const section = page.locator(`[data-drawer-section="${key}"]`);
