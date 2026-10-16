@@ -571,7 +571,8 @@ test('Debt Dragon tracks strikes, tactics, character ID, and mobile layout', asy
   await expect(page.locator('.dragon-card')).toHaveCount(4);
   await expect(page.locator('.dragon-png').first()).toHaveAttribute('src', /assets\/debt-dragons\/card\.webp$/);
   await page.locator('#debt-manage > summary').click();
-  await expect(page.getByRole('button', { name: /ข้ามเดือน/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /อัปเดตดอกเบี้ยถึงวันนี้/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /ข้ามเดือน/ })).toHaveCount(0);
 
   if (!(await page.locator('#debt-slayer').getAttribute('open'))) {
     if (!(await page.locator('#slayer-name').isVisible())) await page.locator('#debt-slayer > summary').click();

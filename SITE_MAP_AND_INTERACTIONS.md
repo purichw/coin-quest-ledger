@@ -216,6 +216,22 @@ Key interactions:
 - New boards get four-digit IDs and creator/admin metadata.
 - Signed-in account hero is pinned from profile; the UI must not ask for
   "Other hero's name" for this path.
+- Pinning is visual only: opening the same board as another member cannot
+  reorder its stored participants or invalidate settlement confirmations.
+- Members referenced by expenses, expense trash or repayments cannot be removed;
+  start a new trip to change the party while keeping financial history intact.
+- Confirmed repayments remain credited after expense edits or deletion. Any
+  excess becomes a reverse refund. Cash confirmation works without PromptPay;
+  the application records payment and does not initiate a bank transfer.
+- Settlement displays repayment history and explains the remaining balance.
+  The first repayment per participant pair/campaign awards XP once; corrections
+  and refunds do not repeat it. Legacy revision checkmarks migrate conservatively
+  before edits; superseded confirmations stay visible as history only.
+- Entry re-renders preserve an explicitly empty share selection. Multi-payer
+  totals use the same half-satang tolerance as save validation.
+- Persistent XP and profile snapshots update after a successful board save or
+  confirmed read; unsaved drafts cannot award persistent XP. Other-board and
+  Debt Dragon XP remain intact, including when another member records repayment.
 - Real other heroes are invited by existing Character ID.
 - Guests are board-local and never create real Character IDs.
 - Party cards always show class, payment and settlement details; HP/XP follow the
@@ -643,6 +659,14 @@ Admin:
 For commit/deploy after meaningful behavior changes, run full `npm test`.
 
 ## Known Map Caveats
+
+- Financial rules and scenario evidence across all four games:
+  `docs/all-games-financial-audit-2026-10-17/README.md`. Debt updates accrue only
+  through today; future calculations live in the read-only monthly simulator.
+  Due reminders require the full installment. Treasury history displays
+  Reputation, using the same source as the profile. Durable Split repayments and
+  reducing-balance interest for new debts were approved and implemented on
+  October 17; release status belongs to the exact commit's CI and deployment.
 
 - `trips/{id}` rules are signed-in-only, but not yet owner/member-scoped. Treat
   board privacy hardening as a planned access-metadata migration.

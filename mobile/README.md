@@ -3,6 +3,27 @@
 Fresh native rebuild started 2026-10-11. This directory replaces the retired
 SDK 56 app; see `../docs/rollback-parking-lot.md` for its verified recovery copy.
 
+## Finance contract update — 2026-10-17
+
+New Debt Dragon records default to reducing-balance interest: outstanding
+principal × annual rate × elapsed days / 365. Unpaid interest is tracked
+separately and payments cover it before principal; saved compound/flat debts
+retain their existing mode. The native form exposes all three modes and uses
+the same canonical accrual, payment and history replay functions as web.
+
+Split confirmations now record actual repayments. Editing an expense preserves
+the money already returned and can produce an additional payment or a refund.
+Settlement XP is awarded at most once per pair in each campaign. Native reads
+and saves both current `repayment` records and historical `legacy_confirmation`
+records without converting old history into an extra cash transfer.
+
+The own-app Simulator passed new-debt creation, partial payment, server refresh,
+Split repayment and the resulting refund after an expense edit. The Mac locked
+before the final refund confirmation and process-restart checks; those two
+native interaction checks remain unverified. Source contracts and the saved
+emulator state passed. See [scoped evidence](docs/financial-canon-2026-10-17.md).
+This source update does not distribute a new iPhone binary or OTA.
+
 ## Current work — iOS refresh, 2026-10-16
 
 The current user decision is to bring the iOS player experience into the latest

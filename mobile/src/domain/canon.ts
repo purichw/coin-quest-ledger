@@ -42,7 +42,8 @@ type Canon = {
   monthlyInterest(dragon: Dragon): number;
   payoffMonths(dragon: Dragon): number;
   strategyTarget(dragons: Dragon[], strategy: string): string | null;
-  simulateLair(dragons: Dragon[], strategy: string, extra: number): { months: number; interest: number; never: boolean };
+  simulateLair(dragons: Dragon[], strategy: string, extra: number): { months: number; interest: number; never: boolean; excluded: number };
+  debtDueStatus(dragon: Dragon, today?: Date): { overdue: boolean; days?: number } | null;
   slayerXpFrom(dragons: Dragon[]): number;
   treasurySpent(state: Treasury): number;
   treasuryBillPaid(state: Treasury, billId: string): boolean;

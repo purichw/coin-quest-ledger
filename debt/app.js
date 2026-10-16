@@ -182,9 +182,9 @@ function fallback(key) {
     dd_delete_confirm: 'ลบรายการหนี้นี้และประวัติการชำระทั้งหมดหรือไม่?',
     dd_clear_lair: 'ล้างถ้ำ',
     dd_clear_lair_confirm: 'ล้างมังกรทุกตัวและสถิติถ้ำนี้? Character ID ของนักล่าจะยังอยู่',
-    dd_end_month: 'ข้ามเดือน',
+    dd_end_month: 'อัปเดตดอกเบี้ยถึงวันนี้',
     dd_end_month_date: 'วันที่จบเดือน',
-    dd_end_month_sub: 'จำลองเวลาไป 1 เดือน — มังกรพ่นไฟ ดอกเบี้ยงอก',
+    dd_end_month_sub: 'อัปเดตยอดจริงถึงวันนี้ หากต้องการดูอนาคตให้ใช้ตัวจำลองการจ่าย',
     dd_month_passed: 'ดอกเบี้ยงอก!',
     dd_accrued: 'ผ่านไป {n} เดือน · ดอกเบี้ยงอกรวม {amt}',
     dd_accrued_days: 'ผ่านไป {n} วัน · ดอกเบี้ยงอกรวม {amt}',
@@ -194,8 +194,9 @@ function fallback(key) {
     dd_adhoc: 'จ่ายเมื่อพร้อม',
     dd_adhoc_note: 'จ่ายเมื่อพร้อม ไม่มีกำหนด',
     dd_interest_type: 'ดอกเบี้ย',
-    dd_compound: 'ทบต้น',
-    dd_simple: 'คงที่',
+    dd_compound: 'ทบต้นรายวัน',
+    dd_simple: 'คิดจากเงินต้นเดิม',
+    dd_reducing: 'ลดต้นลดดอก',
     dd_minpay: 'ขั้นต่ำ/เดือน',
     dd_due_day: 'ครบกำหนดวันที่',
     dd_due_suffix: 'ของเดือน',
@@ -287,9 +288,9 @@ function fallback(key) {
     dd_delete_confirm: 'Delete this debt and its entire payment history?',
     dd_clear_lair: 'Clear lair',
     dd_clear_lair_confirm: "Clear every dragon and lair stat? Your Slayer's Character ID will stay.",
-    dd_end_month: 'Advance month',
+    dd_end_month: 'Update interest through today',
     dd_end_month_date: 'End-month date',
-    dd_end_month_sub: 'Simulate one month forward — dragons breathe fire, interest accrues',
+    dd_end_month_sub: 'Update the balance through today. Use the payment simulator to explore the future.',
     dd_month_passed: 'Interest accrued!',
     dd_accrued: 'Advanced {n} mo · {amt} interest accrued',
     dd_accrued_days: 'Advanced {n}d · {amt} interest accrued',
@@ -299,8 +300,9 @@ function fallback(key) {
     dd_adhoc: 'Ad-hoc',
     dd_adhoc_note: 'Pay anytime, no schedule',
     dd_interest_type: 'Interest',
-    dd_compound: 'Compound',
-    dd_simple: 'Simple',
+    dd_compound: 'Daily compounding',
+    dd_simple: 'Flat on original principal',
+    dd_reducing: 'Reducing balance',
     dd_minpay: 'min / mo',
     dd_due_day: 'Due day',
     dd_due_suffix: 'of mo',
@@ -361,18 +363,6 @@ function dateISO(date) {
   return local.toISOString().slice(0, 10);
 }
 function todayISO() { return dateISO(new Date()); }
-function endOfMonthISO(date = new Date()) { return dateISO(new Date(date.getFullYear(), date.getMonth() + 1, 0)); }
-function isoToLocalDate(iso) {
-  const [year, month, day] = String(iso || '').split('-').map(Number);
-  return year && month && day ? new Date(year, month - 1, day) : new Date();
-}
-function nextEndOfMonthISO(iso) {
-  const date = isoToLocalDate(iso);
-  return dateISO(new Date(date.getFullYear(), date.getMonth() + 2, 0));
-}
-function defaultEndMonthISO() {
-  return SETTINGS.lastEndMonthDate ? nextEndOfMonthISO(SETTINGS.lastEndMonthDate) : endOfMonthISO();
-}
 function dateMsFromISO(iso) {
   return PointyLogic.dateOnlyMs(iso ? new Date(`${iso}T00:00:00`) : new Date());
 }
@@ -388,25 +378,8 @@ function accrueDragonsToDate(dragons, date) {
   });
   return { next, added, days };
 }
-function dayStart(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
 function dueStatus(d, today = new Date()) {
-  if (d.payMode === 'adhoc' || !d.dueDay || d.slain) return null;
-  const y = today.getFullYear();
-  const m = today.getMonth();
-  const paidThisMonth = (d.log || []).some(row => {
-    const t = new Date(row.ts || 0);
-    return t.getFullYear() === y && t.getMonth() === m;
-  });
-  const dueThis = PointyLogic.clampedDueDay(y, m, d.dueDay);
-  if (!paidThisMonth && today.getDate() > dueThis) return { overdue: true };
-  const dueDate = paidThisMonth
-    ? PointyLogic.dueDateForMonth(y, m + 1, d.dueDay)
-    : new Date(y, m, dueThis);
-  return { overdue: false, days: Math.round((dayStart(dueDate) - dayStart(today)) / 86400000) };
+  return PointyLogic.debtDueStatus(d, today);
 }
 function lairRecord(dragons, interestFed) {
   let reclaimed = 0;
@@ -474,9 +447,19 @@ function saveDebtState() {
   try {
     if (window.PointyScope) window.PointyScope.setJSON(STORE_KEY, S);
     else localStorage.setItem(STORE_KEY, JSON.stringify(S));
-  } catch (_) {}
+    // The shared storage wrapper can swallow quota failures; verify persistence
+    // before publishing rewards or reporting success.
+    const saved = localStorage.getItem(window.PointyScope?.key?.(STORE_KEY) || STORE_KEY);
+    if (saved !== JSON.stringify(S)) throw new Error('Debt state was not persisted');
+  } catch (_) {
+    S = PointyLogic.normalizeDebtState(loadDebtState());
+    renderAll(false);
+    toast(debtCopy('ยังบันทึกไม่ได้ กรุณาลองอีกครั้ง ระบบแสดงข้อมูลที่บันทึกล่าสุด', 'Could not save. Please try again. Your last saved data is shown.'));
+    return false;
+  }
   persistSlayerRecord();
   window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
+  return true;
 }
 function loadSettings() {
   try {
@@ -521,6 +504,8 @@ function persistSlayerRecord() {
   if (id.length !== 4) return;
   const registry = readLocalRegistry();
   const current = registry[id] || { id, createdAt: Date.now() };
+  const debtXp = PointyLogic.slayerXpFrom(S.dragons);
+  const tripXp = characterTripXp(current);
   registry[id] = {
     ...current,
     id,
@@ -528,10 +513,19 @@ function persistSlayerRecord() {
     class: PointyLogic.normalizeClass(S.slayer.class || current.class || 'dragoon'),
     gender: S.slayer.gender === 'female' ? 'female' : 'male',
     skin: S.slayer.skin || '',
-    debtXp: PointyLogic.slayerXpFrom(S.dragons),
+    debtXp,
+    xp: tripXp + debtXp,
     updatedAt: Date.now()
   };
   writeLocalRegistry(registry);
+}
+function characterTripXp(record = {}) {
+  return record.trips
+    ? Object.values(record.trips).reduce((sum, xp) => sum + (Number(xp) || 0), 0)
+    : Math.max(0, (Number(record.xp) || 0) - (Number(record.debtXp) || 0));
+}
+function slayerTotalXp() {
+  return characterTripXp(readLocalRegistry()[S.slayer.characterId]) + PointyLogic.slayerXpFrom(S.dragons);
 }
 
 function ac() {
@@ -627,7 +621,7 @@ function renderSlayerPortrait() {
   const cls = PointyLogic.normalizeClass(S.slayer.class || 'dragoon');
   const gender = S.slayer.gender === 'female' ? 'female' : 'male';
   const color = classColor(cls);
-  const level = PointyLogic.levelFromXp(PointyLogic.slayerXpFrom(S.dragons));
+  const level = PointyLogic.levelFromXp(slayerTotalXp());
   const reward = PointyLogic.rewardFor(level.lvl);
   const src = avatarSrc(cls, gender, S.slayer.skin || '');
   return `<div class="slayer-portrait ${reward.frame}" style="--avatar-bg:${color.bg};border-color:${color.ring}">
@@ -684,12 +678,13 @@ function renderDragonForm(form = {}, mode = 'add') {
     apr: form.apr ?? 18,
     payment: form.payment ?? PointyLogic.dragonType(form.type || 'card').minPay,
     payMode: form.payMode || (PointyLogic.dragonType(form.type || 'card').minPay > 0 ? 'monthly' : 'adhoc'),
-    interestMode: form.interestMode || 'compound',
+    interestMode: form.interestMode || (mode === 'add' ? 'reducing' : 'compound'),
+    unpaidInterest: form.unpaidInterest ?? 0,
     dueDay: form.dueDay ?? 0
   };
   const prefix = mode === 'edit' ? `edit-${h(form.id)}` : 'new';
   const isAdhoc = d.payMode === 'adhoc';
-  const monthlyInterest = d.apr > 0 ? (d.interestMode === 'simple' ? d.original : d.balance) * PointyLogic.monthlyDebtRate(d.apr) : 0;
+  const monthlyInterest = PointyLogic.monthlyInterest(d);
   const belowInterest = !isAdhoc && d.apr > 0 && d.payment > 0 && d.payment <= monthlyInterest;
   const originalLow = d.original > 0 && d.original < d.balance;
   return `<div class="dragon-form">
@@ -708,8 +703,9 @@ function renderDragonForm(form = {}, mode = 'add') {
     ${(belowInterest || originalLow) ? `<div class="df-warns">${belowInterest ? `<div class="df-warn">⚠️ ${tt('dd_warn_below')}</div>` : ''}${originalLow ? `<div class="df-warn">ℹ️ ${tt('dd_warn_orig')}</div>` : ''}</div>` : ''}
     <div class="df-seg"><button type="button" class="${!isAdhoc ? 'on' : ''}" onclick="setPayMode('${prefix}','monthly')">📅 ${tt('dd_monthly')}</button><button type="button" class="${isAdhoc ? 'on' : ''}" onclick="setPayMode('${prefix}','adhoc')">🤝 ${tt('dd_adhoc')}</button></div>
     <input id="${prefix}-payMode" type="hidden" value="${h(d.payMode)}">
-    <div class="df-seg"><button type="button" class="${d.interestMode !== 'simple' ? 'on' : ''}" onclick="setInterestMode('${prefix}','compound')">⟳ ${tt('dd_compound')}</button><button type="button" class="${d.interestMode === 'simple' ? 'on' : ''}" onclick="setInterestMode('${prefix}','simple')">▭ ${tt('dd_simple')}</button></div>
+    <div class="df-seg df-interest" role="group" aria-label="${h(tt('dd_interest_type'))}">${[['reducing','↘','dd_reducing'],['compound','⟳','dd_compound'],['simple','▭','dd_simple']].map(([value, icon, label]) => `<button type="button" data-interest-mode="${value}" class="${d.interestMode === value ? 'on' : ''}" aria-pressed="${d.interestMode === value}" onclick="setInterestMode('${prefix}','${value}')">${icon} ${tt(label)}</button>`).join('')}</div>
     <input id="${prefix}-interestMode" type="hidden" value="${h(d.interestMode)}">
+    <p class="settings-sub">${debtCopy('เลือกตามสัญญา: ลดต้นลดดอกคิดจากเงินต้นคงเหลือ โดยไม่คิดดอกบนดอกค้าง ทบต้นรายวันคิดจากยอดรวมดอกค้าง ส่วนเงินต้นเดิมคิดจากเงินต้นเริ่มต้น ทุกแบบใช้ฐาน 365 วัน', 'Match your contract: reducing balance charges only outstanding principal, excluding unpaid interest; daily compounding includes unpaid interest; flat interest uses original principal. All modes use a 365-day basis.')}${mode === 'add' ? ' ' + debtCopy('ยอดหนี้ใหม่ถือเป็นเงินต้น ณ วันนี้ หากมีดอกเบี้ยค้างเดิม ให้ตรวจยอดเงินต้นกับเจ้าหนี้ก่อนบันทึก', 'A new debt starts with today’s principal balance. If it already has unpaid interest, check the principal amount with your lender before entering it.') : ''}</p>
     <div class="df-actions"><button class="btn-ghost sm" onclick="${mode === 'edit' ? 'cancelEdit()' : 'closeAddDragon()'}">${tt('dd_cancel')}</button><button class="btn-primary sm" onclick="${mode === 'edit' ? `saveDragon('${h(form.id)}')` : 'addDragon()'}">${tt('dd_save')}</button></div>
   </div>`;
 }
@@ -743,7 +739,7 @@ function renderDragonCard(d) {
       <div class="dc-row-actions">${d.archived ? `<button class="btn-ghost sm" data-restore-dragon="${id}">${debtCopy('นำกลับมา', 'Restore')}</button>` : !d.slain ? `<button class="dc-strike-btn" onclick="openStrike('${id}')">${debtIcon('swords')}<span>${debtCopy('บันทึกการจ่าย', 'Record payment')}</span></button>` : `<span class="dc-paid-badge">✓ ${tt('dd_slain_tag')}</span>`}<button class="btn-ghost sm dc-details-button" aria-expanded="${expanded}" aria-controls="detail-${id}" onclick="toggleDragonDetails('${id}')">${debtCopy('ดูรายละเอียด', 'View details')}</button></div>
     </div>
     <div class="dc-detail" id="detail-${id}" ${expanded ? '' : 'hidden'}>
-      <div class="dc-detail-facts"><span>${h(dragonTypeName(d.type))} · ${aprLabel} · ${tt(d.interestMode === 'simple' ? 'dd_simple' : 'dd_compound')}</span><span>${adhoc ? tt('dd_adhoc_note') : `${tt('dd_payment')} ${money(d.payment)}`}</span><span>${forecast}${dueLabel ? ` · ${h(dueLabel)}` : ''}</span>${dailyRegen > 0 ? `<span class="regen-pill">${tt('dd_regen_day')} +${money(dailyRegen)}</span>` : ''}</div>
+      <div class="dc-detail-facts"><span>${h(dragonTypeName(d.type))} · ${aprLabel} · ${tt(d.interestMode === 'reducing' ? 'dd_reducing' : d.interestMode === 'simple' ? 'dd_simple' : 'dd_compound')}</span><span>${adhoc ? tt('dd_adhoc_note') : `${tt('dd_payment')} ${money(d.payment)}`}</span><span>${forecast}${dueLabel ? ` · ${h(dueLabel)}` : ''}</span>${dailyRegen > 0 ? `<span class="regen-pill">${tt('dd_regen_day')} +${money(dailyRegen)}</span>` : ''}</div>
       <div class="dc-detail-tools">${d.archived ? `<button class="btn-ghost sm dc-mobile-restore" data-restore-dragon="${id}">${debtCopy('นำกลับมา', 'Restore')}</button>` : ''}${!d.slain && !d.archived ? `<button class="btn-danger sm dc-mobile-pay" onclick="openStrike('${id}')">${debtIcon('swords')} ${debtCopy('บันทึกการจ่าย', 'Record payment')}</button>` : ''}<button class="btn-ghost sm dc-edit" onclick="openEdit('${id}')">✎ ${tt('dd_edit')}</button><button class="btn-ghost sm" onclick="pickDragonArt('${h(d.type)}','detail-art-${id}')">${debtCopy('เปลี่ยนภาพมังกร', 'Change artwork')}</button><input id="detail-art-${id}" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="setDragonArt('${h(d.type)}',this.files&&this.files[0])"><button class="btn-ghost sm dc-remove" onclick="deleteDragon('${id}')">${tt('dd_delete')}</button></div>
       ${STRIKE_OPEN === d.id ? renderStrikeForm(d) : ''}
       ${EDIT_OPEN === d.id ? renderDragonForm({ ...d, name: dragonName(d), id: d.id }, 'edit') : ''}
@@ -838,7 +834,7 @@ function openDebtStrategy() {
 function renderSlayerPanel() {
   const linkedHero = accountHero();
   const cls = PointyLogic.normalizeClass(S.slayer.class || 'dragoon');
-  const xp = PointyLogic.slayerXpFrom(S.dragons);
+  const xp = slayerTotalXp();
   const level = PointyLogic.levelFromXp(xp);
   const reward = PointyLogic.rewardFor(level.lvl);
   const base = avatarId(cls, S.slayer.gender);
@@ -884,19 +880,22 @@ function renderForecastPanel() {
   const boost = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, extra);
   const monthsSaved = isFinite(base.months) && isFinite(boost.months) ? Math.max(0, base.months - boost.months) : 0;
   const interestSaved = Math.max(0, base.interest - boost.interest);
+  const scheduled = aliveDragons().some(d => d.payMode !== 'adhoc');
+  const finite = scheduled && !boost.never;
   const target = S.dragons.find(d => d.id === targetId() && d.payMode !== 'adhoc');
   if (!aliveDragons().length) return `<section class="panel forecast-panel"><div class="panel-head"><h2 class="panel-title">🔮 ${tt('dd_forecast')}</h2></div><div class="settings-sub">${tt('dd_all_slain')}</div></section>`;
   return `<section class="panel forecast-panel">
     <div class="panel-head"><h2 class="panel-title">🔮 ${tt('dd_forecast')}</h2></div>
     <div class="forecast-grid">
-      <div class="fc-stat"><span class="fc-v">${isFinite(boost.months) ? boost.months : '∞'}</span><span class="fc-l">${tt('dd_free_in')} · ${tt('dd_months')}</span></div><div class="fc-div"></div>
-      <div class="fc-stat"><span class="fc-v gold">${moneyShort(boost.interest)}</span><span class="fc-l">${tt('dd_interest_ahead')}</span></div><div class="fc-div"></div>
-      <div class="fc-stat"><span class="fc-v">${debtFreeLabel(boost.months)}</span><span class="fc-l">${tt('dd_debt_free_by')}</span></div>
+      <div class="fc-stat"><span class="fc-v">${finite ? boost.months : '—'}</span><span class="fc-l">${tt('dd_free_in')} · ${tt('dd_months')}</span></div><div class="fc-div"></div>
+      <div class="fc-stat"><span class="fc-v gold">${finite ? moneyShort(boost.interest) : '—'}</span><span class="fc-l">${tt('dd_interest_ahead')}</span></div><div class="fc-div"></div>
+      <div class="fc-stat"><span class="fc-v">${finite ? debtFreeLabel(boost.months) : '—'}</span><span class="fc-l">${tt('dd_debt_free_by')}</span></div>
     </div>
+    <p class="settings-sub forecast-assumptions">${debtCopy('ประมาณการเฉพาะหนี้รายเดือน ใช้ดอกเบี้ยต่อปี ÷ 12 และจ่ายปลายเดือน งบที่เหลือจากปิดหนี้จะโปะก้อนถัดไป ยอดจริงคิดตามวันและเงื่อนไขสัญญา', 'Estimate for monthly debts only: annual rate ÷ 12, payments at month end, and freed payment budgets rolled forward. Actual balances depend on dates and contract terms.')}${boost.excluded ? ' ' + debtCopy(`ยังไม่รวมหนี้ที่ไม่ได้กำหนดงวด ${boost.excluded} รายการ จึงยังระบุวันปลอดหนี้ทั้งหมดไม่ได้`, `${boost.excluded} unscheduled debt(s) excluded; a date for clearing all debts is not available.`) : ''}${boost.never ? ' ' + debtCopy('แผนนี้ยังปิดหนี้ไม่ได้ภายในช่วงจำลอง 100 ปี', 'This plan does not clear the debts within the 100-year simulation horizon.') : ''}</p>
     <div class="power-attack"><div class="pa-head"><span class="pa-title">💥 ${tt('dd_power_attack')}</span><span class="pa-val">+${money(extra)}/${tt('dd_month_short')}</span></div>
       <input id="power-attack" class="pa-slider" type="range" min="0" max="10000" step="250" value="${extra}" oninput="updatePowerAttack(this.value)">
       <div class="pa-sub">${tt('dd_power_sub')}</div>
-      ${extra > 0 ? `<div class="pa-result"><span class="pa-chip">⏩ −${monthsSaved} ${tt('dd_month_short')} ${tt('dd_sooner')}</span><span class="pa-chip gold">💰 ${tt('dd_saves')} ${money(interestSaved)}</span></div>` : ''}
+      ${extra > 0 && scheduled && !base.never && !boost.never ? `<div class="pa-result"><span class="pa-chip">⏩ −${monthsSaved} ${tt('dd_month_short')} ${tt('dd_sooner')}</span><span class="pa-chip gold">💰 ${tt('dd_saves')} ${money(interestSaved)}</span></div>` : ''}
       ${extra > 0 && target ? `<button class="pa-apply" onclick="requestStrike('${h(target.id)}',${(Number(target.payment) || 0) + extra})">⚔️ ${tt('dd_apply_target', { name: dragonName(target) })}</button>` : ''}
     </div>
   </section>`;
@@ -933,18 +932,19 @@ function renderAll(shouldSave = true) {
   const live = aliveDragons();
   const totalDebt = live.reduce((sum, d) => sum + Number(d.balance || 0), 0);
   const sim = PointyLogic.simulateLair(S.dragons, SETTINGS.strategy, 0);
+  const completeForecast = !sim.never && !sim.excluded;
   const monthly = live.reduce((sum, d) => sum + (d.payMode === 'adhoc' ? 0 : Number(d.payment || 0)), 0);
   const stat = (icon, value, label) => `<div class="hoard-stat"><span class="hs-icon">${icon}</span><strong class="hs-val">${value}</strong><span class="hs-lab">${label}</span></div>`;
   document.getElementById('app').innerHTML = `<section class="debt-hero">
     <div class="debt-hero-heading"><span class="banner-crest" aria-hidden="true">🐉</span><div><h1 class="banner-title" aria-label="${h(tt('dd_title'))}">Debt Dragon</h1><p class="banner-sub">${debtCopy('ปราบมังกรทีละก้อน เพื่ออิสรภาพทางการเงินของคุณ', 'Face your debts. One step closer to freedom.')}</p></div></div>
     <p class="debt-hero-note">${debtIcon('shield')}<span>${debtCopy('หนี้ไม่ใช่จุดจบ', 'One payment at a time.')}<small>${debtCopy('แต่คือมังกรที่เราเอาชนะได้', 'Every dragon can be defeated.')}</small></span></p>
   </section>
-  <div class="debt-workspace"><div class="hoard-bar">${stat('🐉', money(totalDebt), debtCopy('ยอดหนี้คงเหลือ', 'Outstanding balance'))}${stat(debtIcon('trophy'), live.length, debtCopy('มังกรที่ยังอยู่', 'Active dragons'))}${stat('📜', S.dragons.filter(d => d.slain).length, tt('dd_slain_count'))}${stat(debtIcon('shield'), isFinite(sim.months) ? sim.months : '—', `${tt('dd_free_in')} · ${tt('dd_months')}`)}</div>
+  <div class="debt-workspace"><div class="hoard-bar">${stat('🐉', money(totalDebt), debtCopy('ยอดหนี้คงเหลือ', 'Outstanding balance'))}${stat(debtIcon('trophy'), live.length, debtCopy('มังกรที่ยังอยู่', 'Active dragons'))}${stat('📜', S.dragons.filter(d => d.slain).length, tt('dd_slain_count'))}${stat(debtIcon('shield'), completeForecast ? sim.months : '—', `${tt('dd_free_in')} · ${tt('dd_months')}`)}</div>
     ${ACCRUAL_NOTE ? `<div class="accrual-note">🔥 ${tt(ACCRUAL_NOTE.days ? 'dd_accrued_days' : 'dd_accrued', { n: ACCRUAL_NOTE.n, amt: money(ACCRUAL_NOTE.added) })}</div>` : ''}
     <div class="debt-actions"><button class="btn-primary add-dragon" onclick="openAddDragon()"><span aria-hidden="true">＋</span>${debtCopy('เพิ่มมังกรหนี้', 'Add a debt dragon')}</button><button class="btn-ghost debt-strategy-button" onclick="openDebtStrategy()">${debtIcon('swords')} ${debtCopy('กลยุทธ์และจำลอง', 'Strategy & simulation')}</button><button class="btn-ghost debt-settings" aria-label="${debtCopy('ตั้งค่าเกม', 'Game settings')}" onclick="openSettings()">${debtIcon('settings')}<span>${debtCopy('ตั้งค่าเกม', 'Game settings')}</span></button></div>
     ${ADD_OPEN ? `<section class="panel debt-add-panel" aria-label="${h(tt('dd_new'))}"><h2 class="panel-title">${tt('dd_new')}</h2>${renderDragonForm(ADD_FORM_DRAFT, 'add')}</section>` : ''}
     ${renderLair()}
-    <div class="debt-support">${debtDisclosure('finance', `${debtIcon('scroll')} ${debtCopy('ภาพรวมการเงิน', 'Financial overview')}`, `<div class="finance-stats">${stat('', money(totalDebt), debtCopy('ยอดหนี้คงเหลือ', 'Outstanding balance'))}${stat('', money(Math.round(sim.interest)), tt('dd_interest_ahead'))}${stat('', money(monthly), debtCopy('ยอดจ่ายต่อเดือน', 'Monthly payments'))}${stat('', isFinite(sim.months) ? `${sim.months} ${tt('dd_months')}` : '—', `${tt('dd_debt_free_by')} ${debtFreeLabel(sim.months)}`)}</div>${renderRecordPanel()}`)}${debtDisclosure('slayer', `${debtIcon('swords')} ${tt('dd_slayer')}`, renderSlayerPanel())}</div>
+    <div class="debt-support">${debtDisclosure('finance', `${debtIcon('scroll')} ${debtCopy('ภาพรวมการเงิน', 'Financial overview')}`, `<div class="finance-stats">${stat('', money(totalDebt), debtCopy('ยอดหนี้คงเหลือ', 'Outstanding balance'))}${stat('', completeForecast ? money(sim.interest) : '—', tt('dd_interest_ahead'))}${stat('', money(monthly), debtCopy('ยอดจ่ายต่อเดือน', 'Monthly payments'))}${stat('', completeForecast ? `${sim.months} ${tt('dd_months')}` : '—', `${tt('dd_debt_free_by')} ${completeForecast ? debtFreeLabel(sim.months) : '—'}`)}</div>${renderRecordPanel()}`)}${debtDisclosure('slayer', `${debtIcon('swords')} ${tt('dd_slayer')}`, renderSlayerPanel())}</div>
     ${debtDisclosure('strategy', `${debtIcon('swords')} ${debtCopy('กลยุทธ์และจำลองการจ่าย', 'Strategy & payment simulator')}`, `<div class="debt-strategy-grid">${renderTacticsPanel()}<div id="forecast-slot">${renderForecastPanel()}</div></div>`)}
     ${debtDisclosure('manage', `${debtIcon('settings')} ${debtCopy('จัดการถ้ำมังกร', 'Manage your lair')}`, `<div class="lair-actions">${live.length ? `<button class="end-month" title="${h(tt('dd_end_month_sub'))}" onclick="endMonth()">🔥 ${tt('dd_end_month')}</button>` : ''}${S.dragons.length ? `<button class="btn-ghost sm dc-remove" onclick="clearLair()">${tt('dd_clear_lair')}</button>` : ''}</div><p class="settings-sub">${tt('dd_end_month_sub')}</p>`)}
     <cq-footer></cq-footer>
@@ -953,7 +953,7 @@ function renderAll(shouldSave = true) {
   applyDebtFilters();
   renderOverlay();
   attachDragonDropHandlers();
-  if (shouldSave) { saveDebtState(); toast(tt('dd_saved')); }
+  if (shouldSave && saveDebtState()) toast(tt('dd_saved'));
 }
 
 function renderForecastOnly() {
@@ -1025,13 +1025,11 @@ function endMonth() {
   if (!ids.length) return;
   BREATHING = ids;
   SFX.roar();
-  const targetIso = defaultEndMonthISO();
+  const targetIso = todayISO();
   const { next, added, days } = accrueDragonsToDate(S.dragons, dateMsFromISO(targetIso));
   S.dragons = next;
   S.stats = { ...(S.stats || {}), interest: Number(S.stats?.interest || 0) + added };
   S.lastAccrued = dateMsFromISO(targetIso);
-  SETTINGS.lastEndMonthDate = targetIso;
-  saveSettings();
   toast(`${tt('dd_month_passed')} · ${money(added)}`);
   setTimeout(() => { BREATHING = []; renderAll(false); }, 1150);
   renderAll();
@@ -1053,7 +1051,7 @@ function formPayload(prefix, validate = false) {
       balance, original, payMode, apr: read('apr', { label: 'ดอกเบี้ย', decimals: 4 }),
       payment: payMode === 'adhoc' ? 0 : read('payment', { label: 'ยอดชำระต่อเดือน', min: .01 }),
       dueDay: payMode === 'adhoc' ? 0 : read('dueDay', { label: 'วันครบกำหนด', min: 1, max: 31, decimals: 0 }),
-      interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound' };
+      interestMode: ['simple', 'reducing'].includes(document.getElementById(`${prefix}-interestMode`)?.value) ? document.getElementById(`${prefix}-interestMode`).value : 'compound' };
   }
   const type = document.getElementById(`${prefix}-type`)?.value || 'card';
   const balance = document.getElementById(`${prefix}-balance`)?.value || '';
@@ -1067,7 +1065,7 @@ function formPayload(prefix, validate = false) {
     apr: document.getElementById(`${prefix}-apr`)?.value || '',
     payment: document.getElementById(`${prefix}-payment`)?.value || '',
     payMode,
-    interestMode: document.getElementById(`${prefix}-interestMode`)?.value === 'simple' ? 'simple' : 'compound',
+    interestMode: ['simple', 'reducing'].includes(document.getElementById(`${prefix}-interestMode`)?.value) ? document.getElementById(`${prefix}-interestMode`).value : 'compound',
     dueDay: document.getElementById(`${prefix}-dueDay`)?.value || ''
   };
 }
@@ -1075,7 +1073,7 @@ function addDragon() {
   let form;
   try { form = formPayload('new', true); } catch (error) { toast(error.message); return; }
   const now = PointyLogic.dateOnlyMs(new Date());
-  S.dragons.push({ id: uid(), name: { th: form.name, en: form.name }, ...form, log: [], createdAt: now, interestAccruedAt: now, slain: false, slainAt: null });
+  S.dragons.push({ id: uid(), name: { th: form.name, en: form.name }, ...form, unpaidInterest: 0, log: [], createdAt: now, interestAccruedAt: now, slain: false, slainAt: null });
   ADD_OPEN = false;
   ADD_FORM_DRAFT = {};
   SFX.click();
@@ -1151,10 +1149,11 @@ function setPayMode(prefix, mode) {
   if (prefix === 'new') ADD_FORM_DRAFT = formPayload(prefix);
 }
 function setInterestMode(prefix, mode) {
+  if (!['reducing', 'compound', 'simple'].includes(mode)) return;
   const el = document.getElementById(`${prefix}-interestMode`);
   if (el) el.value = mode;
   const group = el?.previousElementSibling;
-  if (group) [...group.querySelectorAll('button')].forEach((btn, idx) => btn.classList.toggle('on', (idx === 0 && mode === 'compound') || (idx === 1 && mode === 'simple')));
+  if (group) [...group.querySelectorAll('button')].forEach(btn => { const selected = btn.dataset.interestMode === mode; btn.classList.toggle('on', selected); btn.setAttribute('aria-pressed', String(selected)); });
   if (prefix === 'new') ADD_FORM_DRAFT = formPayload(prefix);
 }
 function pickDragonArt(type, inputId) { document.getElementById(inputId)?.click(); }
@@ -1248,19 +1247,16 @@ function updateSlayerField(field, value) {
 }
 function ensureDebtCharacter() {
   if (syncSlayerWithAccount()) {
-    persistSlayerRecord();
     SFX.click();
     renderAll();
     return;
   }
   S.slayer.characterId = generateCharacterId();
-  persistSlayerRecord();
   SFX.click();
   renderAll();
 }
 function linkDebtCharacter() {
   if (syncSlayerWithAccount()) {
-    persistSlayerRecord();
     renderAll();
     return;
   }
@@ -1273,7 +1269,6 @@ function linkDebtCharacter() {
   if (rec.class) S.slayer.class = PointyLogic.normalizeClass(rec.class);
   if (rec.gender) S.slayer.gender = rec.gender;
   if (rec.skin) S.slayer.skin = rec.skin;
-  persistSlayerRecord();
   renderAll();
 }
 function setStrategy(strategy) {

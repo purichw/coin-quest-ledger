@@ -261,15 +261,17 @@
     let factor = group.units[unit] || 1;
     if (unit === 'แพ็ค/กล่อง') {
       factor = Number(offer.perPack) || 0;
-      if (factor <= 0) return { valid: false, unit, baseUnit: group.base, qty: 0, pu: Infinity };
+      if (!Number.isInteger(factor) || factor <= 0) return { valid: false, unit, baseUnit: group.base, qty: 0, pu: Infinity };
     }
     const qty = Number(offer.qty) || 0;
     const price = Number(offer.price) || 0;
-    const buy = Math.max(1, parseInt(offer.buy, 10) || 1);
-    const free = Math.max(0, parseInt(offer.free, 10) || 0);
+    const buy = offer.buy == null ? 1 : Number(offer.buy);
+    const free = offer.free == null ? 0 : Number(offer.free);
     const promoMult = (buy + free) / buy;
     const normalizedQty = qty * factor * promoMult;
-    return { valid: normalizedQty > 0 && price > 0, unit, baseUnit: group.base, qty: normalizedQty, pu: normalizedQty > 0 ? price / normalizedQty : Infinity, promoMult, buy, free };
+    const valid = Number.isFinite(normalizedQty) && Number.isFinite(price) && normalizedQty > 0 && price > 0
+      && Number.isInteger(buy) && buy >= 1 && Number.isInteger(free) && free >= 0;
+    return { valid, unit, baseUnit: group.base, qty: normalizedQty, pu: valid ? price / normalizedQty : Infinity, promoMult, buy, free };
   }
 
   function normalizeComparison(cmp, opts = {}) {
@@ -292,8 +294,8 @@
         qty: Number(o.qty) || 0,
         unit: normalizeUnit(o.unit || cmp.unit || group.base, unitAlias),
         perPack: Number(o.perPack) || 0,
-        buy: Math.max(1, parseInt(o.buy, 10) || 1),
-        free: Math.max(0, parseInt(o.free, 10) || 0)
+        buy: o.buy == null ? 1 : Number(o.buy),
+        free: o.free == null ? 0 : Number(o.free)
       })).filter(o => o.price > 0 && o.qty > 0) : []
     };
   }
@@ -302,18 +304,20 @@
     if (!offers.length) return [];
     const perUnit = offer => normalizedOffer(offer, cmp, opts).pu;
     const sorted = offers.slice().sort((a, b) => perUnit(a) - perUnit(b));
-    const best = perUnit(sorted[0]);
-    const worst = perUnit(sorted[sorted.length - 1]);
-    const allEqual = sorted.length > 1 && approxEqual(best, worst);
+    const valid = sorted.filter(o => normalizedOffer(o, cmp, opts).valid);
+    const best = valid.length ? perUnit(valid[0]) : Infinity;
+    const worst = valid.length ? perUnit(valid[valid.length - 1]) : Infinity;
+    const comparable = valid.length >= 2;
+    const allEqual = comparable && approxEqual(best, worst);
     return sorted.map(o => {
       const norm = normalizedOffer(o, cmp, opts);
       const pu = norm.pu;
       const r = best > 0 ? pu / best : 1;
       let tier = "common";
-      if (!allEqual && approxEqual(pu, best)) tier = "legendary";
-      else if (r <= 1.12) tier = "epic";
-      else if (r <= 1.32) tier = "rare";
-      return { ...o, norm, pu, tier, savePct: worst > 0 ? Math.round((1 - pu / worst) * 100) : 0, isBest: !allEqual && approxEqual(pu, best), isEqual: allEqual };
+      if (norm.valid && comparable && !allEqual && approxEqual(pu, best)) tier = "legendary";
+      else if (norm.valid && comparable && r <= 1.12) tier = "epic";
+      else if (norm.valid && comparable && r <= 1.32) tier = "rare";
+      return { ...o, norm, pu, tier, savePct: norm.valid && comparable ? Math.round((1 - pu / worst) * 100) : 0, isBest: norm.valid && comparable && !allEqual && approxEqual(pu, best), isEqual: norm.valid && allEqual };
     });
   }
 
@@ -416,6 +420,26 @@
     return new Date(year, monthIndex, clampedDueDay(year, monthIndex, dueDay));
   }
 
+  function debtDueStatus(d, today = new Date()) {
+    if (d.archived || d.payMode === 'adhoc' || !d.dueDay || d.slain) return null;
+    const y = today.getFullYear(), m = today.getMonth();
+    const paid = (d.log || []).reduce((sum, row) => {
+      const timestamp = Number(row.ts);
+      const hasTimestamp = Number.isFinite(timestamp) && timestamp > 0;
+      const parsed = /^\d{4}-\d{2}-\d{2}$/.test(row.date) ? Date.parse(row.date) : NaN;
+      const hasDate = Number.isFinite(parsed) && new Date(parsed).toISOString().slice(0, 10) === row.date;
+      if (!hasTimestamp && !hasDate) return sum;
+      const date = new Date(dateOnlyMs(hasTimestamp ? timestamp : row.date));
+      return date.getFullYear() === y && date.getMonth() === m ? sum + (Number(row.amount) || 0) : sum;
+    }, 0);
+    const required = Math.min(Number(d.payment) || 0, Math.max(0, Number(d.balance) || 0) + paid);
+    const paidThisMonth = required > 0 && paid + .005 >= required;
+    const dueThis = clampedDueDay(y, m, d.dueDay);
+    if (!paidThisMonth && today.getDate() > dueThis) return { overdue: true };
+    const due = dueDateForMonth(y, m + (paidThisMonth ? 1 : 0), d.dueDay);
+    return { overdue: false, days: daysBetween(today, due) };
+  }
+
   function dailyDebtRate(apr) {
     return (Number(apr) || 0) / 100 / 365;
   }
@@ -424,27 +448,38 @@
     const days = daysBetween(from, to);
     const rate = dailyDebtRate(d?.apr);
     if (days <= 0 || rate <= 0) return 0;
-    const base = d?.interestMode === 'simple'
-      ? Math.max(0, Number(d?.original) || 0)
-      : Math.max(0, Number(d?.balance) || 0);
-    return d?.interestMode === 'simple'
-      ? base * rate * days
-      : base * (Math.pow(1 + rate, days) - 1);
+    const balance = Math.max(0, Number(d?.balance) || 0);
+    const base = d?.interestMode === 'simple' ? Math.max(0, Number(d?.original) || 0)
+      : d?.interestMode === 'reducing' ? Math.max(0, balance - debtUnpaidInterest(d)) : balance;
+    return d?.interestMode === 'simple' || d?.interestMode === 'reducing'
+      ? base * rate * days : base * (Math.pow(1 + rate, days) - 1);
+  }
+
+  function debtUnpaidInterest(d) {
+    const balance = Math.max(0, Number(d?.balance) || 0);
+    if (Number.isFinite(d?.unpaidInterest)) return Math.min(balance, Math.max(0, d.unpaidInterest));
+    // Older records did not separate principal from unpaid interest. Recover
+    // only the portion supported by the most recent payment or original base.
+    const last = (d?.log || []).slice().sort((a,b) => (Number(a.ts) || 0) - (Number(b.ts) || 0)).at(-1);
+    const base = last?.balanceBefore > 0 && Number.isFinite(last.balanceAfter) ? last.balanceAfter : Number(d?.original) || balance;
+    const carried = last ? Math.max(0, (Number(last.accruedInterest) || 0) - (Number(last.interest) || 0)) : 0;
+    return Math.min(balance, Math.max(0, balance - base) + carried);
   }
 
   function accrueDebtToDate(d, to) {
     const toMs = dateOnlyMs(to);
-    if (!d || d.slain || Number(d.balance) <= 0.005 || !(Number(d.apr) > 0)) {
+    if (!d || d.slain || Number(d.balance) <= 0.005) {
       return { debt: d, interest: 0, days: 0 };
     }
     const fromMs = Number(d.interestAccruedAt) || Number(d.createdAt) || toMs;
     const days = daysBetween(fromMs, toMs);
-    if (days <= 0) return { debt: { ...d, interestAccruedAt: Math.max(fromMs, toMs) }, interest: 0, days: 0 };
+    if (days <= 0) return { debt: { ...d, unpaidInterest: debtUnpaidInterest(d), interestAccruedAt: Math.max(fromMs, toMs) }, interest: 0, days: 0 };
     const interest = dailyInterest(d, fromMs, toMs);
     return {
       debt: {
         ...d,
         balance: Math.max(0, Number(d.balance) || 0) + interest,
+        unpaidInterest: debtUnpaidInterest(d) + interest,
         interestAccruedAt: toMs
       },
       interest,
@@ -457,13 +492,14 @@
     const before = Math.max(0, Number(accrued.debt?.balance) || 0);
     const payment = Math.max(0, Number(amount) || 0);
     const applied = Math.min(payment, before);
-    const interestPaid = Math.min(applied, Math.max(0, Number(accrued.interest) || 0));
+    const interestPaid = Math.min(applied, debtUnpaidInterest(accrued.debt));
     const principalPaid = Math.max(0, applied - interestPaid);
     const after = Math.max(0, before - applied);
     const debt = {
       ...accrued.debt,
-      ...(!(d.log || []).length && !d.historyBase ? { historyBase: { balance: Number(d.balance), at: dateOnlyMs(Number(d.interestAccruedAt) || Number(d.createdAt) || date), apr: Number(d.apr), original: Number(d.original), interestMode: d.interestMode } } : {}),
+      ...(!(d.log || []).length && !d.historyBase ? { historyBase: { balance: Number(d.balance), unpaidInterest: debtUnpaidInterest(d), at: dateOnlyMs(Number(d.interestAccruedAt) || Number(d.createdAt) || date), apr: Number(d.apr), original: Number(d.original), interestMode: d.interestMode } } : {}),
       balance: after,
+      unpaidInterest: Math.max(0, debtUnpaidInterest(accrued.debt) - interestPaid),
       slain: after <= 0.005,
       slainAt: after <= 0.005 ? (accrued.debt?.slainAt || Date.now()) : null
     };
@@ -501,7 +537,7 @@
     if (at < base.at) throw new Error('วันที่ต้องไม่ก่อนจุดเริ่มต้นของประวัติหนี้');
     const cutoff = Math.max(Number(d.interestAccruedAt) || base.at, ...original.map(row => dateOnlyMs(row.ts || row.date)));
     const replay = (rows, until = cutoff) => {
-      let current = { ...d, balance: base.balance, interestAccruedAt: base.at, slain: false, slainAt: null, historyBase: base, log: [] };
+      let current = { ...d, balance: base.balance, unpaidInterest: base.unpaidInterest ?? Math.max(0, base.balance - base.original), interestAccruedAt: base.at, slain: false, slainAt: null, historyBase: base, log: [] };
       const log = [];
       for (const row of ordered(rows)) {
         const result = applyDebtPayment(current, row.amount, row.ts || row.date);
@@ -519,7 +555,9 @@
 
   function monthlyInterest(d) {
     const rate = monthlyDebtRate(d?.apr);
-    const base = d?.interestMode === 'simple' ? Math.max(0, Number(d?.original) || 0) : Math.max(0, Number(d?.balance) || 0);
+    const balance = Math.max(0, Number(d?.balance) || 0);
+    const base = d?.interestMode === 'simple' ? Math.max(0, Number(d?.original) || 0)
+      : d?.interestMode === 'reducing' ? Math.max(0, balance - debtUnpaidInterest(d)) : balance;
     return base * rate;
   }
 
@@ -529,6 +567,9 @@
     const balance = Number(d?.balance) || 0;
     if (balance <= 0) return 0;
     if (payment <= 0) return Infinity;
+    // An outstanding interest bucket delays principal repayment. Use the same
+    // monthly interest-first model as the plan instead of an annuity shortcut.
+    if (d?.interestMode === 'reducing') return simulateLair([{ ...d, payMode: 'monthly' }]).months;
     if (d?.interestMode === 'simple') {
       const interest = Math.max(0, Number(d?.original) || 0) * rate;
       if (payment <= interest + 0.0001) return Infinity;
@@ -549,6 +590,7 @@
   }
 
   function simulateLair(dragons, strategy = 'avalanche', extra = 0) {
+    const excluded = (dragons || []).filter(d => !d.archived && !d.slain && Number(d.balance) > .005 && d.payMode === 'adhoc').length;
     const ds = (dragons || [])
       .filter(d => !d.archived && !d.slain && Number(d.balance) > 0.005 && d.payMode !== 'adhoc')
       .map(d => ({
@@ -556,25 +598,30 @@
         apr: Number(d.apr) || 0,
         payment: Number(d.payment) || 0,
         original: Number(d.original) || 0,
-        mode: d.interestMode === 'simple' ? 'simple' : 'compound'
+        unpaidInterest: debtUnpaidInterest(d),
+        interestMode: ['simple', 'reducing'].includes(d.interestMode) ? d.interestMode : 'compound'
       }));
-    if (!ds.length) return { months: 0, interest: 0, never: false };
+    if (!ds.length) return { months: 0, interest: 0, never: false, excluded };
     const cap = 1200;
     let months = 0;
     let interest = 0;
     while (ds.some(d => d.balance > 0.005) && months < cap) {
       months += 1;
-      let pool = Number(extra) || 0;
+      let pool = Math.max(0, Number(extra) || 0);
       ds.forEach(d => { if (d.balance <= 0.005) pool += d.payment; });
       ds.forEach(d => {
         if (d.balance <= 0.005) return;
-        const charge = (d.mode === 'simple' ? d.original : d.balance) * monthlyDebtRate(d.apr);
+        const charge = monthlyInterest(d);
         d.balance += charge;
+        d.unpaidInterest += charge;
         interest += charge;
       });
       ds.forEach(d => {
         if (d.balance <= 0.005) return;
-        d.balance -= Math.min(d.payment, d.balance);
+        const paid = Math.min(d.payment, d.balance);
+        pool += d.payment - paid;
+        d.unpaidInterest = Math.max(0, d.unpaidInterest - paid);
+        d.balance -= paid;
       });
       const live = ds.filter(d => d.balance > 0.005);
       const order = live.sort((a, b) => strategy === 'snowball' ? a.balance - b.balance : b.apr - a.apr);
@@ -582,12 +629,13 @@
       for (const d of order) {
         if (remainingPool <= 0) break;
         const pay = Math.min(remainingPool, d.balance);
+        d.unpaidInterest = Math.max(0, d.unpaidInterest - pay);
         d.balance -= pay;
         remainingPool -= pay;
       }
     }
     const never = ds.some(d => d.balance > 0.005);
-    return { months: never ? Infinity : months, interest: Math.round(interest), never };
+    return { months: never ? Infinity : months, interest: Math.round(interest * 100) / 100, never, excluded };
   }
 
   function slayerXpFrom(dragons) {
@@ -626,9 +674,11 @@
           original,
           balance,
           apr: Math.max(0, Number(d?.apr) || 0),
-          payment: payMode === 'adhoc' ? 0 : Math.max(0, Number(d?.payment) || dragonType(type).minPay || 0),
+          payment: payMode === 'adhoc' ? 0 : Math.max(0, d?.payment != null && d.payment !== '' && Number.isFinite(Number(d.payment)) ? Number(d.payment) : dragonType(type).minPay || 0),
           payMode,
-          interestMode: d?.interestMode === 'simple' ? 'simple' : 'compound',
+          // Existing records without a mode retain their original compound
+          // behavior; creation surfaces explicitly choose reducing for new debt.
+          interestMode: ['simple', 'reducing'].includes(d?.interestMode) ? d.interestMode : 'compound',
           dueDay: payMode === 'adhoc' ? 0 : Math.max(0, Math.min(31, parseInt(d?.dueDay, 10) || 0)),
           log: Array.isArray(d?.log) ? d.log.map(row => ({
             ...row,
@@ -741,6 +791,8 @@
       settings: { entry: 'form', settleView: 'list', theme: 'tavern', accent: '#2f8f5b', stats: true, sound: true, animations: true, ...(data?.settings || {}) }
     };
     out.expenses = out.expenses.map(normalizeExpense).filter(e => e.amount > 0 && (e.paidBy || Object.keys(e.payers || {}).length) && e.sharedBy.length);
+    out.settlementRecords = upgradeSettlementRecords(out);
+    out.campaigns = out.campaigns.map(c => ({ ...c, settlementRecords: upgradeSettlementRecords({ ...c, activeCampaignId: c.id }) }));
     return out;
   }
 
@@ -793,7 +845,7 @@
     if (mode === 'shares' && total <= 0) throw new Error('ใส่สัดส่วนอย่างน้อยหนึ่งคน');
     if (mode === 'items') {
       const items = e.split?.items || [];
-      if (!Array.isArray(items) || !items.length || items.some(i => !Number.isFinite(i.amount) || i.amount <= 0 || !Array.isArray(i.claimedBy) || i.claimedBy.some(n => !e.sharedBy.includes(n)))) throw new Error('ตรวจจำนวนเงินและผู้รับของแต่ละรายการ');
+      if (!Array.isArray(items) || !items.length || items.some(i => !Number.isFinite(i.amount) || i.amount <= 0 || !Array.isArray(i.claimedBy) || new Set(i.claimedBy).size !== i.claimedBy.length || i.claimedBy.some(n => !e.sharedBy.includes(n)))) throw new Error('ตรวจจำนวนเงินและผู้รับของแต่ละรายการ');
       items.forEach(i => { validateText(i.name, { label: 'ชื่อของ', max: 120 }); validateNumber(i.amount, { label: 'ราคาของ', min: .01 }); });
       if (Math.abs(items.reduce((s, i) => s + i.amount, 0) - e.amount) > 0.005) throw new Error('ยอดของแต่ละชิ้นต้องรวมเท่ากับยอดรายการ');
     }
@@ -813,24 +865,43 @@
     return e.paidBy ? { [e.paidBy]: Number(e.amount) || 0 } : {};
   }
 
+  // Round actual shares to spendable satang. Correct the smallest rounding error
+  // first; on a tie the payer absorbs the residual, then participant order wins.
+  function roundShares(raw, preferred = []) {
+    const names = Object.keys(raw);
+    const units = names.map(name => Math.max(0, raw[name] * 100));
+    const rounded = units.map(value => Math.round(value));
+    let residual = Math.round(units.reduce((sum, value) => sum + value, 0)) - rounded.reduce((sum, value) => sum + value, 0);
+    while (residual) {
+      const step = residual > 0 ? 1 : -1;
+      const ranked = names.map((name, i) => ({ i, error: step * (units[i] - rounded[i]), preferred: preferred.includes(name) ? preferred.indexOf(name) : preferred.length + i }))
+        .filter(row => step > 0 || rounded[row.i] > 0)
+        .sort((a, b) => Math.abs(a.error - b.error) > 1e-7 ? b.error - a.error : a.preferred - b.preferred);
+      if (!ranked.length) break;
+      rounded[ranked[0].i] += step; residual -= step;
+    }
+    return Object.fromEntries(names.map((name, i) => [name, rounded[i] / 100]));
+  }
+
   function splitShares(e, validNames = null) {
-    const parts = (e.sharedBy || []).filter(name => !validNames || validNames.includes(name));
+    const parts = [...new Set(e.sharedBy || [])].filter(name => !validNames || validNames.includes(name));
     const out = {};
     if (!parts.length) return out;
     const mode = e.split?.mode || 'equal';
     const weights = e.split?.weights || {};
+    const preferred = parts.filter(name => Number(payerMap(e)[name]) > 0);
     if (mode === 'items') {
       const items = Array.isArray(e.split?.items) ? e.split.items : [];
       items.forEach(it => {
         const amount = Math.max(0, Number(it.amount) || 0);
         if (!amount) return;
-        let claim = (Array.isArray(it.claimedBy) ? it.claimedBy : []).filter(name => !validNames || validNames.includes(name));
+        let claim = [...new Set(Array.isArray(it.claimedBy) ? it.claimedBy : [])].filter(name => parts.includes(name));
         if (!claim.length) claim = parts;
         if (!claim.length) return;
-        const per = amount / claim.length;
-        claim.forEach(name => { out[name] = (out[name] || 0) + per; });
+        const shares = roundShares(Object.fromEntries(claim.map(name => [name, amount / claim.length])), preferred);
+        claim.forEach(name => { out[name] = (out[name] || 0) + shares[name]; });
       });
-      return out;
+      return roundShares(out, preferred);
     }
     if (mode === 'exact') {
       let sum = 0;
@@ -840,17 +911,17 @@
       });
       const remainder = e.amount - sum;
       if (Math.abs(remainder) > .005) parts.forEach(name => { out[name] += remainder / parts.length; });
-      return out;
+      return roundShares(out, preferred);
     }
     if (mode === 'shares' || mode === 'percent') {
       const totalWeight = parts.reduce((sum, name) => sum + Math.max(0, Number(weights[name]) || 0), 0);
       if (totalWeight > 0) {
         parts.forEach(name => { out[name] = e.amount * (Math.max(0, Number(weights[name]) || 0) / totalWeight); });
-        return out;
+        return roundShares(out, preferred);
       }
     }
     parts.forEach(name => { out[name] = e.amount / parts.length; });
-    return out;
+    return roundShares(out, preferred);
   }
 
   function computeParty(state, opts = {}) {
@@ -884,7 +955,7 @@
       const hp = Math.max(0, Math.min(100, Math.round((remaining / budget) * 100)));
       const xp = Math.round((Number(baseXp(name)) || 0) + splitFrontedXp(s.gen) + (Number(settleXp[name]) || 0));
       const level = levelFromXp(xp);
-      return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen), quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
+      return { name, cls: classOf(name), budget, paid: s.paid, share: s.share, gen: Math.round(s.gen * 100) / 100, quests: s.quests, bal: s.paid - s.share, remaining, over: remaining < 0, hp, xp, level, reward: rewardFor(level.lvl) };
     });
   }
 
@@ -945,7 +1016,7 @@
           paid: hero.paid || 0,
           share: hero.share || 0,
           fronted: hero.gen || 0,
-          balance: hero.bal || 0,
+          balance: pendingSettlements(state).reduce((sum, tx) => sum + (tx.to === name ? tx.amount : 0) - (tx.from === name ? tx.amount : 0), 0),
           quests: hero.quests || 0,
           boardTotal,
           settled,
@@ -1033,19 +1104,33 @@
     const pair = {};
     state.expenses.forEach(expense => {
       const shares = splitShares(expense, participants);
-      const payers = Object.entries(payerMap(expense)).filter(([name, amount]) => valid.has(name) && Number(amount) > 0);
+      const payers = Object.entries(payerMap(expense)).filter(([name, amount]) => valid.has(name) && Number(amount) > 0)
+        .sort(([a], [b]) => participants.indexOf(a) - participants.indexOf(b));
       const totalPaid = payers.reduce((sum, [, amount]) => sum + (Number(amount) || 0), 0);
       if (totalPaid <= 0) return;
-      Object.entries(shares).forEach(([from, share]) => {
-        const owedShare = Number(share) || 0;
-        if (!valid.has(from) || owedShare <= 0) return;
-        payers.forEach(([to, paid]) => {
-          if (from === to) return;
-          const amount = owedShare * ((Number(paid) || 0) / totalPaid);
-          if (amount <= 0) return;
-          const key = `${from}\u0000${to}`;
-          pair[key] = (pair[key] || 0) + amount;
-        });
+      // Include self-funded cells while rounding so every user's share and every
+      // payer's contribution are conserved. Only then omit self-transfers.
+      const rows = Object.entries(shares).filter(([name]) => valid.has(name));
+      const remainingShares = rows.map(([, share]) => Math.round(share * 100));
+      const remainingPaid = payers.map(([, paid]) => Math.round(paid * 100));
+      const cells = rows.flatMap(([from, share], i) => payers.map(([to, paid], j) => {
+        const exact = share * 100 * paid / totalPaid;
+        const amount = Math.floor(exact + 1e-9);
+        remainingShares[i] -= amount; remainingPaid[j] -= amount;
+        return { from, to, i, j, amount, fraction: exact - amount };
+      }));
+      cells.sort((a,b) => b.fraction - a.fraction || a.i - b.i || a.j - b.j);
+      while (remainingShares.some(value => value > 0)) {
+        const cell = cells.find(c => remainingShares[c.i] > 0 && remainingPaid[c.j] > 0);
+        if (!cell) break; // Malformed legacy contributions must not loop forever.
+        cell.amount++; remainingShares[cell.i]--; remainingPaid[cell.j]--;
+        cell.fraction -= 1;
+        cells.sort((a,b) => b.fraction - a.fraction || a.i - b.i || a.j - b.j);
+      }
+      cells.forEach(({from, to, amount}) => {
+        if (from === to || !amount) return;
+        const key = `${from}\u0000${to}`;
+        pair[key] = (pair[key] || 0) + amount;
       });
     });
     const out = [];
@@ -1057,7 +1142,7 @@
       seen.add(key);
       seen.add(reverse);
       const net = (pair[key] || 0) - (pair[reverse] || 0);
-      const amount = Math.round(Math.abs(net) * 100) / 100;
+      const amount = Math.abs(net) / 100;
       if (amount <= 0.005) return;
       out.push(net > 0 ? { from, to, amount } : { from: to, to: from, amount });
     });
@@ -1074,7 +1159,7 @@
     );
   }
 
-  // Confirmation is bookkeeping only. A changed expense set needs fresh confirmation.
+  // Revision is audit provenance; recorded repayments survive later expense edits.
   function settlementRevision(state) {
     return tripContentKey({ campaign: state.activeCampaignId || '', participants: state.participants,
       expenses: (state.expenses || []).map(e => ({ id: e.id, amount: e.amount, paidBy: e.paidBy,
@@ -1091,36 +1176,100 @@
     return payload + crc.toString(16).toUpperCase().padStart(4, '0');
   }
   function pendingSettlements(state) {
+    const obligations = settleUp(computeParty(state), state);
+    const participants = state.participants || [];
+    const pairs = new Map();
+    const add = (from, to, cents) => {
+      const names = [from, to].sort();
+      const key = JSON.stringify(names);
+      const pair = pairs.get(key) || { names, cents: 0 };
+      pair.cents += from === names[0] ? cents : -cents;
+      pairs.set(key, pair);
+    };
+    obligations.forEach(t => add(t.from, t.to, Math.round(t.amount * 100)));
+    const seen = new Set();
+    validRepayments({ ...state, settlementRecords: upgradeSettlementRecords(state) }).filter(r => r.kind === 'repayment').forEach(r => {
+      if (r.id && seen.has(r.id)) return;
+      if (r.id) seen.add(r.id);
+      add(r.from, r.to, -Math.round(r.amount * 100));
+    });
+    const transfers = [...pairs.values()].filter(p => p.cents !== 0).map(p => ({
+      from: p.names[p.cents > 0 ? 0 : 1], to: p.names[p.cents > 0 ? 1 : 0], amount: Math.abs(p.cents) / 100
+    }));
+    const totalOut = Object.fromEntries(participants.map(name => [name, transfers.filter(t => t.from === name).reduce((sum,t) => sum + t.amount, 0)]));
+    return transfers.sort((a,b) => totalOut[b.from] - totalOut[a.from] || b.amount - a.amount || participants.indexOf(a.from) - participants.indexOf(b.from) || participants.indexOf(a.to) - participants.indexOf(b.to));
+  }
+  function validRepayments(state) {
+    const participants = new Set(state.participants || []);
+    return (Array.isArray(state.settlementRecords) ? state.settlementRecords : []).filter(r => r && r.from !== r.to && participants.has(r.from) && participants.has(r.to) && Number.isFinite(Number(r.amount)) && Number(r.amount) >= .005);
+  }
+  function upgradeSettlementRecords(state) {
+    const records = (Array.isArray(state.settlementRecords) ? state.settlementRecords : []).filter(r => r && typeof r === 'object' && !Array.isArray(r));
+    if (records.every(r => r?.kind)) return records;
+    const eligible = new Set(validRepayments(state));
     const revision = settlementRevision(state);
-    return settleUp(computeParty(state), state).filter(t => !(state.settlementRecords || []).some(r =>
-      r.revision === revision && r.from === t.from && r.to === t.to && approxEqual(r.amount, t.amount, .005)));
+    const obligations = settleUp(computeParty(state), state);
+    const converted = new Set();
+    // Old records were revision-scoped checkmarks. Preserve the currently
+    // settled pairs once, rather than inventing refunds by summing old rounds.
+    return records.map((r, i) => {
+      if (!r || typeof r !== 'object' || r.kind) return r;
+      const pair = JSON.stringify([r.from, r.to]);
+      const obligation = eligible.has(r) && r.revision === revision && !converted.has(pair) && obligations.find(t => t.from === r.from && t.to === r.to);
+      if (obligation) converted.add(pair);
+      return { ...r, id: r.id || `legacy-${r.at || 0}-${i}`, kind: obligation ? 'repayment' : 'legacy_confirmation', ...(obligation ? { amount: obligation.amount } : {}) };
+    });
   }
   function confirmSettlement(state, from, to, now = Date.now()) {
     const transfer = pendingSettlements(state).find(t => t.from === from && t.to === to);
     if (!transfer) return state;
-    return { ...state, settlementRecords: [...(state.settlementRecords || []), { ...transfer, revision: settlementRevision(state), at: now }],
-      settleXp: { ...(state.settleXp || {}), [from]: (Number(state.settleXp?.[from]) || 0) + PointyLogic.SETTLE_BONUS_PAYER,
-        [to]: (Number(state.settleXp?.[to]) || 0) + PointyLogic.SETTLE_BONUS_PAYEE } };
+    // One reward per pair per campaign. Corrections, top-ups and refunds must
+    // not create an edit/pay/refund loop that farms Character XP.
+    const rewarded = validRepayments(state).some(r => (r.from === from && r.to === to) || (r.from === to && r.to === from));
+    return { ...state, settlementRecords: [...upgradeSettlementRecords(state), { ...transfer, id: `repayment-${now.toString(36)}-${Math.random().toString(36).slice(2, 9)}`, kind: 'repayment', revision: settlementRevision(state), at: now }],
+      settleXp: { ...(state.settleXp || {}), [from]: (Number(state.settleXp?.[from]) || 0) + (rewarded ? 0 : PointyLogic.SETTLE_BONUS_PAYER),
+        [to]: (Number(state.settleXp?.[to]) || 0) + (rewarded ? 0 : PointyLogic.SETTLE_BONUS_PAYEE) } };
   }
 
-  function treasurySpent(state) { return (state.expenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0); }
+  function moneySum(rows) { return rows.reduce((sum, row) => sum + Math.round((Number(row.amount) || 0) * 100), 0) / 100; }
+  function treasurySpent(state) { return moneySum(state.expenses || []); }
   function treasuryBillPaid(state, billId) { return (state.expenses || []).some(e => e.billId === billId && String(e.date).slice(0, 7) === state.month); }
   function treasuryProjection(state, today = new Date()) {
     const date = new Date(today); const dim = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate(); const dom = Math.max(1, date.getDate()); const daysLeft = Math.max(0, dim - dom);
-    const spent = treasurySpent(state); const unpaidBills = (state.bills || []).filter(b => !b.archived && !treasuryBillPaid(state, b.id)).reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-    const variable = (state.expenses || []).filter(e => !e.billId).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-    const projected = Math.round(spent + unpaidBills + variable / dom * daysLeft); const surplus = (Number(state.income) || 0) - projected;
-    const dailyLeft = daysLeft ? Math.max(0, Math.round(((Number(state.income) || 0) - spent - unpaidBills) / daysLeft)) : Math.max(0, (Number(state.income) || 0) - spent);
+    const spent = treasurySpent(state); const unpaidBills = moneySum((state.bills || []).filter(b => !b.archived && !treasuryBillPaid(state, b.id)));
+    const variable = moneySum((state.expenses || []).filter(e => !e.billId));
+    const projected = Math.round((spent + unpaidBills + variable / dom * daysLeft) * 100) / 100; const surplus = Math.round(((Number(state.income) || 0) - projected) * 100) / 100;
+    const availableCents = Math.round((Number(state.income) || 0) * 100) - Math.round(spent * 100) - Math.round(unpaidBills * 100);
+    const dailyLeft = Math.max(0, Math.floor(availableCents / (daysLeft + 1)) / 100);
     return { dim, dom, daysLeft, spent, unpaidBills, projected, surplus, onTrack: surplus >= 0, dailyLeft };
+  }
+  function treasuryRewardLedger(state) {
+    const stats = state.stats || {};
+    const wonMonths = new Set([...(stats.wonMonths || []), ...(state.history || []).filter(h => h.won).map(h => h.month)].filter(Boolean));
+    const legacyMonthsWon = stats.legacyMonthsWon ?? Math.max(0, (Number(stats.monthsWon) || 0) - wonMonths.size);
+    // Detailed history is capped at 12 months; compact date keys retain earned
+    // days without counting repeated entries or guessing dates of legacy rows.
+    const loggedDays = new Set([...(stats.loggedDays || []).filter(d => d.slice(0, 7) !== state.month),
+      ...(state.history || []).filter(h => h.month !== state.month).flatMap(h => (h.expenses || []).map(e => e.date)),
+      ...(state.expenses || []).map(e => e.date)].filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)));
+    return { wonMonths, legacyMonthsWon, loggedDays };
   }
   function treasuryClose(state, nextMonth = state.month) {
     const spent = treasurySpent(state); const income = Number(state.income) || 0;
     const previous = (state.history || []).find(row => row.month === state.month) || {};
-    const row = { ...previous, month: state.month, income, spent, surplus: income - spent, won: spent <= income, expenses: (state.expenses || []).map(e => ({ ...e })) };
-    const history = [row, ...(state.history || []).filter(h => h.month !== state.month)].slice(0, 12);
-    return { ...state, history, month: nextMonth, expenses: nextMonth === state.month ? state.expenses : [], stats: { ...state.stats, monthsWon: new Set(history.filter(h => h.won).map(h => h.month)).size } };
+    const row = { ...previous, month: state.month, income, spent, surplus: Math.round((income - spent) * 100) / 100, won: spent <= income, expenses: (state.expenses || []).map(e => ({ ...e })) };
+    const history = [row, ...(state.history || []).filter(h => h.month !== state.month)].sort((a, b) => String(b.month).localeCompare(String(a.month))).slice(0, 12);
+    const rewards = treasuryRewardLedger(state);
+    if (row.won) rewards.wonMonths.add(state.month); else rewards.wonMonths.delete(state.month);
+    return { ...state, history, month: nextMonth, expenses: nextMonth === state.month ? state.expenses : [], stats: { ...state.stats,
+      wonMonths: [...rewards.wonMonths].sort(), legacyMonthsWon: rewards.legacyMonthsWon,
+      monthsWon: rewards.legacyMonthsWon + rewards.wonMonths.size, loggedDays: [...rewards.loggedDays].sort() } };
   }
-  function treasuryXp(state) { const stats = state.stats || {}; return Math.round((Number(stats.monthsWon) || 0) * 800 + (Number(stats.onTime) || 0) * 60 + (Number(stats.logged) || 0) * 8); }
+  // Compatibility name: Treasury earns profile Reputation, never Character XP.
+  function treasuryXp(state) {
+    const rewards = treasuryRewardLedger(state);
+    return Math.round((rewards.legacyMonthsWon + rewards.wonMonths.size) * 500 + (Number(state.stats?.onTime) || 0) * 80 + rewards.loggedDays.size * 10);
+  }
 
   const PLAYER_ACHIEVEMENTS = [
     { id: 'first_quest', icon: '📜', th: ['ก้าวแรก', 'บันทึกเควสแรกของคุณ'], en: ['First Steps', 'Log your first quest'], test: c => c.quests >= 1 },
@@ -1148,6 +1297,7 @@
     const state = data || {};
     const campaigns = Array.isArray(state.campaigns) && state.campaigns.length ? state.campaigns : [state];
     return campaigns.map(c => ({
+      activeCampaignId: c.id || state.activeCampaignId || '',
       tripName: c.tripName || state.tripName || '',
       participants: Array.isArray(c.participants) ? c.participants : (state.participants || []),
       expenses: Array.isArray(c.expenses) ? c.expenses : [],
@@ -1213,15 +1363,16 @@
     const liveDragons = dragons.filter(d => !d.archived && !d.slain && Number(d.balance) > .005).length;
     const interestFed = Number(debt.stats?.interest) || 0;
 
-    let showdowns = 0, merchants = 0, bestRescue = 0, qualifiedBargainRescue = 0;
+    let showdowns = 0, merchants = 0, bestRescue = 0, qualifiedBargainRescue = 0, compareReputation = 0;
     (modules.comparisons || []).forEach(cmp => {
-      merchants += (cmp.offers || []).length;
-      if ((cmp.offers || []).length >= 2) {
+      const meaningfulOffers = (cmp.offers || []).filter(o => normalizedOffer(o, cmp).valid);
+      merchants += meaningfulOffers.length;
+      if (meaningfulOffers.length >= 2) {
         showdowns += 1;
+        compareReputation += 80 + Math.min(40, meaningfulOffers.length * 10);
         const ranked = PointyLogic?.rankOffers ? PointyLogic.rankOffers(cmp.offers, cmp) : [];
         const best = ranked.find(o => o.isBest);
         if (best) bestRescue = Math.max(bestRescue, best.savePct || 0);
-        const meaningfulOffers = (cmp.offers || []).filter(o => Number(o.price) > 0 && Number(o.qty) > 0);
         const hasMeaningfulSpend = meaningfulOffers.some(o => Number(o.price) >= 100);
         if (best && meaningfulOffers.length >= 3 && hasMeaningfulSpend) {
           qualifiedBargainRescue = Math.max(qualifiedBargainRescue, best.savePct || 0);
@@ -1231,13 +1382,11 @@
 
     const treasury = modules.treasury || {};
     const trStats = treasury.stats || {};
-    const wonMonths = new Set((treasury.history || []).filter(row => row?.won && row.month).map(row => row.month)).size;
-    const monthsWon = Math.max(Number(trStats.monthsWon) || 0, wonMonths);
+    const treasuryRewards = treasuryRewardLedger(treasury);
+    const monthsWon = treasuryRewards.legacyMonthsWon + treasuryRewards.wonMonths.size;
     const trLogged = Number(trStats.logged) || 0;
     const trOnTime = Number(trStats.onTime) || 0;
-    const treasuryLogDays = new Set((treasury.expenses || []).map(e => e.date).filter(Boolean)).size || trLogged;
-    const treasuryReputation = Math.round(monthsWon * 500 + trOnTime * 80 + treasuryLogDays * 10);
-    const compareReputation = Math.round(showdowns * 80 + Math.min(showdowns * 40, merchants * 10));
+    const treasuryReputation = treasuryXp(treasury);
     const debtReputation = Math.round(debtPaymentRep + slain * 600);
     const splitReputation = Math.round(splitActivityRep + splitFrontedRep + splitSettledRep + splitMultiRep);
     const reputation = Math.round(splitReputation + debtReputation + treasuryReputation + compareReputation);
@@ -1287,6 +1436,7 @@
     nextActivity,
     PLAYER_ACHIEVEMENTS, playerProgress,
     treasurySpent, treasuryBillPaid, treasuryProjection, treasuryClose, treasuryXp,
+    debtDueStatus,
     settlementRevision,
     promptPayPayload,
     pendingSettlements,

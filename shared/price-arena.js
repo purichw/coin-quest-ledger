@@ -194,7 +194,7 @@ function renderAll() { activeView === 'compare' ? render() : renderHome(); }
 function renderCard(cmp) {
   const ranked = rankOffers(cmp.offers || [], cmp);
   const best = ranked.find(o => o.isBest);
-  const enough = ranked.length >= 2;
+  const enough = ranked.filter(o => o.norm.valid).length >= 2;
   const bestPu = best && isFinite(best.pu) ? best.pu : Math.min(...ranked.map(o => o.pu).filter(Number.isFinite));
   return `<article class="cmp-card ${expandedProducts.has(cmp.id) ? 'expanded' : ''} ${cmp.archived ? 'archived' : ''}" data-product-id="${h(cmp.id)}">
     <div class="cmp-head">
@@ -216,7 +216,7 @@ function renderOffer(cmp, offer, enough, bestPu, idx) {
   const promo = offer.free > 0 ? ` · ${t('promo_label', { buy: offer.buy || 1, free: offer.free })}` : '';
   const tag = offer.isEqual ? `<div class="of-tag equal">${t('badge_equal')}</div>`
     : enough && offer.isBest && offer.savePct > 0 ? `<div class="of-save">✦ ${words('ประหยัด', 'Save')} ${offer.savePct}%</div>`
-    : enough && !offer.isBest && Number.isFinite(bestPu) && bestPu > 0 ? `<div class="of-tag">${words('แพงกว่า', 'Costs more')} ${Math.round((offer.pu / bestPu - 1) * 100)}%</div>` : '';
+    : enough && norm.valid && !offer.isBest && Number.isFinite(bestPu) && bestPu > 0 ? `<div class="of-tag">${words('แพงกว่า', 'Costs more')} ${Math.round((offer.pu / bestPu - 1) * 100)}%</div>` : '';
   return `<button type="button" class="offer-row ${offer.isBest && enough ? 'best' : ''}" onclick="openOffers(${q(cmp.id)},${q(offer.id)})" aria-label="${words('รายละเอียดและแก้ไข', 'View and edit')} ${h(offer.merchant)}">
     <span class="offer-rank ${offer.isBest && enough ? 'champion-ribbon' : ''}">${offer.isBest && enough ? `♛ ${words('คุ้มที่สุด', 'Best deal')}` : idx + 1}</span>
     <span class="of-rarity" aria-hidden="true">${r.glyph}</span>

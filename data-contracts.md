@@ -67,6 +67,7 @@ Source of truth for Party Ledger boards in normal mode. Normalization lives in `
   heroGenders: Record<participantName, "male" | "female">,
   heroSkins: Record<participantName, skinId>,
   settleXp: Record<participantName, number>,
+  settlementRecords: Array<{ id?: string, kind?: "repayment" | "legacy_confirmation", from: participantName, to: participantName, amount: number, revision: string, at: epochMs }>,
   characterIds: Record<participantName, characterId>,
   promptpay: Record<participantName, string>,
   activeCampaignId: string,
@@ -151,6 +152,30 @@ Rules:
 - `equal` ignores weights.
 - `shares`, `exact`, and `percent` use `weights`.
 - `items` uses item claimers; unclaimed items fall back to all shared participants.
+- Shares are allocated in integer satang. Rounding corrects the smallest error
+  first; a tie goes to a participating payer, then the stored share order. Item
+  amounts are allocated separately. Duplicate item claimers are invalid.
+- Multi-payer allocation conserves both every participant's share and every
+  payer's contribution before self-transfers are removed. Reciprocal pairs are
+  netted; debts are never rerouted to unrelated creditors.
+- Party order is financial input and stays stable when viewers change. Pinning
+  the signed-in hero is a presentation-only operation.
+- The list, map, character-profile balance and Excel balance report use pending
+  transfers, including satang, rather than the original expense-only balance.
+- Settlement records with `kind: "repayment"` represent money actually returned,
+  in cash or by transfer. Persist `{ id, kind, from, to, amount, revision, at }`.
+  Deduct these amounts from pairwise expense obligations, independent of later
+  revisions. An overpayment becomes a reverse refund; deleting/clearing expenses
+  preserves repayments and earned settlement XP. Campaigns own separate records.
+- On first normalization, old revision-scoped confirmations for the current
+  financial revision become one repayment per pair, using the currently settled
+  pair amount. Superseded confirmations remain `kind: "legacy_confirmation"`
+  history and are not counted again. This preserves the old current balance
+  instead of inventing refunds from repeated historical checkmarks. The migration
+  runs before edits, for both active state and campaign snapshots.
+- Settlement rewards are granted once per unordered participant pair per
+  campaign (180 payer / 120 payee on its first confirmation). Top-ups, refunds,
+  retry and reload never grant that pair another bonus; existing XP is retained.
 
 ### `Campaign`
 
@@ -167,6 +192,7 @@ Rules:
   characterIds: Record<participantName, characterId>,
   promptpay: Record<participantName, string>,
   settleXp: Record<participantName, number>,
+  settlementRecords: Array<{ id?: string, kind?: "repayment" | "legacy_confirmation", from: participantName, to: participantName, amount: number, revision: string, at: epochMs }>,
   createdAt: timestamp,
   completedAt: timestamp | null
 }
@@ -238,6 +264,11 @@ Rules:
 - `xp` is preferred when present.
 - If `xp` is absent, profile aggregation can derive XP from `trips`, `debtXp`, fronted money, and settlement XP.
 - Character XP level math is canonical in `PointyLogic.levelFromXp()` and uses the current threshold curve in `leveling-canon.md`.
+- A successful board save precedes persistent character XP/profile-cache sync.
+  Failed or superseded writes must not award XP. Preserve other-board `trips`
+  and `debtXp` on load and when publishing the current board's contribution.
+  A confirmed board read also refreshes that contribution, so repayments saved
+  by another member reach the current character without requiring a new edit.
 
 ### Leveling / Reputation
 
@@ -443,7 +474,8 @@ Shared player module state for Debt Dragon, Treasury, and Compare. The document 
       balance: number,
       apr: number,
       payment: number,
-      interestMode: "compound" | "simple",
+      interestMode: "reducing" | "compound" | "simple",
+      unpaidInterest?: number,
       payMode: "monthly" | "adhoc",
       dueDay?: number,
       log: Array<{ id: string, amount: number, date: string, ts: number, move: string }>,
@@ -674,7 +706,9 @@ Normalization/ranking belongs in `shared/pointy-logic.js`.
 - Test key: `pointy_test_debt_v1`
 - Settings key: `pointy_debt_settings_v1`
 
-Debt Dragon is local-first today. If it starts writing character progress to Firestore, make that a planned migration.
+Debt Dragon uses an account-scoped local cache and the shared playerModules
+cloud bridge. Character progress is published only after the local save succeeds;
+the cloud bridge separately reports conflicts or synchronization failures.
 
 Debt Dragon debts now track daily interest state in addition to the legacy
 monthly forecast fields:
@@ -688,7 +722,8 @@ monthly forecast fields:
     apr: number,
     payment: number,
     payMode: "monthly" | "adhoc",
-    interestMode: "compound" | "simple",
+    interestMode: "reducing" | "compound" | "simple",
+    unpaidInterest?: number,
     dueDay: 0 | 1..31,
     createdAt: epochMs,
     interestAccruedAt: epochMs,
@@ -716,7 +751,14 @@ Rules:
 - `interestAccruedAt` is the date through which the current `balance` has already absorbed daily interest.
 - New/legacy debts without `interestAccruedAt` normalize from `lastAccrued`, then `createdAt`, then now.
 - Strike/payment first accrues interest from `interestAccruedAt` to the payment date, then applies the payment to the updated balance.
-- Compound interest uses the current balance as the daily base; simple interest uses the original principal as the daily base.
+- New debts default to `reducing`: daily simple interest on outstanding principal
+  (`balance - unpaidInterest`), using APR / 100 / 365. Payments cover accrued
+  interest first, then lower principal; unpaid interest does not compound.
+  A newly entered balance starts as principal (`unpaidInterest: 0`), as stated in
+  the form. No initial interest allocation or lender statement is inferred.
+- Existing `compound` and `simple` debts retain their modes. Missing legacy modes
+  remain `compound`. Compound interest uses the current balance; simple/flat
+  interest uses original principal. Choosing a different mode is an explicit edit.
 - `dueDay: 31` represents "the 31st when it exists"; due display clamps it to the last valid day for shorter months.
 
 ### Treasury
@@ -810,3 +852,36 @@ The Character Profile renderer should stay presentation-focused. Aggregation cha
 - Removing an Auth-linked account converts its board member into a local guest:
   participant names, expenses and shares remain; registry/access links are removed.
   It does not delete another participant's financial history.
+## Financial audit clarifications — 2026-10-17
+
+- Debt supports `reducing` (the default for new debts), `simple` (flat interest
+  on original principal) and `compound` (daily compounding). All actual accrual
+  uses a 365-day basis. Existing and missing legacy modes are not reinterpreted.
+- A dragon may now persist `unpaidInterest`, clamped to its balance. Accrual adds
+  to this amount; repayments consume it before principal. `historyBase` retains
+  its starting value for replay. Missing legacy allocation is inferred only from
+  available balance/payment evidence, not fabricated as a bank statement.
+- Monthly repayment reminders require the accumulated dated payments for the
+  calendar month to meet the installment. Undated legacy logs do not prove a
+  current-month payment. Web debt, profile reminders and native list filters use
+  `PointyLogic.debtDueStatus`.
+- Actual debt accrual never advances past today. `simulateLair` is read-only,
+  uses APR / 12 for a monthly estimate, rolls leftover final installments into
+  the next debt that month, and returns `excluded` for active ad-hoc debts.
+  Do not present that subset's payoff date as the date all debts are cleared.
+- Debt Character XP is the saved debt contribution plus stored trip XP. Failed
+  local debt/link writes cannot publish new registry XP. Legacy total XP without
+  a trip map retains its non-debt portion.
+- Treasury expenses and projections preserve satang. Daily allowance reserves
+  unpaid bills and divides remaining cash over today through month end, flooring
+  to satang. Forecast variable spending still extrapolates elapsed-day spending
+  to future days; it is an estimate, not an additional ledger entry.
+- Treasury stats preserve `wonMonths: string[]`, `loggedDays: string[]`, and
+  `legacyMonthsWon: number`; `monthsWon` remains the compatible aggregate. Full
+  history retains the most recent 12 months, independent of these compact keys.
+- Compare invalid unit/promotion rows cannot determine best/worst unit price,
+  savings, or Reputation. A comparison needs at least two valid offers. Buy-X,
+  free-Y means price per purchased unit/pack; effective unit price is total cash
+  paid for X divided by the quantity received in X+Y.
+
+Evidence and outstanding policy decisions: `docs/all-games-financial-audit-2026-10-17/README.md`.

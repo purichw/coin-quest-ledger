@@ -34,6 +34,28 @@ test('legacy module data and unknown metadata survive normalization', () => {
   const tr = normalizeModule('treasury', { expenses: [{ id: 'e', name: 'food', category: 'meal', amount: 50 }], income: 100 });
   assert.equal(tr.expenses[0].note, 'food'); assert.equal(tr.expenses[0].catId, 'meal');
 });
+test('reducing interest survives native module and backup round trips without migrating legacy modes', () => {
+  const reducing = { ...dragon(), interestMode: 'reducing', unpaidInterest: 25 };
+  const normalized = normalizeModule('debt', { dragons: [reducing, { ...dragon(), id: 'flat', interestMode: 'simple' }, { ...dragon(), id: 'old', interestMode: undefined }] });
+  assert.deepEqual(normalized.dragons.map(d => d.interestMode), ['reducing', 'simple', 'compound']);
+  assert.equal(normalized.dragons[0].unpaidInterest, 25);
+  const backup = { format: 'coin-quest-player-v1', uid: 'qa', savedAt: new Date(now).toISOString(), modules: { debt: normalized, treasury: normalizeModule('treasury'), comparisons: [] } };
+  assert.equal(parseBackup(JSON.stringify(backup), 'qa').modules.debt.dragons[0].interestMode, 'reducing');
+  assert.throws(() => validateDragon({ ...reducing, interestMode: 'unknown' }));
+});
+test('native reducing payment clears accrued interest before principal and preserves replay math', () => {
+  const start = canon.dateOnlyMs('2026-10-02');
+  const d = { ...dragon(), interestMode: 'reducing', unpaidInterest: 0, apr: 36.5, createdAt: start, interestAccruedAt: start };
+  const paid = payDragon(d, 5, day, 'interest-only', now).debt;
+  assert.equal(paid.balance, 1005); assert.equal(paid.unpaidInterest, 5);
+  assert.equal(paid.log[0].interest, 5); assert.equal(paid.log[0].principal, 0);
+  const next = payDragon(paid, 105, day, 'principal', now).debt;
+  assert.equal(next.balance, 900); assert.equal(next.unpaidInterest, 0);
+  assert.equal(next.log[1].interest, 5); assert.equal(next.log[1].principal, 100);
+  assert.equal(canon.accrueDebtToDate(next, '2026-10-13').interest, .9);
+  const restored = restoreDebtLog(editDebtLog(next, 'principal', 0, day, true), 'principal');
+  assert.equal(restored.balance, 900); assert.equal(restored.unpaidInterest, 0); assert.equal(restored.interestMode, 'reducing');
+});
 test('dated payment conserves balance, records provenance, and is idempotent', () => {
   const paid = payDragon(dragon(), 100, day, 'p1', now);
   assert.equal(paid.debt.balance, 900); assert.equal(paid.debt.log[0].balanceBefore, 1000); assert.equal(paid.debt.log[0].balanceAfter, 900);

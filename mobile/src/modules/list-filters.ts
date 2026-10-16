@@ -16,16 +16,8 @@ export function matchesDebtFilter(dragon: Dragon, filter: DebtFilter, today = ne
   if (filter === 'active') return !dragon.slain;
   if (filter === 'paid') return dragon.slain;
   if (filter !== 'due') return true;
-  if (dragon.payMode === 'adhoc' || !dragon.dueDay || dragon.slain) return false;
-  const year = today.getFullYear(); const month = today.getMonth();
-  const paidThisMonth = dragon.log.some(row => {
-    const date = new Date(row.ts || 0);
-    return date.getFullYear() === year && date.getMonth() === month;
-  });
-  const dueDay = canon.clampedDueDay(year, month, dragon.dueDay);
-  if (!paidThisMonth && today.getDate() > dueDay) return true;
-  const due = paidThisMonth ? canon.dueDateForMonth(year, month + 1, dragon.dueDay) : new Date(year, month, dueDay);
-  return Math.round((canon.dateOnlyMs(due) - canon.dateOnlyMs(today)) / 86400000) <= 7;
+  const due = canon.debtDueStatus(dragon, today);
+  return !!due && (due.overdue || (due.days ?? Infinity) <= 7);
 }
 
 export function visibleDebts(dragons: Dragon[], filter: DebtFilter, query: string, sort: DebtSort, today = new Date()) {
@@ -46,7 +38,7 @@ export function visibleComparisons(comparisons: Comparison[], filter: PriceFilte
 }
 
 export function categorySpent(state: Treasury, categoryId: string) {
-  return state.expenses.filter(expense => expense.catId === categoryId).reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  return canon.treasurySpent({ ...state, expenses: state.expenses.filter(expense => expense.catId === categoryId) });
 }
 
 // Exact thresholds from treasury/app.js categoryStatus (100% is still near).

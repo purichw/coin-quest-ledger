@@ -59,6 +59,24 @@ test('owner module replacement removes deleted map keys and preserves the other 
   await assertFails(getDoc(doc(player('intruder'), 'playerModules', s.uid)));
 });
 
+test('financial interest and Treasury reward ledgers survive an authorized module round trip', async () => {
+  const s = await seed(), ref = doc(s.db, 'playerModules', s.uid);
+  const L = globalThis.PointyLogic;
+  const at = L.dateOnlyMs('2026-01-01');
+  const accrued = L.accrueDebtToDate({ id: 'audit', original: 1000, balance: 1000, unpaidInterest: 0, apr: 36.5, interestMode: 'reducing', createdAt: at, interestAccruedAt: at, log: [] }, '2026-01-11').debt;
+  const payment = L.applyDebtPayment(accrued, 5, '2026-01-11');
+  const debt = { dragons: [payment.debt], stats: { interest: 10 } };
+  const treasury = L.treasuryClose({ month: '2026-01', income: 100, expenses: [{ amount: .1, date: '2026-01-01' }, { amount: .2, date: '2026-01-01' }], history: [], stats: {} }, '2026-02');
+  await assertSucceeds(updateDoc(ref, L.cleanFirestoreData({ debt, treasury })));
+  const saved = (await getDoc(ref)).data();
+  assert.equal(saved.debt.dragons[0].unpaidInterest, 5);
+  assert.equal(L.normalizeDebtState(saved.debt).dragons[0].interestMode, 'reducing');
+  assert.equal(L.dailyInterest(saved.debt.dragons[0], '2026-01-11', '2026-01-21'), 10);
+  assert.equal(L.applyDebtPayment(saved.debt.dragons[0], 10, '2026-01-11').principalPaid, 5);
+  assert.deepEqual(saved.treasury.stats.loggedDays, ['2026-01-01']);
+  assert.equal(L.treasuryXp(saved.treasury), 510);
+});
+
 test('blocked lifecycle cannot be hidden by active status or reset by the owner', async () => {
   const s = await seed({ lifecycleStatus: 'archived' });
   await assertFails(updateDoc(doc(s.db, 'users', s.uid), { lifecycleStatus: 'active' }));
@@ -229,6 +247,48 @@ test('deleting a real account preserves every shared expense and settlement obli
   assert.equal(saved.guestHeroes.Deleted, true); assert.equal(saved.characterIds.Deleted, undefined);
   assert.deepEqual(saved.access.memberUids, ['other']);
   assert.deepEqual(browser.PointyLogic.settleUp(browser.PointyLogic.computeParty(saved), saved), before);
+});
+
+test('three-player ledger round trip preserves satang, confirmed transfers and XP under duplicate transactions', async () => {
+  const L = browser.PointyLogic;
+  const ids = ['ledger-a','ledger-b','ledger-c'];
+  for (const [i,uid] of ids.entries()) await admin.doc(`users/${uid}`).set({ uid, userId:String(7101+i), username:uid, status:'active', characterId:String(7101+i) });
+  const state = L.normalizeTripState({ tripName:'Emulator financial audit', participants:['A','B','C'],
+    characterIds:{A:'7101',B:'7102',C:'7103'}, access:{ownerUids:[ids[0]],memberUids:ids,memberCharacterIds:['7101','7102','7103']},
+    custom:{preserve:true}, expenses:[{id:'dinner',desc:'Dinner',amount:900,paidBy:'A',payers:{A:600,B:300},sharedBy:['A','B','C']}] });
+  await admin.doc('trips/ledger-roundtrip').set(L.cleanFirestoreData(state));
+  const confirm = (uid,from,to) => {
+    const db=player(uid), ref=doc(db,'trips','ledger-roundtrip');
+    return runTransaction(db,async tx=>{
+      const current=(await tx.get(ref)).data();
+      tx.set(ref,L.cleanFirestoreData(L.confirmSettlement(current,from,to,1000)));
+    });
+  };
+  await Promise.all([confirm(ids[2],'C','A'),confirm(ids[2],'C','A')]);
+  let saved=(await getDoc(doc(player(ids[1]),'trips','ledger-roundtrip'))).data();
+  assert.equal(saved.settlementRecords.length,1);
+  assert.deepEqual(saved.settleXp,{C:180,A:120});
+  assert.deepEqual(L.pendingSettlements(saved).sort((a,b)=>a.from.localeCompare(b.from)),[{from:'B',to:'A',amount:100},{from:'C',to:'B',amount:100}]);
+  await confirm(ids[1],'B','A'); await confirm(ids[2],'C','B');
+  saved=(await getDoc(doc(player(ids[0]),'trips','ledger-roundtrip'))).data();
+  assert.deepEqual(saved.custom,{preserve:true});
+  assert.deepEqual(saved.settleXp,{A:240,B:300,C:360});
+  assert.equal(L.pendingSettlements(L.normalizeTripState(saved)).length,0);
+  assert.deepEqual(L.computeParty(saved).map(hero=>hero.xp),[255,300,360]);
+  // Editing the original bill does not undo real money already repaid.
+  const db=player(ids[0]), ref=doc(db,'trips','ledger-roundtrip');
+  await runTransaction(db,async tx=>{
+    const current=(await tx.get(ref)).data();
+    tx.set(ref,L.cleanFirestoreData({...current,expenses:[]}));
+  });
+  saved=(await getDoc(ref)).data();
+  assert.deepEqual(L.pendingSettlements(saved),[{from:'A',to:'C',amount:200},{from:'A',to:'B',amount:100},{from:'B',to:'C',amount:100}]);
+  await Promise.all([confirm(ids[0],'A','C'),confirm(ids[0],'A','C')]);
+  await confirm(ids[0],'A','B'); await confirm(ids[1],'B','C');
+  saved=(await getDoc(ref)).data();
+  assert.equal(saved.settlementRecords.length,6);
+  assert.deepEqual(saved.settleXp,{A:240,B:300,C:360});
+  assert.equal(L.pendingSettlements(saved).length,0);
 });
 
 test('character creation must link the user atomically; a second character cannot be minted', async () => {

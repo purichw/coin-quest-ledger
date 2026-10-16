@@ -29,14 +29,14 @@ test('spreadsheet imports share native/web payer and exact-share validation and 
   assert.throws(() => logic.validateLedgerExpense({ ...e, split: { mode: 'unknown' } }, ['Hero', 'Guest']));
 });
 
-test('settlement confirmation survives reload, prevents duplicate rewards, and invalidates changed amounts', () => {
+test('settlement survives reload and credits repaid money against edited amounts', () => {
   const state = logic.normalizeTripState({ participants: ['A', 'B'], expenses: [{ id: 'native-uuid', desc: 'meal', amount: 100, paidBy: 'A', sharedBy: ['A', 'B'] }] });
   const saved = logic.confirmSettlement(state, 'B', 'A', 1000);
   assert.equal(logic.pendingSettlements(logic.normalizeTripState(plain(saved))).length, 0);
   assert.equal(saved.settleXp.B, logic.SETTLE_BONUS_PAYER);
   assert.equal(logic.confirmSettlement(saved, 'B', 'A', 2000), saved);
   const edited = { ...saved, expenses: [{ ...saved.expenses[0], amount: 200 }] };
-  assert.equal(logic.pendingSettlements(edited)[0].amount, 100);
+  assert.equal(logic.pendingSettlements(edited)[0].amount, 50);
 });
 
 function closeTo(actual, expected, delta = 0.000001) {

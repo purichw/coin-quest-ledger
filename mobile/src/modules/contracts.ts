@@ -23,6 +23,7 @@ export function normalizeModule<K extends ModuleKey>(key: K, value: unknown): Mo
 export function validateDragon(d: Dragon, previous?: Dragon) {
   const name = typeof d.name === 'string' ? d.name : d.name.th;
   if (!name.trim() || name.length > 80) throw new Error('ใส่ชื่อหนี้ 1–80 ตัวอักษร');
+  if (!['reducing', 'compound', 'simple'].includes(d.interestMode)) throw new Error('เลือกวิธีคิดดอกเบี้ย');
   if (![d.balance, d.original, d.apr, d.payment].every(n => Number.isFinite(n) && n >= 0 && n <= Number.MAX_SAFE_INTEGER / 100)) throw new Error('ตรวจยอดคงเหลือ เงินต้น ดอกเบี้ย และยอดผ่อน');
   // Interest may exceed principal and produce sub-satang precision. Preserve it
   // when unchanged; newly entered monetary amounts still require two decimals.

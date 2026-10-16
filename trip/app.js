@@ -451,8 +451,9 @@ function tripAccessMetadata(state = S) {
 }
 function renameParticipantReferences(from, to) {
   if (!from || !to || from === to) return;
+  const previousRevision = PointyLogic.settlementRevision(S);
   S.participants = S.participants.map(name => name === from ? to : name);
-  S.expenses = S.expenses.map(expense => {
+  const renameExpense = expense => {
     const payers = expense.payers ? Object.fromEntries(Object.entries(expense.payers).map(([name, amount]) => [name === from ? to : name, amount])) : undefined;
     const weights = expense.split?.weights ? Object.fromEntries(Object.entries(expense.split.weights).map(([name, weight]) => [name === from ? to : name, weight])) : undefined;
     const items = expense.split?.items ? expense.split.items.map(item => ({
@@ -466,7 +467,14 @@ function renameParticipantReferences(from, to) {
       sharedBy: (expense.sharedBy || []).map(name => name === from ? to : name),
       split: expense.split ? { ...expense.split, weights, items } : undefined
     };
-  });
+  };
+  S.expenses = S.expenses.map(renameExpense);
+  S.expenseTrash = (S.expenseTrash || []).map(renameExpense);
+  const revision = PointyLogic.settlementRevision(S);
+  S.settlementRecords = (S.settlementRecords || []).map(tx => ({ ...tx,
+    from: tx.from === from ? to : tx.from, to: tx.to === from ? to : tx.to,
+    revision: tx.revision === previousRevision ? revision : tx.revision
+  }));
   ['budgets', 'heroClasses', 'heroGenders', 'heroSkins', 'characterIds', 'guestHeroes', 'promptpay', 'settleXp'].forEach(key => {
     if (!S[key] || !Object.prototype.hasOwnProperty.call(S[key], from)) return;
     S[key][to] = S[key][from];
@@ -486,38 +494,43 @@ function ensureAccountHero() {
   S.heroSkins ||= {};
   S.budgets ||= {};
   const byId = Object.keys(S.characterIds).find(name => String(S.characterIds[name]) === hero.id);
-  const existing = byId || (S.participants.includes(hero.name) ? hero.name : '');
-  if (existing && existing !== hero.name) {
-    renameParticipantReferences(existing, hero.name);
+  const legacyName = S.participants.includes(hero.name) && !S.characterIds[hero.name] && !S.guestHeroes[hero.name] ? hero.name : '';
+  const existing = byId || legacyName;
+  const name = existing && existing.split(NAME_KEY_SEP)[0] === hero.name ? existing : uniqueParticipantName(hero.name, hero.id);
+  if (existing && existing !== name) {
+    renameParticipantReferences(existing, name);
     changed = true;
   }
-  if (S.participants[0] !== hero.name) changed = true;
-  S.participants = S.participants.filter(name => name !== hero.name);
-  S.participants.unshift(hero.name);
-  if (S.characterIds[hero.name] !== hero.id) changed = true;
-  S.characterIds[hero.name] = hero.id;
-  if (S.heroClasses[hero.name] !== hero.cls) changed = true;
-  S.heroClasses[hero.name] = hero.cls;
-  if (S.heroGenders[hero.name] !== hero.gender) changed = true;
-  S.heroGenders[hero.name] = hero.gender;
-  if (hero.skin) S.heroSkins[hero.name] = hero.skin;
-  else if (S.heroSkins[hero.name]) { delete S.heroSkins[hero.name]; changed = true; }
-  if (!S.budgets[hero.name]) {
-    S.budgets[hero.name] = 3000;
+  if (!S.participants.includes(name)) {
+    S.participants.push(name);
     changed = true;
   }
-  if (S.admin?.adminName === hero.name && S.admin.characterId !== hero.id) {
+  if (S.characterIds[name] !== hero.id) changed = true;
+  S.characterIds[name] = hero.id;
+  if (S.heroClasses[name] !== hero.cls) changed = true;
+  S.heroClasses[name] = hero.cls;
+  if (S.heroGenders[name] !== hero.gender) changed = true;
+  S.heroGenders[name] = hero.gender;
+  if (hero.skin) S.heroSkins[name] = hero.skin;
+  else if (S.heroSkins[name]) { delete S.heroSkins[name]; changed = true; }
+  if (!S.budgets[name]) {
+    S.budgets[name] = 3000;
+    changed = true;
+  }
+  if (S.admin?.adminName === name && !S.admin.characterId) {
     S.admin.characterId = hero.id;
     changed = true;
   }
+  const existingRecord = _characterRegistry[hero.id] || readLocalRegistry()[hero.id] || {};
   persistCharacterRecord({
+    ...existingRecord,
     id: hero.id,
     name: hero.name,
     class: hero.cls,
     gender: hero.gender,
     skin: hero.skin,
-    trips: { ...(_characterRegistry[hero.id]?.trips || {}) },
-    xp: Number(_characterRegistry[hero.id]?.xp) || 0,
+    trips: { ...(existingRecord.trips || {}) },
+    xp: Number(existingRecord.xp) || 0,
     ownerUid: readAccount()?.uid || '',
     updatedAt: Date.now()
   });
@@ -561,7 +574,7 @@ function characterBaseXp(name) {
   if (!id) return 0;
   const rec = _characterRegistry[id] || readLocalRegistry()[id];
   if (!rec?.trips) return Number(rec?.xp) || 0;
-  return Object.entries(rec.trips).reduce((sum, [id, xp]) => id === tripId ? sum : sum + (Number(xp) || 0), 0);
+  return Object.entries(rec.trips).reduce((sum, [id, xp]) => id === tripId ? sum : sum + (Number(xp) || 0), Number(rec.debtXp) || 0);
 }
 function syncCharacterRegistry(party) {
   party.forEach(hero => {
@@ -571,12 +584,12 @@ function syncCharacterRegistry(party) {
     const rec = _characterRegistry[id] || { id, trips: {}, createdAt: Date.now() };
     const before = JSON.stringify(rec);
     const base = characterBaseXp(hero.name);
-    rec.name = hero.name;
+    rec.name = hero.name.split(NAME_KEY_SEP)[0];
     rec.class = hero.cls;
     rec.gender = genderOf(hero.name);
     rec.skin = skinOf(hero.name);
     rec.trips = { ...(rec.trips || {}), [tripId]: Math.max(0, Math.round(hero.xp - base)) };
-    rec.xp = Object.values(rec.trips).reduce((sum, xp) => sum + (Number(xp) || 0), 0);
+    rec.xp = Object.values(rec.trips).reduce((sum, xp) => sum + (Number(xp) || 0), Number(rec.debtXp) || 0);
     rec.updatedAt = Date.now();
     if (before !== JSON.stringify(rec)) persistCharacterRecord(rec, tripId);
   });
@@ -890,8 +903,15 @@ async function saveNow() {
 async function writeState() {
   try {
     syncActiveCampaign();
-    cacheProfileSnapshot();
+    const savingId = tripId;
+    const savingKey = PointyLogic.tripContentKey(S);
     await TripStore.write(S);
+    // Do not award persistent XP for an optimistic edit that failed to save, or
+    // for a newer draft made while this write was in flight.
+    if (tripId === savingId && PointyLogic.tripContentKey(S) === savingKey) {
+      cacheProfileSnapshot();
+      syncCharacterRegistry(computeParty());
+    }
     window.dispatchEvent(new CustomEvent('coin-quest-state-changed'));
     setSaveStatus('saved', t('status_saved'));
   } catch (err) {
@@ -925,6 +945,12 @@ async function load() {
     applySettings();
     setSaveStatus('saved', t('status_saved'));
     if (migrated) save();
+    else if (snap.exists) {
+      // A confirmed read can include repayments made by another party member.
+      // Refresh owned character progress without requiring an unrelated edit.
+      cacheProfileSnapshot();
+      syncCharacterRegistry(computeParty());
+    }
     return true;
   } catch (err) {
     console.error('Load failed', err);
@@ -1260,8 +1286,9 @@ function removeParticipant(name) {
     return;
   }
   const removedCharacterId = S.characterIds?.[name] || '';
-  const used = S.expenses.some(e => e.paidBy === name || e.sharedBy.includes(name) || Number(e.payers?.[name]) > 0);
-  if (used && !confirm(t('confirm_remove_hero'))) return;
+  const used = [...S.expenses, ...(S.expenseTrash || [])].some(e => e.paidBy === name || e.sharedBy.includes(name) || Number(e.payers?.[name]) > 0)
+    || (S.settlementRecords || []).some(tx => tx.from === name || tx.to === name);
+  if (used) { toast(LANG === 'en' ? 'This member has financial history. Start a new trip to change the party and keep existing balances.' : 'สมาชิกนี้มีประวัติการเงินอยู่ เริ่มทริปใหม่เพื่อเปลี่ยนปาร์ตี้โดยรักษายอดเดิม'); return; }
   S.participants = S.participants.filter(p => p !== name);
   S.expenses = S.expenses.map(e => {
     const payers = e.payers ? { ...e.payers } : undefined;
@@ -1476,15 +1503,18 @@ function renderParty() {
   const needsGuestId = !!account;
   const idAddMode = needsGuestId && _addHeroMode !== 'guest';
   const guestAddMode = !needsGuestId || _addHeroMode === 'guest';
-  const party = computeParty();
+  // Pin the viewer's hero visually without reordering the persisted ledger.
+  const party = computeParty().sort((a, b) => Number(S.characterIds?.[b.name] === account?.id) - Number(S.characterIds?.[a.name] === account?.id));
   const pending = PointyLogic.pendingSettlements(S);
   document.getElementById('party-count').textContent = S.participants.length;
   const grid = document.getElementById('party-grid');
   const cards = party.map(hero => {
     const cls = CLASSES[hero.cls];
     const c = classColor(hero.cls);
-    const outstanding = pending.reduce((sum, transfer) => sum + (transfer.to === hero.name ? transfer.amount : 0) - (transfer.from === hero.name ? transfer.amount : 0), 0);
-    const status = statusOf({ ...hero, bal: outstanding });
+    const outgoing = pending.reduce((sum, tx) => sum + (tx.from === hero.name ? tx.amount : 0), 0);
+    const incoming = pending.reduce((sum, tx) => sum + (tx.to === hero.name ? tx.amount : 0), 0);
+    const twoWay = outgoing > .005 && incoming > .005;
+    const status = twoWay ? { kind: 'debt', icon: '↔', label: LANG === 'en' ? 'Repay / Receive' : 'จ่าย / รับ', amt: 0 } : statusOf({ ...hero, bal: incoming - outgoing });
     const hpCol = hpColor(hero.hp);
     const reward = hero.reward;
     const rankTitle = reward.title[LANG] || reward.title.th;
@@ -1513,7 +1543,7 @@ function renderParty() {
         <div class="bar-row">
           <span class="bar-lab hp">${t('hp')}</span>
           <span class="bar"><span class="bar-fill" style="width:${hero.hp}%;background:linear-gradient(${hpCol.a},${hpCol.b})"></span></span>
-          <button class="bar-val budget-btn" onclick="editBudget(${q(hero.name)})">${hero.over ? `<span class="over">${t('over_budget')}</span>` : money(hero.remaining)}</button>
+          <button class="bar-val budget-btn" onclick="editBudget(${q(hero.name)})">${hero.over ? `<span class="over">${t('over_budget')}</span>` : money2(hero.remaining)}</button>
         </div>
         <div class="bar-row">
           <span class="bar-lab xp">${t('xp')}</span>
@@ -1522,9 +1552,9 @@ function renderParty() {
         </div>
       </div>` : ''}
       <div class="hero-foot">
-        <div class="mini-stat"><span>💰 ${t('gold')}</span><span>${money(hero.paid)}</span></div>
+        <div class="mini-stat"><span>💰 ${t('gold')}</span><span>${money2(hero.paid)}</span></div>
         <div class="status-chip ${status.kind}" title="${status.kind === 'guardian' ? h(t('guardian_tip')) : status.kind === 'debt' ? h(t('debt_tip')) : ''}">
-          <span>${status.icon}</span><span><strong>${status.label}</strong>${status.amt > 0 ? `<span>${status.kind === 'guardian' ? '+' : '−'}${money(status.amt)}</span>` : ''}</span>
+          <span>${status.icon}</span><span><strong>${status.label}</strong>${twoWay ? `<span>${money2(outgoing)} / ${money2(incoming)}</span>` : status.amt > 0 ? `<span>${status.kind === 'guardian' ? '+' : '−'}${money2(status.amt)}</span>` : ''}</span>
         </div>
       </div>
     </div>`;
@@ -1716,19 +1746,20 @@ function updateSplitInfo() {
   const info = document.getElementById('split-info');
   if (info) info.textContent = _splitMode === 'items'
     ? `${t('loot_total')}: ${money2(lootTotal())}`
-    : (n ? `${n} ${LANG === 'en' ? 'heroes' : 'คน'}${amt > 0 ? ' · ' + money2(amt / n) + ' ' + t('each') : ''}` : '—');
+    : (n ? `${n} ${LANG === 'en' ? 'heroes' : 'คน'}${amt > 0 && _splitMode === 'equal' && Math.round(amt * 100) % n === 0 ? ' · ' + money2(amt / n) + ' ' + t('each') : ''}` : '—');
   const weights = {};
   document.querySelectorAll('.weight-value').forEach(el => { weights[el.dataset.name] = numInput(el.value); _splitWeights[el.dataset.name] = el.value; });
   const itemSplit = _splitMode === 'items' ? { mode: 'items', items: _lootItems.map(item => ({ name: item.name, amount: numInput(item.amount), claimedBy: item.claimedBy || [] })) } : null;
-  const shares = splitShares({ amount: amt, sharedBy: sharedBy(), split: _splitMode === 'equal' ? undefined : (itemSplit || { mode: _splitMode, weights }) }, S.participants);
+  const previewPayers = _payerMode === 'multi' ? Object.fromEntries(Array.from(document.querySelectorAll('.payer-value'), el => [el.dataset.name, numInput(el.value)])) : undefined;
+  const shares = splitShares({ amount: amt, paidBy: document.getElementById('exp-payer')?.value, payers: previewPayers, sharedBy: sharedBy(), split: _splitMode === 'equal' ? undefined : (itemSplit || { mode: _splitMode, weights }) }, S.participants);
   document.querySelectorAll('.wr-share').forEach(el => { el.textContent = money2(shares[el.dataset.name] || 0); });
   let paid = 0;
   document.querySelectorAll('.payer-value').forEach(el => { _payerAmounts[el.dataset.name] = el.value; paid += numInput(el.value); });
   const payTotal = document.getElementById('pay-total');
   if (payTotal) {
     const diff = amt - paid;
-    payTotal.className = `pay-total ${Math.abs(diff) <= 1 ? 'ok' : 'off'}`;
-    payTotal.textContent = Math.abs(diff) <= 1 ? `✓ ${money2(paid)}` : `${diff > 0 ? t('short_by') : t('over_by')} ${money2(Math.abs(diff))}`;
+    payTotal.className = `pay-total ${Math.abs(diff) <= .005 ? 'ok' : 'off'}`;
+    payTotal.textContent = Math.abs(diff) <= .005 ? `✓ ${money2(paid)}` : `${diff > 0 ? t('short_by') : t('over_by')} ${money2(Math.abs(diff))}`;
   }
 }
 function renderShareChips() {
@@ -1753,8 +1784,8 @@ function renderEntry() {
   const prevDate = resetDraft ? '' : (document.getElementById('exp-date')?.value || _expenseDate || '');
   const prevIcon = questIconId(resetDraft ? QUEST_ICONS[0] : (document.getElementById('exp-icon-value')?.value || QUEST_ICONS[0]));
   const prevPayer = resetDraft ? S.participants[0] : (document.getElementById('exp-payer')?.value || S.participants[0]);
-  const split = _splitMode === 'items' ? S.participants.slice() : (resetDraft ? S.participants.slice() : sharedBy());
-  const hiddenShares = S.participants.map(p => `<input type="checkbox" class="share-cb" value="${h(p)}" ${!split.length || split.includes(p) ? 'checked' : ''}>`).join('');
+  const split = _splitMode === 'items' || resetDraft || !document.getElementById('hidden-shares') ? S.participants.slice() : sharedBy();
+  const hiddenShares = S.participants.map(p => `<input type="checkbox" class="share-cb" value="${h(p)}" ${split.includes(p) ? 'checked' : ''}>`).join('');
   const iconPicker = `<div class="icon-picker ${_iconDropUp ? 'drop-up' : ''}" style="--icon-pop-max:${_iconPickerMax}px"><button class="icon-btn" data-entry-action="toggle-icon-picker" type="button" aria-label="${h(questIconLabel(prevIcon) || t('quest_name'))}">${questIconMarkup(prevIcon, 34)}</button>${_iconOpen ? `<div class="icon-pop labeled">${QUEST_ICONS.map(ic => `<button class="icon-opt ${questIconId(ic) === prevIcon ? 'on' : ''}" data-entry-action="pick-icon" data-icon="${h(ic)}" type="button" title="${h(questIconLabel(ic))}">${questIconMarkup(ic, 18)}<span class="io-lab">${h(questIconLabel(ic))}</span></button>`).join('')}</div>` : ''}</div><input type="hidden" id="exp-icon-value" value="${h(prevIcon)}">`;
   const payerBlock = `<div class="field board-payer">
     <div class="field-lab-row"><label>${t('who_paid')}</label><button type="button" class="mini-toggle" data-payer-mode="${_payerMode === 'one' ? 'multi' : 'one'}">${_payerMode === 'one' ? '＋ ' + t('multi_payer') : '↩ ' + t('one_payer')}</button></div>
@@ -1765,7 +1796,7 @@ function renderEntry() {
   </div>`;
   const modeButtons = [['equal','split_equal'],['shares','split_shares'],['exact','split_exact'],['percent','split_percent'],['items','split_items']]
     .map(([mode,key]) => `<button type="button" class="${_splitMode === mode ? 'on' : ''}" data-split-mode="${mode}">${t(key)}</button>`).join('');
-  const selected = split.length ? split : S.participants.slice();
+  const selected = split;
   const weightRows = (_splitMode === 'equal' || _splitMode === 'items') ? '' : `<div class="weight-rows">${selected.map(name => {
     const suffix = _splitMode === 'percent' ? '%' : _splitMode === 'exact' ? '฿' : t('share_label');
     return `<div class="weight-row">${heroAvatar(name,26)}<span class="wr-name">${h(name)}</span><div class="weight-in"><input class="weight-value" data-name="${h(name)}" type="text" inputmode="decimal" value="${h(fmtInput(_splitWeights[name] || ''))}" placeholder="${_splitMode === 'shares' ? '1' : '0'}"><span class="wr-suffix">${suffix}</span></div><span class="wr-share" data-name="${h(name)}">${money2(0)}</span></div>`;
@@ -1970,14 +2001,15 @@ function deleteExpense(id) {
 function confirmClearExpenses() {
   if (!S.expenses.length) return;
   if (confirm(t('confirm_clear_log'))) {
-    S.expenses = []; S.settleXp = {}; _settledTx = [];
+    S.expenseTrash = [...(S.expenseTrash || []), ...S.expenses];
+    S.expenses = []; _settledTx = [];
     save(); renderAll();
   }
 }
 function renderLog(party) {
   document.getElementById('expense-count').textContent = S.expenses.length;
   const total = S.expenses.reduce((a,e) => a + e.amount, 0);
-  document.getElementById('party-total').textContent = money(total);
+  document.getElementById('party-total').textContent = money2(total);
   const el = document.getElementById('quest-log');
   if (!S.expenses.length) { el.innerHTML = `<div class="empty">⚔️ ${t('no_quests')}</div>`; return; }
   const query = (document.getElementById('board-log-search')?.value || '').trim().toLocaleLowerCase();
@@ -2019,7 +2051,13 @@ function savePromptPay(name) {
 }
 function confirmTributePaid() {
   if (!_tributeTx) return;
-  const { key, from, to } = _tributeTx;
+  const { key, from, to, amount } = _tributeTx;
+  const current = PointyLogic.pendingSettlements(S).find(tx => tx.from === from && tx.to === to);
+  if (!current || Math.abs(current.amount - amount) > .005) {
+    _overlay = null; _tributeTx = null; renderOverlay(); renderSettlement(computeParty());
+    toast(LANG === 'en' ? 'The balance changed. Review the updated amount before confirming.' : 'ยอดคงเหลือเปลี่ยนแล้ว กรุณาตรวจสอบยอดใหม่ก่อนยืนยัน');
+    return;
+  }
   _overlay = null;
   _tributeTx = null;
   settleOne(key, from, to);
@@ -2028,23 +2066,27 @@ function renderSettlement(party) {
   document.getElementById('settle-list-btn').classList.toggle('on', (S.settings.settleView || 'list') === 'list');
   document.getElementById('settle-map-btn').classList.toggle('on', S.settings.settleView === 'map');
   const el = document.getElementById('settle-body');
-  if (!S.expenses.length || party.length < 2) { el.innerHTML = `<div class="empty">${t('no_quests')}</div>`; return; }
+  const records = (S.settlementRecords || []).filter(tx => tx && typeof tx === 'object');
+  const history = records.length ? `<details class="board-repayment-history"><summary>${LANG === 'en' ? 'Repayment history' : 'ประวัติการคืนเงิน'} (${records.length})</summary>${records.map(tx => `<div class="board-repayment-row"><span>${h(tx.from)} → ${h(tx.to)}${tx.kind === 'legacy_confirmation' ? `<small> · ${LANG === 'en' ? 'Old confirmation, excluded from balance' : 'การยืนยันรอบเก่า ไม่นำมาหักยอดซ้ำ'}</small>` : ''}</span><strong>${money2(tx.amount)}</strong></div>`).join('')}</details>` : '';
+  const note = `<p class="board-repayment-note">${LANG === 'en' ? 'Balances include recorded repayments. Editing or deleting an expense keeps money already repaid; overpayments become refunds.' : 'ยอดนี้หักเงินที่คืนแล้ว การแก้หรือลบรายจ่ายจะไม่ล้างประวัติการคืนเงิน หากคืนเกินจะแสดงยอดที่ต้องคืนกลับ'}</p>${history}`;
+  if ((!S.expenses.length && !records.length) || party.length < 2) { el.innerHTML = `<div class="empty">${t('no_quests')}</div>`; return; }
   const txns = PointyLogic.pendingSettlements(S);
   if (!txns.length) {
-    el.innerHTML = `<div class="settled"><div class="emoji">🛡️✨</div><div class="title">${t('settled_msg')}</div><div class="sub">${t('rest_msg')}</div></div>`;
+    el.innerHTML = `<div class="settled"><div class="emoji">🛡️✨</div><div class="title">${t('settled_msg')}</div><div class="sub">${t('rest_msg')}</div></div>${note}`;
     return;
   }
   const byName = Object.fromEntries(party.map(p => [p.name, p]));
   if (S.settings.settleView === 'map') {
-    const max = Math.max(1, ...party.map(p => Math.abs(p.bal)));
-    el.innerHTML = `<div class="debt-map">${party.slice().sort((a,b) => b.bal - a.bal).map(p => {
-      const pos = p.bal > .5, neg = p.bal < -.5, w = Math.round((Math.abs(p.bal) / max) * 50);
+    const remaining = party.map(p => ({ ...p, bal: txns.reduce((sum, tx) => sum + (tx.to === p.name ? tx.amount : 0) - (tx.from === p.name ? tx.amount : 0), 0) }));
+    const max = Math.max(.01, ...remaining.map(p => Math.abs(p.bal)));
+    el.innerHTML = `<div class="debt-map">${remaining.sort((a,b) => b.bal - a.bal).map(p => {
+      const pos = p.bal > .005, neg = p.bal < -.005, w = Math.round((Math.abs(p.bal) / max) * 50);
       return `<div class="debt-row">
         <div class="debt-name">${heroAvatar(p.name, 32)}<span>${h(p.name)}</span></div>
         <div class="debt-track"><span class="debt-zero"></span>${pos || neg ? `<span class="debt-fill ${pos ? 'pos' : 'neg'}" style="width:${w}%"></span>` : ''}</div>
-        <div class="debt-val ${pos ? 'pos' : neg ? 'neg' : ''}">${pos ? '+' + money(p.bal) : neg ? '−' + money(-p.bal) : t('even')}</div>
+        <div class="debt-val ${pos ? 'pos' : neg ? 'neg' : ''}">${pos ? '+' + money2(p.bal) : neg ? '−' + money2(-p.bal) : txns.some(tx => tx.from === p.name || tx.to === p.name) ? (LANG === 'en' ? 'Net ฿0' : 'สุทธิ ฿0') : t('even')}</div>
       </div>`;
-    }).join('')}</div>`;
+    }).join('')}</div>${note}`;
     return;
   }
   el.innerHTML = `<div class="tribute-list">${txns.map(tx => {
@@ -2055,7 +2097,7 @@ function renderSettlement(party) {
       <div class="tr-person">${heroAvatar(tx.to, 38)}<span>${h(tx.to)}</span></div>
       <div class="board-settle-action"><div class="tr-amt">${money2(tx.amount)}</div><button class="btn-primary sm" onclick="openTribute(${q(tx.from)},${q(tx.to)},${Number(tx.amount) || 0})">${boardText('repay')}</button></div>
     </div>`;
-  }).join('')}</div>`;
+  }).join('')}</div>${note}`;
 }
 function openTemplateModal() { _overlay = 'templates'; SFX.click(); renderOverlay(); }
 function openImportModal() { _overlay = 'import'; SFX.click(); renderOverlay(); }
@@ -2337,8 +2379,10 @@ function renderOverlay() {
       </div>` : `<div class="qr-paybox">
         <div class="settings-sub">${t('scan_to_pay')} · ${fmtPP(pp)}</div>
         ${qrSvg(payload, 260)}
-        <div class="import-actions" style="width:100%"><button class="btn-ghost" onclick="_tributeEdit=true;renderOverlay()">${t('edit_promptpay')}</button><button class="btn-primary" onclick="confirmTributePaid()">✓ ${t('confirm_paid')}</button></div>
+        <div class="import-actions" style="width:100%"><button class="btn-ghost" onclick="_tributeEdit=true;renderOverlay()">${t('edit_promptpay')}</button></div>
       </div>`}
+      <p class="board-repayment-note">${LANG === 'en' ? 'Confirm only after the money has been repaid, by transfer or cash. This app records the payment; it does not transfer money.' : 'ยืนยันเมื่อคืนเงินจริงแล้ว ไม่ว่าจะโอนหรือจ่ายเงินสด แอปใช้บันทึกการคืนเงินและไม่ได้โอนเงินให้'}</p>
+      <button class="btn-primary" onclick="confirmTributePaid()">✓ ${t('confirm_paid')}</button>
     </div></div>`;
     return;
   }
@@ -2392,9 +2436,7 @@ function renderAll(checkLevels = true) {
   document.querySelector('.settings-fab')?.classList.remove('hidden');
   ensureAllCharacterIds();
   syncActiveCampaign();
-  cacheProfileSnapshot();
   const party = computeParty();
-  syncCharacterRegistry(party);
   if (checkLevels) detectLevelUps(party);
   renderTripName();
   renderParty();
@@ -2478,7 +2520,7 @@ async function exportExcel() {
   totRow.getCell(2).font = { bold: true };
   totRow.getCell(2).numFmt = '#,##0.00';
   const party = computeParty();
-  const txns = settleUp(party);
+  const txns = PointyLogic.pendingSettlements(S);
   const ws2 = wb.addWorksheet('Balance the Party');
   [22,22,16].forEach((w,i) => ws2.getColumn(i + 1).width = w);
   ws2.mergeCells('A1:C1');
@@ -2487,7 +2529,9 @@ async function exportExcel() {
   ws2.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFefe0b6' } };
   ws2.addRow([]); xlHeaderRow(ws2.addRow(['Hero', 'Balance (฿)', 'Status']));
   party.forEach((p, i) => {
-    const row = ws2.addRow([p.name, Math.abs(p.bal), p.bal > .5 ? 'Guardian' : p.bal < -.5 ? 'In Debt' : 'Even']);
+    const balance = txns.reduce((sum, tx) => sum + (tx.to === p.name ? tx.amount : 0) - (tx.from === p.name ? tx.amount : 0), 0);
+    const twoWay = txns.some(tx => tx.from === p.name) && txns.some(tx => tx.to === p.name);
+    const row = ws2.addRow([p.name, Math.abs(balance), twoWay ? 'Repay / Receive' : balance > .005 ? 'To receive' : balance < -.005 ? 'To repay' : 'Even']);
     row.getCell(2).numFmt = '#,##0.00';
     row.getCell(2).alignment = { horizontal: 'right' };
     xlDataRow(row, i % 2 === 1);

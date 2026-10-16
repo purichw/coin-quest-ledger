@@ -1,6 +1,19 @@
 # Native And Web Parity
 
-Last updated: 2026-10-16
+Last updated: 2026-10-17
+
+## Shared financial rules — 2026-10-17
+
+Web and native now share durable Split repayment records, reverse refunds after
+expense corrections and once-per-pair settlement XP. New debts default to
+reducing-balance simple interest; existing modes are preserved. Interest accrual,
+interest-first payments, replay, due dates and monthly forecasts use the shared
+canon. Treasury and Compare Prices use the same corrected financial/reward rules.
+
+See [native verification](mobile/docs/financial-canon-2026-10-17.md) for 85
+contract checks and actual Simulator payment/edit/refund evidence. The Mac locked
+before the final native refund confirmation and process restart; these remain
+unverified through the native UI. Web release does not update installed binaries.
 
 ## iOS presentation refresh — 2026-10-16
 

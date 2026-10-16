@@ -25,8 +25,9 @@ test('due filter uses the inclusive seven-day window, month-end clamping and ove
   for (const patch of [{ payMode: 'adhoc' }, { slain: true }, { archived: true }]) assert.equal(matchesDebtFilter(dragon('excluded', patch), 'due', new Date(2026, 1, 28)), false);
 });
 
-test('a payment in the current local month advances the due filter to next month', () => {
-  const paid = dragon('paid-month', { dueDay: 3, log: [{ id: 'payment', ts: new Date(2026, 1, 2, 12).getTime(), amount: 1 }] });
+test('only a full installment in the current local month advances the due filter', () => {
+  const paid = dragon('paid-month', { dueDay: 3, log: [{ id: 'payment', ts: new Date(2026, 1, 2, 12).getTime(), amount: 100 }] });
+  assert.equal(matchesDebtFilter({ ...paid, log: [{ ...paid.log[0], amount: 1 }] }, 'due', new Date(2026, 1, 15)), true);
   assert.equal(matchesDebtFilter(paid, 'due', new Date(2026, 1, 15)), false);
   assert.equal(matchesDebtFilter(paid, 'due', new Date(2026, 1, 27)), true);
   assert.equal(matchesDebtFilter({ ...paid, log: [{ ...paid.log[0], ts: new Date(2026, 0, 31, 12).getTime() }] }, 'due', new Date(2026, 1, 15)), true);

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 
-const evidence = 'docs/price-arena-redesign-2026-10-13/qa';
+const evidence = process.env.PRICE_QA_DIR || 'docs/price-arena-redesign-2026-10-13/qa';
 async function fixture(page) {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('price-design-fixture')) return;

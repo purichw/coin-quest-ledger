@@ -1,6 +1,22 @@
 # Memory: Coin Quest Ledger
 
-Last updated: 2026-10-16
+Last updated: 2026-10-17
+
+## Financial audit and repayment policy — 2026-10-17
+
+The user approved keeping actual Split repayments after expense corrections and
+making reducing-balance simple interest the default for new Debt Dragon entries.
+Split now derives remaining debts or reverse refunds from those payments; a pair
+earns settlement XP once per campaign. Existing debt modes remain unchanged.
+The shared canon also fixes satang allocation, interest-first payment replay,
+Treasury rewards/date boundaries and Compare Prices eligibility.
+
+Use the [financial release record](docs/financial-release-2026-10-17/README.md)
+for worked cases, verification and the pre-release rollback baseline. The
+[native evidence](mobile/docs/financial-canon-2026-10-17.md) covers the matching
+source and Simulator flows, with its final refund-confirm/restart gap explicit.
+This release does not distribute a native binary or OTA. Promotion must be
+confirmed from the intended commit's CI/CD run and canonical Vercel alias.
 
 ## Native refresh local acceptance evidence — 2026-10-16
 

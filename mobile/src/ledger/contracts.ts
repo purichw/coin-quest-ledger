@@ -18,6 +18,11 @@ export function readBoard(data: Record<string, unknown>): Board {
 export function memberName(board: Board, characterId: string) {
   return board.participants.find(name => board.characterIds[name] === characterId && !board.guestHeroes[name]);
 }
+export function confirmBoardRepayment(board: Board, displayed: Board, from: string, to: string, amount: number, now = Date.now()): Board {
+  const pending = canon.pendingSettlements(board).find(t => t.from === from && t.to === to);
+  if (canon.settlementRevision(board) !== canon.settlementRevision(displayed) || !pending || Math.round(pending.amount * 100) !== Math.round(amount * 100)) throw new Error('ยอดเปลี่ยนจากอีกเครื่อง กรุณารีเฟรชก่อนยืนยัน');
+  return canon.confirmSettlement(board, from, to, now);
+}
 export function parseBoardReference(input: string) {
   let value = input.trim();
   if (/^https?:\/\//i.test(value)) { const url = new URL(value); if (!['coinquestledger.vercel.app', 'localhost', '127.0.0.1'].includes(url.hostname) || !/^\/trip\/?$/.test(url.pathname)) throw new Error('ใช้ลิงก์บอร์ด Coin Quest'); value = url.searchParams.get('id') || ''; }

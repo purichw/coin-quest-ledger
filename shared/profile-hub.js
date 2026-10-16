@@ -1147,7 +1147,7 @@
     return new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
   }
   function billPaidThisMonth(treasury, billId, mk) {
-    return (treasury.expenses || []).some(e => e.billId === billId && monthKey(e.date) === mk);
+    return window.PointyLogic.treasuryBillPaid({ ...treasury, month: mk }, billId);
   }
   function billDueStatus(bill, treasury, today = new Date()) {
     if (bill.archived) return null;
@@ -1167,22 +1167,8 @@
     return ACHIEVEMENTS.map(item => ({ ...item, unlocked: !!item.test(ctx), progress: item.prog ? item.prog(ctx) : null }));
   }
 
-  function dayStart(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function dueStatus(d, today = new Date()) {
-    if (d.archived || d.payMode === 'adhoc' || !d.dueDay || d.slain) return null;
-    const y = today.getFullYear();
-    const m = today.getMonth();
-    const paidThisMonth = (d.log || []).some(row => {
-      const t = new Date(row.ts || row.date || 0);
-      return t.getFullYear() === y && t.getMonth() === m;
-    });
-    const dimThis = new Date(y, m + 1, 0).getDate();
-    const dueThis = Math.min(Number(d.dueDay) || 0, dimThis);
-    if (!paidThisMonth && today.getDate() > dueThis) return { overdue: true };
-    const dueDate = paidThisMonth
-      ? new Date(y, m + 1, Math.min(Number(d.dueDay) || 1, new Date(y, m + 2, 0).getDate()))
-      : new Date(y, m, dueThis);
-    return { overdue: false, days: Math.round((dayStart(dueDate) - dayStart(today)) / 86400000) };
+    return PointyLogic.debtDueStatus(d, today);
   }
   function activeParty() {
     const current = currentTripState();

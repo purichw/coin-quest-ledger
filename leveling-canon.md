@@ -17,7 +17,7 @@ All level math must start in `shared/pointy-logic.js`.
 
 Do not add new `Math.floor(x / step) + 1` formulas in feature files. Add a helper to `PointyLogic` first, then call it from modules.
 
-Native app note: `mobile/src/gameLogic.ts` currently mirrors only the module-specific native gameplay math needed for Debt Dragon, Treasury, and Compare. It must not invent separate XP/level thresholds. When native surfaces display character/profile levels, port or share the `PointyLogic` canon instead of adding mobile-only formulas.
+Native app note: `mobile/src/domain/canon.ts` imports the shared `PointyLogic` implementation for Debt Dragon, Treasury, Compare, and Split. It must not invent separate XP/level thresholds.
 
 ## Tracks
 
@@ -79,7 +79,9 @@ Current values:
 | Pay a bill on time | 80 |
 | Close an under-budget month | 500 |
 
-Budget-month achievements count unique won months from Treasury history, so repeatedly closing the same month does not farm Trophy Hall unlocks.
+Budget-month achievements count unique won months. `stats.wonMonths` and `stats.loggedDays` retain compact month/date keys after the detailed history is capped at 12 months. Repeated close does not multiply rewards; closing a revised over-budget month removes that month's win. `stats.legacyMonthsWon` preserves older aggregate wins whose month keys are no longer available. Missing historic logging dates cannot be inferred from `stats.logged` (an expense count).
+
+The compatibility helper `treasuryXp()` returns this same Reputation total; it is not Character XP. Compare rewards count only valid, compatible-unit offers within each qualifying comparison. An unrelated single-offer product cannot increase another comparison's reward.
 
 ## Activity Rewards
 
@@ -90,8 +92,8 @@ Party Ledger gives Character XP and Profile Reputation, but the tracks no longer
 | Activity | Character XP | Profile Reputation |
 | --- | ---: | ---: |
 | Front money above own share | amount / 20, capped 250 per board | amount / 50, capped 100 per campaign |
-| Confirm settlement as payer | 180 | fully settled board bonus below |
-| Confirm settlement as payee | 120 | fully settled board bonus below |
+| First repayment per participant pair per campaign, payer | 180 | fully settled board bonus below |
+| First repayment per participant pair per campaign, payee | 120 | fully settled board bonus below |
 | Add valid expense/quest | 0 direct Character XP | 10 each, capped 50 per campaign |
 | Fully settled board/campaign | 0 direct Character XP | 250 |
 | Fully settled multi-member board/campaign | 0 direct Character XP | +100 |
@@ -99,6 +101,9 @@ Party Ledger gives Character XP and Profile Reputation, but the tracks no longer
 Notes:
 
 - Character XP from a trip is stored per character and per trip where possible.
+- Repayment records survive expense edits. Each unordered participant pair earns
+  its settlement bonus once per campaign; top-ups, reverse refunds, retry and
+  reload cannot repeat it. Existing legacy settlement XP is preserved.
 - `characters/{id}.xp` is preferred when available.
 - If `characters/{id}.xp` is missing, Character Profile can derive XP from trip records, debt XP, scaled fronted-money XP, and settlement XP.
 

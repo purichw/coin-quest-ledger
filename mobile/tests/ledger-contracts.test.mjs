@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canon } from '../src/domain/canon.ts';
-import { acceptInvite, addGuest, addHero, editGuest, freshBoard, memberName, ownsBoard, parseBoardReference, readBoard, removeMember, restoreMember, switchCampaign, syncCampaign, validateExpense, withoutUndefined } from '../src/ledger/contracts.ts';
+import { acceptInvite, addGuest, addHero, confirmBoardRepayment, editGuest, freshBoard, memberName, ownsBoard, parseBoardReference, readBoard, removeMember, restoreMember, switchCampaign, syncCampaign, validateExpense, withoutUndefined } from '../src/ledger/contracts.ts';
 import { previewImport, applyImport, textExpenses, spreadsheetExpense } from '../src/ledger/imports.ts';
 
 const account = { uid: 'owner-a', username: 'qa', userId: '1234', name: 'Owner', characterId: '1234', status: 'active' };
@@ -94,6 +94,31 @@ test('invalid exact/percent/multi-payer totals are rejected before writes', () =
 test('multi-payer and exclusions use web obligations', () => {
   const b = pair(); const e = expense({ payers: { Hero: 80, Guest: 20 }, sharedBy: ['Guest'] }); validateExpense(e, b); b.expenses = [e];
   assert.deepEqual(canon.settleUp(canon.computeParty(b), b), [{ from: 'Guest', to: 'Hero', amount: 80 }]);
+});
+test('native repayment survives expense edits and campaign round trips; refunds do not reward again', () => {
+  const b = pair(); b.expenses = [expense()];
+  const paid = confirmBoardRepayment(b, b, 'Guest', 'Hero', 50, 2000);
+  const changed = readBoard({ ...paid, expenses: [expense({ amount: 60 })] });
+  assert.deepEqual(canon.pendingSettlements(changed), [{ from: 'Hero', to: 'Guest', amount: 20 }]);
+  const refunded = confirmBoardRepayment(changed, changed, 'Hero', 'Guest', 20, 3000);
+  assert.deepEqual(canon.pendingSettlements(refunded), []);
+  assert.deepEqual(refunded.settleXp, paid.settleXp);
+  const persisted = readBoard(withoutUndefined(syncCampaign(refunded, 4000)));
+  assert.equal(persisted.settlementRecords.length, 2);
+  assert.deepEqual(persisted.campaigns[0].settlementRecords, persisted.settlementRecords);
+  assert.deepEqual(canon.pendingSettlements(persisted), []);
+  const removed = { ...persisted, expenses: [] };
+  assert.deepEqual(canon.pendingSettlements(removed), [{ from: 'Hero', to: 'Guest', amount: 30 }]);
+  assert.throws(() => removeMember(removed, 'Guest', hero.id));
+});
+test('native confirmation refuses another repayment even when expense revision is unchanged', () => {
+  const b = pair(); b.expenses = [expense()];
+  const paid = confirmBoardRepayment(b, b, 'Guest', 'Hero', 50, 2000);
+  assert.equal(canon.settlementRevision(paid), canon.settlementRevision(b));
+  assert.throws(() => confirmBoardRepayment(paid, b, 'Guest', 'Hero', 50, 3000));
+  const partial = { ...b, settlementRecords: [{ from: 'Guest', to: 'Hero', amount: 20, revision: canon.settlementRevision(b), at: 1500 }] };
+  assert.throws(() => confirmBoardRepayment(partial, b, 'Guest', 'Hero', 50, 3000));
+  assert.throws(() => confirmBoardRepayment({ ...b, expenses: [expense({ amount: 120 })] }, b, 'Guest', 'Hero', 50, 3000));
 });
 test('locked Pointy/PP/PPP regression keeps pairwise obligations', () => {
   const b = readBoard({ participants: ['Pointy', 'PP', 'PPP'], expenses: [
