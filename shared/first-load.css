@@ -232,17 +232,27 @@ html.first-load-boot body > :not([data-first-load]) { opacity: 0 !important; poi
   position: absolute;
   right: max(40px, env(safe-area-inset-right));
   bottom: max(36px, env(safe-area-inset-bottom));
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 408px;
   min-height: 112px;
-  padding: 16px 20px;
+  padding: 16px 20px 0;
   border: 1px solid #a382424f;
   border-radius: 15px;
   background: linear-gradient(120deg, #2f2a28ed, #241f20dc);
   box-shadow: 0 8px 28px #0004, inset 0 1px #fff1;
 }
 .first-load-tip strong { display: block; font-size: 16px; font-weight: 600; color: #f4dfa4; }
-.first-load-tip p { margin: 2px 0 0; font-size: 15px; line-height: 1.5; color: #e0d8cc; }
+.first-load-tip p {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 8px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #e0d8cc;
+}
 .first-load button { font-family: inherit; cursor: pointer; }
 .first-load button:focus-visible { outline: 2px solid #ffdc84; outline-offset: 3px; }
 .first-load-continue {
