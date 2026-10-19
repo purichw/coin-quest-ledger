@@ -1,5 +1,30 @@
 # Coin Quest mobile rebuild recovery
 
+## 2026-10-20 approved workspace cleanup (complete)
+
+The user approved the exact manifest and cleanup command in
+`.git/coinquest-cleanup-2026-10-20/PLAN.md`. The cleanup removed 851 untracked
+temporary files and superseded handoff outputs, and restored 144 tracked QA
+images to their committed baseline at `deb096345da5a95fa909156c390c39fbfb5c5644`.
+Nine useful documentation/evidence files were preserved in commit `7e4f111`.
+No runtime code, live route, user data, test coverage or Git history was removed;
+no product feature is parked or awaiting restoration.
+
+Local recovery checkpoint:
+`/Users/point/toolbox/.git/coinquest-cleanup-2026-10-20/checkpoint/`.
+It contains the status, binary working/staged diffs, manifest, restore instructions
+and a byte-verified archive of all 995 affected files. The archive SHA-256 is
+`a65fdd9973f086eea7e564a88131fb48bdc78ab0126c62a14eca7ed786974ab4`.
+The adjacent `receipt.json` records the completed operations. This checkpoint
+is local recovery material and is not included in the repository or deployment.
+
+To recover an old output, extract only the selected archive entries into a new
+review directory, compare their hashes with the manifest and check against the
+current files. Obtain approval before overwriting newer work. Verify any restored
+output for its intended use; do not restore a complete historical output set over
+the active workspace. Post-cleanup Git status was clean apart from the preserved
+documentation commit awaiting push. No feature restoration remains outstanding.
+
 ## 2026-10-12 full player design restoration (verified locally)
 
 The user superseded the colors-only pass: restore Website and rebuilt Mobile
