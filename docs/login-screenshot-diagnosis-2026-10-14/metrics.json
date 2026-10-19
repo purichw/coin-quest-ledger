@@ -1,0 +1,99 @@
+{
+  "items": [
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "clientHeight": 823,
+      "overflow": "visible",
+      "position": "static",
+      "rect": {
+        "height": 1049.390625,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "scrollHeight": 1049,
+      "scrollTop": 0,
+      "selector": "html"
+    },
+    {
+      "background": "rgb(231, 220, 198)",
+      "clientHeight": 1049,
+      "overflow": "hidden",
+      "position": "static",
+      "rect": {
+        "height": 1049.390625,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "scrollHeight": 1049,
+      "scrollTop": 0,
+      "selector": "body"
+    },
+    {
+      "background": "rgb(231, 220, 198)",
+      "clientHeight": 823,
+      "overflow": "auto",
+      "position": "fixed",
+      "rect": {
+        "height": 823,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "scrollHeight": 823,
+      "scrollTop": 0,
+      "selector": ".login-gate"
+    },
+    {
+      "background": "rgb(53, 35, 23)",
+      "clientHeight": 823,
+      "overflow": "clip",
+      "position": "relative",
+      "rect": {
+        "height": 823,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "scrollHeight": 832,
+      "scrollTop": 0,
+      "selector": ".auth-entry"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "clientHeight": 823,
+      "overflow": "visible",
+      "position": "absolute",
+      "rect": {
+        "height": 823,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "scrollHeight": 832,
+      "scrollTop": 0,
+      "selector": ".auth-scene"
+    },
+    {
+      "background": "rgb(244, 236, 215)",
+      "clientHeight": 961,
+      "overflow": "visible",
+      "position": "static",
+      "rect": {
+        "height": 961.390625,
+        "width": 1440,
+        "x": 0,
+        "y": 88
+      },
+      "scrollHeight": 961,
+      "scrollTop": 0,
+      "selector": "#home-view"
+    }
+  ],
+  "scrollY": 0,
+  "viewport": [
+    1440,
+    823
+  ]
+}

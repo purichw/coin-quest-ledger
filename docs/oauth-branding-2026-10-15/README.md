@@ -1,7 +1,7 @@
 # Google OAuth branding — 15 October 2026
 
-Status (16 October 2026, Bangkok): **website changes deployed; OAuth app In
-production; public branding awaiting Google's domain-ownership propagation.**
+Status (19 October 2026, Bangkok): **website changes deployed; OAuth app In
+production; branding submitted for manual review and currently under review.**
 
 ## Saved configuration
 
@@ -53,7 +53,62 @@ confirmed **Ownership verified — HTML tag** for the URL-prefix property
 24 hours after ownership verification before retrying. No repeated verification
 request or unsupported appeal was submitted. Retry no earlier than 17 October
 2026 at 01:00 Asia/Bangkok, then publish branding if Google makes that action
-available. This is a pending external step, not a completed brand-name rollout.
+available. This was the initial follow-up plan; see the 17 October result below.
+
+### 17 October follow-up
+
+After the 24-hour window, one automated re-verification again returned the same
+homepage-ownership finding. Search Console Settings still showed **You are a
+verified owner** for `https://coinquestledger.vercel.app/` and the same Google
+account. The root verification tag and all three public information pages remain
+live. URL-prefix/HTML-tag ownership is distinct from the DNS Domain Property
+method described in Google's current
+[domain verification guidance](https://support.google.com/cloud/answer/13804266?hl=en).
+Do not assume waiting another 24 hours alone resolves that difference.
+
+A manual-review appeal was prepared with reason **Other**, explicitly explaining
+the URL-prefix verification method, Vercel subdomain, elapsed waiting period and
+public homepage/policy links. It asks Google to review that evidence and advise
+whether another verification method or a custom domain is required; it does not
+claim DNS verification. The final questionnaire was completed in the browser
+while this follow-up was active. The agent did not select its acknowledgments or
+press its final Submit button. The subsequent authoritative console state is
+**Your branding is currently under review**. Data access separately says
+verification is not required because no sensitive/restricted scopes are requested.
+
+Google's additional-review UI estimates **2–3 business days**, not a guaranteed
+completion time. Do not resubmit or change publishing status while that review
+is pending. No new domain is selected or required from the owner at this point;
+wait for the review outcome before choosing that remedy. The real Google sign-in
+name has not yet been accepted as changed, and no branding Publish action was
+available during this follow-up. Firebase, OAuth client, accounts, data, scopes
+and Admin access remain unchanged.
+
+Evidence: `mobile/.artifacts/oauth-branding-2026-10-17/` (ignored), containing
+`search-console-verified-owner.png`, `branding-reverification-issue.png`, and
+`branding-under-review.png`. `verification-questionnaire-pending.png` captured
+the in-progress submission transition, not an unsubmitted/unchecked form.
+The existing daily 01:00 Asia/Bangkok heartbeat remains active to check the review,
+publish branding when available and verify the visible sign-in name before stopping.
+
+### 18 October scheduled check
+
+The fresh Verification Center read still shows **Your branding is currently under
+review**, with no new actionable finding or Publish control. Data access still
+requires no verification for sensitive/restricted scopes. No configuration was
+changed and no review was resubmitted. The sign-in name is not yet confirmed as
+changed; the existing daily follow-up continues silently while review is pending.
+Fresh evidence: `mobile/.artifacts/oauth-branding-2026-10-18/branding-under-review.png`
+(ignored).
+
+### 19 October scheduled check
+
+Verification Center still shows **Your branding is currently under review**.
+No new finding or Publish control is visible. No configuration changes or
+resubmission were made; the existing daily follow-up remains active. The real
+Google sign-in name has not yet been confirmed as changed.
+Fresh evidence: `mobile/.artifacts/oauth-branding-2026-10-19/branding-under-review.png`
+(ignored).
 
 Google requires a public descriptive home page, policy/terms links and domain
 ownership verification as applicable. Saving the app name does not make it
@@ -178,8 +233,8 @@ or infer a font-loading race from them. No assertions or time budgets changed.
 
 ## Remaining sequence
 
-1. After the 24-hour propagation window, request branding re-verification.
-2. Complete any remaining verification and publish the approved branding.
+1. Wait for the current manual branding review; inspect any new findings before changing configuration.
+2. Publish the approved branding when Google makes it available.
 3. Verify the visible Google sign-in name and original Admin account again.
 
 Official references:
